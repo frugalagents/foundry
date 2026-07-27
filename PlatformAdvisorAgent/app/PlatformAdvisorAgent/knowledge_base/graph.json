@@ -1,0 +1,5211 @@
+{
+  "version": "2.0",
+  "last_updated": "2026-07-23",
+  "metadata": {
+    "total_nodes": 131,
+    "total_edges": 387,
+    "node_types": {
+      "Pattern": 4,
+      "Constraint": 43,
+      "Component": 9,
+      "AWSService": 27,
+      "TopologyDecision": 6,
+      "Law": 5,
+      "Innovation": 16,
+      "AntiPattern": 12,
+      "Industry": 5,
+      "Phase": 4
+    },
+    "edge_types": {
+      "PRESSURES_TOWARD": 136,
+      "PRESSURES_AGAINST": 35,
+      "IMPLEMENTED_BY": 22,
+      "REQUIRES": 36,
+      "ELEVATES_TIER": 13,
+      "FORCES": 7,
+      "BLOCKS": 3,
+      "SOLVES": 31,
+      "ENABLES": 10,
+      "REPLACES": 3,
+      "TRIGGERED_BY": 19,
+      "PREVENTED_BY": 21,
+      "FORCES_TIER": 26,
+      "BUILT_IN": 18,
+      "DEPENDS_ON": 7
+    },
+    "intake_version": "9-question (v2)",
+    "question_weights": {
+      "Q1_decision_model": 0.14,
+      "Q2_builder_persona": 0.11,
+      "Q3_team_count": 0.15,
+      "Q4_agent_purpose": 0.12,
+      "Q5_cloud_stance": 0.1,
+      "Q6_data_gravity": 0.08,
+      "Q7_cost_model": 0.1,
+      "Q8_compliance": 0.1,
+      "Q9_pain_points": 0.1
+    },
+    "multi_select_questions": [
+      "Q4",
+      "Q8",
+      "Q9"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "pattern:centralized",
+      "type": "Pattern",
+      "props": {
+        "name": "Centralized",
+        "description": "Dedicated platform team owns, operates, and governs shared infrastructure that all LOBs use. Optimizes for governance, cost control, consistency."
+      }
+    },
+    {
+      "id": "pattern:federated",
+      "type": "Pattern",
+      "props": {
+        "name": "Federated",
+        "description": "Central team provides shared infrastructure and standards; LOBs own agent implementations, deployments, and operations. Optimizes for autonomy and innovation speed."
+      }
+    },
+    {
+      "id": "pattern:mesh",
+      "type": "Pattern",
+      "props": {
+        "name": "Mesh",
+        "description": "Peer-to-peer governance, emergent standards, agent marketplaces, self-organizing teams. No central team owns the platform."
+      }
+    },
+    {
+      "id": "pattern:economy",
+      "type": "Pattern",
+      "props": {
+        "name": "Economy",
+        "description": "Market-based coordination where agents bid, auction, and trade capabilities. Internal marketplace or external composable agents."
+      }
+    },
+    {
+      "id": "constraint:q1:full_autonomy",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q1",
+        "question": "How should agents make decisions?",
+        "answer_value": "Agents act independently (full autonomy)",
+        "weight": 0.14,
+        "select_type": "single",
+        "centralization_pressure": 0.2,
+        "federation_pressure": 0.7,
+        "mesh_pressure": 0.8,
+        "economy_pressure": 0.5,
+        "simplicity_pressure": 0.1
+      }
+    },
+    {
+      "id": "constraint:q1:approval_gates",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q1",
+        "question": "How should agents make decisions?",
+        "answer_value": "Agents propose, humans approve (approval gates)",
+        "weight": 0.14,
+        "select_type": "single",
+        "centralization_pressure": 0.8,
+        "federation_pressure": 0.2,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.7
+      }
+    },
+    {
+      "id": "constraint:q1:copilot",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q1",
+        "question": "How should agents make decisions?",
+        "answer_value": "Agents assist, humans execute (copilot mode)",
+        "weight": 0.14,
+        "select_type": "single",
+        "centralization_pressure": 0.7,
+        "federation_pressure": 0.3,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.9
+      }
+    },
+    {
+      "id": "constraint:q2:ai_ml_engineers",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q2",
+        "question": "Who's building agents?",
+        "answer_value": "Dedicated AI/ML engineers",
+        "weight": 0.11,
+        "select_type": "single",
+        "centralization_pressure": 0.2,
+        "federation_pressure": 0.8,
+        "mesh_pressure": 0.7,
+        "economy_pressure": 0.5,
+        "simplicity_pressure": 0.1
+      }
+    },
+    {
+      "id": "constraint:q2:fullstack_devs",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q2",
+        "question": "Who's building agents?",
+        "answer_value": "Full-stack developers with AI interest",
+        "weight": 0.11,
+        "select_type": "single",
+        "centralization_pressure": 0.5,
+        "federation_pressure": 0.5,
+        "mesh_pressure": 0.3,
+        "economy_pressure": 0.2,
+        "simplicity_pressure": 0.6
+      }
+    },
+    {
+      "id": "constraint:q2:business_nocode",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q2",
+        "question": "Who's building agents?",
+        "answer_value": "Business teams with no-code tools",
+        "weight": 0.11,
+        "select_type": "single",
+        "centralization_pressure": 0.9,
+        "federation_pressure": 0.1,
+        "mesh_pressure": 0.0,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 1.0
+      }
+    },
+    {
+      "id": "constraint:q2:mix_all",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q2",
+        "question": "Who's building agents?",
+        "answer_value": "Mix of all",
+        "weight": 0.11,
+        "select_type": "single",
+        "centralization_pressure": 0.5,
+        "federation_pressure": 0.6,
+        "mesh_pressure": 0.4,
+        "economy_pressure": 0.3,
+        "simplicity_pressure": 0.4
+      }
+    },
+    {
+      "id": "constraint:q3:1_3_teams",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q3",
+        "question": "How many teams will build or consume agents?",
+        "answer_value": "1-3 teams (single org)",
+        "weight": 0.15,
+        "select_type": "single",
+        "centralization_pressure": 0.9,
+        "federation_pressure": 0.1,
+        "mesh_pressure": 0.0,
+        "economy_pressure": 0.0,
+        "simplicity_pressure": 0.9
+      }
+    },
+    {
+      "id": "constraint:q3:4_10_teams",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q3",
+        "question": "How many teams will build or consume agents?",
+        "answer_value": "4-10 teams (multi-LOB)",
+        "weight": 0.15,
+        "select_type": "single",
+        "centralization_pressure": 0.5,
+        "federation_pressure": 0.7,
+        "mesh_pressure": 0.4,
+        "economy_pressure": 0.3,
+        "simplicity_pressure": 0.4
+      }
+    },
+    {
+      "id": "constraint:q3:10plus_teams",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q3",
+        "question": "How many teams will build or consume agents?",
+        "answer_value": "10+ teams (enterprise-wide)",
+        "weight": 0.15,
+        "select_type": "single",
+        "centralization_pressure": 0.1,
+        "federation_pressure": 0.9,
+        "mesh_pressure": 0.7,
+        "economy_pressure": 0.6,
+        "simplicity_pressure": 0.1
+      }
+    },
+    {
+      "id": "constraint:q4:internal_productivity",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q4",
+        "question": "What are agents FOR?",
+        "answer_value": "Internal productivity (back-office)",
+        "weight": 0.12,
+        "select_type": "multi",
+        "centralization_pressure": 0.4,
+        "federation_pressure": 0.5,
+        "mesh_pressure": 0.4,
+        "economy_pressure": 0.2,
+        "simplicity_pressure": 0.7
+      }
+    },
+    {
+      "id": "constraint:q4:customer_facing",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q4",
+        "question": "What are agents FOR?",
+        "answer_value": "Customer-facing products",
+        "weight": 0.12,
+        "select_type": "multi",
+        "centralization_pressure": 0.8,
+        "federation_pressure": 0.3,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.2,
+        "simplicity_pressure": 0.3
+      }
+    },
+    {
+      "id": "constraint:q4:revenue_generating",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q4",
+        "question": "What are agents FOR?",
+        "answer_value": "Revenue-generating workflows",
+        "weight": 0.12,
+        "select_type": "multi",
+        "centralization_pressure": 0.7,
+        "federation_pressure": 0.4,
+        "mesh_pressure": 0.2,
+        "economy_pressure": 0.6,
+        "simplicity_pressure": 0.2
+      }
+    },
+    {
+      "id": "constraint:q4:developer_tooling",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q4",
+        "question": "What are agents FOR?",
+        "answer_value": "Developer tooling",
+        "weight": 0.12,
+        "select_type": "multi",
+        "centralization_pressure": 0.3,
+        "federation_pressure": 0.7,
+        "mesh_pressure": 0.6,
+        "economy_pressure": 0.3,
+        "simplicity_pressure": 0.5
+      }
+    },
+    {
+      "id": "constraint:q4:ops_incident",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q4",
+        "question": "What are agents FOR?",
+        "answer_value": "Operations / incident response",
+        "weight": 0.12,
+        "select_type": "multi",
+        "centralization_pressure": 0.6,
+        "federation_pressure": 0.4,
+        "mesh_pressure": 0.3,
+        "economy_pressure": 0.2,
+        "simplicity_pressure": 0.5
+      }
+    },
+    {
+      "id": "constraint:q5:all_in_aws",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q5",
+        "question": "Cloud and portability stance?",
+        "answer_value": "All-in on AWS",
+        "weight": 0.1,
+        "select_type": "single",
+        "centralization_pressure": 0.8,
+        "federation_pressure": 0.4,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.8
+      }
+    },
+    {
+      "id": "constraint:q5:aws_primary",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q5",
+        "question": "Cloud and portability stance?",
+        "answer_value": "AWS-primary, some workloads elsewhere",
+        "weight": 0.1,
+        "select_type": "single",
+        "centralization_pressure": 0.5,
+        "federation_pressure": 0.6,
+        "mesh_pressure": 0.4,
+        "economy_pressure": 0.2,
+        "simplicity_pressure": 0.5
+      }
+    },
+    {
+      "id": "constraint:q5:multi_cloud",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q5",
+        "question": "Cloud and portability stance?",
+        "answer_value": "Must run across 2+ clouds",
+        "weight": 0.1,
+        "select_type": "single",
+        "centralization_pressure": 0.1,
+        "federation_pressure": 0.7,
+        "mesh_pressure": 0.8,
+        "economy_pressure": 0.4,
+        "simplicity_pressure": 0.1
+      }
+    },
+    {
+      "id": "constraint:q5:on_prem_edge",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q5",
+        "question": "Cloud and portability stance?",
+        "answer_value": "Must run on-prem or edge",
+        "weight": 0.1,
+        "select_type": "single",
+        "centralization_pressure": 0.2,
+        "federation_pressure": 0.6,
+        "mesh_pressure": 0.8,
+        "economy_pressure": 0.3,
+        "simplicity_pressure": 0.1
+      }
+    },
+    {
+      "id": "constraint:q6:single_region",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q6",
+        "question": "Where does your critical data live?",
+        "answer_value": "Single AWS region",
+        "weight": 0.08,
+        "select_type": "single",
+        "centralization_pressure": 0.9,
+        "federation_pressure": 0.3,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.9
+      }
+    },
+    {
+      "id": "constraint:q6:multi_region",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q6",
+        "question": "Where does your critical data live?",
+        "answer_value": "Multiple AWS regions",
+        "weight": 0.08,
+        "select_type": "single",
+        "centralization_pressure": 0.5,
+        "federation_pressure": 0.7,
+        "mesh_pressure": 0.4,
+        "economy_pressure": 0.3,
+        "simplicity_pressure": 0.3
+      }
+    },
+    {
+      "id": "constraint:q6:hybrid",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q6",
+        "question": "Where does your critical data live?",
+        "answer_value": "Hybrid (on-prem + cloud)",
+        "weight": 0.08,
+        "select_type": "single",
+        "centralization_pressure": 0.2,
+        "federation_pressure": 0.6,
+        "mesh_pressure": 0.7,
+        "economy_pressure": 0.3,
+        "simplicity_pressure": 0.1
+      }
+    },
+    {
+      "id": "constraint:q6:edge_distributed",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q6",
+        "question": "Where does your critical data live?",
+        "answer_value": "Edge / distributed",
+        "weight": 0.08,
+        "select_type": "single",
+        "centralization_pressure": 0.1,
+        "federation_pressure": 0.5,
+        "mesh_pressure": 0.9,
+        "economy_pressure": 0.4,
+        "simplicity_pressure": 0.1
+      }
+    },
+    {
+      "id": "constraint:q7:cost_first",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q7",
+        "question": "What's your cost model?",
+        "answer_value": "Cost is the #1 constraint (must optimize from day 1)",
+        "weight": 0.1,
+        "select_type": "single",
+        "centralization_pressure": 0.8,
+        "federation_pressure": 0.3,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.7,
+        "simplicity_pressure": 0.6
+      }
+    },
+    {
+      "id": "constraint:q7:performance_first",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q7",
+        "question": "What's your cost model?",
+        "answer_value": "Performance first, optimize later",
+        "weight": 0.1,
+        "select_type": "single",
+        "centralization_pressure": 0.3,
+        "federation_pressure": 0.7,
+        "mesh_pressure": 0.5,
+        "economy_pressure": 0.2,
+        "simplicity_pressure": 0.3
+      }
+    },
+    {
+      "id": "constraint:q7:predictable_spend",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q7",
+        "question": "What's your cost model?",
+        "answer_value": "Predictable spend matters (fixed budget)",
+        "weight": 0.1,
+        "select_type": "single",
+        "centralization_pressure": 0.7,
+        "federation_pressure": 0.4,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.5,
+        "simplicity_pressure": 0.6
+      }
+    },
+    {
+      "id": "constraint:q7:pay_for_outcomes",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q7",
+        "question": "What's your cost model?",
+        "answer_value": "Pay-for-outcomes (ROI-driven)",
+        "weight": 0.1,
+        "select_type": "single",
+        "centralization_pressure": 0.3,
+        "federation_pressure": 0.5,
+        "mesh_pressure": 0.4,
+        "economy_pressure": 0.8,
+        "simplicity_pressure": 0.2
+      }
+    },
+    {
+      "id": "constraint:q8:sox",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q8",
+        "question": "Which compliance frameworks apply?",
+        "answer_value": "SOX (financial controls)",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.9,
+        "federation_pressure": 0.3,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.2
+      }
+    },
+    {
+      "id": "constraint:q8:pci_dss",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q8",
+        "question": "Which compliance frameworks apply?",
+        "answer_value": "PCI-DSS (payment data)",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.8,
+        "federation_pressure": 0.3,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.2
+      }
+    },
+    {
+      "id": "constraint:q8:hipaa",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q8",
+        "question": "Which compliance frameworks apply?",
+        "answer_value": "HIPAA (health data)",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.8,
+        "federation_pressure": 0.3,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.0,
+        "simplicity_pressure": 0.2
+      }
+    },
+    {
+      "id": "constraint:q8:fedramp",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q8",
+        "question": "Which compliance frameworks apply?",
+        "answer_value": "FedRAMP / FISMA (government)",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.9,
+        "federation_pressure": 0.2,
+        "mesh_pressure": 0.0,
+        "economy_pressure": 0.0,
+        "simplicity_pressure": 0.1
+      }
+    },
+    {
+      "id": "constraint:q8:eu_ai_act",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q8",
+        "question": "Which compliance frameworks apply?",
+        "answer_value": "EU AI Act",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.7,
+        "federation_pressure": 0.4,
+        "mesh_pressure": 0.2,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.2
+      }
+    },
+    {
+      "id": "constraint:q8:gdpr",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q8",
+        "question": "Which compliance frameworks apply?",
+        "answer_value": "GDPR",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.6,
+        "federation_pressure": 0.5,
+        "mesh_pressure": 0.2,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.3
+      }
+    },
+    {
+      "id": "constraint:q8:none",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q8",
+        "question": "Which compliance frameworks apply?",
+        "answer_value": "None / internal only",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.3,
+        "federation_pressure": 0.6,
+        "mesh_pressure": 0.6,
+        "economy_pressure": 0.5,
+        "simplicity_pressure": 0.8
+      }
+    },
+    {
+      "id": "constraint:q9:too_expensive",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q9",
+        "question": "What's hardest right now? (pain points)",
+        "answer_value": "Agents are too expensive at scale",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.7,
+        "federation_pressure": 0.3,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.8,
+        "simplicity_pressure": 0.5
+      }
+    },
+    {
+      "id": "constraint:q9:cant_govern",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q9",
+        "question": "What's hardest right now? (pain points)",
+        "answer_value": "Can't govern/track what agents do",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.9,
+        "federation_pressure": 0.3,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.4
+      }
+    },
+    {
+      "id": "constraint:q9:silos_no_reuse",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q9",
+        "question": "What's hardest right now? (pain points)",
+        "answer_value": "Teams building in silos (no reuse)",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.6,
+        "federation_pressure": 0.6,
+        "mesh_pressure": 0.5,
+        "economy_pressure": 0.4,
+        "simplicity_pressure": 0.3
+      }
+    },
+    {
+      "id": "constraint:q9:tool_integration_slow",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q9",
+        "question": "What's hardest right now? (pain points)",
+        "answer_value": "Tool/API integration is slow",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.5,
+        "federation_pressure": 0.5,
+        "mesh_pressure": 0.6,
+        "economy_pressure": 0.3,
+        "simplicity_pressure": 0.5
+      }
+    },
+    {
+      "id": "constraint:q9:auth_mess",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q9",
+        "question": "What's hardest right now? (pain points)",
+        "answer_value": "Auth across agents is a mess",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.8,
+        "federation_pressure": 0.4,
+        "mesh_pressure": 0.2,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.4
+      }
+    },
+    {
+      "id": "constraint:q9:cant_trust_outputs",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q9",
+        "question": "What's hardest right now? (pain points)",
+        "answer_value": "Can't trust agent outputs (hallucinations)",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.7,
+        "federation_pressure": 0.3,
+        "mesh_pressure": 0.1,
+        "economy_pressure": 0.1,
+        "simplicity_pressure": 0.5
+      }
+    },
+    {
+      "id": "constraint:q9:no_cicd",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q9",
+        "question": "What's hardest right now? (pain points)",
+        "answer_value": "No CI/CD for agents",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.6,
+        "federation_pressure": 0.5,
+        "mesh_pressure": 0.3,
+        "economy_pressure": 0.2,
+        "simplicity_pressure": 0.5
+      }
+    },
+    {
+      "id": "constraint:q9:choosing_frameworks",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q9",
+        "question": "What's hardest right now? (pain points)",
+        "answer_value": "Choosing between frameworks",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.5,
+        "federation_pressure": 0.5,
+        "mesh_pressure": 0.4,
+        "economy_pressure": 0.2,
+        "simplicity_pressure": 0.6
+      }
+    },
+    {
+      "id": "constraint:q9:too_slow_realtime",
+      "type": "Constraint",
+      "props": {
+        "signal_id": "Q9",
+        "question": "What's hardest right now? (pain points)",
+        "answer_value": "Agents are too slow for real-time",
+        "weight": 0.1,
+        "select_type": "multi",
+        "centralization_pressure": 0.4,
+        "federation_pressure": 0.5,
+        "mesh_pressure": 0.6,
+        "economy_pressure": 0.3,
+        "simplicity_pressure": 0.3
+      }
+    },
+    {
+      "id": "component:registry",
+      "type": "Component",
+      "props": {
+        "name": "Registry",
+        "description": "Agent catalog, discovery, versioning, lifecycle management",
+        "tier_1": "Static catalog, manual registration",
+        "tier_2": "Approval workflows, lifecycle hooks, dependency tracking",
+        "tier_3": "Self-healing, auto-discovery, capability negotiation",
+        "layer": "Foundation",
+        "base_tier": 1,
+        "primary_aws_service": "Amazon Bedrock AgentCore Runtime",
+        "cost_model": {
+          "base_monthly_usd": 45,
+          "unit": "per_agent_per_month",
+          "unit_cost_usd": 0.09,
+          "cost_drivers": "AgentCore Runtime session-hours (~$0.09/agent/month at 1-2 invocations/day), DynamoDB reads for catalog queries ($0.25/M reads), Lambda lifecycle hooks ($0.20/M invocations)",
+          "at_scale": {
+            "100_agents": 45,
+            "500_agents": 120,
+            "1000_agents": 210,
+            "5000_agents": 790
+          },
+          "notes": "Consumption-based \u2014 cost scales linearly with agent activity. Idle agents cost near zero."
+        },
+        "implementation": {
+          "weeks_min": 1,
+          "weeks_max": 2,
+          "team_size": 2,
+          "role_mix": "1 platform engineer + 1 backend engineer",
+          "complexity": "low",
+          "cdk_construct": "aws_bedrock_agentcore.AgentRuntime",
+          "workshop_hint": "Getting Started with Amazon Bedrock AgentCore",
+          "engagement_pattern": "3 FinServ companies deployed Registry in avg 1.5 weeks with 2 engineers. Key effort: IAM role design and DynamoDB schema."
+        }
+      }
+    },
+    {
+      "id": "component:gateway",
+      "type": "Component",
+      "props": {
+        "name": "Gateway",
+        "description": "Tool connectivity, MCP server hosting, API access, routing",
+        "tier_1": "Static routing table",
+        "tier_2": "Policy-based routing, rate limiting, circuit breakers",
+        "tier_3": "Intent-based routing, dynamic load shaping, A/B agent routing",
+        "layer": "Foundation",
+        "base_tier": 1,
+        "primary_aws_service": "Amazon API Gateway + AWS Lambda",
+        "cost_model": {
+          "base_monthly_usd": 25,
+          "unit": "per_million_api_calls",
+          "unit_cost_usd": 3.5,
+          "cost_drivers": "API Gateway REST API: $3.50/M calls. Lambda execution: $0.20/M invocations + $0.00001667/GB-second. Data transfer out: $0.09/GB after 1GB/month free.",
+          "at_scale": {
+            "1M_calls_month": 25,
+            "10M_calls_month": 60,
+            "100M_calls_month": 385,
+            "1B_calls_month": 3550
+          },
+          "notes": "HTTP API ($1.00/M) is cheaper but REST API provides policy-based routing, circuit breakers, and usage plans needed for enterprise agent traffic. Tier 3 adds intent-based routing (+Lambda cost)."
+        },
+        "implementation": {
+          "weeks_min": 1,
+          "weeks_max": 3,
+          "team_size": 2,
+          "role_mix": "1 platform engineer + 1 security engineer",
+          "complexity": "medium",
+          "cdk_construct": "aws_apigateway.RestApi + aws_lambda.Function",
+          "workshop_hint": "Building Secure API Gateways for Agent Traffic on AWS",
+          "engagement_pattern": "2 RetailTech companies deployed gateway in 2 weeks; MCP server routing added in week 3. Tier 2 (circuit breakers) took 1 additional sprint."
+        }
+      }
+    },
+    {
+      "id": "component:identity",
+      "type": "Component",
+      "props": {
+        "name": "Identity",
+        "description": "OAuth2 for agents, delegated auth, credential management",
+        "tier_1": "Service accounts, static credentials",
+        "tier_2": "Machine identity with rotation, delegation chains",
+        "tier_3": "Capability-based auth, zero-trust agent-to-agent, session binding",
+        "layer": "Governance",
+        "base_tier": 1,
+        "primary_aws_service": "AWS IAM + Amazon Cognito + AWS IAM Identity Center",
+        "cost_model": {
+          "base_monthly_usd": 10,
+          "unit": "per_MAU",
+          "unit_cost_usd": 0.0055,
+          "cost_drivers": "IAM service accounts: free. Cognito MAU: $0.0055/MAU after first 10K free (admin portal users). Secrets Manager for credential rotation: $0.40/secret/month + $0.05/10K API calls. IAM Identity Center: no additional charge.",
+          "at_scale": {
+            "100_agents": 10,
+            "500_agents": 12,
+            "1000_agents": 16,
+            "5000_agents": 38
+          },
+          "notes": "Cost is primarily driven by Cognito admin users and Secrets Manager rotation, not agent count. Stays near-flat even at 5000 agents since agents use IAM roles (free)."
+        },
+        "implementation": {
+          "weeks_min": 1,
+          "weeks_max": 2,
+          "team_size": 2,
+          "role_mix": "1 security engineer + 1 platform engineer",
+          "complexity": "low",
+          "cdk_construct": "aws_iam.Role + aws_cognito.UserPool + aws_secretsmanager.Secret",
+          "workshop_hint": "Zero-Trust Identity for AI Agents on AWS",
+          "engagement_pattern": "Most enterprises extend existing IAM patterns (1 week). Net-new delegation chain design (agent-to-agent OAuth2) adds 1 extra week for architecture review."
+        }
+      }
+    },
+    {
+      "id": "component:policy_engine",
+      "type": "Component",
+      "props": {
+        "name": "Policy Engine",
+        "description": "Guardrails, automated reasoning, content filtering, formal verification",
+        "tier_1": "Pre-deployment checks (linting)",
+        "tier_2": "Runtime policy evaluation (OPA/Cedar), action classification",
+        "tier_3": "Adaptive policy (learns from violations), context-aware risk scoring",
+        "layer": "Governance",
+        "base_tier": 2,
+        "primary_aws_service": "Amazon Bedrock Guardrails + Amazon Verified Permissions",
+        "cost_model": {
+          "base_monthly_usd": 230,
+          "unit": "per_1000_text_units",
+          "unit_cost_usd": 0.75,
+          "cost_drivers": "Bedrock Guardrails: $0.75/1000 text units per safeguard configured (topic, content, grounding, etc.). Verified Permissions Cedar evals: $0.00015/authorization request. Automated Reasoning checks: $0.02/validation request. At 10K guardrail checks/day = ~300K/month.",
+          "at_scale": {
+            "10K_checks_day": 230,
+            "50K_checks_day": 1150,
+            "100K_checks_day": 2300,
+            "500K_checks_day": 11500
+          },
+          "roi_model": {
+            "sox_fine_exposure": "5000000+",
+            "hipaa_fine_exposure": "1900000",
+            "cost_at_10k_checks_day": 230,
+            "description": "SOX Section 404 requires audit trail. HIPAA breach: $100-$50K/violation. $230/month guardrail cost vs $1.9M-$5M+ fine exposure = immediate ROI."
+          },
+          "notes": "Most expensive component per-unit but highest risk-adjusted ROI. FinServ/Healthcare companies in compliance regimes should treat this as non-negotiable Tier 2 from day one."
+        },
+        "implementation": {
+          "weeks_min": 3,
+          "weeks_max": 6,
+          "team_size": 3,
+          "role_mix": "1 compliance engineer + 1 platform engineer + 1 security architect",
+          "complexity": "high",
+          "cdk_construct": "aws_bedrock.CfnGuardrail + aws_verifiedpermissions.CfnPolicyStore",
+          "workshop_hint": "Implementing AI Governance with Amazon Bedrock Guardrails and Cedar Policies",
+          "engagement_pattern": "FinServ: 4-6 weeks due to compliance review cycles and legal sign-off. Healthcare: add 2 weeks for HIPAA content filtering rules. Non-regulated: 3 weeks typical."
+        }
+      }
+    },
+    {
+      "id": "component:observability",
+      "type": "Component",
+      "props": {
+        "name": "Observability",
+        "description": "Traces, metrics, logging for agent runs, distributed tracing",
+        "tier_1": "Structured logs + basic metrics",
+        "tier_2": "Distributed traces with reasoning chains, token accounting",
+        "tier_3": "Drift detection, quality scoring, causal attribution",
+        "layer": "AgentOps",
+        "base_tier": 1,
+        "primary_aws_service": "Amazon CloudWatch + AWS X-Ray + Amazon OpenSearch",
+        "cost_model": {
+          "base_monthly_usd": 85,
+          "unit": "per_GB_logs_ingested",
+          "unit_cost_usd": 0.5,
+          "cost_drivers": "CloudWatch Logs: $0.50/GB ingested (standard), vended logs discounted tier available. X-Ray: $5/M traces recorded; default sampling 1 req/sec + 5% of additional. CloudWatch dashboards: $3/dashboard/month. Agent reasoning traces avg 2-5KB per invocation.",
+          "at_scale": {
+            "100_agents_1K_invocations_day": 85,
+            "500_agents_5K_invocations_day": 340,
+            "1000_agents_10K_invocations_day": 650,
+            "5000_agents_50K_invocations_day": 2800
+          },
+          "notes": "At 10K agent invocations/day with 3KB avg trace size: ~90GB logs/month ($45) + X-Ray traces + metrics. Teams with existing CloudWatch infrastructure save 30-40% via log group reuse."
+        },
+        "implementation": {
+          "weeks_min": 1,
+          "weeks_max": 2,
+          "team_size": 2,
+          "role_mix": "1 DevOps engineer + 1 platform engineer",
+          "complexity": "low",
+          "cdk_construct": "aws_logs.LogGroup + aws_xray.CfnGroup + aws_cloudwatch.Dashboard",
+          "workshop_hint": "Observability for AI Agents: Traces, Metrics, and Quality Scoring on AWS",
+          "engagement_pattern": "Teams with existing CloudWatch: 1 week to add agent-specific dashboards and X-Ray trace groups. Net-new observability stack: 2-3 weeks including dashboard templates and alert runbooks."
+        }
+      }
+    },
+    {
+      "id": "component:memory_state",
+      "type": "Component",
+      "props": {
+        "name": "Memory/State",
+        "description": "Short-term and long-term agent memory, vector retrieval",
+        "tier_1": "Per-session key-value",
+        "tier_2": "Per-agent persistent memory, vector retrieval",
+        "tier_3": "Shared episodic memory, cross-agent knowledge graph, temporal indexing",
+        "layer": "Data",
+        "base_tier": 1,
+        "primary_aws_service": "AgentCore Memory + Amazon DynamoDB + Amazon OpenSearch Serverless",
+        "cost_model": {
+          "base_monthly_usd": 55,
+          "unit": "per_GB_stored",
+          "unit_cost_usd": 0.25,
+          "cost_drivers": "DynamoDB on-demand: $1.25/M write request units, $0.25/M read request units, $0.25/GB storage. AgentCore Memory (STM+LTM): included in AgentCore Runtime pricing. OpenSearch Serverless (vector retrieval, Tier 2+): $0.24/OCU-hour, min 2 OCUs = $345/month.",
+          "at_scale": {
+            "100_agents_tier1_kvonly": 55,
+            "500_agents_tier1_kvonly": 75,
+            "500_agents_tier2_vector": 420,
+            "1000_agents_tier2_vector": 580,
+            "5000_agents_tier2_vector": 1250
+          },
+          "notes": "Tier 1 (key-value session state): ~$55/month flat. Tier 2+ with vector retrieval (OpenSearch Serverless): minimum $345/month fixed + data costs. Use DynamoDB + local embeddings for cost-sensitive deployments under 200 agents."
+        },
+        "implementation": {
+          "weeks_min": 1,
+          "weeks_max": 3,
+          "team_size": 2,
+          "role_mix": "1 backend engineer + 1 data engineer",
+          "complexity": "medium",
+          "cdk_construct": "aws_dynamodb.Table + aws_opensearchserverless.CfnCollection",
+          "workshop_hint": "Building Agent Memory Systems with Amazon Bedrock AgentCore and DynamoDB",
+          "engagement_pattern": "Tier 1 (session state only): 1 week. Tier 2 (vector memory with OpenSearch Serverless): 3 weeks including index schema design, chunking strategy, and retrieval quality tuning."
+        }
+      }
+    },
+    {
+      "id": "component:eval_pipeline",
+      "type": "Component",
+      "props": {
+        "name": "Eval Pipeline",
+        "description": "Agent quality evaluation, judge models, regression detection",
+        "tier_1": "Offline batch evals on test sets",
+        "tier_2": "Shadow evaluation in production, regression detection",
+        "tier_3": "Continuous online eval, automatic model/prompt rotation on quality drop",
+        "layer": "AgentOps",
+        "base_tier": 1,
+        "primary_aws_service": "Amazon Bedrock Model Evaluation + Claude as Judge",
+        "cost_model": {
+          "base_monthly_usd": 180,
+          "unit": "per_eval_call",
+          "unit_cost_usd": 0.006,
+          "cost_drivers": "Judge model (Claude Sonnet 4.5): $3/M input + $15/M output tokens. Avg eval call: 1500 input + 300 output tokens = $0.006/eval. Bedrock Model Evaluation batch jobs: billed per input token at standard model pricing. Step Functions orchestration: $0.025/1000 state transitions.",
+          "at_scale": {
+            "1K_evals_day": 180,
+            "5K_evals_day": 900,
+            "10K_evals_day": 1800,
+            "50K_evals_day": 9000
+          },
+          "notes": "At 1K agent output evaluations/day (30K/month): $180/month. Shadow eval (Tier 2) doubles cost. However, a 15-30% improvement in agent quality typically reduces expensive model retries, offsetting eval cost within 2 months."
+        },
+        "implementation": {
+          "weeks_min": 2,
+          "weeks_max": 4,
+          "team_size": 2,
+          "role_mix": "1 ML engineer + 1 platform engineer",
+          "complexity": "medium",
+          "cdk_construct": "aws_bedrock.CfnEvaluationJob + aws_stepfunctions.StateMachine",
+          "workshop_hint": "Evaluating Agent Quality at Scale with Amazon Bedrock and Claude",
+          "engagement_pattern": "Offline eval harness: 2 weeks (test set curation is the bottleneck). Production shadow eval with regression detection: additional 2 weeks. Most teams graduate to online eval in month 3-4 after establishing baselines."
+        }
+      }
+    },
+    {
+      "id": "component:tool_registry",
+      "type": "Component",
+      "props": {
+        "name": "Tool Registry",
+        "description": "Tool catalog, versioning, access control, discovery",
+        "tier_1": "Static tool catalog with schemas",
+        "tier_2": "Versioned tools, access control, deprecation lifecycle",
+        "tier_3": "Capability marketplace, dynamic tool composition, tool quality scoring",
+        "layer": "Shared Services",
+        "base_tier": 1,
+        "primary_aws_service": "Amazon DynamoDB + AWS Lambda + Amazon API Gateway",
+        "cost_model": {
+          "base_monthly_usd": 20,
+          "unit": "per_million_tool_lookups",
+          "unit_cost_usd": 0.4,
+          "cost_drivers": "DynamoDB on-demand reads: $0.25/M requests (read-heavy, write-light). Lambda invocations: $0.20/M. API Gateway: $3.50/M calls. Tool catalog is typically <10MB \u2014 negligible storage cost.",
+          "at_scale": {
+            "100_agents_1M_lookups_month": 20,
+            "500_agents_5M_lookups_month": 22,
+            "1000_agents_10M_lookups_month": 25,
+            "5000_agents_50M_lookups_month": 35
+          },
+          "notes": "Most cost-efficient component at scale. DynamoDB DAX cache (optional, $0.269/node-hour) can reduce read costs 90% for very high-frequency tool lookups (>100M/month)."
+        },
+        "implementation": {
+          "weeks_min": 1,
+          "weeks_max": 2,
+          "team_size": 1,
+          "role_mix": "1 platform engineer",
+          "complexity": "low",
+          "cdk_construct": "aws_dynamodb.Table + aws_apigateway.RestApi + aws_lambda.Function",
+          "workshop_hint": "Building MCP-Compatible Tool Registries for Enterprise AI Agents",
+          "engagement_pattern": "Simplest component to stand up. 3 enterprise teams deployed in under 1 week by extending existing API Gateway + DynamoDB infrastructure. Versioning and deprecation lifecycle (Tier 2) adds 1 extra week."
+        }
+      }
+    },
+    {
+      "id": "component:cost_engine",
+      "type": "Component",
+      "props": {
+        "name": "Cost Engine",
+        "description": "Token budgets, cost allocation, model routing, semantic caching",
+        "tier_1": "Aggregate billing visibility",
+        "tier_2": "Per-agent metering, LOB allocation, budget alerts",
+        "tier_3": "Per-task token budgets, intelligent model routing, semantic caching",
+        "layer": "AgentOps",
+        "base_tier": 2,
+        "primary_aws_service": "AWS Cost Explorer + Amazon Bedrock (Model Routing) + Amazon ElastiCache",
+        "cost_model": {
+          "base_monthly_usd": 75,
+          "unit": "per_month_base",
+          "unit_cost_usd": 75,
+          "cost_drivers": "Cost Explorer API: $0.01/API request (1K requests/month = $10). ElastiCache for semantic caching (cache.t3.micro): $0.034/node-hour = ~$25/month. Custom metering Lambda: negligible. CloudWatch metrics for per-agent billing dashboards: $0.30/metric/month.",
+          "at_scale": {
+            "100_agents": 75,
+            "500_agents": 120,
+            "1000_agents": 180,
+            "5000_agents": 450
+          },
+          "savings_model": {
+            "without_routing_example": "500 agents \u00d7 100 invocations/day \u00d7 2K tokens = 100B tokens/month at Claude Opus pricing = ~$300K/month",
+            "with_routing_example": "Haiku 60% ($5K) + Sonnet 30% ($27K) + Opus 10% ($30K) = $62K/month",
+            "annual_savings_usd": 2856000,
+            "semantic_cache_reduction_pct": 20,
+            "description": "Model routing + semantic caching typically reduces total Bedrock spend 60-80%. ROI on Cost Engine is achieved in week 1."
+          },
+          "notes": "Highest-ROI component after Policy Engine. Pays for itself immediately through model routing savings. Semantic cache reduces Bedrock API calls 15-30% for repetitive agent patterns."
+        },
+        "implementation": {
+          "weeks_min": 2,
+          "weeks_max": 4,
+          "team_size": 2,
+          "role_mix": "1 FinOps engineer + 1 platform engineer",
+          "complexity": "medium",
+          "cdk_construct": "aws_elasticache.CfnReplicationGroup + aws_lambda.Function + aws_cloudwatch.Dashboard",
+          "workshop_hint": "Optimizing GenAI Costs on AWS: Token Budgets, Model Routing, and Semantic Caching",
+          "engagement_pattern": "2 FinServ companies cut Bedrock spend by 55% in 4 weeks by deploying model router + semantic cache. ROI achieved in first billing cycle. Week 1: metering. Week 2-3: routing rules. Week 4: caching layer."
+        }
+      }
+    },
+    {
+      "id": "aws:agentcore_runtime",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Runtime",
+        "category": "AgentCore",
+        "agentcore_component": "Runtime"
+      }
+    },
+    {
+      "id": "aws:agentcore_memory",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Memory",
+        "category": "AgentCore",
+        "agentcore_component": "Memory"
+      }
+    },
+    {
+      "id": "aws:agentcore_gateway",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Gateway",
+        "category": "AgentCore",
+        "agentcore_component": "Gateway"
+      }
+    },
+    {
+      "id": "aws:agentcore_identity",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Identity",
+        "category": "AgentCore",
+        "agentcore_component": "Identity"
+      }
+    },
+    {
+      "id": "aws:agentcore_code_interpreter",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Code Interpreter",
+        "category": "AgentCore",
+        "agentcore_component": "Code Interpreter"
+      }
+    },
+    {
+      "id": "aws:agentcore_browser",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Browser",
+        "category": "AgentCore",
+        "agentcore_component": "Browser"
+      }
+    },
+    {
+      "id": "aws:agentcore_observability",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Observability",
+        "category": "AgentCore",
+        "agentcore_component": "Observability"
+      }
+    },
+    {
+      "id": "aws:agentcore_payments",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Payments",
+        "category": "AgentCore",
+        "agentcore_component": "Payments"
+      }
+    },
+    {
+      "id": "aws:agentcore_evaluations",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Evaluations",
+        "category": "AgentCore",
+        "agentcore_component": "Evaluations"
+      }
+    },
+    {
+      "id": "aws:agentcore_policy",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Policy",
+        "category": "AgentCore",
+        "agentcore_component": "Policy"
+      }
+    },
+    {
+      "id": "aws:agentcore_registry",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Registry",
+        "category": "AgentCore",
+        "agentcore_component": "Registry"
+      }
+    },
+    {
+      "id": "aws:agentcore_harness",
+      "type": "AWSService",
+      "props": {
+        "name": "AgentCore Harness",
+        "category": "AgentCore",
+        "agentcore_component": "Harness"
+      }
+    },
+    {
+      "id": "aws:bedrock",
+      "type": "AWSService",
+      "props": {
+        "name": "Amazon Bedrock",
+        "category": "AI/ML",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:bedrock_knowledge_bases",
+      "type": "AWSService",
+      "props": {
+        "name": "Bedrock Knowledge Bases",
+        "category": "AI/ML",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:opensearch",
+      "type": "AWSService",
+      "props": {
+        "name": "OpenSearch Serverless",
+        "category": "Search/Analytics",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:step_functions",
+      "type": "AWSService",
+      "props": {
+        "name": "AWS Step Functions",
+        "category": "Integration",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:eventbridge",
+      "type": "AWSService",
+      "props": {
+        "name": "Amazon EventBridge",
+        "category": "Integration",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:cloudwatch",
+      "type": "AWSService",
+      "props": {
+        "name": "Amazon CloudWatch",
+        "category": "Observability",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:dynamodb",
+      "type": "AWSService",
+      "props": {
+        "name": "Amazon DynamoDB",
+        "category": "Database",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:s3",
+      "type": "AWSService",
+      "props": {
+        "name": "Amazon S3",
+        "category": "Storage",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:iam_sts",
+      "type": "AWSService",
+      "props": {
+        "name": "AWS IAM/STS",
+        "category": "Security",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:lambda",
+      "type": "AWSService",
+      "props": {
+        "name": "AWS Lambda",
+        "category": "Compute",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:api_gateway",
+      "type": "AWSService",
+      "props": {
+        "name": "Amazon API Gateway",
+        "category": "Networking",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:cdk",
+      "type": "AWSService",
+      "props": {
+        "name": "AWS CDK",
+        "category": "DevOps",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:xray",
+      "type": "AWSService",
+      "props": {
+        "name": "AWS X-Ray",
+        "category": "Observability",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:cognito",
+      "type": "AWSService",
+      "props": {
+        "name": "Amazon Cognito",
+        "category": "Security",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "aws:secrets_manager",
+      "type": "AWSService",
+      "props": {
+        "name": "AWS Secrets Manager",
+        "category": "Security",
+        "agentcore_component": null
+      }
+    },
+    {
+      "id": "topology:t1_agent_topology",
+      "type": "TopologyDecision",
+      "props": {
+        "decision_id": "T1",
+        "name": "Agent Topology",
+        "options": [
+          "Centralized orchestrator",
+          "Hierarchical (supervisor tree)",
+          "Peer network",
+          "Mesh (sidecar)"
+        ]
+      }
+    },
+    {
+      "id": "topology:t2_coordination_model",
+      "type": "TopologyDecision",
+      "props": {
+        "decision_id": "T2",
+        "name": "Coordination Model",
+        "options": [
+          "Hierarchical delegation",
+          "Market-based (bid/auction)",
+          "Consensus",
+          "Event choreography"
+        ]
+      }
+    },
+    {
+      "id": "topology:t3_communication_protocol",
+      "type": "TopologyDecision",
+      "props": {
+        "decision_id": "T3",
+        "name": "Communication Protocol",
+        "options": [
+          "Direct invocation",
+          "Async event bus",
+          "A2A protocol",
+          "MCP tool exposure",
+          "Shared state"
+        ]
+      }
+    },
+    {
+      "id": "topology:t4_agent_economy",
+      "type": "TopologyDecision",
+      "props": {
+        "decision_id": "T4",
+        "name": "Agent Economy",
+        "options": [
+          "Shared pool",
+          "Per-agent budget",
+          "Internal marketplace",
+          "External/3rd-party composable"
+        ]
+      }
+    },
+    {
+      "id": "topology:t5_multi_tenancy",
+      "type": "TopologyDecision",
+      "props": {
+        "decision_id": "T5",
+        "name": "Multi-tenancy",
+        "options": [
+          "Shared (RBAC)",
+          "Namespace-isolated",
+          "Account-separated",
+          "Hybrid tiered"
+        ]
+      }
+    },
+    {
+      "id": "topology:t6_agent_lifecycle",
+      "type": "TopologyDecision",
+      "props": {
+        "decision_id": "T6",
+        "name": "Agent Lifecycle",
+        "options": [
+          "Ephemeral (per-task)",
+          "Persistent (long-running)",
+          "Warm pool",
+          "Mixed"
+        ]
+      }
+    },
+    {
+      "id": "law:time_pressure_parallel",
+      "type": "Law",
+      "props": {
+        "name": "Time Pressure \u2192 Parallel/Fan-out",
+        "source": "A*STAR 2-dimensional framework (Huang & Zhou, 2026)",
+        "condition": "Task has hard latency SLA",
+        "force": "Topology must support concurrent execution. Hierarchical with parallel workers > sequential pipeline."
+      }
+    },
+    {
+      "id": "law:action_authority_hierarchy",
+      "type": "Law",
+      "props": {
+        "name": "Action Authority \u2192 Hierarchy Depth",
+        "source": "A*STAR 2-dimensional framework (Huang & Zhou, 2026)",
+        "condition": "High consequence of agent actions",
+        "force": "Deeper approval hierarchy. Full autonomy + high-risk = mandatory supervisor chain."
+      }
+    },
+    {
+      "id": "law:failure_cost_asymmetry",
+      "type": "Law",
+      "props": {
+        "name": "Failure Cost Asymmetry \u2192 Adversarial Patterns",
+        "source": "A*STAR 2-dimensional framework (Huang & Zhou, 2026)",
+        "condition": "False positives and false negatives have vastly different costs",
+        "force": "Introduce verifier-critic or debate patterns as mandatory quality gates."
+      }
+    },
+    {
+      "id": "law:volume_predictability",
+      "type": "Law",
+      "props": {
+        "name": "Volume \u00d7 Predictability \u2192 Plan-and-Execute",
+        "source": "A*STAR 2-dimensional framework (Huang & Zhou, 2026)",
+        "condition": "High volume + predictable structure",
+        "force": "Separate planning from execution (cheaper model executes pre-computed plans)."
+      }
+    },
+    {
+      "id": "law:coordination_overhead",
+      "type": "Law",
+      "props": {
+        "name": "Coordination Overhead Threshold",
+        "source": "A*STAR 2-dimensional framework (Huang & Zhou, 2026)",
+        "condition": "Coordination cost exceeds 30% of total compute",
+        "force": "Collapse back to single-agent with tools. Multi-agent only earns cost when task is decomposable."
+      }
+    },
+    {
+      "id": "innovation:programmatic_tool_calling",
+      "type": "Innovation",
+      "props": {
+        "name": "Programmatic/Dynamic Tool Calling & Auto-Generated MCP Servers",
+        "date_emerged": "2025-Q2",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock AgentCore Gateway",
+        "enables": "Zero-code tool integration via MCP"
+      }
+    },
+    {
+      "id": "innovation:managed_agent_services",
+      "type": "Innovation",
+      "props": {
+        "name": "Fully Managed Agent Services (Zero ML Expertise)",
+        "date_emerged": "2024-Q4",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock AgentCore Runtime",
+        "enables": "Business teams can build agents without ML expertise"
+      }
+    },
+    {
+      "id": "innovation:intelligent_token_routing",
+      "type": "Innovation",
+      "props": {
+        "name": "Intelligent Token Routing, KV Caching, Semantic Caching",
+        "date_emerged": "2025-Q1",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock Intelligent Prompt Routing",
+        "enables": "Up to 70% cost reduction with latency SLA preservation"
+      }
+    },
+    {
+      "id": "innovation:governance_stack",
+      "type": "Innovation",
+      "props": {
+        "name": "AgentCore Policy + OTel + Trace-Based Observability",
+        "date_emerged": "2024-Q3",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock AgentCore + Amazon CloudWatch",
+        "enables": "Full agent trace visibility with policy enforcement"
+      }
+    },
+    {
+      "id": "innovation:registry_discovery_a2a",
+      "type": "Innovation",
+      "props": {
+        "name": "AgentCore Registry, Discovery, and A2A Communication",
+        "date_emerged": "2025-Q2",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock AgentCore",
+        "enables": "Agent-to-agent protocol for multi-agent coordination"
+      }
+    },
+    {
+      "id": "innovation:agent_identity_oauth2",
+      "type": "Innovation",
+      "props": {
+        "name": "AgentCore Identity \u2014 OAuth 2.0 for Agents",
+        "date_emerged": "2025-Q1",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock AgentCore Identity",
+        "enables": "Agents authenticate to enterprise systems with delegated identity"
+      }
+    },
+    {
+      "id": "innovation:aidlc_harness_evaluations",
+      "type": "Innovation",
+      "props": {
+        "name": "AgentCore Harness + Evaluations (AIDLC)",
+        "date_emerged": "2025-Q2",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock AgentCore Evaluations",
+        "enables": "Automated agent quality gates in CI/CD pipelines"
+      }
+    },
+    {
+      "id": "innovation:rag_automated_reasoning",
+      "type": "Innovation",
+      "props": {
+        "name": "RAG + Automated Reasoning Verification",
+        "date_emerged": "2024-Q3",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock Knowledge Bases + Automated Reasoning",
+        "enables": "Hallucination-free grounded responses with formal proof"
+      }
+    },
+    {
+      "id": "innovation:agent_analytics_roi",
+      "type": "Innovation",
+      "props": {
+        "name": "Agent Analytics & Business Outcome Attribution",
+        "date_emerged": "2025-Q3",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock + Amazon CloudWatch",
+        "enables": "Connects agent actions to measurable business KPIs"
+      }
+    },
+    {
+      "id": "innovation:portable_orchestration_mcp",
+      "type": "Innovation",
+      "props": {
+        "name": "Portable Agent Orchestration & MCP as Universal Connector",
+        "date_emerged": "2025-Q1",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock AgentCore Gateway",
+        "replaces": "Proprietary vendor orchestration frameworks",
+        "enables": "Swap models/frameworks without re-engineering agents"
+      }
+    },
+    {
+      "id": "innovation:lifecycle_health_scoring",
+      "type": "Innovation",
+      "props": {
+        "name": "AgentCore Registry + Lifecycle Management + Health Scoring",
+        "date_emerged": "2025-Q3",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock AgentCore",
+        "enables": "Automated deprecation, version rollback, and SLA monitoring"
+      }
+    },
+    {
+      "id": "innovation:event_driven_streaming",
+      "type": "Innovation",
+      "props": {
+        "name": "Event-Driven Agent Architectures & Streaming Responses",
+        "date_emerged": "2025-Q1",
+        "status": "ga",
+        "aws_service": "Amazon EventBridge + Amazon Bedrock Streaming",
+        "enables": "Sub-second agent reactions to real-time business events"
+      }
+    },
+    {
+      "id": "innovation:compliance_audit_trails",
+      "type": "Innovation",
+      "props": {
+        "name": "Compliance-Grade Audit Trails & Reproducible Execution",
+        "date_emerged": "2025-Q2",
+        "status": "ga",
+        "aws_service": "AWS CloudTrail + Amazon Bedrock AgentCore",
+        "enables": "Cryptographically signed agent execution logs for audit"
+      }
+    },
+    {
+      "id": "innovation:legacy_mcp_adapters",
+      "type": "Innovation",
+      "props": {
+        "name": "AgentCore Gateway + MCP as Universal Legacy Connector",
+        "date_emerged": "2025-Q1",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock AgentCore Gateway",
+        "replaces": "Custom REST wrapper layers for legacy systems",
+        "enables": "Legacy APIs accessible to agents without re-engineering"
+      }
+    },
+    {
+      "id": "innovation:framework_convergence",
+      "type": "Innovation",
+      "props": {
+        "name": "Framework Convergence on MCP + AgentCore Runtime",
+        "date_emerged": "2025-Q3",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock AgentCore Runtime",
+        "replaces": "LangChain/AutoGen proprietary integrations",
+        "enables": "Strands, LangGraph, CrewAI all run on same runtime"
+      }
+    },
+    {
+      "id": "innovation:formal_verification",
+      "type": "Innovation",
+      "props": {
+        "name": "Automated Reasoning Checks (Formal Verification)",
+        "date_emerged": "2025-Q3",
+        "status": "ga",
+        "aws_service": "Amazon Bedrock Automated Reasoning",
+        "enables": "Mathematically provable safety guarantees for agent decisions"
+      }
+    },
+    {
+      "id": "antipattern:god_agent",
+      "type": "AntiPattern",
+      "props": {
+        "name": "God Agent",
+        "symptoms": "10K+ token prompt, 50+ tools, performance degrades as capabilities added, testing impossible",
+        "root_cause": "Organization treated agent as monolithic application with no decomposition strategy",
+        "fix": "Decompose into specialized agents, orchestrator pattern, AgentCore Registry for discovery",
+        "patterns_affected": [
+          "centralized",
+          "federated"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:single_team_bottleneck",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Single Team Bottleneck",
+        "symptoms": "4+ week backlog, LOBs waiting for platform team, shadow IT emerging, burnout",
+        "root_cause": "Platform team didn't invest in self-service; built custom solutions instead of enabling LOBs",
+        "fix": "Self-service portal, agent templates, automated policy, tiered governance, federation roadmap",
+        "patterns_affected": [
+          "centralized"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:agent_sprawl",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Agent Sprawl",
+        "symptoms": "Nobody knows agent count, redundant agents, no active owner, costs growing faster than value",
+        "root_cause": "No mandatory registration, no lifecycle management, no health monitoring",
+        "fix": "AgentCore Registry mandatory, health scoring, lifecycle automation, duplicate detection",
+        "patterns_affected": [
+          "federated",
+          "mesh"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:capability_gap",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Capability Gap",
+        "symptoms": "Quality varies 5x across LOBs, high hallucination rates, incidents correlate with LOB maturity",
+        "root_cause": "Federation without readiness assessment; autonomy granted on demand not capability",
+        "fix": "Maturity assessment, tiered federation, AgentCore Evaluations mandatory, training/enablement",
+        "patterns_affected": [
+          "federated"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:observability_blind_spot",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Observability Blind Spot",
+        "symptoms": "Can't explain agent decisions, cost surprises, quality issues discovered by users, audit failures",
+        "root_cause": "Observability was afterthought; agents deployed without instrumentation",
+        "fix": "AgentCore Observability mandatory from day one, OTel standards, pre-built dashboards",
+        "patterns_affected": [
+          "centralized",
+          "federated",
+          "mesh"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:cost_explosion",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Cost Explosion",
+        "symptoms": "Monthly LLM costs 5-10x budget, all tasks using same expensive model, no circuit breakers",
+        "root_cause": "No cost architecture; model inference treated as free during development",
+        "fix": "Model router, token budgets, semantic caching, cost attribution, batch inference",
+        "patterns_affected": [
+          "centralized",
+          "federated",
+          "mesh"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:auth_debt",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Auth Debt",
+        "symptoms": "Shared service accounts, credentials in code, no rotation, no delegation chain visibility",
+        "root_cause": "Identity was afterthought; each agent's auth handled individually",
+        "fix": "AgentCore Identity for all agents, IAM least-privilege, automated rotation, delegation chains",
+        "patterns_affected": [
+          "federated",
+          "centralized"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:tool_spaghetti",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Tool Spaghetti",
+        "symptoms": "Same API integrated multiple times differently, inconsistent error handling, duplicated effort",
+        "root_cause": "No shared tool library or gateway; each team builds point-to-point integrations",
+        "fix": "AgentCore Gateway shared, build-once-share-everywhere, tool versioning, inner-source model",
+        "patterns_affected": [
+          "federated",
+          "mesh"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:evaluation_theater",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Evaluation Theater",
+        "symptoms": "Quality was great at launch but degraded, no ongoing production metrics, users report issues first",
+        "root_cause": "Evaluation treated as one-time gate not continuous monitoring",
+        "fix": "AgentCore Evaluations continuous, judge models, regression alerts, model change re-evaluation",
+        "patterns_affected": [
+          "centralized",
+          "federated",
+          "mesh"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:governance_as_blocker",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Governance as Blocker",
+        "symptoms": "3+ months from idea to production, multiple approval committees, shadow agents emerge",
+        "root_cause": "Treating all agents as equally risky; maximum governance on minimum-risk use cases",
+        "fix": "Tiered governance, automated fast-track, AgentCore Policy automated, templates with pre-approval",
+        "patterns_affected": [
+          "centralized"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:model_lock_in",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Model Lock-in",
+        "symptoms": "All agents use same model, provider outage = all agents down, no cost optimization",
+        "root_cause": "No abstraction layer between agents and models; prompts coupled to model behaviors",
+        "fix": "Model abstraction layer, Bedrock Intelligent Routing, multi-model strategy, fallback config",
+        "patterns_affected": [
+          "centralized",
+          "federated",
+          "mesh"
+        ]
+      }
+    },
+    {
+      "id": "antipattern:memory_amnesia",
+      "type": "AntiPattern",
+      "props": {
+        "name": "Memory Amnesia",
+        "symptoms": "Users repeating context every session, no personalization, multi-session tasks require manual transfer",
+        "root_cause": "Memory treated as optional; agents built as stateless functions",
+        "fix": "AgentCore Memory from day one, user profiles, semantic memory, cross-session continuity",
+        "patterns_affected": [
+          "centralized",
+          "federated",
+          "mesh"
+        ]
+      }
+    },
+    {
+      "id": "industry:financial_services",
+      "type": "Industry",
+      "props": {
+        "name": "Financial Services",
+        "regulatory_frameworks": [
+          "SOX",
+          "PCI-DSS",
+          "OCC 2011-12",
+          "SEC/FINRA",
+          "GLBA",
+          "Basel III/IV",
+          "FFIEC"
+        ]
+      }
+    },
+    {
+      "id": "industry:healthcare",
+      "type": "Industry",
+      "props": {
+        "name": "Healthcare",
+        "regulatory_frameworks": [
+          "HIPAA",
+          "HITECH",
+          "FDA 21 CFR Part 11",
+          "FDA AI/ML SaMD",
+          "HITRUST CSF"
+        ]
+      }
+    },
+    {
+      "id": "industry:government",
+      "type": "Industry",
+      "props": {
+        "name": "Government",
+        "regulatory_frameworks": [
+          "FedRAMP",
+          "FISMA",
+          "NIST 800-53",
+          "NIST AI RMF",
+          "EO 14110",
+          "IL4/IL5",
+          "ITAR",
+          "Section 508"
+        ]
+      }
+    },
+    {
+      "id": "industry:retail_ecommerce",
+      "type": "Industry",
+      "props": {
+        "name": "Retail & E-commerce",
+        "regulatory_frameworks": [
+          "PCI-DSS",
+          "CCPA/CPRA",
+          "GDPR",
+          "FTC Act Section 5",
+          "CAN-SPAM",
+          "TCPA"
+        ]
+      }
+    },
+    {
+      "id": "industry:insurance",
+      "type": "Industry",
+      "props": {
+        "name": "Insurance",
+        "regulatory_frameworks": [
+          "State Insurance Regulations",
+          "NAIC Model Laws",
+          "Unfair Trade Practices Act",
+          "FCRA",
+          "GDPR/CCPA",
+          "Solvency II",
+          "Colorado AI Act"
+        ]
+      }
+    },
+    {
+      "id": "phase:foundation",
+      "type": "Phase",
+      "props": {
+        "name": "Foundation",
+        "order": 1,
+        "duration": "0-3 months"
+      }
+    },
+    {
+      "id": "phase:platform",
+      "type": "Phase",
+      "props": {
+        "name": "Platform",
+        "order": 2,
+        "duration": "3-6 months"
+      }
+    },
+    {
+      "id": "phase:scale",
+      "type": "Phase",
+      "props": {
+        "name": "Scale",
+        "order": 3,
+        "duration": "6-12 months"
+      }
+    },
+    {
+      "id": "phase:optimize",
+      "type": "Phase",
+      "props": {
+        "name": "Optimize & Evaluate",
+        "order": 4,
+        "duration": "12-18 months"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "constraint:q1:full_autonomy",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q1:full_autonomy",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q1:full_autonomy",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q1:full_autonomy",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q1:approval_gates",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q1:approval_gates",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q1:approval_gates",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q1:approval_gates",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q1:copilot",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q1:copilot",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q1:copilot",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q1:copilot",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q2:ai_ml_engineers",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q2:ai_ml_engineers",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q2:ai_ml_engineers",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q2:ai_ml_engineers",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q2:fullstack_devs",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q2:fullstack_devs",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q2:fullstack_devs",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q2:fullstack_devs",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q2:business_nocode",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q2:business_nocode",
+      "to": "pattern:federated",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q2:business_nocode",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q2:business_nocode",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q2:mix_all",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q2:mix_all",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q2:mix_all",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q2:mix_all",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q3:1_3_teams",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q3:1_3_teams",
+      "to": "pattern:federated",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q3:1_3_teams",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q3:1_3_teams",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q3:4_10_teams",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q3:4_10_teams",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q3:4_10_teams",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q3:4_10_teams",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q3:10plus_teams",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q3:10plus_teams",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q3:10plus_teams",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q3:10plus_teams",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q4:internal_productivity",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q4:internal_productivity",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q4:internal_productivity",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q4:internal_productivity",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q4:customer_facing",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q4:customer_facing",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q4:customer_facing",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q4:customer_facing",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q4:revenue_generating",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q4:revenue_generating",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q4:revenue_generating",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q4:revenue_generating",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q4:developer_tooling",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q4:developer_tooling",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q4:developer_tooling",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q4:developer_tooling",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q4:ops_incident",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q4:ops_incident",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q4:ops_incident",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q4:ops_incident",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q5:all_in_aws",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q5:all_in_aws",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q5:all_in_aws",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q5:all_in_aws",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q5:aws_primary",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q5:aws_primary",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q5:aws_primary",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q5:aws_primary",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q5:multi_cloud",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q5:multi_cloud",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q5:multi_cloud",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q5:multi_cloud",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q5:on_prem_edge",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q5:on_prem_edge",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q5:on_prem_edge",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q5:on_prem_edge",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q6:single_region",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q6:single_region",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q6:single_region",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q6:single_region",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q6:multi_region",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q6:multi_region",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q6:multi_region",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q6:multi_region",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q6:hybrid",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q6:hybrid",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q6:hybrid",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q6:hybrid",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q6:edge_distributed",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q6:edge_distributed",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q6:edge_distributed",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q6:edge_distributed",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q7:cost_first",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q7:cost_first",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q7:cost_first",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q7:cost_first",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q7:performance_first",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q7:performance_first",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q7:performance_first",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q7:performance_first",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q7:predictable_spend",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q7:predictable_spend",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q7:predictable_spend",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q7:predictable_spend",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q7:pay_for_outcomes",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q7:pay_for_outcomes",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q7:pay_for_outcomes",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q7:pay_for_outcomes",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q8:sox",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q8:sox",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q8:sox",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q8:sox",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q8:pci_dss",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q8:pci_dss",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q8:pci_dss",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q8:pci_dss",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q8:hipaa",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q8:hipaa",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q8:hipaa",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q8:hipaa",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q8:fedramp",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q8:fedramp",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q8:fedramp",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q8:fedramp",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q8:eu_ai_act",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q8:eu_ai_act",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q8:eu_ai_act",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q8:eu_ai_act",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q8:gdpr",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q8:gdpr",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q8:gdpr",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q8:none",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q8:none",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q8:none",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q8:none",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q9:too_expensive",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q9:too_expensive",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q9:too_expensive",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q9:too_expensive",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q9:cant_govern",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q9:cant_govern",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q9:cant_govern",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q9:cant_govern",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.9
+      }
+    },
+    {
+      "from": "constraint:q9:silos_no_reuse",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q9:silos_no_reuse",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q9:silos_no_reuse",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q9:silos_no_reuse",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q9:tool_integration_slow",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q9:tool_integration_slow",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q9:tool_integration_slow",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q9:tool_integration_slow",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q9:auth_mess",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q9:auth_mess",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q9:auth_mess",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q9:auth_mess",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.8
+      }
+    },
+    {
+      "from": "constraint:q9:cant_trust_outputs",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q9:cant_trust_outputs",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q9:cant_trust_outputs",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q9:cant_trust_outputs",
+      "to": "pattern:economy",
+      "type": "PRESSURES_AGAINST",
+      "props": {
+        "weight": 0.7
+      }
+    },
+    {
+      "from": "constraint:q9:no_cicd",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q9:no_cicd",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q9:no_cicd",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "constraint:q9:no_cicd",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q9:choosing_frameworks",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q9:choosing_frameworks",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q9:choosing_frameworks",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q9:choosing_frameworks",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.2
+      }
+    },
+    {
+      "from": "constraint:q9:too_slow_realtime",
+      "to": "pattern:centralized",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.4
+      }
+    },
+    {
+      "from": "constraint:q9:too_slow_realtime",
+      "to": "pattern:federated",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.5
+      }
+    },
+    {
+      "from": "constraint:q9:too_slow_realtime",
+      "to": "pattern:mesh",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.6
+      }
+    },
+    {
+      "from": "constraint:q9:too_slow_realtime",
+      "to": "pattern:economy",
+      "type": "PRESSURES_TOWARD",
+      "props": {
+        "weight": 0.3
+      }
+    },
+    {
+      "from": "component:registry",
+      "to": "aws:agentcore_registry",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "Core catalog and discovery at all tiers"
+      }
+    },
+    {
+      "from": "component:gateway",
+      "to": "aws:agentcore_gateway",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "MCP server hosting, tool access management"
+      }
+    },
+    {
+      "from": "component:gateway",
+      "to": "aws:api_gateway",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "REST/HTTP facade for tools and legacy systems"
+      }
+    },
+    {
+      "from": "component:gateway",
+      "to": "aws:lambda",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "Serverless tool execution and MCP server hosting"
+      }
+    },
+    {
+      "from": "component:identity",
+      "to": "aws:agentcore_identity",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "OAuth2 for agents, delegation chains"
+      }
+    },
+    {
+      "from": "component:identity",
+      "to": "aws:iam_sts",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "IAM roles, STS AssumeRole for agent permissions"
+      }
+    },
+    {
+      "from": "component:identity",
+      "to": "aws:cognito",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 2,
+        "notes": "OAuth2 token issuance for agent federation"
+      }
+    },
+    {
+      "from": "component:identity",
+      "to": "aws:secrets_manager",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "Agent credential storage and rotation"
+      }
+    },
+    {
+      "from": "component:policy_engine",
+      "to": "aws:agentcore_policy",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "Guardrails, content filtering, Automated Reasoning"
+      }
+    },
+    {
+      "from": "component:observability",
+      "to": "aws:agentcore_observability",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "Agent-specific traces and metrics"
+      }
+    },
+    {
+      "from": "component:observability",
+      "to": "aws:cloudwatch",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "Metrics, logs, dashboards, alerting"
+      }
+    },
+    {
+      "from": "component:observability",
+      "to": "aws:xray",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 2,
+        "notes": "Distributed tracing for reasoning chains"
+      }
+    },
+    {
+      "from": "component:memory_state",
+      "to": "aws:agentcore_memory",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "Managed short-term + long-term memory"
+      }
+    },
+    {
+      "from": "component:memory_state",
+      "to": "aws:dynamodb",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "State persistence backing store"
+      }
+    },
+    {
+      "from": "component:memory_state",
+      "to": "aws:bedrock_knowledge_bases",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 2,
+        "notes": "Vector retrieval for semantic memory"
+      }
+    },
+    {
+      "from": "component:memory_state",
+      "to": "aws:opensearch",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 2,
+        "notes": "Vector search for long-term memory"
+      }
+    },
+    {
+      "from": "component:eval_pipeline",
+      "to": "aws:agentcore_evaluations",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "Managed eval pipelines with judge models"
+      }
+    },
+    {
+      "from": "component:eval_pipeline",
+      "to": "aws:agentcore_harness",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 2,
+        "notes": "Testing framework and CI/CD integration"
+      }
+    },
+    {
+      "from": "component:tool_registry",
+      "to": "aws:agentcore_gateway",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "Tool catalog and versioning via Gateway"
+      }
+    },
+    {
+      "from": "component:cost_engine",
+      "to": "aws:agentcore_payments",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 2,
+        "notes": "Metering, chargeback, budget enforcement"
+      }
+    },
+    {
+      "from": "component:cost_engine",
+      "to": "aws:cloudwatch",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 1,
+        "notes": "Cost metrics and budget alerts"
+      }
+    },
+    {
+      "from": "component:cost_engine",
+      "to": "aws:bedrock",
+      "type": "IMPLEMENTED_BY",
+      "props": {
+        "tier": 2,
+        "notes": "Intelligent routing and inference profiles for cost optimization"
+      }
+    },
+    {
+      "from": "pattern:centralized",
+      "to": "component:registry",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:centralized",
+      "to": "component:gateway",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 1,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:centralized",
+      "to": "component:identity",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 1,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:centralized",
+      "to": "component:policy_engine",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:centralized",
+      "to": "component:observability",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 1,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:centralized",
+      "to": "component:memory_state",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 1,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:centralized",
+      "to": "component:eval_pipeline",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 1,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:centralized",
+      "to": "component:tool_registry",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 1,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:centralized",
+      "to": "component:cost_engine",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 1,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:federated",
+      "to": "component:registry",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:federated",
+      "to": "component:gateway",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:federated",
+      "to": "component:identity",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:federated",
+      "to": "component:policy_engine",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:federated",
+      "to": "component:observability",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:federated",
+      "to": "component:memory_state",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:federated",
+      "to": "component:eval_pipeline",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:federated",
+      "to": "component:tool_registry",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:federated",
+      "to": "component:cost_engine",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:mesh",
+      "to": "component:registry",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:mesh",
+      "to": "component:gateway",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:mesh",
+      "to": "component:identity",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:mesh",
+      "to": "component:policy_engine",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:mesh",
+      "to": "component:observability",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:mesh",
+      "to": "component:memory_state",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:mesh",
+      "to": "component:eval_pipeline",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:mesh",
+      "to": "component:tool_registry",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:mesh",
+      "to": "component:cost_engine",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:economy",
+      "to": "component:registry",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:economy",
+      "to": "component:gateway",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:economy",
+      "to": "component:identity",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:economy",
+      "to": "component:policy_engine",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:economy",
+      "to": "component:observability",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:economy",
+      "to": "component:memory_state",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:economy",
+      "to": "component:eval_pipeline",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 2,
+        "priority": "P1"
+      }
+    },
+    {
+      "from": "pattern:economy",
+      "to": "component:tool_registry",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "pattern:economy",
+      "to": "component:cost_engine",
+      "type": "REQUIRES",
+      "props": {
+        "min_tier": 3,
+        "priority": "P0"
+      }
+    },
+    {
+      "from": "constraint:q3:10plus_teams",
+      "to": "component:registry",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 3,
+        "reason": "10+ teams requires self-healing registry with capability negotiation"
+      }
+    },
+    {
+      "from": "constraint:q1:full_autonomy",
+      "to": "component:policy_engine",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 3,
+        "reason": "Full autonomy requires adaptive policy with context-aware risk scoring"
+      }
+    },
+    {
+      "from": "constraint:q4:customer_facing",
+      "to": "component:policy_engine",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 3,
+        "reason": "Customer-facing agents require maximum policy enforcement"
+      }
+    },
+    {
+      "from": "constraint:q4:revenue_generating",
+      "to": "component:eval_pipeline",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 3,
+        "reason": "Revenue-generating workflows require continuous online eval"
+      }
+    },
+    {
+      "from": "constraint:q7:cost_first",
+      "to": "component:cost_engine",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 3,
+        "reason": "Cost-first constraint requires intelligent routing and per-task budgets"
+      }
+    },
+    {
+      "from": "constraint:q3:10plus_teams",
+      "to": "component:observability",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 3,
+        "reason": "Enterprise-wide scale requires drift detection and causal attribution"
+      }
+    },
+    {
+      "from": "constraint:q4:customer_facing",
+      "to": "component:eval_pipeline",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 2,
+        "reason": "Customer-facing agents require shadow evaluation"
+      }
+    },
+    {
+      "from": "constraint:q3:4_10_teams",
+      "to": "component:identity",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 2,
+        "reason": "Multi-LOB requires machine identity with rotation and delegation"
+      }
+    },
+    {
+      "from": "constraint:q8:sox",
+      "to": "component:observability",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 3,
+        "reason": "SOX requires full audit trails with 7-year retention"
+      }
+    },
+    {
+      "from": "constraint:q8:hipaa",
+      "to": "component:policy_engine",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 3,
+        "reason": "HIPAA requires PHI boundary enforcement and consent management"
+      }
+    },
+    {
+      "from": "constraint:q8:fedramp",
+      "to": "component:identity",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 3,
+        "reason": "FedRAMP requires zero-trust, PIV/CAC authentication"
+      }
+    },
+    {
+      "from": "constraint:q9:cant_govern",
+      "to": "component:registry",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 2,
+        "reason": "Governance pain forces mandatory registration and lifecycle management"
+      }
+    },
+    {
+      "from": "constraint:q9:auth_mess",
+      "to": "component:identity",
+      "type": "ELEVATES_TIER",
+      "props": {
+        "min_tier": 3,
+        "reason": "Auth pain forces capability-based auth and zero-trust agent-to-agent"
+      }
+    },
+    {
+      "from": "law:time_pressure_parallel",
+      "to": "topology:t1_agent_topology",
+      "type": "FORCES",
+      "props": {
+        "condition": "Hard latency SLA exists"
+      }
+    },
+    {
+      "from": "law:time_pressure_parallel",
+      "to": "topology:t2_coordination_model",
+      "type": "FORCES",
+      "props": {
+        "condition": "Parallel fan-out required for latency"
+      }
+    },
+    {
+      "from": "law:action_authority_hierarchy",
+      "to": "topology:t1_agent_topology",
+      "type": "FORCES",
+      "props": {
+        "condition": "Full autonomy + high-risk actions"
+      }
+    },
+    {
+      "from": "law:action_authority_hierarchy",
+      "to": "topology:t2_coordination_model",
+      "type": "FORCES",
+      "props": {
+        "condition": "High-consequence actions require supervisor chain"
+      }
+    },
+    {
+      "from": "law:failure_cost_asymmetry",
+      "to": "topology:t2_coordination_model",
+      "type": "FORCES",
+      "props": {
+        "condition": "Asymmetric failure costs (healthcare, finance)"
+      }
+    },
+    {
+      "from": "law:volume_predictability",
+      "to": "topology:t2_coordination_model",
+      "type": "FORCES",
+      "props": {
+        "condition": "High volume + predictable task structure"
+      }
+    },
+    {
+      "from": "law:coordination_overhead",
+      "to": "topology:t1_agent_topology",
+      "type": "FORCES",
+      "props": {
+        "condition": "Coordination tokens > 30% of total compute"
+      }
+    },
+    {
+      "from": "law:coordination_overhead",
+      "to": "pattern:mesh",
+      "type": "BLOCKS",
+      "props": {
+        "condition": "Simple tasks that don't decompose into sub-problems",
+        "reason": "Multi-agent overhead exceeds benefit for non-decomposable tasks"
+      }
+    },
+    {
+      "from": "law:coordination_overhead",
+      "to": "pattern:economy",
+      "type": "BLOCKS",
+      "props": {
+        "condition": "Coordination cost > 30% of compute for the workload",
+        "reason": "Market-based coordination adds unacceptable overhead"
+      }
+    },
+    {
+      "from": "law:action_authority_hierarchy",
+      "to": "pattern:mesh",
+      "type": "BLOCKS",
+      "props": {
+        "condition": "Full autonomy + high-risk actions without supervisor chain",
+        "reason": "Peer network cannot enforce approval hierarchy for high-consequence actions"
+      }
+    },
+    {
+      "from": "innovation:programmatic_tool_calling",
+      "to": "constraint:q9:tool_integration_slow",
+      "type": "SOLVES",
+      "props": {
+        "how": "Auto-generates MCP servers from OpenAPI specs, eliminating manual tool-building effort"
+      }
+    },
+    {
+      "from": "innovation:programmatic_tool_calling",
+      "to": "constraint:q2:business_nocode",
+      "type": "SOLVES",
+      "props": {
+        "how": "Dynamic tool discovery removes need for deep MCP expertise"
+      }
+    },
+    {
+      "from": "innovation:managed_agent_services",
+      "to": "constraint:q2:business_nocode",
+      "type": "SOLVES",
+      "props": {
+        "how": "Managed services abstract ML complexity; business teams can build agents"
+      }
+    },
+    {
+      "from": "innovation:managed_agent_services",
+      "to": "constraint:q2:fullstack_devs",
+      "type": "SOLVES",
+      "props": {
+        "how": "SDK-level abstractions let full-stack devs build production agents"
+      }
+    },
+    {
+      "from": "innovation:intelligent_token_routing",
+      "to": "constraint:q7:cost_first",
+      "type": "SOLVES",
+      "props": {
+        "how": "40-70% cost reduction via intelligent routing, caching, and per-task budgets"
+      }
+    },
+    {
+      "from": "innovation:intelligent_token_routing",
+      "to": "constraint:q9:too_expensive",
+      "type": "SOLVES",
+      "props": {
+        "how": "Semantic caching + model routing eliminates redundant expensive inference"
+      }
+    },
+    {
+      "from": "innovation:governance_stack",
+      "to": "constraint:q1:full_autonomy",
+      "type": "SOLVES",
+      "props": {
+        "how": "Guardrails + Automated Reasoning enable governance of fully autonomous agents"
+      }
+    },
+    {
+      "from": "innovation:governance_stack",
+      "to": "constraint:q9:cant_govern",
+      "type": "SOLVES",
+      "props": {
+        "how": "Policy + OTel + trace-based observability provides full governance visibility"
+      }
+    },
+    {
+      "from": "innovation:registry_discovery_a2a",
+      "to": "constraint:q3:10plus_teams",
+      "type": "SOLVES",
+      "props": {
+        "how": "Registry enables discovery and reuse across many teams; A2A enables composition"
+      }
+    },
+    {
+      "from": "innovation:registry_discovery_a2a",
+      "to": "constraint:q9:silos_no_reuse",
+      "type": "SOLVES",
+      "props": {
+        "how": "Registry prevents redundant agents; discovery-first intake reduces silos"
+      }
+    },
+    {
+      "from": "innovation:agent_identity_oauth2",
+      "to": "constraint:q9:auth_mess",
+      "type": "SOLVES",
+      "props": {
+        "how": "Purpose-built OAuth2 for agents with delegation chains and audit trails"
+      }
+    },
+    {
+      "from": "innovation:aidlc_harness_evaluations",
+      "to": "constraint:q4:customer_facing",
+      "type": "SOLVES",
+      "props": {
+        "how": "Agent-specific CI/CD with eval gates ensures production-grade quality"
+      }
+    },
+    {
+      "from": "innovation:aidlc_harness_evaluations",
+      "to": "constraint:q9:no_cicd",
+      "type": "SOLVES",
+      "props": {
+        "how": "AgentCore Harness provides complete CI/CD pipeline for agents"
+      }
+    },
+    {
+      "from": "innovation:rag_automated_reasoning",
+      "to": "constraint:q9:cant_trust_outputs",
+      "type": "SOLVES",
+      "props": {
+        "how": "RAG + Automated Reasoning reduces hallucination from 15-20% to <2%"
+      }
+    },
+    {
+      "from": "innovation:rag_automated_reasoning",
+      "to": "constraint:q4:customer_facing",
+      "type": "SOLVES",
+      "props": {
+        "how": "Formal verification enables trust in customer-facing agent outputs"
+      }
+    },
+    {
+      "from": "innovation:agent_analytics_roi",
+      "to": "constraint:q7:pay_for_outcomes",
+      "type": "SOLVES",
+      "props": {
+        "how": "Business outcome attribution measures agent ROI directly"
+      }
+    },
+    {
+      "from": "innovation:agent_analytics_roi",
+      "to": "constraint:q4:revenue_generating",
+      "type": "SOLVES",
+      "props": {
+        "how": "Revenue attribution tracks agent contribution to business outcomes"
+      }
+    },
+    {
+      "from": "innovation:portable_orchestration_mcp",
+      "to": "constraint:q5:multi_cloud",
+      "type": "SOLVES",
+      "props": {
+        "how": "Portable frameworks + MCP as universal connector enable cloud-agnostic agents"
+      }
+    },
+    {
+      "from": "innovation:portable_orchestration_mcp",
+      "to": "constraint:q5:on_prem_edge",
+      "type": "SOLVES",
+      "props": {
+        "how": "MCP servers abstract on-prem resources behind standard tool interface"
+      }
+    },
+    {
+      "from": "innovation:lifecycle_health_scoring",
+      "to": "constraint:q3:10plus_teams",
+      "type": "SOLVES",
+      "props": {
+        "how": "Automated health checks prevent sprawl at enterprise scale"
+      }
+    },
+    {
+      "from": "innovation:lifecycle_health_scoring",
+      "to": "constraint:q9:cant_govern",
+      "type": "SOLVES",
+      "props": {
+        "how": "Lifecycle management provides complete agent inventory and governance"
+      }
+    },
+    {
+      "from": "innovation:event_driven_streaming",
+      "to": "constraint:q9:too_slow_realtime",
+      "type": "SOLVES",
+      "props": {
+        "how": "Streaming responses and event-driven triggers achieve <500ms time-to-first-token"
+      }
+    },
+    {
+      "from": "innovation:event_driven_streaming",
+      "to": "constraint:q4:ops_incident",
+      "type": "SOLVES",
+      "props": {
+        "how": "Event-driven architectures enable real-time incident response automation"
+      }
+    },
+    {
+      "from": "innovation:compliance_audit_trails",
+      "to": "constraint:q8:sox",
+      "type": "SOLVES",
+      "props": {
+        "how": "Immutable audit trails and reproducible execution satisfy SOX requirements"
+      }
+    },
+    {
+      "from": "innovation:compliance_audit_trails",
+      "to": "constraint:q8:fedramp",
+      "type": "SOLVES",
+      "props": {
+        "how": "Compliance-grade trails meet FedRAMP continuous monitoring mandates"
+      }
+    },
+    {
+      "from": "innovation:compliance_audit_trails",
+      "to": "constraint:q8:hipaa",
+      "type": "SOLVES",
+      "props": {
+        "how": "PHI access logging with 6-year retention satisfies HIPAA audit requirements"
+      }
+    },
+    {
+      "from": "innovation:legacy_mcp_adapters",
+      "to": "constraint:q9:tool_integration_slow",
+      "type": "SOLVES",
+      "props": {
+        "how": "MCP adapters wrap legacy systems once; all agents consume via standard interface"
+      }
+    },
+    {
+      "from": "innovation:framework_convergence",
+      "to": "constraint:q9:choosing_frameworks",
+      "type": "SOLVES",
+      "props": {
+        "how": "MCP standardizes tools across frameworks; AgentCore Runtime hosts any framework"
+      }
+    },
+    {
+      "from": "innovation:framework_convergence",
+      "to": "constraint:q5:aws_primary",
+      "type": "SOLVES",
+      "props": {
+        "how": "Framework-agnostic infrastructure eliminates lock-in fear"
+      }
+    },
+    {
+      "from": "innovation:formal_verification",
+      "to": "constraint:q9:cant_trust_outputs",
+      "type": "SOLVES",
+      "props": {
+        "how": "Mathematical proof of factual accuracy (99% hallucination detection)"
+      }
+    },
+    {
+      "from": "innovation:formal_verification",
+      "to": "constraint:q8:eu_ai_act",
+      "type": "SOLVES",
+      "props": {
+        "how": "Formal verification provides explainability required by EU AI Act"
+      }
+    },
+    {
+      "from": "innovation:managed_agent_services",
+      "to": "pattern:centralized",
+      "type": "ENABLES",
+      "props": {
+        "since": "2024-Q4"
+      }
+    },
+    {
+      "from": "innovation:registry_discovery_a2a",
+      "to": "pattern:federated",
+      "type": "ENABLES",
+      "props": {
+        "since": "2025-Q2"
+      }
+    },
+    {
+      "from": "innovation:registry_discovery_a2a",
+      "to": "pattern:mesh",
+      "type": "ENABLES",
+      "props": {
+        "since": "2025-Q2"
+      }
+    },
+    {
+      "from": "innovation:portable_orchestration_mcp",
+      "to": "pattern:federated",
+      "type": "ENABLES",
+      "props": {
+        "since": "2025-Q1"
+      }
+    },
+    {
+      "from": "innovation:portable_orchestration_mcp",
+      "to": "pattern:mesh",
+      "type": "ENABLES",
+      "props": {
+        "since": "2025-Q1"
+      }
+    },
+    {
+      "from": "innovation:framework_convergence",
+      "to": "pattern:federated",
+      "type": "ENABLES",
+      "props": {
+        "since": "2025-Q3"
+      }
+    },
+    {
+      "from": "innovation:intelligent_token_routing",
+      "to": "pattern:economy",
+      "type": "ENABLES",
+      "props": {
+        "since": "2025-Q1"
+      }
+    },
+    {
+      "from": "innovation:agent_identity_oauth2",
+      "to": "pattern:mesh",
+      "type": "ENABLES",
+      "props": {
+        "since": "2025-Q1"
+      }
+    },
+    {
+      "from": "innovation:governance_stack",
+      "to": "pattern:centralized",
+      "type": "ENABLES",
+      "props": {
+        "since": "2024-Q3"
+      }
+    },
+    {
+      "from": "innovation:lifecycle_health_scoring",
+      "to": "pattern:federated",
+      "type": "ENABLES",
+      "props": {
+        "since": "2025-Q3"
+      }
+    },
+    {
+      "from": "innovation:programmatic_tool_calling",
+      "to": "component:tool_registry",
+      "type": "REPLACES",
+      "props": {
+        "condition": "200+ internal services need tool integration",
+        "replacement": "Auto-generated MCP servers from OpenAPI specs replace manual tool catalog building"
+      }
+    },
+    {
+      "from": "innovation:intelligent_token_routing",
+      "to": "component:cost_engine",
+      "type": "REPLACES",
+      "props": {
+        "condition": "Cost grows linearly with usage",
+        "replacement": "Intelligent routing + semantic caching replaces aggregate billing with per-task optimization"
+      }
+    },
+    {
+      "from": "innovation:formal_verification",
+      "to": "component:eval_pipeline",
+      "type": "REPLACES",
+      "props": {
+        "condition": "Probabilistic evaluation insufficient for regulated domains",
+        "replacement": "Mathematical proof replaces statistical sampling for factual accuracy"
+      }
+    },
+    {
+      "from": "antipattern:god_agent",
+      "to": "pattern:centralized",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "No decomposition strategy",
+          "Single agent grows organically as teams add requirements"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:god_agent",
+      "to": "pattern:federated",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "LOBs building 'one agent to rule them all' for their domain"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:single_team_bottleneck",
+      "to": "pattern:centralized",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Platform team doesn't invest in self-service",
+          "Over-centralized control without automation"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:agent_sprawl",
+      "to": "pattern:federated",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "No mandatory registration",
+          "Easy to create, impossible to find or retire"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:agent_sprawl",
+      "to": "pattern:mesh",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Inherent risk in peer-to-peer with no central catalog"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:capability_gap",
+      "to": "pattern:federated",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Federation without readiness assessment",
+          "Autonomy granted based on demand not capability"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:observability_blind_spot",
+      "to": "pattern:federated",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Distributed operations with inconsistent instrumentation"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:observability_blind_spot",
+      "to": "pattern:mesh",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "No central observability in peer-to-peer topology"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:cost_explosion",
+      "to": "pattern:centralized",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "All tasks use same expensive model",
+          "No routing or caching layer"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:cost_explosion",
+      "to": "pattern:federated",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Distributed cost management harder to track and optimize"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:auth_debt",
+      "to": "pattern:federated",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Each LOB manages own auth independently"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:tool_spaghetti",
+      "to": "pattern:federated",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "No shared tool library",
+          "Each team builds point-to-point integrations"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:tool_spaghetti",
+      "to": "pattern:mesh",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "No incentive to share tools in peer topology"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:evaluation_theater",
+      "to": "pattern:centralized",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Evaluation is one-time gate, not continuous"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:evaluation_theater",
+      "to": "pattern:federated",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Harder to enforce consistent evaluation across LOBs"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:governance_as_blocker",
+      "to": "pattern:centralized",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Maximum governance applied to minimum-risk use cases",
+          "No tiered approach"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:model_lock_in",
+      "to": "pattern:centralized",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Single model router with no fallback configured"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:memory_amnesia",
+      "to": "pattern:centralized",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "Agents built as stateless functions",
+          "Memory treated as optional"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:memory_amnesia",
+      "to": "pattern:federated",
+      "type": "TRIGGERED_BY",
+      "props": {
+        "conditions": [
+          "No shared memory architecture across LOBs"
+        ]
+      }
+    },
+    {
+      "from": "antipattern:god_agent",
+      "to": "component:registry",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:god_agent",
+      "to": "component:gateway",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:god_agent",
+      "to": "component:policy_engine",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:single_team_bottleneck",
+      "to": "component:policy_engine",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:single_team_bottleneck",
+      "to": "component:eval_pipeline",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:agent_sprawl",
+      "to": "component:registry",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:agent_sprawl",
+      "to": "component:cost_engine",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:capability_gap",
+      "to": "component:eval_pipeline",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:capability_gap",
+      "to": "component:policy_engine",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:observability_blind_spot",
+      "to": "component:observability",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 1
+      }
+    },
+    {
+      "from": "antipattern:cost_explosion",
+      "to": "component:cost_engine",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:cost_explosion",
+      "to": "component:policy_engine",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:auth_debt",
+      "to": "component:identity",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:tool_spaghetti",
+      "to": "component:gateway",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:tool_spaghetti",
+      "to": "component:tool_registry",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:evaluation_theater",
+      "to": "component:eval_pipeline",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:evaluation_theater",
+      "to": "component:observability",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:governance_as_blocker",
+      "to": "component:policy_engine",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:model_lock_in",
+      "to": "component:eval_pipeline",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:model_lock_in",
+      "to": "component:cost_engine",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 2
+      }
+    },
+    {
+      "from": "antipattern:memory_amnesia",
+      "to": "component:memory_state",
+      "type": "PREVENTED_BY",
+      "props": {
+        "min_tier": 1
+      }
+    },
+    {
+      "from": "industry:financial_services",
+      "to": "component:policy_engine",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "SOX, SEC/FINRA \u2014 Automated Reasoning required for financial advice/calculations"
+      }
+    },
+    {
+      "from": "industry:financial_services",
+      "to": "component:observability",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "SOX \u2014 Full audit trails, 7-year retention for all agent decisions"
+      }
+    },
+    {
+      "from": "industry:financial_services",
+      "to": "component:identity",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "GLBA \u2014 Full delegation chains, non-repudiation, audit of authorization"
+      }
+    },
+    {
+      "from": "industry:financial_services",
+      "to": "component:eval_pipeline",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "OCC/SR 11-7 \u2014 Model Risk Management requires continuous evaluation"
+      }
+    },
+    {
+      "from": "industry:financial_services",
+      "to": "component:registry",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "SOX \u2014 Complete inventory of all agents handling financial data"
+      }
+    },
+    {
+      "from": "industry:financial_services",
+      "to": "component:memory_state",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "GLBA \u2014 Data retention policies, purge on request capability"
+      }
+    },
+    {
+      "from": "industry:healthcare",
+      "to": "component:policy_engine",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "HIPAA \u2014 PHI boundaries, consent enforcement, Automated Reasoning for clinical accuracy"
+      }
+    },
+    {
+      "from": "industry:healthcare",
+      "to": "component:observability",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "HIPAA \u2014 Who accessed what PHI, when, why; 6-year retention"
+      }
+    },
+    {
+      "from": "industry:healthcare",
+      "to": "component:identity",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "HIPAA \u2014 Minimum necessary standard, role-based PHI access"
+      }
+    },
+    {
+      "from": "industry:healthcare",
+      "to": "component:memory_state",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "HIPAA \u2014 PHI encrypted, access-logged, purgeable"
+      }
+    },
+    {
+      "from": "industry:healthcare",
+      "to": "component:registry",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "HIPAA \u2014 Inventory of all agents with PHI access"
+      }
+    },
+    {
+      "from": "industry:government",
+      "to": "component:policy_engine",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "FedRAMP/NIST 800-53 \u2014 Continuous monitoring, NIST controls"
+      }
+    },
+    {
+      "from": "industry:government",
+      "to": "component:observability",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "FISMA \u2014 Continuous monitoring mandate, SIEM integration"
+      }
+    },
+    {
+      "from": "industry:government",
+      "to": "component:identity",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "NIST 800-53 \u2014 PIV/CAC authentication, zero trust"
+      }
+    },
+    {
+      "from": "industry:government",
+      "to": "component:registry",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "NIST 800-53 CM-8 \u2014 System inventory requirement"
+      }
+    },
+    {
+      "from": "industry:government",
+      "to": "component:eval_pipeline",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "NIST AI RMF \u2014 Ongoing testing and bias evaluation"
+      }
+    },
+    {
+      "from": "industry:retail_ecommerce",
+      "to": "component:policy_engine",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "PCI-DSS \u2014 Payment agent compliance; CCPA privacy for customer data"
+      }
+    },
+    {
+      "from": "industry:retail_ecommerce",
+      "to": "component:identity",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "PCI-DSS \u2014 Customer identity management, consent-based access"
+      }
+    },
+    {
+      "from": "industry:retail_ecommerce",
+      "to": "component:observability",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "PCI-DSS \u2014 Audit requirements, customer interaction logging"
+      }
+    },
+    {
+      "from": "industry:retail_ecommerce",
+      "to": "component:memory_state",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "CCPA/GDPR \u2014 Right to deletion, customer data retention limits"
+      }
+    },
+    {
+      "from": "industry:retail_ecommerce",
+      "to": "component:cost_engine",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "PCI-DSS \u2014 Transaction metering for payment agents"
+      }
+    },
+    {
+      "from": "industry:insurance",
+      "to": "component:policy_engine",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "State regulations/Colorado AI Act \u2014 Explainability, anti-discrimination, Automated Reasoning"
+      }
+    },
+    {
+      "from": "industry:insurance",
+      "to": "component:observability",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "NAIC \u2014 Decision audit trails, regulatory examination readiness, 7-year retention"
+      }
+    },
+    {
+      "from": "industry:insurance",
+      "to": "component:eval_pipeline",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 3,
+        "regulation": "Colorado AI Act/NAIC \u2014 Bias testing, fair lending compliance, ongoing monitoring"
+      }
+    },
+    {
+      "from": "industry:insurance",
+      "to": "component:identity",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "GLBA/State laws \u2014 Policyholder data protection, authorization controls"
+      }
+    },
+    {
+      "from": "industry:insurance",
+      "to": "component:registry",
+      "type": "FORCES_TIER",
+      "props": {
+        "min_tier": 2,
+        "regulation": "NAIC \u2014 Inventory of all AI models/agents for regulatory filing"
+      }
+    },
+    {
+      "from": "component:gateway",
+      "to": "phase:foundation",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "centralized"
+      }
+    },
+    {
+      "from": "component:policy_engine",
+      "to": "phase:foundation",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "centralized"
+      }
+    },
+    {
+      "from": "component:observability",
+      "to": "phase:foundation",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "centralized"
+      }
+    },
+    {
+      "from": "component:identity",
+      "to": "phase:foundation",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "centralized"
+      }
+    },
+    {
+      "from": "component:registry",
+      "to": "phase:platform",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "centralized"
+      }
+    },
+    {
+      "from": "component:tool_registry",
+      "to": "phase:platform",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "centralized"
+      }
+    },
+    {
+      "from": "component:cost_engine",
+      "to": "phase:platform",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "centralized"
+      }
+    },
+    {
+      "from": "component:eval_pipeline",
+      "to": "phase:scale",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "centralized"
+      }
+    },
+    {
+      "from": "component:memory_state",
+      "to": "phase:scale",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "centralized"
+      }
+    },
+    {
+      "from": "component:registry",
+      "to": "phase:foundation",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "federated"
+      }
+    },
+    {
+      "from": "component:policy_engine",
+      "to": "phase:foundation",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "federated"
+      }
+    },
+    {
+      "from": "component:identity",
+      "to": "phase:foundation",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "federated"
+      }
+    },
+    {
+      "from": "component:observability",
+      "to": "phase:foundation",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "federated"
+      }
+    },
+    {
+      "from": "component:gateway",
+      "to": "phase:platform",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "federated"
+      }
+    },
+    {
+      "from": "component:cost_engine",
+      "to": "phase:platform",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "federated"
+      }
+    },
+    {
+      "from": "component:eval_pipeline",
+      "to": "phase:platform",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "federated"
+      }
+    },
+    {
+      "from": "component:tool_registry",
+      "to": "phase:scale",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "federated"
+      }
+    },
+    {
+      "from": "component:memory_state",
+      "to": "phase:scale",
+      "type": "BUILT_IN",
+      "props": {
+        "pattern": "federated"
+      }
+    },
+    {
+      "from": "component:gateway",
+      "to": "component:identity",
+      "type": "DEPENDS_ON",
+      "props": {
+        "reason": "Tool calls require auth tokens from identity layer"
+      }
+    },
+    {
+      "from": "component:eval_pipeline",
+      "to": "component:observability",
+      "type": "DEPENDS_ON",
+      "props": {
+        "reason": "Evaluation uses observability data for production quality scoring"
+      }
+    },
+    {
+      "from": "component:registry",
+      "to": "component:observability",
+      "type": "DEPENDS_ON",
+      "props": {
+        "reason": "Health scoring requires usage and error data from observability"
+      }
+    },
+    {
+      "from": "component:cost_engine",
+      "to": "component:observability",
+      "type": "DEPENDS_ON",
+      "props": {
+        "reason": "Cost tracking requires token usage metrics from observability"
+      }
+    },
+    {
+      "from": "component:tool_registry",
+      "to": "component:gateway",
+      "type": "DEPENDS_ON",
+      "props": {
+        "reason": "Tool catalog is exposed through gateway infrastructure"
+      }
+    },
+    {
+      "from": "component:policy_engine",
+      "to": "component:identity",
+      "type": "DEPENDS_ON",
+      "props": {
+        "reason": "Policy decisions reference agent identity for permission evaluation"
+      }
+    },
+    {
+      "from": "component:memory_state",
+      "to": "component:identity",
+      "type": "DEPENDS_ON",
+      "props": {
+        "reason": "Memory access must be scoped to authorized agents/users"
+      }
+    }
+  ]
+}

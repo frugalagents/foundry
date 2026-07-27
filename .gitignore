@@ -1,0 +1,38 @@
+# Environment / secrets
+.env.local
+.env.*.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+.pytest_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+
+# AWS SAM build artifacts
+.aws-sam/
+samconfig.toml.bak
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Zip archives
+*.zip
+
+# Test outputs
+*.log

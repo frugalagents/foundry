@@ -1,0 +1,429 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Platform Advisor — Serverless backend (Lambda + API Gateway + DynamoDB + Cognito)
+
+Globals:
+  Function:
+    Timeout: 900
+    MemorySize: 1024
+    Runtime: python3.14
+    Environment:
+      Variables:
+        ENV: !Ref Env
+        DYNAMODB_TABLE: !Ref MainTable
+        COGNITO_REGION: !Ref AWS::Region
+        COGNITO_USER_POOL_ID: !Ref UserPool
+        COGNITO_CLIENT_ID: !Ref UserPoolClient
+        ALLOWED_ORIGINS: !Ref AllowedOrigins
+        DEV_MODE: !Ref DevMode
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  AllowedOrigins:
+    Type: String
+    Default: "https://d1wa5bvm23hhld.cloudfront.net"
+    Description: "Primary app URL for CORS and Cognito callback"
+  DevMode:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: "Set to true only for local dev — skips Cognito JWT verification"
+  AdminAlias:
+    Type: String
+    Default: "aigopala"
+    Description: "Amazon alias of the admin user (matched against Midway sub claim)"
+  MidwayClientSecret:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: "Client secret for the Midway OIDC app (platform-advisor-dev)"
+
+Resources:
+  # ── DynamoDB Table ──────────────────────────────────────────────────────────
+  MainTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      TableName: platform-advisor-main
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # ── Cognito User Pool ───────────────────────────────────────────────────────
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub platform-advisor-users-${Env}
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      LambdaConfig:
+        PreTokenGeneration: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:platform-advisor-pre-token-${Env}"
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+        - Name: role
+          AttributeDataType: String
+          Required: false
+          Mutable: true
+        - Name: amazon_alias
+          AttributeDataType: String
+          Required: false
+          Mutable: true
+
+  UserPoolMidwayIdP:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      UserPoolId: !Ref UserPool
+      ProviderName: Midway
+      ProviderType: OIDC
+      ProviderDetails:
+        client_id: platform-advisor-dev
+        client_secret: !Ref MidwayClientSecret
+        oidc_issuer: https://idp-integ.federate.amazon.com
+        authorize_scopes: openid email
+        attributes_request_method: GET
+      AttributeMapping:
+        email: email
+        custom:amazon_alias: sub
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn: UserPoolMidwayIdP
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: !Sub platform-advisor-app-${Env}
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+        - Midway
+      CallbackURLs:
+        - !Sub "${AllowedOrigins}/api/auth/callback"
+        - "http://localhost:3000/api/auth/callback"
+      LogoutURLs:
+        - !Sub "${AllowedOrigins}/login"
+        - "http://localhost:3000/login"
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [email, openid, profile]
+      AllowedOAuthFlowsUserPoolClient: true
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub "platform-advisor-${Env}-${AWS::AccountId}"
+      UserPoolId: !Ref UserPool
+
+  # ── Cognito Identity Pool ───────────────────────────────────────────────────
+  # Grants authenticated users temporary AWS credentials scoped to AgentCore only.
+  # Frontend exchanges Cognito id_token for these creds to call AgentCore directly.
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub platform-advisor-identity-${Env}
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref UserPoolClient
+          ProviderName: !GetAtt UserPool.ProviderName
+
+  IdentityPoolAuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub platform-advisor-identity-auth-${Env}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
+              "ForAnyValue:StringLike":
+                "cognito-identity.amazonaws.com:amr": authenticated
+      Policies:
+        - PolicyName: AgentCoreInvokeOnly
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: bedrock-agentcore:InvokeAgentRuntime
+                Resource: "*"
+
+  IdentityPoolRoles:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt IdentityPoolAuthRole.Arn
+
+  # ── Frontend: S3 + CloudFront ──────────────────────────────────────────────
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub platform-advisor-frontend-${Env}-${AWS::AccountId}
+
+  FrontendOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub platform-advisor-frontend-oac-${Env}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
+
+  FrontendRouterFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub platform-advisor-spa-router-${Env}
+      AutoPublish: true
+      FunctionConfig:
+        Comment: "SPA routing for Next.js static export"
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+          var lastSeg = uri.split('/').pop();
+          if (lastSeg && lastSeg.indexOf('.') !== -1) return request;
+          if (uri.charAt(uri.length - 1) !== '/') uri = uri + '/';
+          if (/^\/customers\/[^\/]+\/sessions\//.test(uri)) {
+            request.uri = '/customers/_/sessions/_/index.html';
+            return request;
+          }
+          if (/^\/customers\/[^\/]+\//.test(uri)) {
+            request.uri = '/customers/_/index.html';
+            return request;
+          }
+          request.uri = uri + 'index.html';
+          return request;
+        }
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "Platform Advisor Frontend (${Env})"
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+            OriginAccessControlId: !GetAtt FrontendOAC.Id
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt FrontendRouterFunction.FunctionMetadata.FunctionARN
+        CacheBehaviors:
+          - PathPattern: "_next/static/*"
+            TargetOriginId: S3Origin
+            ViewerProtocolPolicy: redirect-to-https
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+  # ── Cognito PreTokenGeneration Lambda ──────────────────────────────────────
+  PreTokenFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub platform-advisor-pre-token-${Env}
+      CodeUri: ../backend/
+      Handler: api.pre_token.handler
+      Description: Cognito PreTokenGeneration trigger — injects custom:role claim
+      Environment:
+        Variables:
+          ADMIN_ALIAS: !Ref AdminAlias
+          # Override globals to break circular dependency with UserPool/UserPoolClient
+          COGNITO_USER_POOL_ID: "unused"
+          COGNITO_CLIENT_ID: "unused"
+
+  PreTokenFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt PreTokenFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  # ── Lambda Function (CRUD + confirm + admin) ────────────────────────────────
+  # No FunctionUrlConfig — Lambda is only reachable via API Gateway.
+  AdvisorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub platform-advisor-api-${Env}
+      CodeUri: ../backend/
+      Handler: api.main.handler
+      Description: Platform Advisor FastAPI backend — CRUD, confirmation, admin
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: "*"
+      Events:
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+        HealthCheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /health
+            Method: GET
+
+  # ── API Gateway HTTP API (JWT-secured) ─────────────────────────────────────
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Description: Platform Advisor REST API — auth handled by Lambda middleware
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AllowedOrigins
+          - "http://localhost:3000"
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        AllowCredentials: false
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 100
+        ThrottlingRateLimit: 50
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiUrl"
+
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref MainTable
+    Export:
+      Name: !Sub "${AWS::StackName}-TableName"
+
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt AdvisorFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-FunctionArn"
+
+  UserPoolId:
+    Description: Cognito User Pool ID — set as NEXT_PUBLIC_USER_POOL_ID in frontend .env
+    Value: !Ref UserPool
+    Export:
+      Name: !Sub "${AWS::StackName}-UserPoolId"
+
+  UserPoolClientId:
+    Description: Cognito App Client ID — set as NEXT_PUBLIC_COGNITO_CLIENT_ID in frontend .env
+    Value: !Ref UserPoolClient
+    Export:
+      Name: !Sub "${AWS::StackName}-UserPoolClientId"
+
+  UserPoolLoginUrl:
+    Description: Cognito Hosted UI login URL for testing
+    Value: !Sub "https://platform-advisor-${Env}-${AWS::AccountId}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=code&scope=email+openid+profile&redirect_uri=${AllowedOrigins}/api/auth/callback"
+
+  IdentityPoolId:
+    Description: Cognito Identity Pool ID — set as NEXT_PUBLIC_IDENTITY_POOL_ID in frontend .env
+    Value: !Ref IdentityPool
+    Export:
+      Name: !Sub "${AWS::StackName}-IdentityPoolId"
+
+  FrontendURL:
+    Description: CloudFront distribution URL for the frontend
+    Value: !Sub "https://${FrontendDistribution.DomainName}"
+    Export:
+      Name: !Sub "${AWS::StackName}-FrontendURL"
+
+  FrontendBucketName:
+    Description: S3 bucket name for frontend assets
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-FrontendBucketName"
+
+  FrontendDistributionId:
+    Description: CloudFront distribution ID (for cache invalidation)
+    Value: !Ref FrontendDistribution
+    Export:
+      Name: !Sub "${AWS::StackName}-FrontendDistributionId"

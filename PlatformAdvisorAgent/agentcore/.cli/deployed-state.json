@@ -1,0 +1,23 @@
+{
+  "targets": {
+    "default": {
+      "resources": {
+        "runtimes": {
+          "PlatformAdvisorAgent": {
+            "runtimeId": "PlatformAdvisorAgent_PlatformAdvisorAgent-3U71dVBprI",
+            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/PlatformAdvisorAgent_PlatformAdvisorAgent-3U71dVBprI",
+            "roleArn": "arn:aws:iam::616627284001:role/AgentCore-PlatformAdvisor-ApplicationAgentPlatformA-ayXTQdiRfnda"
+          }
+        },
+        "memories": {
+          "PlatformAdvisorAgentMemory": {
+            "memoryId": "PlatformAdvisorAgent_PlatformAdvisorAgentMemory-18jw6gCqcJ",
+            "memoryArn": "arn:aws:bedrock-agentcore:us-east-1:616627284001:memory/PlatformAdvisorAgent_PlatformAdvisorAgentMemory-18jw6gCqcJ"
+          }
+        },
+        "stackName": "AgentCore-PlatformAdvisorAgent-default",
+        "deployHash": "375703be8b64ec40"
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "platform-advisor-dev"
+resolve_s3 = true
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+region = "us-east-1"
+profile = "platform-advisor"
+parameter_overrides = "Env=dev AllowedOrigins=https://d1wa5bvm23hhld.cloudfront.net DevMode=false"
