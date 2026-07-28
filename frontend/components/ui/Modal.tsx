@@ -1,5 +1,7 @@
 'use client';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 type ModalSize = 'sm' | 'md' | 'lg';
@@ -19,11 +21,23 @@ const sizeWidths: Record<ModalSize, string> = {
 };
 
 export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Escape to close + focus the panel on open (basic focus management).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    panelRef.current?.focus();
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   return (
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
           <motion.div
             key="backdrop"
             initial={{ opacity: 0 }}
@@ -37,9 +51,13 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
               backdropFilter: 'blur(2px)',
             }}
           />
-          {/* Panel */}
           <motion.div
             key="modal"
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.96, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -8 }}
@@ -56,9 +74,9 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
               border: '1px solid var(--border-default)',
               borderRadius: 'var(--radius-lg)',
               boxShadow: 'var(--shadow-elevated)',
+              outline: 'none',
             }}
           >
-            {/* Header */}
             <div
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -66,24 +84,30 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
                 borderBottom: '1px solid var(--border-default)',
               }}
             >
-              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {title}
               </h2>
               <button
                 onClick={onClose}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--text-muted)', fontSize: '20px', lineHeight: 1,
-                  padding: '2px 6px', borderRadius: '4px',
-                }}
                 aria-label="Close"
+                className="modal-close"
               >
-                ×
+                <X size={16} />
               </button>
             </div>
-            {/* Body */}
             <div style={{ padding: '20px' }}>{children}</div>
           </motion.div>
+          <style jsx>{`
+            .modal-close {
+              display: inline-flex; align-items: center; justify-content: center;
+              width: 28px; height: 28px;
+              background: none; border: none; cursor: pointer;
+              color: var(--text-muted); border-radius: var(--radius-sm);
+              transition: background 0.15s, color 0.15s;
+            }
+            .modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+            .modal-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+          `}</style>
         </>
       )}
     </AnimatePresence>
