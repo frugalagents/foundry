@@ -51,52 +51,57 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
               backdropFilter: 'blur(2px)',
             }}
           />
-          <motion.div
-            key="modal"
-            ref={panelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            tabIndex={-1}
-            initial={{ opacity: 0, scale: 0.96, y: -8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -8 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+          {/* Flex-centering wrapper: motion animates the panel's transform,
+              so centering must NOT rely on transform (they'd conflict). */}
+          <div
             style={{
-              position: 'fixed', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 51,
-              width: sizeWidths[size],
-              maxWidth: 'calc(100vw - 32px)',
-              maxHeight: 'calc(100vh - 64px)',
-              overflow: 'auto',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-default)',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: 'var(--shadow-elevated)',
-              outline: 'none',
+              position: 'fixed', inset: 0, zIndex: 51,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 16, pointerEvents: 'none',
             }}
           >
-            <div
+            <motion.div
+              key="modal"
+              ref={panelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={title}
+              tabIndex={-1}
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
               style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '16px 20px',
-                borderBottom: '1px solid var(--border-default)',
+                pointerEvents: 'auto',
+                width: sizeWidths[size],
+                maxWidth: '100%',
+                maxHeight: 'calc(100vh - 32px)',
+                display: 'flex', flexDirection: 'column',
+                overflow: 'hidden',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-elevated)',
+                outline: 'none',
               }}
             >
-              <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {title}
-              </h2>
-              <button
-                onClick={onClose}
-                aria-label="Close"
-                className="modal-close"
+              <div
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '16px 20px', flexShrink: 0,
+                  borderBottom: '1px solid var(--border-default)',
+                }}
               >
-                <X size={16} />
-              </button>
-            </div>
-            <div style={{ padding: '20px' }}>{children}</div>
-          </motion.div>
+                <h2 className="text-display" style={{ fontSize: 'var(--text-lg)', color: 'var(--text-primary)' }}>
+                  {title}
+                </h2>
+                <button onClick={onClose} aria-label="Close" className="modal-close">
+                  <X size={16} />
+                </button>
+              </div>
+              <div style={{ padding: '20px', overflowY: 'auto' }}>{children}</div>
+            </motion.div>
+          </div>
           <style jsx>{`
             .modal-close {
               display: inline-flex; align-items: center; justify-content: center;
