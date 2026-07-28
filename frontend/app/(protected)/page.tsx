@@ -1,16 +1,12 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Plus } from 'lucide-react';
-import { listCustomers, listSessions, createCustomer } from '@/lib/api';
+import { ArrowRight } from 'lucide-react';
+import { listCustomers, listSessions } from '@/lib/api';
 import type { Customer, Session } from '@/lib/types';
-import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/Input';
 import {
   sessionTitle, statusLabel, isComplete, relativeTime,
 } from '@/lib/session-format';
-
-const INDUSTRIES = ['Financial Services', 'Healthcare', 'Insurance', 'Retail', 'Manufacturing', 'Technology', 'Government', 'Other'];
 
 interface Row { session: Session; customer: Customer }
 
@@ -19,10 +15,6 @@ export default function Home() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sessions, setSessions] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ name: '', industry: 'Technology' });
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -57,17 +49,6 @@ export default function Home() {
     [sessions],
   );
 
-  async function handleCreate() {
-    if (!form.name.trim()) return;
-    setCreating(true);
-    try {
-      const c = await createCustomer({ name: form.name, industry: form.industry });
-      router.push(`/customers/${c.customer_id}`);
-    } catch {
-      setCreating(false);
-    }
-  }
-
   const statTiles = [
     { n: stats.customers, label: 'Customers', href: '/customers' },
     { n: stats.inProgress, label: 'In progress', href: '/customers' },
@@ -78,19 +59,14 @@ export default function Home() {
     <div style={{ height: '100%', overflow: 'hidden', padding: 'var(--space-6)', maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
 
       {/* ── Hero: what this does ─────────────────────────────── */}
-      <section className="animate-fade-up" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-6)' }}>
-        <div style={{ maxWidth: 680 }}>
-          <h1 className="text-page-title" style={{ marginBottom: 8 }}>Design your agentic-AI platform</h1>
-          <p style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-            Answer a short intake and the advisor recommends an <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>architecture
-            pattern</strong>, selects the <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>AWS components and services</strong> to
-            build, flags <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>compliance and risks</strong>, and produces a
-            costed <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>roadmap and blueprint</strong> you can take to a review.
-          </p>
-        </div>
-        <button className="btn-primary" onClick={() => setShowCreate(true)} style={{ flexShrink: 0 }}>
-          <Plus size={16} /> New customer
-        </button>
+      <section className="animate-fade-up" style={{ maxWidth: 720 }}>
+        <h1 className="text-page-title" style={{ marginBottom: 8 }}>Design your agentic-AI platform</h1>
+        <p style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+          Answer a short intake and the advisor recommends an <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>architecture
+          pattern</strong>, selects the <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>AWS components and services</strong> to
+          build, flags <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>compliance and risks</strong>, and produces a
+          costed <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>roadmap and blueprint</strong> you can take to a review.
+        </p>
       </section>
 
       {/* ── Clickable stat tiles (also the way into Customers) ─── */}
@@ -154,30 +130,6 @@ export default function Home() {
           )}
         </div>
       </section>
-
-      {/* Create modal */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New customer">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <Input
-            label="Customer / company name"
-            placeholder="Acme Corp"
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          />
-          <label className="ctrl-field">
-            <span>Industry</span>
-            <select value={form.industry} onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))} className="input-field">
-              {INDUSTRIES.map((i) => <option key={i}>{i}</option>)}
-            </select>
-          </label>
-          <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-            <button className="btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleCreate} disabled={!form.name.trim() || creating}>
-              {creating ? 'Creating…' : 'Create & open'}
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       <style jsx global>{`
         .stat-tile {
