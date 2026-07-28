@@ -115,7 +115,7 @@ export default function CustomersPage() {
     <div style={{ padding: 'var(--space-6)', maxWidth: 1400, margin: '0 auto' }}>
       {/* Title */}
       <div style={{ marginBottom: 'var(--space-5)' }}>
-        <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--text-primary)' }}>Customers</h1>
+        <h1 className="text-page-title">Customers</h1>
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 2 }}>
           {loading ? '…' : `${customers.length} customer${customers.length !== 1 ? 's' : ''}`}
           {!loading && (query || industryFilter !== 'All') && visible.length !== customers.length

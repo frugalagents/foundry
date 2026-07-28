@@ -150,7 +150,7 @@ export default function CustomerDetailPage() {
       {customer && (
         <div style={{ marginBottom: 'var(--space-6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
           <div>
-            <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 8 }}>{customer.name}</h1>
+            <h1 className="text-page-title" style={{ marginBottom: 8 }}>{customer.name}</h1>
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
               <Badge color="blue">{customer.industry}</Badge>
               {customer.metadata?.region && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{customer.metadata.region}</span>}

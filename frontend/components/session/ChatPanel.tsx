@@ -72,12 +72,10 @@ export function ChatPanel({
     >
       {/* Header */}
       <div
+        className="eyebrow"
         style={{
-          padding: '12px 16px',
+          padding: '14px 16px',
           borderBottom: '1px solid var(--border-default)',
-          fontSize: 13,
-          fontWeight: 600,
-          color: 'var(--text-secondary)',
           display: 'flex',
           alignItems: 'center',
           gap: 8,
@@ -85,11 +83,10 @@ export function ChatPanel({
       >
         <span
           style={{
-            width: 8,
-            height: 8,
+            width: 7,
+            height: 7,
             borderRadius: '50%',
-            background: isStreaming ? 'var(--accent-green)' : 'var(--border-default)',
-            boxShadow: isStreaming ? '0 0 6px var(--accent-green)' : 'none',
+            background: isStreaming ? 'var(--success)' : 'var(--border-strong)',
           }}
         />
         Advisor

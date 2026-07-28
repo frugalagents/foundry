@@ -17,7 +17,7 @@ export function ServiceMap({ data, streaming }: { data: ServiceMapData | null; s
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600 }}>AWS Service Mapping</h2>
+        <h2 className="text-panel-title">AWS Service Mapping</h2>
         <div style={{ display: 'flex', gap: 4, background: 'var(--bg-elevated)', borderRadius: 6, padding: 2 }}>
           {(['table', 'cards'] as const).map((v) => (
             <button key={v} onClick={() => setViewMode(v)}
@@ -63,7 +63,7 @@ export function ServiceMap({ data, streaming }: { data: ServiceMapData | null; s
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {comp.workshops.slice(0, 2).map((w) => (
                         <a key={w.title} href={w.url} target="_blank" rel="noreferrer"
-                          style={{ fontSize: 10, color: 'var(--accent-cyan)', background: 'rgba(86,212,221,0.1)', padding: '1px 6px', borderRadius: 10, border: '1px solid rgba(86,212,221,0.2)' }}>
+                          style={{ fontSize: 'var(--text-xs)', color: 'var(--accent-deep)', background: 'var(--accent-soft)', padding: '1px 6px', borderRadius: 10, border: '1px solid var(--border-accent)' }}>
                           {w.title.slice(0, 20)}…
                         </a>
                       ))}
@@ -80,7 +80,7 @@ export function ServiceMap({ data, streaming }: { data: ServiceMapData | null; s
             <div key={comp.name} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: 8, padding: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{comp.name}</span>
-                <span style={{ fontSize: 10, color: `var(--tier-${comp.tier})`, border: `1px solid var(--tier-${comp.tier})`, borderRadius: 3, padding: '1px 5px' }}>T{comp.tier}</span>
+                <span style={{ fontSize: 'var(--text-xs)', color: `var(--tier-${comp.tier})`, border: `1px solid var(--tier-${comp.tier})`, borderRadius: 3, padding: '1px 5px' }}>T{comp.tier}</span>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {comp.aws_services.map((svc) => (

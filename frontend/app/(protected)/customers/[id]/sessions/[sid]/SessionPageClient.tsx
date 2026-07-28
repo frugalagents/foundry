@@ -211,12 +211,11 @@ export default function SessionPage() {
         >
           <ArrowLeft size={14} />
         </Link>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, flexShrink: 1 }}>
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, flexShrink: 1 }}>
+          <span className="eyebrow" style={{ whiteSpace: 'nowrap' }}>
             {customerName || 'Customer'}
           </span>
-          <span style={{ color: 'var(--border-strong)' }}>/</span>
-          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span className="text-display" style={{ fontSize: 'var(--text-lg)', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {sessionName || 'Advisory session'}
           </span>
         </div>

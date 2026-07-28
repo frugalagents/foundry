@@ -102,6 +102,7 @@ export function CostEstimatePanel({ data, streaming }: { data: CostEstimateData 
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <h2 className="text-display" style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-2)' }}>Cost Estimate</h2>
       {/* Header summary */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
         <div style={{
@@ -111,7 +112,7 @@ export function CostEstimatePanel({ data, streaming }: { data: CostEstimateData 
           <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
             Platform / Month
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)' }}>
+          <div className="text-display" style={{ fontSize: 'var(--text-xl)', color: 'var(--text-primary)' }}>
             {data.total_monthly_fmt}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
@@ -126,7 +127,7 @@ export function CostEstimatePanel({ data, streaming }: { data: CostEstimateData 
           <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
             Annual Run Rate
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)' }}>
+          <div className="text-display" style={{ fontSize: 'var(--text-xl)', color: 'var(--text-primary)' }}>
             {data.total_annual_fmt}
           </div>
           {data.compliance_uplift_pct > 0 && (
@@ -137,8 +138,8 @@ export function CostEstimatePanel({ data, streaming }: { data: CostEstimateData 
         </div>
 
         <div style={{
-          background: data.has_cost_engine ? 'var(--accent-green)11' : 'var(--bg-card)',
-          border: `1px solid ${data.has_cost_engine ? 'var(--accent-green)44' : 'var(--border-default)'}`,
+          background: data.has_cost_engine ? 'var(--success-subtle)' : 'var(--bg-card)',
+          border: `1px solid ${data.has_cost_engine ? 'var(--success)' : 'var(--border-default)'}`,
           borderRadius: 10, padding: '14px 16px',
         }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>
@@ -146,7 +147,7 @@ export function CostEstimatePanel({ data, streaming }: { data: CostEstimateData 
           </div>
           {data.has_cost_engine && data.llm_savings_annual > 0 ? (
             <>
-              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-green)' }}>
+              <div className="text-display" style={{ fontSize: 'var(--text-xl)', color: 'var(--accent-green)' }}>
                 ${(data.llm_savings_annual / 1000).toFixed(0)}K
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
@@ -305,8 +306,8 @@ export function CostEstimatePanel({ data, streaming }: { data: CostEstimateData 
       {data.compliance_note && (
         <div style={{
           padding: '10px 14px',
-          background: 'var(--accent-orange)11',
-          border: '1px solid var(--accent-orange)33',
+          background: 'var(--warning-subtle)',
+          border: '1px solid var(--warning)',
           borderRadius: 8,
           fontSize: 12,
           color: 'var(--text-secondary)',

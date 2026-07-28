@@ -76,12 +76,12 @@ export function DrilldownDrawer({ data, loading, onClose }: DrilldownDrawerProps
         }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span className="text-display" style={{ fontSize: 'var(--text-lg)', color: 'var(--text-primary)' }}>
                 {loading ? 'Loading…' : (data?.component_name ?? 'Component')}
               </span>
               {data && (
                 <span style={{
-                  fontSize: 10, fontWeight: 700,
+                  fontSize: 'var(--text-xs)', fontWeight: 700,
                   color: TIER_STROKE[data.tier],
                   border: `1px solid ${TIER_STROKE[data.tier]}`,
                   borderRadius: 4, padding: '1px 6px',
@@ -90,7 +90,7 @@ export function DrilldownDrawer({ data, loading, onClose }: DrilldownDrawerProps
                 </span>
               )}
               {data?.layer && (
-                <span style={{ fontSize: 10, color: 'var(--text-muted)', padding: '1px 6px', border: '1px solid var(--border-default)', borderRadius: 4 }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', padding: '1px 6px', border: '1px solid var(--border-default)', borderRadius: 4 }}>
                   {data.layer}
                 </span>
               )}
@@ -202,8 +202,8 @@ export function DrilldownDrawer({ data, loading, onClose }: DrilldownDrawerProps
               <Section title="AWS Workshop">
                 <div style={{
                   padding: '10px 14px',
-                  background: 'var(--accent-blue)11',
-                  border: '1px solid var(--accent-blue)33',
+                  background: 'var(--accent-soft)',
+                  border: '1px solid var(--border-accent)',
                   borderRadius: 8,
                   fontSize: 12,
                   color: 'var(--text-secondary)',
@@ -261,12 +261,7 @@ export function DrilldownDrawer({ data, loading, onClose }: DrilldownDrawerProps
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{
-        fontSize: 11, fontWeight: 600,
-        color: 'var(--text-muted)',
-        textTransform: 'uppercase', letterSpacing: '0.07em',
-        marginBottom: 8,
-      }}>
+      <div className="eyebrow" style={{ marginBottom: 8 }}>
         {title}
       </div>
       {children}
@@ -281,7 +276,7 @@ function CostCard({ label, value, color }: { label: string; value: string; color
       border: '1px solid var(--border-default)',
       borderRadius: 8, padding: '10px 12px',
     }}>
-      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
         {label}
       </div>
       <div style={{ fontSize: 20, fontWeight: 800, color }}>{value}</div>
@@ -297,7 +292,7 @@ function StatCard({ label, value, color }: { label: string; value: string; color
       borderRadius: 8, padding: '8px 10px',
       textAlign: 'center',
     }}>
-      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>
         {label}
       </div>
       <div style={{
@@ -311,7 +306,7 @@ function StatCard({ label, value, color }: { label: string; value: string; color
 }
 
 function TierRow({ opt }: { opt: DrilldownTierOption }) {
-  const stroke = TIER_STROKE[opt.tier] ?? '#888';
+  const stroke = TIER_STROKE[opt.tier] ?? 'var(--text-muted)';
   return (
     <div style={{
       display: 'grid',
@@ -319,24 +314,24 @@ function TierRow({ opt }: { opt: DrilldownTierOption }) {
       alignItems: 'center',
       gap: 10,
       padding: '10px 12px',
-      background: opt.is_current ? `${stroke}11` : 'var(--bg-card)',
-      border: `1px solid ${opt.is_current ? stroke + '55' : 'var(--border-default)'}`,
+      background: opt.is_current ? 'var(--accent-soft)' : 'var(--bg-card)',
+      border: `1px solid ${opt.is_current ? stroke : 'var(--border-default)'}`,
       borderRadius: 8,
     }}>
       <span style={{ fontSize: 11, fontWeight: 700, color: stroke, textAlign: 'center' }}>
         T{opt.tier}
-        {opt.is_current && <span style={{ display: 'block', fontSize: 8, fontWeight: 400, color: 'var(--text-muted)' }}>current</span>}
+        {opt.is_current && <span style={{ display: 'block', fontSize: 10, fontWeight: 400, color: 'var(--text-muted)' }}>current</span>}
       </span>
       <div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{opt.description}</div>
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{opt.monthly_fmt}</div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>/mo</div>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>/mo</div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: 10, color: EFFORT_COLOR[opt.effort] ?? 'var(--text-muted)', fontWeight: 600 }}>{opt.effort}</div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{opt.weeks_range}</div>
+        <div style={{ fontSize: 'var(--text-xs)', color: EFFORT_COLOR[opt.effort] ?? 'var(--text-muted)', fontWeight: 600 }}>{opt.effort}</div>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{opt.weeks_range}</div>
       </div>
     </div>
   );

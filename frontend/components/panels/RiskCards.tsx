@@ -2,6 +2,7 @@
 import type { RiskCardsData, Risk } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { ShieldCheck, AlertTriangle, Ban } from 'lucide-react';
 
 export function RiskCards({ data, streaming }: { data: RiskCardsData | null; streaming: boolean }) {
   if (!data || !data.risks || !data.summary) {
@@ -19,12 +20,12 @@ export function RiskCards({ data, streaming }: { data: RiskCardsData | null; str
   });
 
   const statusColor = { prevented: 'var(--success)', warning: 'var(--warning)', blocked: 'var(--danger)' };
-  const statusIcon = { prevented: '✅', warning: '⚠️', blocked: '🚫' };
+  const statusIcon = { prevented: ShieldCheck, warning: AlertTriangle, blocked: Ban };
   const severityBadge = { high: 'red', medium: 'orange', low: 'gray' } as const;
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 600 }}>Risk Assessment</h2>
+      <h2 className="text-display" style={{ fontSize: 'var(--text-lg)' }}>Risk Assessment</h2>
 
       {/* Summary bar */}
       <div
@@ -60,7 +61,7 @@ export function RiskCards({ data, streaming }: { data: RiskCardsData | null; str
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>{statusIcon[risk.status]}</span>
+              {(() => { const Icon = statusIcon[risk.status]; return <Icon size={14} color={statusColor[risk.status]} />; })()}
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{risk.name}</span>
             </div>
             <Badge color={severityBadge[risk.severity]} size="sm">{risk.severity}</Badge>

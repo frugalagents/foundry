@@ -34,7 +34,7 @@ export function ArchitectureDiagram({ data, streaming, onConfirm, onComponentCli
     <div style={{ padding: compact ? 8 : 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
       {!compact && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600 }}>Architecture — {data.pattern}</h2>
+          <h2 className="text-display" style={{ fontSize: 'var(--text-lg)' }}>Architecture — {data.pattern}</h2>
           <div style={{ display: 'flex', gap: 8 }}>
             {[1, 2, 3].map((t) => (
               <span key={t} style={{ fontSize: 11, color: TIER_COLORS[t].stroke, border: `1px solid ${TIER_COLORS[t].stroke}`, borderRadius: 4, padding: '2px 6px' }}>T{t}</span>
@@ -125,12 +125,12 @@ function FederatedTopology({ data, compact }: { data: ArchitectureDiagramData; c
             {/* BU label */}
             <text x={x + lobW / 2} y={compact ? 14 : 18}
               textAnchor="middle" dominantBaseline="middle"
-              fontSize={compact ? 8 : 10} fill="#2f7a73" fontFamily="inherit" fontWeight="700">
+              fontSize={compact ? 10 : 10} fill="#2f7a73" fontFamily="inherit" fontWeight="700">
               {lobLabel}
             </text>
             <text x={x + lobW / 2} y={compact ? 24 : 30}
               textAnchor="middle" dominantBaseline="middle"
-              fontSize={compact ? 6 : 7} fill="var(--text-muted)" fontFamily="inherit">
+              fontSize={compact ? 10 : 10} fill="var(--text-muted)" fontFamily="inherit">
               Agent Stack
             </text>
 
@@ -147,13 +147,13 @@ function FederatedTopology({ data, compact }: { data: ArchitectureDiagramData; c
                     rx={3} fill={tc.fill} stroke={tc.stroke} strokeWidth={1} />
                   <text x={x + lobW / 2} y={cy + boxH / 2}
                     textAnchor="middle" dominantBaseline="middle"
-                    fontSize={compact ? 6 : 8} fill="var(--text-primary)" fontFamily="inherit">
+                    fontSize={compact ? 10 : 10} fill="var(--text-primary)" fontFamily="inherit">
                     {label}
                   </text>
                   {/* T badge */}
                   <text x={x + lobW - 6} y={cy + 3}
                     textAnchor="end" dominantBaseline="hanging"
-                    fontSize={5} fill={tc.stroke} fontFamily="inherit" fontWeight="bold">
+                    fontSize={10} fill={tc.stroke} fontFamily="inherit" fontWeight="bold">
                     T{comp.final_tier}
                   </text>
                 </g>
@@ -181,12 +181,12 @@ function FederatedTopology({ data, compact }: { data: ArchitectureDiagramData; c
       />
       <text x={spineX + spineW / 2} y={compact ? 14 : 18}
         textAnchor="middle" dominantBaseline="middle"
-        fontSize={compact ? 8 : 10} fill="#6b3fa0" fontFamily="inherit" fontWeight="700">
+        fontSize={compact ? 10 : 10} fill="#6b3fa0" fontFamily="inherit" fontWeight="700">
         Shared Spine
       </text>
       <text x={spineX + spineW / 2} y={compact ? 24 : 30}
         textAnchor="middle" dominantBaseline="middle"
-        fontSize={compact ? 6 : 7} fill="var(--text-muted)" fontFamily="inherit">
+        fontSize={compact ? 10 : 10} fill="var(--text-muted)" fontFamily="inherit">
         Governance &amp; Platform
       </text>
 
@@ -202,12 +202,12 @@ function FederatedTopology({ data, compact }: { data: ArchitectureDiagramData; c
               rx={3} fill={tc.fill} stroke={tc.stroke} strokeWidth={1} />
             <text x={spineX + spineW / 2} y={cy + (compact ? 9 : 12)}
               textAnchor="middle" dominantBaseline="middle"
-              fontSize={compact ? 6 : 8} fill="var(--text-primary)" fontFamily="inherit">
+              fontSize={compact ? 10 : 10} fill="var(--text-primary)" fontFamily="inherit">
               {label}
             </text>
             <text x={spineX + spineW - 6} y={cy + 3}
               textAnchor="end" dominantBaseline="hanging"
-              fontSize={5} fill={tc.stroke} fontFamily="inherit" fontWeight="bold">
+              fontSize={10} fill={tc.stroke} fontFamily="inherit" fontWeight="bold">
               T{comp.final_tier}
             </text>
           </g>
@@ -217,7 +217,7 @@ function FederatedTopology({ data, compact }: { data: ArchitectureDiagramData; c
       {/* Legend labels */}
       <text x={lobAreaW / 2} y={H - 6}
         textAnchor="middle" dominantBaseline="auto"
-        fontSize={7} fill="var(--text-muted)" fontFamily="inherit">
+        fontSize={10} fill="var(--text-muted)" fontFamily="inherit">
         Independent LOB Agent Stacks
       </text>
     </svg>
@@ -249,7 +249,7 @@ function LayerDiagram({ data, compact }: { data: ArchitectureDiagramData; compac
             <rect x={0} y={y} width={svgW} height={layerH}
               fill={li % 2 === 0 ? 'rgba(31,30,27,0.02)' : 'transparent'} />
             <text x={6} y={y + layerH / 2} dominantBaseline="middle"
-              fontSize={compact ? 7 : 9} fill="var(--text-muted)" fontFamily="inherit">
+              fontSize={compact ? 10 : 10} fill="var(--text-muted)" fontFamily="inherit">
               {layer.name}
             </text>
             {layer.components.map((comp, ci) => {
@@ -262,16 +262,16 @@ function LayerDiagram({ data, compact }: { data: ArchitectureDiagramData; compac
                     rx={4} fill={tc.fill} stroke={tc.stroke} strokeWidth={1.5} />
                   <text x={cx + compW / 2} y={cy2 + (compact ? 14 : 18)}
                     textAnchor="middle" dominantBaseline="middle"
-                    fontSize={compact ? 7 : 9} fill="var(--text-primary)" fontFamily="inherit">
+                    fontSize={compact ? 10 : 10} fill="var(--text-primary)" fontFamily="inherit">
                     {comp.name.length > (compact ? 10 : 14) ? comp.name.slice(0, compact ? 10 : 14) + '…' : comp.name}
                   </text>
                   <text x={cx + compW - 3} y={cy2 + 3}
                     textAnchor="end" dominantBaseline="hanging"
-                    fontSize={6} fill={tc.stroke} fontFamily="inherit" fontWeight="bold">
+                    fontSize={10} fill={tc.stroke} fontFamily="inherit" fontWeight="bold">
                     T{comp.final_tier}
                   </text>
                   {comp.elevation_reason && comp.final_tier > comp.base_tier && (
-                    <text x={cx + 4} y={cy2 + 4} fontSize={8} fill={tc.stroke} dominantBaseline="hanging">↑</text>
+                    <text x={cx + 4} y={cy2 + 4} fontSize={10} fill={tc.stroke} dominantBaseline="hanging">↑</text>
                   )}
                 </g>
               );

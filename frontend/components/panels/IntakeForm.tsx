@@ -164,7 +164,7 @@ function chip(selected: boolean, color: string) {
     padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
     transition: 'all 0.15s', textAlign: 'left' as const,
     border: `1px solid ${selected ? color : 'var(--border-default)'}`,
-    background: selected ? `${color}22` : 'transparent',
+    background: selected ? `color-mix(in srgb, ${color} 12%, transparent)` : 'transparent',
     color: selected ? color : 'var(--text-secondary)',
     fontWeight: selected ? 600 : 400,
   };
@@ -324,7 +324,7 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
   if (confirming) {
     return (
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Confirm before scoring</h2>
+        <h2 className="text-panel-title">Confirm before scoring</h2>
         <Card style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Here’s what we heard. Correct anything before we score it.
@@ -361,14 +361,14 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Sticky header: title, entry framing, and stage stepper */}
       <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-base, var(--bg-card))', paddingBottom: 10, marginBottom: -4 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Platform Intake</h2>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, marginBottom: 10 }}>
+        <h2 className="text-panel-title">Platform Intake</h2>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 2, marginBottom: 10 }}>
           About 10 questions, ~3 minutes. You can change anything before we score it.
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
           {STAGES.map((s, i) => {
             const st = stageStatus(s.n);
-            const color = st === 'done' ? 'var(--accent-green)' : st === 'active' ? 'var(--accent-cyan)' : 'var(--text-muted)';
+            const color = st === 'done' ? 'var(--success)' : st === 'active' ? 'var(--accent)' : 'var(--text-muted)';
             return (
               <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: st === 'active' ? 600 : 400, color }}>

@@ -53,7 +53,7 @@ export default function Home() {
 
   return (
     <div style={{ padding: 'var(--space-6)', maxWidth: 1200, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 4 }}>My work</h1>
+      <h1 className="text-page-title" style={{ marginBottom: 4 }}>My work</h1>
       <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-6)' }}>
         Pick up where you left off, or jump into a customer.
       </p>

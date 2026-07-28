@@ -14,6 +14,7 @@
   --bg-elevated:    #ffffff;
   --bg-hover:       #f4f1ea;
   --bg-sunken:      #faf9f6;
+  --bg-base:        #fbfaf7;
 
   /* ── Ink ───────────────────────────────────────────────────── */
   --text-primary:   #1f1e1b;
@@ -72,6 +73,8 @@
   --text-md:   clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
   --text-lg:   clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
   --text-xl:   clamp(1.5rem, 1.3rem + 0.9vw, 1.875rem);
+  --text-2xl:  clamp(1.5rem, 1.3rem + 0.9vw, 1.875rem);
+  --text-3xl:  clamp(1.875rem, 1.5rem + 1.4vw, 2.5rem);
 
   /* ── Elevation (soft, light-theme shadows) ─────────────────── */
   --shadow-card:    0 1px 2px rgba(31,30,27,0.04);
@@ -160,3 +163,91 @@ code, pre { font-family: var(--font-mono-stack); }
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: var(--radius-md);
 }
+
+/* ═══ PAGE / SECTION TITLES — full recipe, no inline sizing needed ═══ */
+/* .text-display = serif family only (set your own size when truly custom). */
+/* Prefer these complete title classes so pages carry NO inline font styles: */
+.text-page-title  { font-family: var(--font-serif-stack); font-size: var(--text-2xl); font-weight: 500; letter-spacing: -0.015em; color: var(--text-primary); }
+.text-panel-title { font-family: var(--font-serif-stack); font-size: var(--text-lg);  font-weight: 500; letter-spacing: -0.012em; color: var(--text-primary); }
+.text-section-title { font-size: var(--text-lg); font-weight: 600; letter-spacing: -0.005em; color: var(--text-primary); }
+.text-mono { font-family: var(--font-mono-stack); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+/* ═══ CARD SYSTEM (capa) ═══ */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 1px 2px rgba(31,30,27,0.03);
+  transition: all 0.2s ease;
+}
+.card-interactive { cursor: pointer; }
+.card-interactive:hover {
+  box-shadow: 0 0 0 1px rgba(47,122,115,0.12), 0 6px 20px rgba(31,30,27,0.06);
+  transform: translateY(-1px);
+}
+
+/* ═══ BUTTONS (capa) ═══ */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  font-size: var(--text-sm); font-weight: 600;
+  background: var(--accent); color: #fff;
+  border-radius: 11px; border: none; cursor: pointer;
+  transition: all 0.15s ease; font-family: inherit;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; background: #ece7dc; color: var(--text-muted); }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  font-size: var(--text-sm); font-weight: 500;
+  background: var(--bg-card); color: #44413b;
+  border-radius: 11px; border: 1px solid var(--border-default); cursor: pointer;
+  transition: all 0.15s ease; font-family: inherit;
+}
+.btn-secondary:hover { background: #f4f1ea; border-color: var(--border-strong); }
+.btn-secondary:active { transform: scale(0.98); }
+
+/* ═══ BADGES (capa) ═══ */
+.badge {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: var(--text-xs); font-weight: 600;
+  padding: 0.22rem 0.55rem; border-radius: 999px;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.badge-stage  { background: var(--accent-soft); color: var(--accent-deep); text-transform: none; letter-spacing: 0; }
+.badge-active { background: var(--accent-soft); color: var(--accent-deep); }
+.badge-success { background: var(--success-subtle); color: var(--success); }
+.badge-warn   { background: var(--warning-subtle); color: var(--warning); }
+.badge-danger { background: var(--danger-subtle); color: var(--danger); }
+.badge-neutral { background: #f4f1ea; color: var(--text-secondary); }
+
+/* ═══ FORM FIELD (capa) ═══ */
+.input-field {
+  width: 100%; padding: 0.7rem 0.9rem;
+  font-size: var(--text-sm); line-height: 1.5;
+  border: 1px solid var(--border-input); border-radius: 11px;
+  background: var(--bg-primary); color: var(--text-primary);
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s; font-family: inherit;
+}
+.input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,122,115,0.12); }
+.input-field::placeholder { color: #b3aea3; }
+
+/* ═══ EMPTY STATE (capa) ═══ */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 2rem; text-align: center; }
+.empty-state-icon {
+  width: 3.5rem; height: 3.5rem; border-radius: 14px;
+  background: var(--accent-soft); display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1rem; color: var(--accent);
+}
+.empty-state-title { font-family: var(--font-serif-stack); font-size: var(--text-lg); font-weight: 500; color: var(--text-primary); margin-bottom: 0.5rem; }
+.empty-state-description { font-size: var(--text-sm); color: var(--text-secondary); max-width: 24rem; line-height: 1.6; margin-bottom: 1.5rem; }
+
+/* ═══ MOTION (capa) ═══ */
+.animate-fade-up { animation: fade-up 0.35s ease-out forwards; opacity: 0; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }

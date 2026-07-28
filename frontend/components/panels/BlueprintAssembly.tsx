@@ -45,7 +45,7 @@ export function BlueprintAssembly({
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <div>
             <div className="eyebrow" style={{ marginBottom: 4 }}>Recommended architecture</div>
-            <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div className="text-display" style={{ fontSize: 'var(--text-xl)', color: 'var(--text-primary)' }}>
               {data.pattern_name ?? data.pattern_id}
             </div>
           </div>
@@ -185,7 +185,7 @@ function BlueprintMarkdown({ text }: { text: string }) {
     // H1
     if (line.startsWith('# ') && !line.startsWith('## ')) {
       elements.push(
-        <div key={key++} style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginTop: 12, marginBottom: 6, borderBottom: '2px solid var(--border-default)', paddingBottom: 6 }}>
+        <div key={key++} style={{ fontSize: 17, fontFamily: 'var(--font-serif-stack)', fontWeight: 500, color: 'var(--text-primary)', marginTop: 12, marginBottom: 6, borderBottom: '2px solid var(--border-default)', paddingBottom: 6 }}>
           <InlineBold text={line.slice(2)} />
         </div>
       );
@@ -195,7 +195,7 @@ function BlueprintMarkdown({ text }: { text: string }) {
     // H2
     if (line.startsWith('## ')) {
       elements.push(
-        <div key={key++} style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginTop: 16, marginBottom: 4, borderBottom: '1px solid var(--border-default)', paddingBottom: 4 }}>
+        <div key={key++} style={{ fontSize: 15, fontFamily: 'var(--font-serif-stack)', fontWeight: 500, color: 'var(--text-primary)', marginTop: 16, marginBottom: 4, borderBottom: '1px solid var(--border-default)', paddingBottom: 4 }}>
           <InlineBold text={line.slice(3)} />
         </div>
       );
@@ -205,7 +205,7 @@ function BlueprintMarkdown({ text }: { text: string }) {
     // H3
     if (line.startsWith('### ')) {
       elements.push(
-        <div key={key++} style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', marginTop: 10, marginBottom: 2 }}>
+        <div key={key++} style={{ fontSize: 13, fontFamily: 'var(--font-serif-stack)', fontWeight: 500, color: 'var(--text-secondary)', marginTop: 10, marginBottom: 2 }}>
           <InlineBold text={line.slice(4)} />
         </div>
       );

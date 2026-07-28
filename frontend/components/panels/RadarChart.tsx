@@ -63,7 +63,7 @@ export function RadarChart({ data, onConfirm, streaming, onWhatIf, whatIfData, w
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600 }}>Pattern Scoring</h2>
+        <h2 className="text-panel-title">Pattern Scoring</h2>
         <Badge color={data.confidence > 0.6 ? 'green' : data.confidence > 0.3 ? 'orange' : 'red'}>
           {confLabel} {confPct}%
         </Badge>
@@ -365,7 +365,7 @@ function FollowUpSection({
                     style={{
                       fontSize: 11, padding: '4px 10px', borderRadius: 6,
                       border: `1px solid ${isSelected ? 'var(--accent-blue)' : 'var(--border-default)'}`,
-                      background: isSelected ? 'var(--accent-blue)22' : 'var(--bg-elevated)',
+                      background: isSelected ? 'var(--accent-soft)' : 'var(--bg-elevated)',
                       color: isSelected ? 'var(--accent-blue)' : 'var(--text-secondary)',
                       cursor: 'pointer',
                       transition: 'all 0.15s',
@@ -489,8 +489,8 @@ function WhatIfResult({ data }: { data: WhatIfData }) {
       {/* Diff summary */}
       <div style={{
         padding: '10px 14px',
-        background: data.pattern_changed ? 'var(--accent-orange)11' : 'var(--accent-green)11',
-        border: `1px solid ${data.pattern_changed ? 'var(--accent-orange)44' : 'var(--accent-green)44'}`,
+        background: data.pattern_changed ? 'var(--warning-subtle)' : 'var(--success-subtle)',
+        border: `1px solid ${data.pattern_changed ? 'var(--warning)' : 'var(--success)'}`,
         borderRadius: 8,
         display: 'flex', alignItems: 'center', gap: 12,
       }}>

@@ -19,12 +19,12 @@ export function InnovationOverlay({ data, streaming }: { data: InnovationOverlay
   }
 
   const statusBadge = { ga: 'green', preview: 'orange', emerging: 'purple' } as const;
-  const statusLabel = { ga: 'GA ✓', preview: 'Preview ⚠', emerging: 'Emerging 🔬' };
+  const statusLabel = { ga: 'GA', preview: 'Preview', emerging: 'Emerging' };
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600 }}>Innovation Overlay</h2>
+        <h2 className="text-display" style={{ fontSize: 'var(--text-lg)' }}>Innovation Overlay</h2>
         <div style={{ display: 'flex', gap: 4, background: 'var(--bg-elevated)', borderRadius: 6, padding: 2 }}>
           {(['after', 'before'] as const).map((v) => (
             <button
@@ -52,7 +52,7 @@ export function InnovationOverlay({ data, streaming }: { data: InnovationOverlay
         compact
       />
 
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+      <div className="eyebrow" style={{ color: 'var(--text-secondary)' }}>
         Applied Innovations ({data.innovations.length})
       </div>
 

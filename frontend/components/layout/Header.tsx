@@ -21,8 +21,8 @@ export function Header() {
     <header className="app-header">
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <div className="app-logo">P</div>
-        <span style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)' }}>
+        <div className="app-logo text-display">P</div>
+        <span className="text-display" style={{ fontSize: '1.05rem', color: 'var(--text-primary)' }}>
           Platform Advisor
         </span>
       </div>
@@ -62,12 +62,12 @@ export function Header() {
           flex-shrink: 0;
         }
         .app-logo {
-          width: 28px; height: 28px;
+          width: 30px; height: 30px;
           background: var(--accent);
-          color: var(--accent-fg);
-          border-radius: 6px;
+          color: #fff;
+          border-radius: var(--radius-sm);
           display: flex; align-items: center; justify-content: center;
-          font-size: 14px; font-weight: 700;
+          font-size: 17px;
         }
         .app-header-btn {
           background: none; border: 1px solid var(--border-default); cursor: pointer;

@@ -73,26 +73,26 @@ export default function LoginPage() {
       {/* Logo */}
       <div style={{ textAlign: 'center' }}>
         <div
+          className="text-display"
           style={{
             width: 56,
             height: 56,
             background: 'var(--accent)',
-            borderRadius: 14,
+            borderRadius: 'var(--radius-lg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 24,
-            fontWeight: 700,
-            color: 'var(--accent-fg)',
+            fontSize: 26,
+            color: '#fff',
             margin: '0 auto 16px',
           }}
         >
           P
         </div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+        <h1 className="text-display" style={{ fontSize: 27, color: 'var(--text-primary)', marginBottom: 6 }}>
           Platform Advisor
         </h1>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
           Enterprise AI Agent Platform Strategy
         </p>
       </div>
