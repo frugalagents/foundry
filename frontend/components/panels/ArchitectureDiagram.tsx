@@ -10,10 +10,11 @@ interface ArchitectureDiagramProps {
   compact?: boolean;
 }
 
+// Light-theme tier palette (fills strong enough to read on warm paper).
 const TIER_COLORS: Record<number, { fill: string; stroke: string }> = {
-  1: { fill: 'rgba(63,185,80,0.12)',  stroke: '#3FB950' },
-  2: { fill: 'rgba(88,166,255,0.18)', stroke: '#58A6FF' },
-  3: { fill: 'rgba(163,113,247,0.2)', stroke: '#A371F7' },
+  1: { fill: 'rgba(46,107,79,0.10)',  stroke: '#2e6b4f' },  // success green
+  2: { fill: 'rgba(47,122,115,0.12)', stroke: '#2f7a73' },  // accent teal
+  3: { fill: 'rgba(107,63,160,0.10)', stroke: '#6b3fa0' },  // violet
 };
 
 export function ArchitectureDiagram({ data, streaming, onConfirm, onComponentClick, compact }: ArchitectureDiagramProps) {
@@ -119,12 +120,12 @@ function FederatedTopology({ data, compact }: { data: ArchitectureDiagramData; c
             {/* Column background */}
             <rect
               x={x} y={2} width={lobW} height={H - 4}
-              rx={6} fill="rgba(88,166,255,0.04)" stroke="#58A6FF44" strokeWidth={1}
+              rx={6} fill="rgba(47,122,115,0.05)" stroke="#2f7a7344" strokeWidth={1}
             />
             {/* BU label */}
             <text x={x + lobW / 2} y={compact ? 14 : 18}
               textAnchor="middle" dominantBaseline="middle"
-              fontSize={compact ? 8 : 10} fill="#58A6FF" fontFamily="inherit" fontWeight="700">
+              fontSize={compact ? 8 : 10} fill="#2f7a73" fontFamily="inherit" fontWeight="700">
               {lobLabel}
             </text>
             <text x={x + lobW / 2} y={compact ? 24 : 30}
@@ -163,11 +164,11 @@ function FederatedTopology({ data, compact }: { data: ArchitectureDiagramData; c
             <line
               x1={x + lobW} y1={H / 2}
               x2={spineX - 2} y2={H / 2}
-              stroke="#58A6FF55" strokeWidth={1} strokeDasharray="3,2"
+              stroke="#2f7a7355" strokeWidth={1} strokeDasharray="3,2"
             />
             <polygon
               points={`${spineX - 2},${H / 2 - 3} ${spineX + 4},${H / 2} ${spineX - 2},${H / 2 + 3}`}
-              fill="#58A6FF55"
+              fill="#2f7a7355"
             />
           </g>
         );
@@ -176,11 +177,11 @@ function FederatedTopology({ data, compact }: { data: ArchitectureDiagramData; c
       {/* Shared Governance Spine */}
       <rect
         x={spineX} y={2} width={spineW} height={H - 4}
-        rx={6} fill="rgba(163,113,247,0.06)" stroke="#A371F7" strokeWidth={1.5}
+        rx={6} fill="rgba(107,63,160,0.06)" stroke="#6b3fa0" strokeWidth={1.5}
       />
       <text x={spineX + spineW / 2} y={compact ? 14 : 18}
         textAnchor="middle" dominantBaseline="middle"
-        fontSize={compact ? 8 : 10} fill="#A371F7" fontFamily="inherit" fontWeight="700">
+        fontSize={compact ? 8 : 10} fill="#6b3fa0" fontFamily="inherit" fontWeight="700">
         Shared Spine
       </text>
       <text x={spineX + spineW / 2} y={compact ? 24 : 30}
@@ -246,7 +247,7 @@ function LayerDiagram({ data, compact }: { data: ArchitectureDiagramData; compac
         return (
           <g key={layer.name}>
             <rect x={0} y={y} width={svgW} height={layerH}
-              fill={li % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent'} />
+              fill={li % 2 === 0 ? 'rgba(31,30,27,0.02)' : 'transparent'} />
             <text x={6} y={y + layerH / 2} dominantBaseline="middle"
               fontSize={compact ? 7 : 9} fill="var(--text-muted)" fontFamily="inherit">
               {layer.name}
@@ -322,12 +323,12 @@ function ComponentTable({ data, onComponentClick }: { data: ArchitectureDiagramD
                   onClick={clickable ? () => onComponentClick!(c.id!, c.name) : undefined}
                   style={{
                     borderTop: '1px solid var(--border-default)',
-                    background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                    background: i % 2 === 0 ? 'transparent' : 'rgba(31,30,27,0.02)',
                     cursor: clickable ? 'pointer' : 'default',
                     transition: clickable ? 'background 0.1s' : undefined,
                   }}
-                  onMouseEnter={clickable ? (e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(88,166,255,0.07)'; } : undefined}
-                  onMouseLeave={clickable ? (e) => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)'; } : undefined}
+                  onMouseEnter={clickable ? (e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(47,122,115,0.06)'; } : undefined}
+                  onMouseLeave={clickable ? (e) => { (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'rgba(31,30,27,0.02)'; } : undefined}
                 >
                   <td style={{ padding: '7px 12px', color: 'var(--text-primary)', fontWeight: 500 }}>
                     {c.name}
@@ -344,8 +345,8 @@ function ComponentTable({ data, onComponentClick }: { data: ArchitectureDiagramD
                   <td style={{ padding: '7px 12px', color: 'var(--text-muted)' }}>
                     {isFederated
                       ? (c.scope === 'per_lob'
-                          ? <span style={{ color: '#58A6FF', fontSize: 11 }}>Per BU/LOB</span>
-                          : <span style={{ color: '#A371F7', fontSize: 11 }}>Shared Spine</span>)
+                          ? <span style={{ color: '#2f7a73', fontSize: 11 }}>Per BU/LOB</span>
+                          : <span style={{ color: '#6b3fa0', fontSize: 11 }}>Shared Spine</span>)
                       : (c.elevation_reason || '—')
                     }
                   </td>

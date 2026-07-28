@@ -15,9 +15,9 @@ const COMPLEXITY_BG: Record<string, string> = {
 };
 
 const TIER_STROKE: Record<number, string> = {
-  1: '#3FB950',
-  2: '#58A6FF',
-  3: '#A371F7',
+  1: 'var(--tier-1)',
+  2: 'var(--tier-2)',
+  3: 'var(--tier-3)',
 };
 
 interface DrilldownDrawerProps {
@@ -44,7 +44,7 @@ export function DrilldownDrawer({ data, loading, onClose }: DrilldownDrawerProps
         onClick={onClose}
         style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.45)',
+          background: 'rgba(31,30,27,0.35)',
           zIndex: 1000,
           animation: 'fadeIn 0.15s ease',
         }}

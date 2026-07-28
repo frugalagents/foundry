@@ -123,7 +123,7 @@ function BlueprintMarkdown({ text }: { text: string }) {
           </thead>
           <tbody>
             {bodyRows.map((row, ri) => (
-              <tr key={ri} style={{ borderBottom: '1px solid var(--border-default)', background: ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+              <tr key={ri} style={{ borderBottom: '1px solid var(--border-default)', background: ri % 2 === 0 ? 'transparent' : 'var(--bg-sunken)' }}>
                 {row.map((cell, ci) => (
                   <td key={ci} style={{ padding: '5px 10px', color: 'var(--text-secondary)', verticalAlign: 'top' }}>
                     <InlineBold text={cell} />

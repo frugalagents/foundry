@@ -129,11 +129,11 @@ export function ChatPanel({
                     : '12px 12px 12px 2px',
                 background:
                   msg.role === 'user'
-                    ? 'rgba(88,166,255,0.2)'
+                    ? 'var(--accent-soft)'
                     : 'var(--bg-elevated)',
                 border:
                   msg.role === 'user'
-                    ? '1px solid rgba(88,166,255,0.3)'
+                    ? '1px solid var(--border-accent)'
                     : '1px solid var(--border-default)',
                 fontSize: 13,
                 color: 'var(--text-primary)',

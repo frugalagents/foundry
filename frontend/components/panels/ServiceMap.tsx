@@ -23,8 +23,8 @@ export function ServiceMap({ data, streaming }: { data: ServiceMapData | null; s
             <button key={v} onClick={() => setViewMode(v)}
               style={{
                 padding: '3px 10px', borderRadius: 4, fontSize: 11, border: 'none',
-                background: viewMode === v ? 'var(--accent-blue)' : 'transparent',
-                color: viewMode === v ? '#fff' : 'var(--text-secondary)',
+                background: viewMode === v ? 'var(--accent)' : 'transparent',
+                color: viewMode === v ? 'var(--accent-fg)' : 'var(--text-secondary)',
                 cursor: 'pointer', textTransform: 'capitalize',
               }}>
               {v}

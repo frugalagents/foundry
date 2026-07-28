@@ -18,7 +18,7 @@ export function RiskCards({ data, streaming }: { data: RiskCardsData | null; str
     return order[a.status] - order[b.status];
   });
 
-  const statusColor = { prevented: '#3FB950', warning: '#D29922', blocked: '#F85149' };
+  const statusColor = { prevented: 'var(--success)', warning: 'var(--warning)', blocked: 'var(--danger)' };
   const statusIcon = { prevented: '✅', warning: '⚠️', blocked: '🚫' };
   const severityBadge = { high: 'red', medium: 'orange', low: 'gray' } as const;
 
@@ -31,8 +31,8 @@ export function RiskCards({ data, streaming }: { data: RiskCardsData | null; str
         style={{
           padding: '10px 14px',
           borderRadius: 8,
-          background: summary.requires_attention === 0 ? 'rgba(63,185,80,0.1)' : 'rgba(210,153,34,0.1)',
-          border: `1px solid ${summary.requires_attention === 0 ? 'rgba(63,185,80,0.3)' : 'rgba(210,153,34,0.3)'}`,
+          background: summary.requires_attention === 0 ? 'var(--success-subtle)' : 'var(--warning-subtle)',
+          border: `1px solid ${summary.requires_attention === 0 ? 'var(--success)' : 'var(--warning)'}`,
           fontSize: 13,
           color: 'var(--text-primary)',
           display: 'flex',

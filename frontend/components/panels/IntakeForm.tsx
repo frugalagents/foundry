@@ -259,12 +259,12 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{q.label}</span>
           {q.kind === 'hard' && (
-            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 600 }}>
+            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'var(--danger-subtle)', color: 'var(--danger)', fontWeight: 600 }}>
               HARD CONSTRAINT
             </span>
           )}
           {skipped && (
-            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(210,153,34,0.15)', color: 'var(--accent-orange)', fontWeight: 600 }}>
+            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'var(--warning-subtle)', color: 'var(--warning)', fontWeight: 600 }}>
               ASSUMED
             </span>
           )}
@@ -411,7 +411,7 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
                 2 · Your situation
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <span><span style={{ color: '#ef4444', fontWeight: 600 }}>Hard constraint</span> = can rule a pattern out</span>
+                <span><span style={{ color: 'var(--danger)', fontWeight: 600 }}>Hard constraint</span> = can rule a pattern out</span>
                 <span>Everything else tunes the recommendation</span>
               </div>
             </div>

@@ -301,7 +301,7 @@ export default function SessionPage() {
             <div style={{
               position: 'absolute', inset: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(15,17,23,0.6)',
+              background: 'rgba(251,250,247,0.7)',
             }}>
               <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                 <div style={{

@@ -35,8 +35,8 @@ export function InnovationOverlay({ data, streaming }: { data: InnovationOverlay
                 borderRadius: 4,
                 fontSize: 12,
                 border: 'none',
-                background: view === v ? 'var(--accent-blue)' : 'transparent',
-                color: view === v ? '#fff' : 'var(--text-secondary)',
+                background: view === v ? 'var(--accent)' : 'transparent',
+                color: view === v ? 'var(--accent-fg)' : 'var(--text-secondary)',
                 cursor: 'pointer',
                 fontWeight: view === v ? 600 : 400,
               }}

@@ -304,7 +304,7 @@ function RadarSVG({ data }: { data: RadarChartData }) {
           fill={p.selected ? `${p.color}33` : `${p.color}15`}
           stroke={p.color}
           strokeWidth={p.selected ? 2 : 1}
-          style={{ filter: p.selected ? `drop-shadow(0 0 6px ${p.color}88)` : 'none' }}
+          style={{ filter: p.selected ? `drop-shadow(0 1px 3px ${p.color}55)` : 'none' }}
         />
       ))}
       {data.axes.map((axis, i) => {

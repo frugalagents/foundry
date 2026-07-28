@@ -140,8 +140,8 @@ export default function CallbackPage() {
             style={{
               display: 'inline-block',
               padding: '8px 20px',
-              background: 'var(--accent-blue)',
-              color: '#fff',
+              background: 'var(--accent)',
+              color: 'var(--accent-fg)',
               borderRadius: 'var(--radius-sm)',
               fontSize: 13,
               textDecoration: 'none',

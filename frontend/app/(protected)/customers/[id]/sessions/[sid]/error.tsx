@@ -48,8 +48,8 @@ export default function SessionError({
         onClick={reset}
         style={{
           padding: '8px 20px',
-          background: 'var(--accent-blue)',
-          color: '#0F1117',
+          background: 'var(--accent)',
+          color: 'var(--accent-fg)',
           border: 'none',
           borderRadius: 6,
           fontSize: 13,

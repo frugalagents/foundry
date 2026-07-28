@@ -2,9 +2,15 @@
 import type { CostEstimateData, CostLineItem } from '@/lib/types';
 
 const COMPLEXITY_COLOR: Record<string, string> = {
-  low: 'var(--accent-green)',
-  medium: 'var(--accent-orange)',
-  high: 'var(--accent-red)',
+  low: 'var(--success)',
+  medium: 'var(--warning)',
+  high: 'var(--danger)',
+};
+
+const COMPLEXITY_TINT: Record<string, string> = {
+  low: 'var(--success-subtle)',
+  medium: 'var(--warning-subtle)',
+  high: 'var(--danger-subtle)',
 };
 
 const TIER_LABEL: Record<number, string> = { 1: 'T1', 2: 'T2', 3: 'T3' };
@@ -64,7 +70,7 @@ function ComponentRow({ item }: { item: CostLineItem }) {
           fontSize: 10, fontWeight: 600,
           color: COMPLEXITY_COLOR[item.complexity] ?? 'var(--text-muted)',
           padding: '2px 5px', borderRadius: 3,
-          background: `${COMPLEXITY_COLOR[item.complexity] ?? '#888'}22`,
+          background: COMPLEXITY_TINT[item.complexity] ?? 'var(--bg-hover)',
         }}>{item.complexity}</span>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center' }}>

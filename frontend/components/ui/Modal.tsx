@@ -47,7 +47,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
             onClick={onClose}
             style={{
               position: 'fixed', inset: 0, zIndex: 50,
-              background: 'rgba(0,0,0,0.6)',
+              background: 'rgba(31,30,27,0.35)',
               backdropFilter: 'blur(2px)',
             }}
           />

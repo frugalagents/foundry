@@ -76,14 +76,14 @@ export default function LoginPage() {
           style={{
             width: 56,
             height: 56,
-            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))',
+            background: 'var(--accent)',
             borderRadius: 14,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 24,
             fontWeight: 700,
-            color: '#fff',
+            color: 'var(--accent-fg)',
             margin: '0 auto 16px',
           }}
         >
