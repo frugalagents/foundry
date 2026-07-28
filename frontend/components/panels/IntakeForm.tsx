@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { IntakeFormData, IntakeAnswers } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -169,10 +169,27 @@ function chip(selected: boolean, color: string) {
   };
 }
 
+// Required-field ids per stage, used to compute stepper completion.
+const STAGE_REQUIRED: Record<number, (keyof IntakeAnswers)[]> = {
+  1: ['archetype'],
+  2: ['autonomy_model', 'lob_count', 'team_expertise', 'cloud_posture', 'data_gravity', 'compliance_regime'],
+  4: ['cost_sensitivity'],
+};
+const STAGES = [
+  { n: 1, label: 'Frame' },
+  { n: 2, label: 'Situation' },
+  { n: 3, label: 'Specifics' },
+  { n: 4, label: 'Priorities' },
+  { n: 5, label: 'Review' },
+];
+
 export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormProps) {
   const answers = (data?.answers ?? {}) as Partial<IntakeAnswers>;
   const complete = data?.complete ?? false;
+  const missing = useMemo(() => new Set(data?.missing ?? []), [data?.missing]);
   const [confirming, setConfirming] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const archetype = answers.archetype as Archetype | undefined;
 
@@ -181,6 +198,26 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
     () => BRANCH.filter((q) => !q.showFor || (archetype && q.showFor.includes(archetype))),
     [archetype],
   );
+
+  // A stage is "done" when none of its required fields are missing.
+  const stageStatus = (n: number): 'done' | 'active' | 'todo' => {
+    if (n === 5) return complete ? 'active' : 'todo';
+    if (n === 3 && branchQuestions.length === 0) return 'done'; // no branch questions → nothing to do
+    const req = STAGE_REQUIRED[n] ?? [];
+    const done = req.every((id) => !missing.has(id as string));
+    if (done) return 'done';
+    return 'active';
+  };
+
+  const scrollToFirstMissing = () => {
+    const firstId = [...STAGE_REQUIRED[1], ...STAGE_REQUIRED[2], ...STAGE_REQUIRED[4]].find(
+      (id) => missing.has(id as string),
+    );
+    if (!firstId) return;
+    questionRefs.current[firstId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightId(firstId as string);
+    window.setTimeout(() => setHighlightId(null), 2000);
+  };
 
   const isSel = (q: Question, val: string): boolean => {
     const a = answers[q.id];
@@ -206,8 +243,18 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
 
   const renderQuestion = (q: Question, accent: string) => {
     const skipped = answers[q.id] === NOT_SURE;
+    const highlighted = highlightId === q.id;
     return (
-      <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div
+        key={q.id}
+        ref={(el) => { questionRefs.current[q.id] = el; }}
+        style={{
+          display: 'flex', flexDirection: 'column', gap: 6,
+          scrollMarginTop: 60, borderRadius: 8, transition: 'box-shadow 0.3s',
+          boxShadow: highlighted ? '0 0 0 2px var(--accent-orange)' : 'none',
+          padding: highlighted ? 8 : 0, margin: highlighted ? -8 : 0,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{q.label}</span>
           {q.kind === 'hard' && (
@@ -285,11 +332,26 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Sticky header: title, entry framing, and stage stepper */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-base, var(--bg-card))', paddingBottom: 10, marginBottom: -4 }}>
         <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Platform Intake</h2>
-        <span style={{ fontSize: 12, color: complete ? 'var(--accent-green)' : 'var(--text-muted)' }}>
-          {complete ? 'Ready' : `${(data?.missing ?? []).length} left`}
-        </span>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, marginBottom: 10 }}>
+          About 10 questions, ~3 minutes. You can change anything before we score it.
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+          {STAGES.map((s, i) => {
+            const st = stageStatus(s.n);
+            const color = st === 'done' ? 'var(--accent-green)' : st === 'active' ? 'var(--accent-cyan)' : 'var(--text-muted)';
+            return (
+              <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: st === 'active' ? 600 : 400, color }}>
+                  {st === 'done' ? '✓' : s.n}·{s.label}
+                </span>
+                {i < STAGES.length - 1 && <span style={{ color: 'var(--border-default)', fontSize: 11 }}>→</span>}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Stage 1 — Frame (archetype filter) */}
@@ -317,8 +379,14 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
       {archetype && (
         <>
           <Card style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-blue)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              2 · Your situation
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-blue)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                2 · Your situation
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <span><span style={{ color: '#ef4444', fontWeight: 600 }}>Hard constraint</span> = can rule a pattern out</span>
+                <span>Everything else tunes the recommendation</span>
+              </div>
             </div>
             {SPINE.map((q) => renderQuestion(q, 'var(--accent-blue)'))}
           </Card>
@@ -384,11 +452,10 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
 
           <Button
             variant="primary" size="lg"
-            onClick={() => setConfirming(true)}
-            disabled={!complete}
-            style={{ width: '100%' }}
+            onClick={() => (complete ? setConfirming(true) : scrollToFirstMissing())}
+            style={{ width: '100%', opacity: complete ? 1 : 0.85 }}
           >
-            {complete ? 'Review & score →' : `Answer ${(data?.missing ?? []).length} more`}
+            {complete ? 'Review & score →' : `Answer ${(data?.missing ?? []).length} more — show me`}
           </Button>
         </>
       )}
