@@ -23,6 +23,7 @@ interface Question {
   options: Option[];
   notSure?: boolean;                  // show a "Not sure" chip (zero-pressure)
   showFor?: Archetype[];              // Stage-3 branch gating
+  grid?: boolean;                     // render options in a wrapping grid
 }
 
 // ── Stage 1: archetype (question filter) ────────────────────────────────────
@@ -85,7 +86,7 @@ const SPINE: Question[] = [
   },
   {
     id: 'compliance_regime', label: 'Which regulations must this platform satisfy?',
-    why: 'Some combinations rule out certain architectures entirely.', kind: 'hard', multi: true,
+    why: 'Some combinations rule out certain architectures entirely.', kind: 'hard', multi: true, grid: true,
     options: [
       { value: 'sox',       label: 'SOX' },
       { value: 'pci_dss',   label: 'PCI-DSS' },
@@ -268,14 +269,40 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
             </span>
           )}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>{q.why}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {q.options.map((opt) => (
-            <button key={opt.value} onClick={() => handlePick(q, opt.value)} style={chip(isSel(q, opt.value), accent)}>
-              <div>{isSel(q, opt.value) && q.multi ? '✓ ' : ''}{opt.label}</div>
-              {opt.hint && <div style={{ fontSize: 10, opacity: 0.7, marginTop: 1 }}>{opt.hint}</div>}
-            </button>
-          ))}
+        <div id={`q-${q.id}-label`} style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>{q.why}</div>
+        <div
+          role={q.multi ? 'group' : 'radiogroup'}
+          aria-labelledby={`q-${q.id}-label`}
+          style={{
+            display: q.grid ? 'grid' : 'flex',
+            gridTemplateColumns: q.grid ? 'repeat(auto-fill, minmax(120px, 1fr))' : undefined,
+            flexDirection: q.grid ? undefined : 'column',
+            gap: 5,
+          }}
+          onKeyDown={(e) => {
+            if (q.multi || !['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'].includes(e.key)) return;
+            e.preventDefault();
+            const cur = q.options.findIndex((o) => isSel(q, o.value));
+            const dir = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : -1;
+            const next = ((cur < 0 ? 0 : cur) + dir + q.options.length) % q.options.length;
+            handlePick(q, q.options[next].value);
+          }}
+        >
+          {q.options.map((opt) => {
+            const sel = isSel(q, opt.value);
+            return (
+              <button
+                key={opt.value}
+                role={q.multi ? 'checkbox' : 'radio'}
+                aria-checked={sel}
+                onClick={() => handlePick(q, opt.value)}
+                style={{ ...chip(sel, accent), outlineColor: accent }}
+              >
+                <div>{sel && q.multi ? '✓ ' : ''}{opt.label}</div>
+                {opt.hint && <div style={{ fontSize: 10, opacity: 0.7, marginTop: 1 }}>{opt.hint}</div>}
+              </button>
+            );
+          })}
         </div>
         {q.notSure && (
           <button
@@ -400,7 +427,8 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
             </Card>
           )}
 
-          <Card style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {stageStatus(2) === 'done' && (
+          <Card style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.25s ease' }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-green)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               4 · Priorities
             </div>
@@ -440,7 +468,7 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                 Industry <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span>
               </span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 6 }}>
                 {INDUSTRIES.map((ind) => (
                   <button key={ind} onClick={() => onAnswer('industry', ind)} style={chip(answers.industry === ind, 'var(--accent-cyan)')}>
                     {ind}
@@ -449,14 +477,17 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
               </div>
             </div>
           </Card>
+          )}
 
-          <Button
-            variant="primary" size="lg"
-            onClick={() => (complete ? setConfirming(true) : scrollToFirstMissing())}
-            style={{ width: '100%', opacity: complete ? 1 : 0.85 }}
-          >
-            {complete ? 'Review & score →' : `Answer ${(data?.missing ?? []).length} more — show me`}
-          </Button>
+          {stageStatus(2) === 'done' && (
+            <Button
+              variant="primary" size="lg"
+              onClick={() => (complete ? setConfirming(true) : scrollToFirstMissing())}
+              style={{ width: '100%', opacity: complete ? 1 : 0.85 }}
+            >
+              {complete ? 'Review & score →' : `Answer ${(data?.missing ?? []).length} more — show me`}
+            </Button>
+          )}
         </>
       )}
     </div>

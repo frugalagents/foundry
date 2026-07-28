@@ -57,6 +57,11 @@ code, pre { font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace; }
   100% { background-position:  200% 0; }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .skeleton {
   background: linear-gradient(90deg,
     var(--bg-card) 25%,
