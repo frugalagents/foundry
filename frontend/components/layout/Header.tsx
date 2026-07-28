@@ -1,11 +1,16 @@
 'use client';
 import { useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { LogOut, ShieldCheck, User } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { getUser, logout } from '@/lib/auth';
 import { Badge } from '@/components/ui/Badge';
 
+interface NavItem { label: string; href: string }
+
 export function Header() {
+  const pathname = usePathname();
   const { user, setUser, viewingAsUser, setViewingAsUser } = useAppStore();
 
   useEffect(() => {
@@ -13,18 +18,39 @@ export function Header() {
     if (u) setUser(u);
   }, [setUser]);
 
+  const isAdmin = user?.['custom:role'] === 'admin' && !viewingAsUser;
   const isRealAdmin = user?.['custom:role'] === 'admin';
   const displayName =
     user?.['custom:display_name'] ?? user?.['custom:amazon_alias'] ?? user?.email?.split('@')[0] ?? 'User';
 
+  const nav: NavItem[] = [
+    { label: 'Home', href: '/' },
+    { label: 'Customers', href: '/customers' },
+    ...(isAdmin ? [{ label: 'Analytics', href: '/admin/dashboard' }, { label: 'Config', href: '/admin/config' }] : []),
+  ];
+  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+
   return (
     <header className="app-header">
-      {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <div className="app-logo text-display">P</div>
-        <span className="text-display" style={{ fontSize: '1.05rem', color: 'var(--text-primary)' }}>
-          Platform Advisor
-        </span>
+      {/* Logo + nav */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0, minWidth: 0 }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+          <div className="app-logo text-display">P</div>
+          <span className="text-display" style={{ fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+            Platform Advisor
+          </span>
+        </Link>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {nav.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`hdr-nav ${isActive(item.href) ? 'hdr-nav--active' : ''}`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       </div>
 
       {/* Right side */}
@@ -69,6 +95,14 @@ export function Header() {
           display: flex; align-items: center; justify-content: center;
           font-size: 17px;
         }
+        .hdr-nav {
+          padding: 6px 12px; border-radius: var(--radius-sm);
+          font-size: var(--text-sm); font-weight: 500;
+          color: var(--text-secondary); text-decoration: none;
+          transition: background 0.12s, color 0.12s;
+        }
+        .hdr-nav:hover { background: var(--bg-hover); color: var(--text-primary); text-decoration: none; }
+        .hdr-nav--active { background: var(--accent-soft); color: var(--accent-deep); font-weight: 600; }
         .app-header-btn {
           background: none; border: 1px solid var(--border-default); cursor: pointer;
           color: var(--text-secondary); display: flex; align-items: center; gap: 5px;
