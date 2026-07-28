@@ -1464,7 +1464,8 @@
         "name": "Action Authority \u2192 Hierarchy Depth",
         "source": "A*STAR 2-dimensional framework (Huang & Zhou, 2026)",
         "condition": "High consequence of agent actions",
-        "force": "Deeper approval hierarchy. Full autonomy + high-risk = mandatory supervisor chain."
+        "force": "Deeper approval hierarchy. Full autonomy + high-risk = mandatory supervisor chain.",
+        "trigger_condition": {"autonomy_model": ["supervised", "hitl"]}
       }
     },
     {
@@ -1494,7 +1495,8 @@
         "name": "Coordination Overhead Threshold",
         "source": "A*STAR 2-dimensional framework (Huang & Zhou, 2026)",
         "condition": "Coordination cost exceeds 30% of total compute",
-        "force": "Collapse back to single-agent with tools. Multi-agent only earns cost when task is decomposable."
+        "force": "Collapse back to single-agent with tools. Multi-agent only earns cost when task is decomposable.",
+        "trigger_condition": {"lob_count": "1-3"}
       }
     },
     {

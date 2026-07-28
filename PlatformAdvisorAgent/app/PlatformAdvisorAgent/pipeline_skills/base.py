@@ -17,6 +17,7 @@ class PipelineContext:
     pattern_id: str = ""
     confidence: float = 0.0
     axis_scores: list[float] = field(default_factory=list)
+    topology: dict = field(default_factory=dict)
     components: list[dict] = field(default_factory=list)
     innovations: list[dict] = field(default_factory=list)
     compliance_notes: list[str] = field(default_factory=list)

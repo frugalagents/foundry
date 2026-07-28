@@ -79,6 +79,7 @@ def _save_ctx(ctx: PipelineContext) -> None:
             "pattern_id":       ctx.pattern_id,
             "confidence":       ctx.confidence,
             "axis_scores":      ctx.axis_scores,
+            "topology":         ctx.topology,
             "components":       ctx.components,
             "innovations":      ctx.innovations,
             "compliance_notes": ctx.compliance_notes,
@@ -158,6 +159,7 @@ def _load_ctx(customer_id: str, session_id: str) -> PipelineContext | None:
     ctx.pattern_id       = d.get("pattern_id", "")
     ctx.confidence       = d.get("confidence", 0.0)
     ctx.axis_scores      = d.get("axis_scores", [])
+    ctx.topology         = d.get("topology", {})
     ctx.components       = d.get("components", [])
     ctx.innovations      = d.get("innovations", [])
     ctx.compliance_notes = d.get("compliance_notes", [])

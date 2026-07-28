@@ -57,6 +57,14 @@ async def run_scoring(ctx: PipelineContext) -> AsyncIterator[str]:
     ctx.pattern_id = pattern_id
     ctx.confidence = confidence
 
+    # Derive technical topology (axis C) — rule-based, per discovery-methodology §3.6
+    ctx.topology = graph.derive_topology(
+        pattern_id,
+        ctx.answers,
+        archetype=ctx.answers.get("archetype", ""),
+        pain_points=ctx.pain_points,
+    )
+
     # Build radar data (5 axes per pattern)
     # Normalize to 0-10 scale so RadarSVG polygons are visible (SVG divides by 10)
     valid_scores = {pid: sd for pid, sd in scores.items() if sd["total"] > -100}
@@ -128,6 +136,7 @@ async def run_scoring(ctx: PipelineContext) -> AsyncIterator[str]:
         "signals": signals,
         "runner_up": runner_up,
         "follow_up_questions": follow_up_questions,
+        "topology": ctx.topology,
     })
 
     # Confirmation is handled by the outer agent after it receives the tool result.
