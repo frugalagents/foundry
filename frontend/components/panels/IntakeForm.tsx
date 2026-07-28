@@ -132,6 +132,32 @@ const INDUSTRIES = ['Financial Services', 'Healthcare', 'Insurance', 'Retail', '
 
 const NOT_SURE = 'not_sure';
 
+// Order + labels for the confirmation echo — every field the user can answer.
+const SUMMARY_ROWS: { id: keyof IntakeAnswers; label: string }[] = [
+  { id: 'archetype',         label: 'Building' },
+  { id: 'autonomy_model',    label: 'Autonomy' },
+  { id: 'lob_count',         label: 'Teams' },
+  { id: 'team_expertise',    label: 'Builders' },
+  { id: 'cloud_posture',     label: 'Cloud' },
+  { id: 'data_gravity',      label: 'Data location' },
+  { id: 'compliance_regime', label: 'Compliance' },
+  { id: 'tenancy_model',     label: 'Tenancy' },
+  { id: 'cost_sensitivity',  label: 'Cost stance' },
+  { id: 'industry',          label: 'Industry' },
+  { id: 'pain_points',       label: 'Pain points' },
+];
+
+// All scored/branch questions keyed by id, for reverse value→label lookup.
+const ALL_QUESTIONS: Question[] = [...SPINE, ...BRANCH, ...TUNE];
+
+// Map a stored value back to its human-readable label for the confirmation echo.
+function valueLabel(id: keyof IntakeAnswers, value: string): string {
+  if (value === NOT_SURE) return 'Not sure';
+  if (id === 'archetype') return ARCHETYPES.find((a) => a.value === value)?.label ?? value;
+  const q = ALL_QUESTIONS.find((x) => x.id === id);
+  return q?.options.find((o) => o.value === value)?.label ?? value;
+}
+
 function chip(selected: boolean, color: string) {
   return {
     padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
@@ -178,32 +204,47 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
     [answers],
   );
 
-  const renderQuestion = (q: Question, accent: string) => (
-    <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{q.label}</span>
-        {q.kind === 'hard' && (
-          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 600 }}>
-            HARD CONSTRAINT
-          </span>
-        )}
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>{q.why}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        {q.options.map((opt) => (
-          <button key={opt.value} onClick={() => handlePick(q, opt.value)} style={chip(isSel(q, opt.value), accent)}>
-            <div>{isSel(q, opt.value) && q.multi ? '✓ ' : ''}{opt.label}</div>
-            {opt.hint && <div style={{ fontSize: 10, opacity: 0.7, marginTop: 1 }}>{opt.hint}</div>}
-          </button>
-        ))}
+  const renderQuestion = (q: Question, accent: string) => {
+    const skipped = answers[q.id] === NOT_SURE;
+    return (
+      <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{q.label}</span>
+          {q.kind === 'hard' && (
+            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 600 }}>
+              HARD CONSTRAINT
+            </span>
+          )}
+          {skipped && (
+            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(210,153,34,0.15)', color: 'var(--accent-orange)', fontWeight: 600 }}>
+              ASSUMED
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>{q.why}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {q.options.map((opt) => (
+            <button key={opt.value} onClick={() => handlePick(q, opt.value)} style={chip(isSel(q, opt.value), accent)}>
+              <div>{isSel(q, opt.value) && q.multi ? '✓ ' : ''}{opt.label}</div>
+              {opt.hint && <div style={{ fontSize: 10, opacity: 0.7, marginTop: 1 }}>{opt.hint}</div>}
+            </button>
+          ))}
+        </div>
         {q.notSure && (
-          <button onClick={() => handlePick(q, NOT_SURE)} style={{ ...chip(isSel(q, NOT_SURE), 'var(--text-muted)'), fontStyle: 'italic' }}>
-            Not sure — estimate for me
+          <button
+            onClick={() => handlePick(q, skipped ? '' : NOT_SURE)}
+            style={{
+              alignSelf: 'flex-start', marginTop: 2, padding: 0, background: 'none', border: 'none',
+              fontSize: 11, cursor: 'pointer', textDecoration: 'underline',
+              color: skipped ? 'var(--accent-orange)' : 'var(--text-muted)',
+            }}
+          >
+            {skipped ? '↺ Answer this instead' : "Skip — I'm not sure"}
           </button>
         )}
       </div>
-    </div>
-  );
+    );
+  };
 
   // ── Stage 5: confirmation ──
   if (confirming) {
@@ -215,16 +256,15 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
             Here’s what we heard. Correct anything before we score it.
           </div>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {ARCHETYPES.find((a) => a.value === archetype) && (
-              <li><b>Building:</b> {ARCHETYPES.find((a) => a.value === archetype)!.label}</li>
-            )}
-            {answers.lob_count && answers.lob_count !== NOT_SURE && <li><b>Teams:</b> {answers.lob_count}</li>}
-            {answers.autonomy_model && answers.autonomy_model !== NOT_SURE && <li><b>Autonomy:</b> {answers.autonomy_model}</li>}
-            {answers.cloud_posture && answers.cloud_posture !== NOT_SURE && <li><b>Cloud:</b> {answers.cloud_posture}</li>}
-            {Array.isArray(answers.compliance_regime) && answers.compliance_regime.length > 0 && (
-              <li><b>Compliance:</b> {answers.compliance_regime.join(', ')}</li>
-            )}
-            {answers.cost_sensitivity && answers.cost_sensitivity !== NOT_SURE && <li><b>Cost:</b> {answers.cost_sensitivity}</li>}
+            {SUMMARY_ROWS.map(({ id, label }) => {
+              const v = answers[id];
+              if (v === undefined || v === null || v === '' || v === NOT_SURE) return null;
+              const text = Array.isArray(v)
+                ? v.map((x) => valueLabel(id, x)).join(', ')
+                : valueLabel(id, v as string);
+              if (!text) return null;
+              return <li key={id}><b>{label}:</b> {text}</li>;
+            })}
           </ul>
           {notSureFields.length > 0 && (
             <div style={{ fontSize: 11, color: 'var(--accent-orange)', marginTop: 6 }}>
@@ -300,17 +340,27 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                Biggest frustration with agents today? <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(up to 3)</span>
+                Biggest frustration with agents today?{' '}
+                <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>
+                  (optional · {(answers.pain_points ?? []).length}/3)
+                </span>
               </span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {PAIN_POINT_OPTIONS.map((pp) => {
-                  const sel = (answers.pain_points ?? []).includes(pp);
+                  const cur = answers.pain_points ?? [];
+                  const sel = cur.includes(pp);
+                  const atCap = !sel && cur.length >= 3;
                   return (
-                    <button key={pp} onClick={() => {
-                      const cur = answers.pain_points ?? [];
-                      const next = cur.includes(pp) ? cur.filter((x) => x !== pp) : (cur.length < 3 ? [...cur, pp] : cur);
-                      onAnswer('pain_points', next);
-                    }} style={chip(sel, 'var(--accent-orange)')}>
+                    <button
+                      key={pp}
+                      disabled={atCap}
+                      title={atCap ? 'Up to 3 — deselect one to pick another' : undefined}
+                      onClick={() => {
+                        const next = sel ? cur.filter((x) => x !== pp) : [...cur, pp];
+                        onAnswer('pain_points', next);
+                      }}
+                      style={{ ...chip(sel, 'var(--accent-orange)'), opacity: atCap ? 0.4 : 1, cursor: atCap ? 'not-allowed' : 'pointer' }}
+                    >
                       {sel ? '✓ ' : ''}{pp}
                     </button>
                   );
@@ -319,7 +369,9 @@ export function IntakeForm({ data, onAnswer, onSubmit, streaming }: IntakeFormPr
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Industry</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                Industry <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span>
+              </span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {INDUSTRIES.map((ind) => (
                   <button key={ind} onClick={() => onAnswer('industry', ind)} style={chip(answers.industry === ind, 'var(--accent-cyan)')}>

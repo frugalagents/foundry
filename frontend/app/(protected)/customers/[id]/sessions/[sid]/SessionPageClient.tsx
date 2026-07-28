@@ -35,7 +35,7 @@ const REQUIRED_IDS: (keyof IntakeAnswers)[] = [
 // A required field counts as answered when present and (for multi-selects) non-empty.
 const isAnswered = (answers: Partial<IntakeAnswers>, id: keyof IntakeAnswers): boolean => {
   const v = answers[id];
-  if (v === undefined || v === null) return false;
+  if (v === undefined || v === null || v === '') return false;
   if (Array.isArray(v)) return v.length > 0;
   return true;
 };

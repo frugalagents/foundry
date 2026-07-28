@@ -52,6 +52,14 @@ _VALID_PATTERNS = {
 }
 
 
+def _missing_intake(answers: dict) -> list[str]:
+    """Required fields that are absent or empty. An empty string / empty list
+    (e.g. a field the user un-skipped without re-answering) counts as missing."""
+    def _empty(v) -> bool:
+        return v is None or v == "" or (isinstance(v, (list, dict)) and len(v) == 0)
+    return [k for k in _INTAKE_REQUIRED if k not in answers or _empty(answers[k])]
+
+
 async def _drain(gen, queue: asyncio.Queue) -> None:
     """Drain an async generator into the panel queue."""
     async for event in gen:
@@ -106,7 +114,7 @@ def make_pipeline_tools(
 
         await _drain(run_intake(ctx, user_message), panel_queue)
 
-        missing = [k for k in _INTAKE_REQUIRED if k not in ctx.answers]
+        missing = _missing_intake(ctx.answers)
         return json.dumps({
             "ok": True,
             "answers_collected": len(ctx.answers),
@@ -127,8 +135,8 @@ def make_pipeline_tools(
         intake answer changes — all downstream steps must re-run after this.
         Requires all 12 intake fields to be present.
         """
-        if any(k not in ctx.answers for k in _INTAKE_REQUIRED):
-            missing = [k for k in _INTAKE_REQUIRED if k not in ctx.answers]
+        missing = _missing_intake(ctx.answers)
+        if missing:
             return json.dumps({
                 "error": f"Intake incomplete. Missing: {missing}. "
                          "Call collect_intake_answers first."
