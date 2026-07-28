@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Building2, Search } from 'lucide-react';
+import { Plus, Building2, Search, X } from 'lucide-react';
 import { listCustomers, createCustomer, listSessions } from '@/lib/api';
 import type { Customer, Session } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
@@ -113,41 +113,51 @@ export default function CustomersPage() {
 
   return (
     <div style={{ padding: 'var(--space-6)', maxWidth: 1400, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-5)' }}>
-        <div>
-          <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--text-primary)' }}>Customers</h1>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 2 }}>
-            {loading ? '…' : `${customers.length} customer${customers.length !== 1 ? 's' : ''}`}
-          </p>
-        </div>
-        <Button size="lg" onClick={() => setShowCreate(true)}>
-          <Plus size={16} /> New customer
-        </Button>
+      {/* Title */}
+      <div style={{ marginBottom: 'var(--space-5)' }}>
+        <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--text-primary)' }}>Customers</h1>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 2 }}>
+          {loading ? '…' : `${customers.length} customer${customers.length !== 1 ? 's' : ''}`}
+          {!loading && (query || industryFilter !== 'All') && visible.length !== customers.length
+            ? ` · ${visible.length} shown` : ''}
+        </p>
       </div>
 
-      {/* Controls */}
+      {/* Single toolbar: search · filters · new customer */}
       {!loading && customers.length > 0 && (
-        <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-5)', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        <div className="cust-toolbar">
+          <div className="cust-search">
+            <Search size={15} />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name…"
-              className="ctrl-input"
-              style={{ paddingLeft: 32 }}
+              placeholder="Search customers"
             />
+            {query && (
+              <button className="cust-search-clear" onClick={() => setQuery('')} aria-label="Clear search">
+                <X size={13} />
+              </button>
+            )}
           </div>
-          <select value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value)} className="ctrl-input">
-            <option>All</option>
-            {INDUSTRIES.map((i) => <option key={i}>{i}</option>)}
-          </select>
-          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="ctrl-input">
-            <option value="recent">Recently active</option>
-            <option value="name">Name (A–Z)</option>
-            <option value="sessions">Most blueprints</option>
-          </select>
+          <div className="cust-select">
+            <span>Industry</span>
+            <select value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value)}>
+              <option>All</option>
+              {INDUSTRIES.map((i) => <option key={i}>{i}</option>)}
+            </select>
+          </div>
+          <div className="cust-select">
+            <span>Sort</span>
+            <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+              <option value="recent">Recently active</option>
+              <option value="name">Name (A–Z)</option>
+              <option value="sessions">Most blueprints</option>
+            </select>
+          </div>
+          <div style={{ flex: 1 }} />
+          <Button size="md" onClick={() => setShowCreate(true)}>
+            <Plus size={16} /> New customer
+          </Button>
         </div>
       )}
 
@@ -219,6 +229,80 @@ export default function CustomersPage() {
       </Modal>
 
       <style jsx global>{`
+        /* Toolbar */
+        .cust-toolbar {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          margin-bottom: var(--space-5);
+          flex-wrap: wrap;
+        }
+        .cust-search {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+          min-width: 240px;
+          max-width: 380px;
+          height: 38px;
+          padding: 0 10px;
+          background: var(--bg-card);
+          border: 1px solid var(--border-default);
+          border-radius: var(--radius-sm);
+          color: var(--text-muted);
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .cust-search:focus-within {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px var(--accent-subtle);
+          color: var(--text-secondary);
+        }
+        .cust-search input {
+          flex: 1;
+          background: none;
+          border: none;
+          outline: none;
+          color: var(--text-primary);
+          font-size: var(--text-sm);
+        }
+        .cust-search input::placeholder { color: var(--text-muted); }
+        .cust-search-clear {
+          display: inline-flex; align-items: center; justify-content: center;
+          background: none; border: none; cursor: pointer;
+          color: var(--text-muted); padding: 2px; border-radius: var(--radius-sm);
+        }
+        .cust-search-clear:hover { color: var(--text-primary); background: var(--bg-hover); }
+        /* Segmented select: label + native select styled as one pill */
+        .cust-select {
+          display: flex;
+          align-items: center;
+          height: 38px;
+          background: var(--bg-card);
+          border: 1px solid var(--border-default);
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          transition: border-color 0.15s;
+        }
+        .cust-select:hover { border-color: var(--border-strong); }
+        .cust-select > span {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          padding: 0 4px 0 12px;
+          white-space: nowrap;
+        }
+        .cust-select select {
+          height: 100%;
+          background: none;
+          border: none;
+          outline: none;
+          color: var(--text-primary);
+          font-size: var(--text-sm);
+          padding: 0 12px 0 4px;
+          cursor: pointer;
+          appearance: none;
+        }
+        .cust-select select option { background: var(--bg-elevated); }
+        /* Modal form controls */
         .ctrl-input {
           background: var(--bg-elevated);
           border: 1px solid var(--border-default);
