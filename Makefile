@@ -1,13 +1,16 @@
 .PHONY: help install-frontend install-backend install dev-up dev-down dev-backend dev-frontend \
         setup-db test-backend lint-frontend build-frontend deploy deploy-frontend smoke-test \
-        deploy-agentcore wire-agentcore clean
+        prepare-lambda deploy-agentcore wire-agentcore seed-demo clean
 
 BACKEND_DIR    := backend
 FRONTEND_DIR   := frontend
 INFRA_DIR      := infra
 AGENTCORE_DIR  := PlatformAdvisorAgent
+AGENT_APP_DIR  := $(AGENTCORE_DIR)/app/PlatformAdvisorAgent
+LAMBDA_STAGE   := $(INFRA_DIR)/.lambda-src
 STACK_NAME     := platform-advisor
 ENV            ?= dev
+ADMIN_ALIASES  ?= aigopala,thandavm
 
 help:
 	@echo "Platform Advisor — Available targets:"
@@ -21,6 +24,7 @@ help:
 	@echo "  dev-backend           Run FastAPI with hot-reload (local, no Docker)"
 	@echo "  dev-frontend          Run Next.js dev server"
 	@echo "  setup-db              Create DynamoDB Local table + seed demo data"
+	@echo "  seed-demo             Generate demo portfolio (dry-run unless DEMO_APPLY=1)"
 	@echo ""
 	@echo "  test-backend          Run pytest"
 	@echo "  lint-frontend         Run ESLint + TypeScript check"
@@ -64,7 +68,7 @@ dev-backend:
 	AWS_ACCESS_KEY_ID=local \
 	AWS_SECRET_ACCESS_KEY=local \
 	ALLOWED_ORIGINS=http://localhost:3000 \
-	PYTHONPATH=. \
+	PYTHONPATH=.:../PlatformAdvisorAgent/app/PlatformAdvisorAgent \
 	.venv/bin/uvicorn api.main:app --host 0.0.0.0 --port 8080 --reload
 
 dev-frontend:
@@ -74,6 +78,27 @@ setup-db:
 	AWS_ACCESS_KEY_ID=local \
 	AWS_SECRET_ACCESS_KEY=local \
 	python $(INFRA_DIR)/setup-local-db.py
+
+DEMO_TARGET       ?= local
+DEMO_APPLY        ?= 0
+DEMO_CONFIRM      ?=
+DEMO_PROFILE      ?= platform-advisor
+DEMO_REGION       ?= us-east-1
+DEMO_TABLE        ?= platform-advisor-main
+DEMO_ENDPOINT     ?= http://localhost:8000
+DEMO_APPLY_FLAG   = $(if $(filter 1 true yes,$(DEMO_APPLY)),--apply,)
+DEMO_CONFIRM_FLAG = $(if $(strip $(DEMO_CONFIRM)),--confirm $(DEMO_CONFIRM),)
+
+seed-demo:
+	PYTHONPATH=$(BACKEND_DIR):$(AGENT_APP_DIR) \
+	uv run --with-requirements $(BACKEND_DIR)/requirements.txt \
+	python -m demo.seed \
+		--target $(DEMO_TARGET) \
+		--profile $(DEMO_PROFILE) \
+		--region $(DEMO_REGION) \
+		--table $(DEMO_TABLE) \
+		--endpoint $(DEMO_ENDPOINT) \
+		$(DEMO_APPLY_FLAG) $(DEMO_CONFIRM_FLAG)
 
 # ── Quality ───────────────────────────────────────────────────────────────────
 
@@ -106,13 +131,30 @@ deploy-frontend: build-frontend
 	$(MAKE) smoke-test
 
 smoke-test:
-	python3 smoke_test.py
+	uv run --no-project --with boto3 python smoke_test.py
 
-deploy:
+prepare-lambda:
+	@echo "Preparing Lambda source..."
+	rm -rf $(LAMBDA_STAGE)
+	mkdir -p $(LAMBDA_STAGE)
+	rsync -a \
+		--exclude='.venv/' \
+		--exclude='.pytest_cache/' \
+		--exclude='__pycache__/' \
+		--exclude='*.pyc' \
+		$(BACKEND_DIR)/ $(LAMBDA_STAGE)/
+	for package in advisor_core pipeline_skills agent_core_engine mcp_client knowledge_base; do \
+		rsync -a \
+			--exclude='__pycache__/' \
+			--exclude='*.pyc' \
+			$(AGENT_APP_DIR)/$$package/ $(LAMBDA_STAGE)/$$package/; \
+	done
+
+deploy: prepare-lambda
 	cd $(INFRA_DIR) && sam build --skip-pull-image && sam deploy \
 		--stack-name $(STACK_NAME)-$(ENV) \
-		--parameter-overrides Env=$(ENV) \
-		--capabilities CAPABILITY_IAM \
+		--parameter-overrides Env=$(ENV) AdminAlias="$(ADMIN_ALIASES)" \
+		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
 		--resolve-s3 \
 		--profile platform-advisor \
 		--region us-east-1 \
@@ -140,7 +182,7 @@ wire-agentcore:
 	cd $(INFRA_DIR) && sam deploy \
 		--stack-name $(STACK_NAME)-$(ENV) \
 		--parameter-overrides Env=$(ENV) AgentCoreRuntimeArn="$(AGENT_ARN)" \
-		--capabilities CAPABILITY_IAM \
+		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
 		--resolve-s3 \
 		--profile platform-advisor \
 		--region us-east-1 \
@@ -153,4 +195,4 @@ clean:
 	cd $(FRONTEND_DIR) && rm -rf .next node_modules
 	find $(BACKEND_DIR) -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find $(BACKEND_DIR) -name "*.pyc" -delete 2>/dev/null || true
-	cd $(INFRA_DIR) && rm -rf .aws-sam 2>/dev/null || true
+	cd $(INFRA_DIR) && rm -rf .aws-sam .lambda-src 2>/dev/null || true

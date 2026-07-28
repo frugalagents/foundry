@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { LogOut, ShieldCheck, User } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { getUser, logout } from '@/lib/auth';
-import { Badge } from '@/components/ui/Badge';
+import { Badge, Button } from '@/components/ui';
 
 interface NavItem { label: string; href: string }
 
@@ -26,7 +26,7 @@ export function Header() {
   const nav: NavItem[] = [
     { label: 'Home', href: '/' },
     { label: 'Customers', href: '/customers' },
-    ...(isAdmin ? [{ label: 'Analytics', href: '/admin/dashboard' }, { label: 'Config', href: '/admin/config' }] : []),
+    ...(isAdmin ? [{ label: 'Analytics', href: '/admin/dashboard' }, { label: 'Engine', href: '/admin/config' }] : []),
   ];
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
@@ -58,14 +58,15 @@ export function Header() {
         {isRealAdmin && !viewingAsUser && <Badge color="blue" size="sm">Admin</Badge>}
         {isRealAdmin && viewingAsUser && <Badge color="orange" size="sm">Viewing as User</Badge>}
         {isRealAdmin && (
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setViewingAsUser(!viewingAsUser)}
             title={viewingAsUser ? 'Switch back to Admin view' : 'View as regular user'}
-            className="app-header-btn"
           >
             {viewingAsUser ? <ShieldCheck size={13} /> : <User size={13} />}
             {viewingAsUser ? 'Admin view' : 'User view'}
-          </button>
+          </Button>
         )}
         <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{displayName}</span>
         <button onClick={logout} title="Sign out" className="app-header-icon">
@@ -103,13 +104,6 @@ export function Header() {
         }
         .hdr-nav:hover { background: var(--bg-hover); color: var(--text-primary); text-decoration: none; }
         .hdr-nav--active { background: var(--accent-soft); color: var(--accent-deep); font-weight: 600; }
-        .app-header-btn {
-          background: none; border: 1px solid var(--border-default); cursor: pointer;
-          color: var(--text-secondary); display: flex; align-items: center; gap: 5px;
-          padding: 4px 8px; border-radius: var(--radius-sm); font-size: var(--text-xs);
-          transition: border-color 0.15s, color 0.15s;
-        }
-        .app-header-btn:hover { border-color: var(--border-strong); color: var(--text-primary); }
         .app-header-icon {
           background: none; border: none; cursor: pointer;
           color: var(--text-muted); display: flex; align-items: center;

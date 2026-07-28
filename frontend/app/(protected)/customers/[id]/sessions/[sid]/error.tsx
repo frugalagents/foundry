@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/components/ui';
+
 export default function SessionError({
   error,
   reset,
@@ -44,21 +46,7 @@ export default function SessionError({
           </div>
         )}
       </div>
-      <button
-        onClick={reset}
-        style={{
-          padding: '8px 20px',
-          background: 'var(--accent)',
-          color: 'var(--accent-fg)',
-          border: 'none',
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        Try again
-      </button>
+      <Button onClick={reset}>Try again</Button>
     </div>
   );
 }

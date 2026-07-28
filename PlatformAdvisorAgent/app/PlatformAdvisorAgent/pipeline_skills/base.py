@@ -28,6 +28,10 @@ class PipelineContext:
     customer_history: str = ""
     current_step: int = 0
     cost_estimate: dict = field(default_factory=dict)
+    schema_version: str = "2.0"
+    assessment_input: dict = field(default_factory=dict)
+    assessment_result: dict = field(default_factory=dict)
+    overrides: list[dict] = field(default_factory=list)
 
 
 def make_event(event_type: str, data: Any) -> str:

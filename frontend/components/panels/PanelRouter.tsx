@@ -1,50 +1,45 @@
 'use client';
 import type {
   IntakeFormData,
-  RadarChartData,
+  DecisionSummaryData,
   ArchitectureDiagramData,
-  InnovationOverlayData,
+  RequirementsData,
   ServiceMapData,
   RiskCardsData,
   PhaseTimelineData,
-  CostEstimateData,
+  CostEstimateV2,
   BlueprintData,
 } from '@/lib/types';
-import { IntakeForm } from './IntakeForm';
-import { RadarChart } from './RadarChart';
+import { IntakeFormV2 } from './IntakeFormV2';
+import { DecisionSummary } from './DecisionSummary';
 import { ArchitectureDiagram } from './ArchitectureDiagram';
-import { InnovationOverlay } from './InnovationOverlay';
+import { RequirementsPanel } from './RequirementsPanel';
 import { ServiceMap } from './ServiceMap';
 import { RiskCards } from './RiskCards';
 import { PhaseTimeline } from './PhaseTimeline';
-import { CostEstimatePanel } from './CostEstimatePanel';
+import { CostRangePanel } from './CostRangePanel';
 import { BlueprintAssembly } from './BlueprintAssembly';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-
-import type { WhatIfData } from '@/lib/types';
 
 interface PanelRouterProps {
   step: number;
   panelData: Record<number, unknown>;
   streaming: boolean;
-  onAnswer: (q: string, v: string | string[]) => void;
+  onAnswer: (q: string, v: unknown) => void;
   onSubmit: () => void;
-  onConfirm: (choice: string) => void;
   onExport: (fmt: 'pdf' | 'pptx') => void;
   onComponentClick?: (id: string, name: string) => void;
-  onWhatIf?: (overrides: Record<string, string>) => void;
-  whatIfData?: WhatIfData | null;
-  whatIfLoading?: boolean;
   customerName?: string;
   sessionName?: string;
   exportError?: string | null;
   exporting?: 'pdf' | 'pptx' | null;
+  onOverride?: (path: string, value: string, rationale: string, engineValue: string) => void;
 }
 
 // Backend step → panel mapping
-// 1: intake, 2: scoring, 3: component_selection, 4: innovation,
-// 5: compliance, 6: service_mapping, 7: antipattern, 8: phasing,
+// 1: evidence, 2: decision, 3: architecture, 4: requirements,
+// 5: controls, 6: AWS mapping, 7: risks, 8: roadmap,
 // 9: cost_estimate, 10: blueprint
 
 export function PanelRouter({
@@ -53,21 +48,18 @@ export function PanelRouter({
   streaming,
   onAnswer,
   onSubmit,
-  onConfirm,
   onExport,
   onComponentClick,
-  onWhatIf,
-  whatIfData,
-  whatIfLoading,
   customerName,
   sessionName,
   exportError,
   exporting,
+  onOverride,
 }: PanelRouterProps) {
   switch (step) {
     case 1:
       return (
-        <IntakeForm
+        <IntakeFormV2
           data={(panelData[1] as IntakeFormData) ?? null}
           onAnswer={onAnswer}
           onSubmit={onSubmit}
@@ -76,13 +68,9 @@ export function PanelRouter({
       );
     case 2:
       return (
-        <RadarChart
-          data={(panelData[2] as RadarChartData) ?? null}
-          onConfirm={onConfirm}
-          streaming={streaming}
-          onWhatIf={onWhatIf}
-          whatIfData={whatIfData}
-          whatIfLoading={whatIfLoading}
+        <DecisionSummary
+          data={(panelData[2] as DecisionSummaryData) ?? null}
+          onOverride={onOverride}
         />
       );
     case 3:
@@ -90,16 +78,12 @@ export function PanelRouter({
         <ArchitectureDiagram
           data={(panelData[3] as ArchitectureDiagramData) ?? null}
           streaming={streaming}
-          onConfirm={onConfirm}
           onComponentClick={onComponentClick}
         />
       );
     case 4:
       return (
-        <InnovationOverlay
-          data={(panelData[4] as InnovationOverlayData) ?? null}
-          streaming={streaming}
-        />
+        <RequirementsPanel data={(panelData[4] as RequirementsData) ?? null} />
       );
     case 5:
       return <CompliancePanel data={panelData[5] as ComplianceData | null} streaming={streaming} />;
@@ -126,10 +110,7 @@ export function PanelRouter({
       );
     case 9:
       return (
-        <CostEstimatePanel
-          data={(panelData[9] as CostEstimateData) ?? null}
-          streaming={streaming}
-        />
+        <CostRangePanel data={(panelData[9] as CostEstimateV2) ?? null} />
       );
     case 10:
       return (

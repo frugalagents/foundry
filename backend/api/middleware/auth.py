@@ -90,7 +90,9 @@ async def get_current_user(
 
 async def require_admin(user: Annotated[dict, Depends(get_current_user)]) -> dict:
     groups = user.get("cognito:groups", user.get("groups", []))
-    if "admin" not in groups:
+    if isinstance(groups, str):
+        groups = [groups]
+    if user.get("custom:role") != "admin" and "admin" not in groups:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin required")
     return user
 

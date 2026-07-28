@@ -63,6 +63,25 @@ INTAKE_ANSWERS = {
     "cost_sensitivity": "secondary",
 }
 
+DEMO_CUSTOMER_ID = "cust_demo_northwind"
+DEMO_SESSION_IDS = {
+    "sess_demo_centralized",
+    "sess_demo_federated",
+    "sess_demo_decentralized",
+}
+DEMO_PANEL_TYPES = [
+    "intake",
+    "decision_summary",
+    "architecture_diagram",
+    "requirements",
+    "compliance",
+    "service_map",
+    "risk_cards",
+    "phase_timeline",
+    "cost_estimate",
+    "blueprint",
+]
+
 # ── Output helpers ─────────────────────────────────────────────────────────────
 
 PASS = "\033[32m✓\033[0m"
@@ -256,6 +275,17 @@ def run_api(token: str) -> tuple[int, int]:
 
     # 5. Panel states
     section("5. Panel states")
+
+    def save_panel():
+        api(
+            "PUT",
+            f"/customers/{customer_id}/sessions/{session_id}/panels/1",
+            token,
+            {"step": 1, "panel_type": "intake", "data": {"complete": True}},
+        )
+        return "saved"
+
+    check("PUT /panels/1", save_panel)
     check("GET /panels",
           lambda: f"{len(api('GET', f'/customers/{customer_id}/sessions/{session_id}/panels', token).get('panels', []))} panels")
 
@@ -277,14 +307,63 @@ def run_api(token: str) -> tuple[int, int]:
             raise
     check("GET /admin/metrics", check_admin_metrics)
 
-    # 8. Cleanup
-    section("8. Cleanup")
-    check("DELETE /sessions/{id}",
-          lambda: api("DELETE", f"/customers/{customer_id}/sessions/{session_id}", token) or "deleted")
-    check("DELETE /customers/{id}",
+    # 8. Admin engine manifest
+    section("8. Admin engine manifest")
+
+    def check_admin_engine():
+        try:
+            manifest = api("GET", "/admin/engine", token)
+        except RuntimeError as exc:
+            if "403" in str(exc):
+                return "skipped (non-admin user - expected)"
+            raise
+        version = manifest.get("engine", {}).get("version")
+        branches = manifest.get("questionnaire", {}).get("branches", [])
+        assert version, f"Missing engine version: {manifest}"
+        assert len(branches) >= 6, f"Expected workload branches, got {len(branches)}"
+        return f"v{version}, {len(branches)} workload branches"
+
+    check("GET /admin/engine", check_admin_engine)
+
+    # 9. Prebuilt Northwind Finance portfolio
+    section("9. Northwind Finance blueprints")
+
+    def check_demo_customer():
+        customer = api("GET", f"/customers/{DEMO_CUSTOMER_ID}", token)
+        assert customer.get("name") == "Northwind Finance (Demo)", customer
+        return customer["name"]
+
+    check("GET Northwind Finance customer", check_demo_customer)
+
+    def check_demo_sessions():
+        sessions = api("GET", f"/customers/{DEMO_CUSTOMER_ID}/sessions", token)
+        actual_ids = {session["session_id"] for session in sessions}
+        assert actual_ids == DEMO_SESSION_IDS, actual_ids
+        assert all(session.get("status") == "complete" for session in sessions), sessions
+        return f"{len(sessions)} completed sessions"
+
+    check("GET three prebuilt sessions", check_demo_sessions)
+
+    for demo_session_id in sorted(DEMO_SESSION_IDS):
+        def check_demo_panels(session_id=demo_session_id):
+            response = api(
+                "GET",
+                f"/customers/{DEMO_CUSTOMER_ID}/sessions/{session_id}/panels",
+                token,
+            )
+            panels = sorted(response.get("panels", []), key=lambda panel: panel["step"])
+            actual_types = [panel["panel_type"] for panel in panels]
+            assert actual_types == DEMO_PANEL_TYPES, actual_types
+            return f"{len(panels)} panels"
+
+        check(f"GET {demo_session_id} blueprint", check_demo_panels)
+
+    # 10. Cleanup
+    section("10. Cleanup")
+    check("DELETE /customers/{id} (cascade)",
           lambda: api("DELETE", f"/customers/{customer_id}", token) or "deleted")
 
-    def verify_gone():
+    def verify_customer_gone():
         try:
             api("GET", f"/customers/{customer_id}", token)
             raise AssertionError("Customer still exists after delete")
@@ -293,7 +372,29 @@ def run_api(token: str) -> tuple[int, int]:
                 return "confirmed 404"
             raise
 
-    check("Verify deletion", verify_gone)
+    check("Verify customer deletion", verify_customer_gone)
+
+    def verify_session_gone():
+        try:
+            api("GET", f"/customers/{customer_id}/sessions/{session_id}", token)
+            raise AssertionError("Blueprint still exists after customer delete")
+        except RuntimeError as e:
+            if "404" in str(e):
+                return "confirmed 404"
+            raise
+
+    check("Verify blueprint cascade", verify_session_gone)
+    def verify_panels_gone():
+        response = api(
+            "GET",
+            f"/customers/{customer_id}/sessions/{session_id}/panels",
+            token,
+        )
+        panels = response.get("panels", [])
+        assert not panels, f"Panels still exist after customer delete: {panels}"
+        return "0 panels"
+
+    check("Verify panel cascade", verify_panels_gone)
 
     return passed, failed
 

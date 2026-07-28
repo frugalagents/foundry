@@ -24,6 +24,7 @@ import asyncio
 import json
 import logging
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import AsyncIterator, Optional
 
@@ -32,12 +33,15 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent
 from strands.models import BedrockModel
 
+from advisor_core import AssessmentInput, DecisionEngine, build_questionnaire
+from advisor_core.models import OverrideRecord
 from pipeline_skills.base import (
     PipelineContext,
     make_error,
     make_complete,
     make_chat_stream,
 )
+from pipeline_skills.v2_assessment_skill import run_v2_assessment
 from memory.session import get_memory_session_manager
 from pipeline_tools import make_pipeline_tools
 
@@ -49,6 +53,18 @@ log = app.logger
 _TABLE = os.environ.get("DYNAMODB_TABLE", "platform-advisor-main")
 _REGION = os.environ.get("AWS_REGION", "us-east-1")
 _MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6")
+
+_V2_SYSTEM_ADDENDUM = """
+
+PLATFORM ADVISOR V2 RUNTIME RULES:
+- Architecture decisions come only from the deterministic v2 AssessmentResult.
+- Never infer missing critical evidence or invent sizing values.
+- Use get_intake_questionnaire only to explain the applicable questions.
+- Use evaluate_platform_assessment only when a complete structured AssessmentInput
+  is provided in the conversation.
+- Do not refer to graph scores, radar confidence, Mesh, or Economy as operating models.
+- Explain trace evidence and recorded overrides; do not replace deterministic outputs.
+"""
 
 _ddb = None
 _cached_system_prompt: str | None = None
@@ -90,6 +106,10 @@ def _save_ctx(ctx: PipelineContext) -> None:
             "customer_history": ctx.customer_history,
             "current_step":     ctx.current_step,
             "cost_estimate":    ctx.cost_estimate,
+            "schema_version":   ctx.schema_version,
+            "assessment_input": ctx.assessment_input,
+            "assessment_result": ctx.assessment_result,
+            "overrides":        ctx.overrides,
         }),
     })
 
@@ -170,6 +190,10 @@ def _load_ctx(customer_id: str, session_id: str) -> PipelineContext | None:
     ctx.customer_history = d.get("customer_history", "")
     ctx.current_step     = d.get("current_step", 0)
     ctx.cost_estimate    = d.get("cost_estimate", {})
+    ctx.schema_version   = d.get("schema_version", "1.0")
+    ctx.assessment_input = d.get("assessment_input", {})
+    ctx.assessment_result = d.get("assessment_result", {})
+    ctx.overrides        = d.get("overrides", [])
     return ctx
 
 
@@ -186,7 +210,7 @@ def _load_system_prompt() -> str:
         resp = table.get_item(Key={"PK": "CONFIG#SYSTEM", "SK": "PROMPT#active"})
         item = resp.get("Item")
         if item and item.get("content"):
-            _cached_system_prompt = item["content"]
+            _cached_system_prompt = item["content"] + _V2_SYSTEM_ADDENDUM
             return _cached_system_prompt
     except Exception as exc:
         log.warning("Could not load system prompt from DynamoDB: %s", exc)
@@ -197,11 +221,12 @@ def _load_system_prompt() -> str:
         / "knowledge-base" / "system-prompt.md"
     )
     if prompt_path.exists():
-        _cached_system_prompt = prompt_path.read_text()
+        _cached_system_prompt = prompt_path.read_text() + _V2_SYSTEM_ADDENDUM
     else:
         _cached_system_prompt = (
             "You are the Agentic Platform Advisor. "
             "Guide enterprise leaders through AI agent platform strategy."
+            + _V2_SYSTEM_ADDENDUM
         )
     return _cached_system_prompt
 
@@ -327,40 +352,71 @@ async def invoke(payload: dict, context):
     # These bypass the Strands agent entirely — pure computation, immediate response.
     action = payload.get("action")
 
+    if action == "questionnaire":
+        workload = payload.get("primary_workload") or None
+        try:
+            questionnaire = build_questionnaire(workload)
+            event = json.dumps({
+                "type": "panel_complete",
+                "data": {"step": 1, "panel_type": "intake", "data": {
+                    "schema_version": "2.0",
+                    "questionnaire": questionnaire,
+                    "assessment": {},
+                    "missing": [],
+                    "complete": False,
+                    "status": "collecting",
+                }},
+            })
+            yield f"event: panel_complete\ndata: {event}\n\n"
+        except ValueError as exc:
+            yield make_error(1, str(exc))
+        yield make_complete(session_id)
+        return
+
     if action == "whatif":
-        from pipeline_skills.whatif_skill import run_whatif
-        overrides = payload.get("overrides") or {}
         ctx = _load_ctx(customer_id, session_id) or PipelineContext(
             session_id=session_id,
             customer_id=customer_id,
         )
-        try:
-            whatif_payload = await run_whatif(ctx, overrides)
-            sse_data = json.dumps({"type": "whatif_complete", "data": whatif_payload})
-            yield f"event: whatif_complete\ndata: {sse_data}\n\n"
-        except Exception as exc:
-            log.exception("What-if error")
-            yield make_error(0, str(exc))
+        yield make_error(
+            2,
+            "Legacy score-only what-if is removed. Re-evaluate a cloned v2 AssessmentInput.",
+            recoverable=False,
+        )
         return
 
     if payload.get("action") == "drilldown":
-        from pipeline_skills.drilldown_skill import run_drilldown
         component_id   = payload.get("component_id", "")
         component_name = payload.get("component_name", "")
         ctx = _load_ctx(customer_id, session_id) or PipelineContext(
             session_id=session_id,
             customer_id=customer_id,
         )
-        try:
-            drilldown_payload = await run_drilldown(ctx, component_id, component_name)
+        component = next(
+            (
+                item for item in ctx.assessment_result.get("components", [])
+                if item.get("id") == component_id
+            ),
+            None,
+        )
+        if component:
+            traces = [
+                item for item in ctx.assessment_result.get("trace", [])
+                if item.get("decision") == f"components.{component_id}"
+            ]
             sse_data = json.dumps({
                 "type": "drilldown_complete",
-                "data": drilldown_payload,
+                "data": {
+                    "component_id": component_id,
+                    "component_name": component.get("name", component_name),
+                    "decision": component,
+                    "trace": traces,
+                    "read_only": True,
+                },
             })
             yield f"event: drilldown_complete\ndata: {sse_data}\n\n"
-        except Exception as exc:
-            log.exception("Drilldown error for component=%s", component_id)
-            yield make_error(0, str(exc))
+        else:
+            yield make_error(3, f"V2 component not found: {component_id}")
         return
 
     # ── Restore or create pipeline context ────────────────────────────────
@@ -368,6 +424,63 @@ async def invoke(payload: dict, context):
         session_id=session_id,
         customer_id=customer_id,
     )
+
+    # Structured v2 assessments bypass the LLM tool loop. The LLM explains
+    # decisions; it does not sequence or make deterministic architecture choices.
+    if payload.get("assessment_input"):
+        try:
+            assessment = AssessmentInput.model_validate(payload["assessment_input"])
+            overrides = [
+                OverrideRecord.model_validate(item).model_copy(update={
+                    "author": actor_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+                for item in (payload.get("overrides") or [])
+            ]
+            result = DecisionEngine().assess(assessment, overrides)
+            async for event in run_v2_assessment(ctx, assessment, result):
+                yield event
+            _save_ctx(ctx)
+        except Exception as exc:
+            log.exception("V2 assessment failed")
+            yield make_error(1, f"Assessment validation failed: {exc}")
+        yield make_complete(session_id)
+        return
+
+    # Records created before v2 are intentionally read-only. Their missing
+    # evidence cannot be safely inferred into the new decision contract.
+    if ctx.schema_version == "1.0":
+        if ctx.blueprint_md:
+            event = json.dumps({
+                "type": "panel_complete",
+                "data": {"step": 10, "panel_type": "blueprint", "data": {
+                    "schema_version": "1.0",
+                    "pattern_id": ctx.pattern_id,
+                    "pattern_name": ctx.pattern_id.split(":")[-1].title(),
+                    "confidence": ctx.confidence,
+                    "markdown": ctx.blueprint_md,
+                    "components_count": len(ctx.components),
+                    "phases_count": len(ctx.phases),
+                    "services_count": len(ctx.service_map),
+                    "antipatterns_count": len(ctx.antipatterns),
+                    "innovations_count": len(ctx.innovations),
+                    "industry": ctx.industry,
+                    "compliance_regime": str(ctx.answers.get("compliance_regime", "")),
+                    "export_ready": True,
+                    "cost_estimate": ctx.cost_estimate or None,
+                    "read_only": True,
+                }},
+            })
+            yield f"event: panel_complete\ndata: {event}\n\n"
+            yield make_complete(session_id)
+            return
+        yield make_error(
+            1,
+            "This incomplete v1 assessment cannot be migrated safely. Start a new v2 session.",
+            recoverable=False,
+        )
+        yield make_complete(session_id)
+        return
 
     # ── P5: Load customer history for new sessions ─────────────────────────
     # On the first interaction (no pattern yet), check for prior completed
@@ -378,34 +491,20 @@ async def invoke(payload: dict, context):
             ctx.customer_history = history
             log.info("Loaded customer history for %s: %s", customer_id, history[:80])
 
-    # Prime context with any data sent directly in the payload.
-    # Also surface the answers in the user_message so the agent can pass them
-    # verbatim to collect_intake_answers — without this the agent cannot call
-    # the tool correctly because the answers are only in ctx, not in the
-    # conversation history the model sees.
-    intake_provided = False
     if payload.get("answers"):
-        ctx.answers.update(payload["answers"])
-        intake_provided = True
-    if payload.get("industry"):
-        ctx.industry = payload["industry"]
-    if payload.get("pain_points"):
-        ctx.pain_points = payload["pain_points"]
+        yield make_error(
+            1,
+            "Legacy flat intake payloads are not accepted. Submit schema_version 2.0 assessment_input.",
+            recoverable=False,
+        )
+        yield make_complete(session_id)
+        return
 
     # If history exists, surface it so the agent can reference it naturally
-    if ctx.customer_history and not ctx.pattern_id and not intake_provided:
+    if ctx.customer_history and not ctx.pattern_id:
         user_message = (
             f"[Customer context: {ctx.customer_history}]\n\n"
             + user_message
-        )
-
-    if intake_provided and ctx.answers:
-        user_message = (
-            "Intake form submitted. Call collect_intake_answers with exactly these values:\n"
-            f"answers_json={json.dumps(ctx.answers)}\n"
-            f"industry={ctx.industry}\n"
-            f"pain_points_json={json.dumps(ctx.pain_points)}\n\n"
-            "After collect_intake_answers completes, immediately call score_architecture_patterns."
         )
 
     # ── Panel events side channel ──────────────────────────────────────────

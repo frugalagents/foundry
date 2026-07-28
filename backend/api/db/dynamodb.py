@@ -104,16 +104,36 @@ def update_customer(customer_id: str, updates: dict) -> Optional[dict]:
 def delete_customer(customer_id: str) -> bool:
     table = _get_table()
     try:
-        table.delete_item(Key={"PK": f"CUSTOMER#{customer_id}", "SK": "METADATA"})
+        customer_pk = f"CUSTOMER#{customer_id}"
+        customer = table.get_item(
+            Key={"PK": customer_pk, "SK": "METADATA"},
+            ConsistentRead=True,
+        ).get("Item")
+        if not customer:
+            return False
+
+        customer_items = _query_partition(table, customer_pk)
+        session_ids = [
+            item["session_id"]
+            for item in customer_items
+            if item.get("SK", "").startswith("SESSION#") and item.get("session_id")
+        ]
+        with table.batch_writer() as batch:
+            for session_id in session_ids:
+                for panel in _query_partition(table, f"SESSION#{session_id}"):
+                    batch.delete_item(Key={"PK": panel["PK"], "SK": panel["SK"]})
+            for item in customer_items:
+                batch.delete_item(Key={"PK": item["PK"], "SK": item["SK"]})
         return True
-    except ClientError:
+    except ClientError as exc:
+        logger.error("delete_customer error: %s", exc)
         return False
 
 
 # ── Sessions ──────────────────────────────────────────────────────────────────
 
 def create_session(customer_id: str, created_by: str,
-                   title: str = "", notes: str = "") -> dict:
+                   title: str = "", description: str = "") -> dict:
     table = _get_table()
     session_id = _new_id("sess")
     now = _now()
@@ -125,7 +145,7 @@ def create_session(customer_id: str, created_by: str,
         "session_id": session_id,
         "customer_id": customer_id,
         "title": title,
-        "notes": notes,
+        "description": description,
         "status": "active",
         "current_step": 0,
         "created_by": created_by,
@@ -192,9 +212,19 @@ def update_session(customer_id: str, session_id: str, updates: dict) -> Optional
 def delete_session(customer_id: str, session_id: str) -> bool:
     table = _get_table()
     try:
-        table.delete_item(
-            Key={"PK": f"CUSTOMER#{customer_id}", "SK": f"SESSION#{session_id}"}
-        )
+        session_key = {
+            "PK": f"CUSTOMER#{customer_id}",
+            "SK": f"SESSION#{session_id}",
+        }
+        session = table.get_item(Key=session_key, ConsistentRead=True).get("Item")
+        if not session:
+            return False
+
+        panels = _query_partition(table, f"SESSION#{session_id}")
+        with table.batch_writer() as batch:
+            for panel in panels:
+                batch.delete_item(Key={"PK": panel["PK"], "SK": panel["SK"]})
+            batch.delete_item(Key=session_key)
         # Decrement customer session count
         try:
             table.update_item(
@@ -205,7 +235,8 @@ def delete_session(customer_id: str, session_id: str) -> bool:
         except ClientError:
             pass
         return True
-    except ClientError:
+    except ClientError as exc:
+        logger.error("delete_session error: %s", exc)
         return False
 
 
@@ -235,6 +266,22 @@ def get_panel_states(session_id: str) -> list[dict]:
         },
     )
     return resp.get("Items", [])
+
+
+def _query_partition(table: Any, partition_key: str) -> list[dict]:
+    """Read an entire partition, following DynamoDB pagination."""
+    items: list[dict] = []
+    query_args: dict[str, Any] = {
+        "KeyConditionExpression": "PK = :pk",
+        "ExpressionAttributeValues": {":pk": partition_key},
+    }
+    while True:
+        response = table.query(**query_args)
+        items.extend(response.get("Items", []))
+        last_key = response.get("LastEvaluatedKey")
+        if not last_key:
+            return items
+        query_args["ExclusiveStartKey"] = last_key
 
 
 # ── Admin metrics ─────────────────────────────────────────────────────────────

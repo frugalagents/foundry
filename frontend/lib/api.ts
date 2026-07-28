@@ -2,11 +2,11 @@ import { getAccessToken, refreshIdToken } from './auth';
 import type {
   Customer,
   Session,
-  IntakeAnswers,
   AdminMetrics,
   SkillConfig,
   MCPServerStatus,
   SystemPrompt,
+  EngineManifest,
 } from './types';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
@@ -72,10 +72,13 @@ export const deleteCustomer = (id: string) =>
 export const listSessions = (customerId: string) =>
   apiFetch<Session[]>(`/customers/${customerId}/sessions`);
 
-export const createSession = (customerId: string, title?: string) =>
+export const createSession = (
+  customerId: string,
+  data: { title: string; description?: string },
+) =>
   apiFetch<Session>(`/customers/${customerId}/sessions`, {
     method: 'POST',
-    body: JSON.stringify({ title: title ?? `Session ${new Date().toLocaleDateString()}` }),
+    body: JSON.stringify(data),
   });
 
 export const getSession = (customerId: string, sessionId: string) =>
@@ -84,7 +87,14 @@ export const getSession = (customerId: string, sessionId: string) =>
 export const updateSession = (
   customerId: string,
   sessionId: string,
-  data: { title?: string; status?: string; notes?: string }
+  data: {
+    title?: string;
+    description?: string;
+    status?: Session['status'];
+    current_step?: number;
+    recommendation?: string;
+    evidence_state?: Session['evidence_state'];
+  },
 ) =>
   apiFetch<Session>(`/customers/${customerId}/sessions/${sessionId}`, {
     method: 'PATCH',
@@ -100,7 +110,7 @@ export const getPanelStates = (customerId: string, sessionId: string) =>
 export const updateIntakeAnswers = (
   customerId: string,
   sessionId: string,
-  answers: Partial<IntakeAnswers>
+  answers: Record<string, unknown>
 ) =>
   apiFetch<void>(`/customers/${customerId}/sessions/${sessionId}/inputs`, {
     method: 'PUT',
@@ -144,6 +154,9 @@ export const getAdminMetrics = () =>
 
 /** Alias used by admin dashboard page */
 export const fetchAdminMetrics = getAdminMetrics;
+
+export const fetchEngineManifest = () =>
+  apiFetch<EngineManifest>('/admin/engine');
 
 export const fetchGraphStats = () =>
   apiFetch<{

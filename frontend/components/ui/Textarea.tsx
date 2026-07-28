@@ -1,16 +1,18 @@
 'use client';
-import { useId } from 'react';
-import type { InputHTMLAttributes } from 'react';
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+import { useId } from 'react';
+import type { TextareaHTMLAttributes } from 'react';
+
+interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
 }
 
-export function Input({ label, error, className = '', id, ...rest }: InputProps) {
+export function Textarea({ label, error, className = '', id, ...rest }: TextareaProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
   const errorId = `${inputId}-error`;
+
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
@@ -18,13 +20,13 @@ export function Input({ label, error, className = '', id, ...rest }: InputProps)
           {label}
         </label>
       )}
-      <input
+      <textarea
         id={inputId}
         aria-invalid={!!error}
         aria-describedby={error ? errorId : undefined}
         className={[
-          'input-field app-input',
-          error ? 'app-input--error' : '',
+          'input-field app-textarea',
+          error ? 'app-textarea--error' : '',
           className,
         ].join(' ')}
         {...rest}
@@ -36,4 +38,4 @@ export function Input({ label, error, className = '', id, ...rest }: InputProps)
   );
 }
 
-export default Input;
+export default Textarea;

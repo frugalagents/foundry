@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Annotated, AsyncIterator
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -43,11 +44,15 @@ def _ctx_to_dict(ctx) -> dict:
         "blueprint_md":     ctx.blueprint_md,
         "current_step":     ctx.current_step,
         "cost_estimate":    ctx.cost_estimate,
+        "schema_version":   ctx.schema_version,
+        "assessment_input": ctx.assessment_input,
+        "assessment_result": ctx.assessment_result,
+        "overrides":        ctx.overrides,
     }
 
 
 def _ctx_from_dict(data: dict, session_id: str, customer_id: str):
-    from skills.base import PipelineContext
+    from pipeline_skills.base import PipelineContext
     ctx = PipelineContext(session_id=session_id, customer_id=customer_id)
     ctx.answers          = data.get("answers", {})
     ctx.industry         = data.get("industry", "")
@@ -64,6 +69,10 @@ def _ctx_from_dict(data: dict, session_id: str, customer_id: str):
     ctx.blueprint_md     = data.get("blueprint_md", "")
     ctx.current_step     = data.get("current_step", 0)
     ctx.cost_estimate    = data.get("cost_estimate", {})
+    ctx.schema_version   = data.get("schema_version", "1.0")
+    ctx.assessment_input = data.get("assessment_input", {})
+    ctx.assessment_result = data.get("assessment_result", {})
+    ctx.overrides        = data.get("overrides", [])
     return ctx
 
 
@@ -103,6 +112,8 @@ async def run_session(
     answers: str = Query(default="{}"),
     industry: str = Query(default=""),
     pain_points: str = Query(default="[]"),
+    assessment_input: str = Query(default=""),
+    overrides: str = Query(default="[]"),
     token: str = Query(default=""),
 ):
     """
@@ -120,23 +131,10 @@ async def run_session(
       pattern confirmed, pipeline incomplete  → run remaining steps from current state
       blueprint complete                      → return placeholder chat reply
     """
-    from skills.base import PipelineContext, make_chat_message, make_complete, make_error
-    from skills import (
-        run_intake, run_scoring, run_component_selection,
-        run_innovation, run_compliance, run_service_mapping,
-        run_antipattern_check, run_phasing, run_cost_estimation, run_blueprint,
-    )
-
-    # Parse structured params
-    try:
-        parsed_answers = json.loads(answers) if answers.strip() not in ("{}", "") else {}
-    except json.JSONDecodeError:
-        parsed_answers = {}
-
-    try:
-        pain_list: list = json.loads(pain_points) if pain_points.strip() not in ("[]", "") else []
-    except json.JSONDecodeError:
-        pain_list = [p.strip() for p in pain_points.split(",") if p.strip()]
+    from advisor_core import AssessmentInput, DecisionEngine
+    from advisor_core.models import OverrideRecord
+    from pipeline_skills.base import PipelineContext, make_chat_message, make_complete, make_error
+    from pipeline_skills.v2_assessment_skill import run_v2_assessment
 
     # Load or create pipeline context
     session_data = db.get_session(customer_id, session_id)
@@ -146,67 +144,31 @@ async def run_session(
     else:
         ctx = PipelineContext(session_id=session_id, customer_id=customer_id)
 
-    # Merge incoming data into context
-    if parsed_answers:
-        ctx.answers.update(parsed_answers)
-    if industry:
-        ctx.industry = industry
-    if pain_list:
-        ctx.pain_points = pain_list
-
-    # Determine which pipeline steps to run
-    pattern_override = _detect_pattern_override(user_message)
-
-    if parsed_answers or not ctx.pattern_id:
-        mode = "intake_and_score"
-    elif ctx.pattern_id and not ctx.components:
-        if pattern_override or _is_confirmation(user_message):
-            mode = "full_pipeline"
-        else:
-            mode = "question"
-    elif ctx.blueprint_md:
-        mode = "question"
-    else:
-        # Mid-pipeline (e.g. user changed an answer) — re-run from current incomplete step
-        mode = "resume_pipeline"
-
     async def stream() -> AsyncIterator[bytes]:
         try:
-            if mode == "intake_and_score":
-                user_msg_json = json.dumps({
-                    "answers": ctx.answers,
-                    "industry": ctx.industry,
-                    "pain_points": ctx.pain_points,
-                })
-                async for ev in run_intake(ctx, user_msg_json):
-                    yield ev.encode(); await asyncio.sleep(0)
-                async for ev in run_scoring(ctx):
-                    yield ev.encode(); await asyncio.sleep(0)
-
-            elif mode in ("full_pipeline", "resume_pipeline"):
-                if pattern_override:
-                    ctx.pattern_id = pattern_override
-                    ctx.confidence = 0.8
-
-                # Only run steps that haven't completed yet
-                remaining = []
-                if not ctx.components:        remaining.append(run_component_selection)
-                if not ctx.innovations:       remaining.append(run_innovation)
-                if not ctx.compliance_notes:  remaining.append(run_compliance)
-                if not ctx.service_map:       remaining.append(run_service_mapping)
-                if not ctx.antipatterns:      remaining.append(run_antipattern_check)
-                if not ctx.phases:            remaining.append(run_phasing)
-                if not ctx.cost_estimate:     remaining.append(run_cost_estimation)
-                if not ctx.blueprint_md:      remaining.append(run_blueprint)
-
-                for step_fn in remaining:
-                    async for ev in step_fn(ctx):
-                        yield ev.encode(); await asyncio.sleep(0)
-
-            else:  # question
+            if assessment_input:
+                assessment = AssessmentInput.model_validate_json(assessment_input)
+                override_values = [
+                    OverrideRecord.model_validate(item).model_copy(update={
+                        "author": "local-user",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    })
+                    for item in json.loads(overrides or "[]")
+                ]
+                result = DecisionEngine().assess(assessment, override_values)
+                async for ev in run_v2_assessment(ctx, assessment, result):
+                    yield ev.encode()
+                    await asyncio.sleep(0)
+            elif ctx.schema_version == "1.0":
+                yield make_error(
+                    1,
+                    "This v1 session is read-only. Start a new v2 assessment.",
+                    recoverable=False,
+                ).encode()
+            else:
                 reply = (
-                    f'[Local dev] Received: "{user_message}". '
-                    "In production the Strands Agent answers from conversation context."
+                    f'[Local dev] Received: "{user_message}". Submit the structured '
+                    "v2 assessment form to evaluate architecture decisions."
                 )
                 yield make_chat_message("assistant", reply).encode()
                 await asyncio.sleep(0)
@@ -219,7 +181,20 @@ async def run_session(
 
         finally:
             try:
-                db.update_session(customer_id, session_id, {"pipeline_ctx": _ctx_to_dict(ctx)})
+                result = ctx.assessment_result or {}
+                evidence_state = {
+                    "needs_information": "provisional",
+                    "complete": "decision_ready",
+                    "overridden": "overridden",
+                }.get(result.get("status"), "not_started")
+                db.update_session(customer_id, session_id, {
+                    "pipeline_ctx": _ctx_to_dict(ctx),
+                    "current_step": ctx.current_step,
+                    "status": "complete" if ctx.current_step >= 10 else "active",
+                    "recommendation": result.get("operating_model") or ctx.pattern_id or "",
+                    "evidence_state": evidence_state,
+                    "primary_workload": ctx.assessment_input.get("primary_workload", ""),
+                })
             except Exception as persist_exc:
                 logger.warning("Failed to persist pipeline ctx: %s", persist_exc)
 
@@ -242,23 +217,10 @@ async def whatif_scenario(
     Returns the full radar diff payload as JSON.
     Local dev only — production uses AgentCore directly (action:"whatif").
     """
-    from skills.base import PipelineContext
-    from skills.whatif_skill import run_whatif
-
-    overrides = body.get("overrides", {})
-    session_data = db.get_session(customer_id, session_id)
-    ctx_data = (session_data or {}).get("pipeline_ctx")
-    if ctx_data:
-        ctx = _ctx_from_dict(ctx_data, session_id, customer_id)
-    else:
-        ctx = PipelineContext(session_id=session_id, customer_id=customer_id)
-
-    try:
-        payload = await run_whatif(ctx, overrides)
-        return JSONResponse(content=payload)
-    except Exception as exc:
-        logger.exception("What-if error for session=%s", session_id)
-        raise HTTPException(status_code=500, detail=str(exc))
+    raise HTTPException(
+        status_code=410,
+        detail="Legacy score-only what-if is removed. Re-evaluate a cloned v2 AssessmentInput.",
+    )
 
 
 @router.get("/{customer_id}/{session_id}/drilldown")
@@ -279,19 +241,23 @@ async def drilldown_component(
     and receives an SSE drilldown_complete event. This REST endpoint is for
     local development only.
     """
-    from skills.base import PipelineContext
-    from skills.drilldown_skill import run_drilldown
-
     session_data = db.get_session(customer_id, session_id)
     ctx_data = (session_data or {}).get("pipeline_ctx")
-    if ctx_data:
-        ctx = _ctx_from_dict(ctx_data, session_id, customer_id)
-    else:
-        ctx = PipelineContext(session_id=session_id, customer_id=customer_id)
-
-    try:
-        payload = await run_drilldown(ctx, component_id, component_name)
-        return JSONResponse(content=payload)
-    except Exception as exc:
-        logger.exception("Drilldown error for component=%s", component_id)
-        raise HTTPException(status_code=500, detail=str(exc))
+    result = (ctx_data or {}).get("assessment_result", {})
+    component = next(
+        (item for item in result.get("components", []) if item.get("id") == component_id),
+        None,
+    )
+    if not component:
+        raise HTTPException(status_code=404, detail="V2 component not found")
+    traces = [
+        item for item in result.get("trace", [])
+        if item.get("decision") == f"components.{component_id}"
+    ]
+    return JSONResponse(content={
+        "component_id": component_id,
+        "component_name": component.get("name", component_name),
+        "decision": component,
+        "trace": traces,
+        "read_only": True,
+    })

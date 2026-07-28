@@ -49,6 +49,82 @@ PRESSURE_KEYS = [
 class GraphEngine:
     """In-memory graph traversal for deterministic scoring and component selection."""
 
+    # Map app-facing intake keys → graph Constraint signal_id.
+    # Answer→constraint matching is scoped to the answer's own signal group so a
+    # value never collides with a same-substring answer_value under a different
+    # question (e.g. data-location "single" matching "1-3 teams (single org)").
+    # Keys with no graph signal yet (governance_model, stack_preference,
+    # auth_identity, observability, intake_maturity) are intentionally absent and
+    # contribute no pressure until the graph adds matching constraints.
+    _INTAKE_TO_SIGNAL: dict[str, str] = {
+        "autonomy_model":    "Q1",
+        "team_expertise":    "Q2",
+        "lob_count":         "Q3",
+        "agent_purpose":     "Q4",
+        "cloud_posture":     "Q5",
+        "data_gravity":      "Q6",
+        "cost_sensitivity":  "Q7",
+        "compliance_regime": "Q8",
+    }
+
+    # Map short intake form values → keywords that appear in the graph constraint
+    # answer_value text (which is long-form). Shared by scoring + signal display.
+    _ANSWER_EXPANSIONS: dict[str, list[str]] = {
+        # autonomy_model (Q1)
+        "full":          ["full autonomy", "independently"],
+        "hitl":          ["humans approve", "approval gates", "human-in-the-loop"],
+        "supervised":    ["copilot", "humans execute", "supervised"],
+        # team_expertise (Q2)
+        "high":          ["dedicated", "ai/ml engineers", "engineers"],
+        "medium":        ["full-stack", "developer"],
+        "low":           ["no-code", "business"],
+        # lob_count (Q3) — values "1-3","4-10","10+" substring-match directly
+        # agent_purpose (Q4)
+        "internal":      ["internal", "back-office"],
+        "customer_facing": ["customer-facing", "customer facing"],
+        "both":          ["mix of all", "both"],
+        # cloud_posture (Q5)
+        "single_aws":    ["all-in on aws", "all-in on amazon"],
+        "aws_primary":   ["aws-primary", "aws primary"],
+        "multi_cloud":   ["2+ clouds", "multi-cloud", "multiple clouds"],
+        "on_prem":       ["on-prem", "edge"],
+        # data_gravity (Q6)
+        "single_region": ["single aws region", "single region"],
+        "multi_region":  ["multiple aws regions", "multi-region", "multiple region"],
+        "on_prem_cloud": ["hybrid", "on-prem"],
+        "edge":          ["edge", "distributed"],
+        # cost_sensitivity (Q7)
+        "primary":       ["#1 constraint", "cost is the", "optimize from day"],
+        "secondary":     ["performance first"],
+        "optimize_later": ["predictable spend", "fixed budget"],
+        # compliance_regime (Q8) — values match the spec's Q6 list / graph nodes
+        "hipaa":         ["hipaa", "health"],
+        "sox":           ["sox", "financial controls"],
+        "eu_ai_act":     ["eu ai act"],
+        "gdpr":          ["gdpr"],
+        "pci_dss":       ["pci", "payment"],
+        "fedramp":       ["fedramp", "fisma", "government"],
+        "none":          ["none", "internal only"],
+    }
+
+    def _match_constraint(self, intake_key: str, single_val: str) -> Optional[dict]:
+        """Find the Constraint node for an intake (key, value), scoped to the key's
+        signal group. Returns None if the key has no signal or nothing matches."""
+        signal = self._INTAKE_TO_SIGNAL.get(intake_key)
+        if not signal:
+            return None
+        search_terms = [single_val.lower()] + [
+            kw.lower() for kw in self._ANSWER_EXPANSIONS.get(single_val, [])
+        ]
+        for node in self.get_nodes_by_type("Constraint"):
+            props = self.get_props(node["id"])
+            if props.get("signal_id") != signal:
+                continue
+            av = props.get("answer_value", "").lower()
+            if any(term in av for term in search_terms):
+                return node
+        return None
+
     def __init__(self, graph_data: dict) -> None:
         # Index nodes by id
         self.nodes: dict[str, dict] = {}
@@ -109,24 +185,6 @@ class GraphEngine:
         scores: dict[str, float] = {p: 0.0 for p in pattern_ids}
         axis_scores: dict[str, list[float]] = {p: [0.0] * 5 for p in pattern_ids}
 
-        # Build a lookup: (signal_id, answer_value) → constraint node
-        # Constraint props carry both signal_id and answer_value
-        # We'll iterate all constraints and match by signal_id
-
-        # Map from app-facing question IDs to graph signal IDs
-        # The graph uses Q1, Q2, … keys; our intake uses named keys.
-        # We derive the mapping from the constraint nodes themselves.
-        constraint_by_signal: dict[str, list[dict]] = {}
-        for node in self.get_nodes_by_type("Constraint"):
-            props = self.get_props(node["id"])
-            sig = props.get("signal_id", "")
-            constraint_by_signal.setdefault(sig, []).append(node)
-
-        # The intake answers dict has named keys (autonomy_model, lob_count, …).
-        # For each answer, find the matching constraint by answer_value text
-        # OR fall back to reading pressure values from the constraint directly
-        # (since graph edges carry the same information as props).
-
         for _q_key, answer_val in answers.items():
             if _q_key in ("industry", "pain_points"):
                 continue
@@ -138,15 +196,10 @@ class GraphEngine:
                 if not isinstance(single_val, str):
                     continue
 
-                # Find any constraint whose answer_value matches
-                matched: Optional[dict] = None
-                for node in self.get_nodes_by_type("Constraint"):
-                    props = self.get_props(node["id"])
-                    av = props.get("answer_value", "")
-                    if single_val.lower() in av.lower():
-                        matched = node
-                        break
-
+                # Match the answer to a constraint within its OWN signal group,
+                # so it never collides with a same-substring answer under another
+                # question.
+                matched = self._match_constraint(_q_key, single_val)
                 if matched is None:
                     continue
 
@@ -186,24 +239,103 @@ class GraphEngine:
         }
 
     def apply_laws(self, scores: dict[str, dict], answers: dict) -> dict[str, dict]:
-        """Disqualify patterns blocked by Law nodes triggered by the intake answers."""
+        """Disqualify patterns blocked by Law nodes whose trigger matches the answers.
+
+        A law only fires when it carries a non-empty `trigger_condition` dict AND
+        every key/value in it matches the intake answers. A law with no (or empty)
+        trigger_condition never fires — otherwise `all()` over an empty condition is
+        vacuously True and the law would disqualify its BLOCKS targets on every input.
+        """
         for node in self.get_nodes_by_type("Law"):
             props = self.get_props(node["id"])
-            trigger = props.get("trigger_condition", {})
-            triggered = False
-            if isinstance(trigger, dict):
-                triggered = all(
-                    str(answers.get(k, "")).lower() == str(v).lower()
+            trigger = props.get("trigger_condition") or {}
+            triggered = (
+                isinstance(trigger, dict)
+                and len(trigger) > 0
+                and all(
+                    self._answer_matches_trigger(answers.get(k), v)
                     for k, v in trigger.items()
                 )
+            )
+            if not triggered:
+                continue
             for edge in self.get_out_edges(node["id"], "BLOCKS"):
                 tgt = edge.get("to") or edge.get("target")
-                if triggered and tgt in scores:
+                if tgt in scores:
                     scores[tgt]["total"] = -999.0
         return scores
 
+    @staticmethod
+    def _answer_matches_trigger(answer, expected) -> bool:
+        """True if the intake `answer` satisfies a law trigger `expected` value.
+
+        Supports scalar answers and multi-select (list) answers. `expected` may be a
+        single value or a list of acceptable values (any-of).
+        """
+        expected_vals = expected if isinstance(expected, list) else [expected]
+        expected_norm = {str(e).lower() for e in expected_vals}
+        if isinstance(answer, list):
+            answer_norm = {str(a).lower() for a in answer}
+            return bool(answer_norm & expected_norm)
+        return str(answer or "").lower() in expected_norm
+
+    # Human-readable explanations for key signal+answer+direction combinations.
+    # Key: (question_key, answer_value_lowercase, is_positive_for_winning_pattern)
+    _SIGNAL_REASONS: dict[tuple, str] = {
+        # lob_count
+        ("lob_count", "10+", True):  "10+ LOBs cannot share a single platform — each needs autonomy to innovate independently while a shared spine provides governance",
+        ("lob_count", "4-10", True): "Multiple LOBs benefit from federated nodes that allow independent deployment without central bottlenecks",
+        ("lob_count", "1-3", False): "A small team count means a single centralized platform is simpler and cheaper to operate",
+        # governance_model
+        ("governance_model", "undecided", True):  "Undecided governance is built incrementally — federated architecture lets each LOB adopt governance at its own pace",
+        ("governance_model", "federated", True):  "Your stated governance model directly matches the federated platform topology",
+        ("governance_model", "centralized", False): "Centralized governance requires a single control plane — federated nodes add complexity without benefit",
+        # autonomy_model
+        ("autonomy_model", "supervised", False): "Supervised (copilot) agents require centralized oversight and approval workflows, not LOB-level autonomy",
+        ("autonomy_model", "full", True):  "Fully autonomous agents need per-LOB guardrails and blast-radius containment — federated topology provides this",
+        ("autonomy_model", "hitl", False): "Human-in-the-loop gates are best managed from a centralized approval workflow platform",
+        # data_gravity
+        ("data_gravity", "multi_region", True): "Multi-region data requires regional federation nodes — agents execute close to data, reducing latency and meeting residency rules",
+        ("data_gravity", "single_region", False): "Single-region data removes the need for distributed nodes — centralized architecture is simpler and sufficient",
+        ("data_gravity", "on_prem_cloud", False): "Hybrid on-prem/cloud data gravity favors a mesh architecture with distributed execution over federation",
+        ("data_gravity", "edge", False): "Edge-distributed data favors decentralized mesh topology over federated",
+        # cloud_posture
+        ("cloud_posture", "multi_cloud", True):  "Multi-cloud workloads need federated nodes per cloud provider with portable orchestration and MCP bridges",
+        ("cloud_posture", "single_aws", False):  "All-in AWS enables maximum use of managed AgentCore services — centralized architecture is simplest",
+        ("cloud_posture", "aws_primary", False): "AWS-primary workloads centralize the control plane; non-AWS tools connect via AgentCore Gateway bridges",
+        ("cloud_posture", "on_prem", False):     "On-prem/edge requirements favor mesh topology for distributed execution close to data",
+        # intake_maturity
+        ("intake_maturity", "emerging", False): "Emerging AI maturity means shared centralized foundations are essential — federated complexity requires maturity to manage safely",
+        ("intake_maturity", "mature", True):    "Mature AI organizations have the operational discipline to run federated nodes without losing governance",
+        # agent_purpose
+        ("agent_purpose", "customer_facing", True):  "Customer-facing agents need per-LOB customization and SLA ownership — federated pattern enables this without central bottlenecks",
+        ("agent_purpose", "internal", False):        "Internal-only agents favor centralized deployment for cost efficiency and simpler governance",
+        ("agent_purpose", "both", True):             "Mixed internal and customer-facing purposes across LOBs favors federated to give each LOB the right deployment model",
+        # team_expertise
+        ("team_expertise", "high", True):  "High expertise teams can safely manage federated complexity and operate independent agent stacks",
+        ("team_expertise", "low", False):  "Lower expertise benefits from centralized abstractions — platform team owns the stack, LOBs consume via APIs",
+        ("team_expertise", "medium", False): "Medium expertise teams are better served by centralized managed services with extension points",
+        # cost_sensitivity
+        ("cost_sensitivity", "primary", False):      "Cost-first priority favors centralized token budgets, shared caching, and unified cost governance",
+        ("cost_sensitivity", "secondary", True):     "Performance-first priority allows federated deployments optimized independently per LOB",
+        ("cost_sensitivity", "optimize_later", False): "Predictable-spend model favors centralized budget caps and per-LOB quota management",
+        # stack_preference
+        ("stack_preference", "open_source", True):   "Open-source stack preference aligns with federated — teams can choose frameworks per LOB without platform-level lock-in",
+        ("stack_preference", "managed", False):       "Managed services preference favors centralized AgentCore ecosystem with maximum AWS integrations",
+        ("stack_preference", "hybrid", True):         "Hybrid stack preference fits federated — each LOB can use its preferred toolchain against shared platform services",
+        # auth_identity
+        ("auth_identity", "complex_multi", True):    "Complex multi-IdP identity maps to per-LOB federated identity federation with a shared central identity plane",
+        ("auth_identity", "iam_heavy", False):        "IAM-heavy identity is best centralized — all agents authenticate through a single IAM-governed control plane",
+        ("auth_identity", "oauth_oidc", True):        "OAuth/OIDC identity supports federated agent identity where each LOB manages its own scopes",
+    }
+
     def compute_scoring_signals(self, answers: dict, pattern_id: str) -> list[dict]:
-        """Return top intake signals that drove the score for pattern_id."""
+        """
+        Return the top intake signals that drove the score for `pattern_id`.
+
+        Each entry: {signal, value, contribution (float), direction ("positive"|"negative")}
+        Sorted by absolute contribution descending.
+        """
         axis_idx = PATTERN_AXIS.get(pattern_id)
         if axis_idx is None:
             return []
@@ -222,31 +354,7 @@ class GraphEngine:
             "cost_sensitivity": "Cost Priority",
             "data_gravity":     "Data Gravity",
             "compliance_regime":"Compliance",
-        }
-
-        _ANSWER_EXPANSIONS: dict[str, list[str]] = {
-            "full":           ["full autonomy", "independently"],
-            "hitl":           ["humans approve", "approval gates"],
-            "supervised":     ["copilot", "humans execute", "supervised"],
-            "centralized":    ["centralized"],
-            "federated":      ["federated"],
-            "undecided":      ["undecided", "distributed"],
-            "single_aws":     ["all-in on aws", "single aws"],
-            "aws_primary":    ["aws-primary", "aws primary", "primary"],
-            "multi_cloud":    ["2+ clouds", "multi-cloud"],
-            "on_prem":        ["on-prem", "edge"],
-            "open_source":    ["open-source", "open source", "oss"],
-            "managed":        ["managed service", "fully managed"],
-            "hybrid":         ["hybrid"],
-            "single_region":  ["single", "single region"],
-            "multi_region":   ["multiple", "multi-region"],
-            "emerging":       ["emerging", "pilot"],
-            "mature":         ["mature", "production ai"],
-            "internal":       ["internal", "back-office"],
-            "customer_facing":["customer-facing", "external"],
-            "high":           ["high", "engineers", "dedicated"],
-            "medium":         ["medium", "full-stack"],
-            "low":            ["low", "no-code", "business"],
+            "team_maturity":    "Team Maturity",
         }
 
         signals: list[dict] = []
@@ -254,51 +362,59 @@ class GraphEngine:
         for q_key, answer_val in answers.items():
             if q_key in ("industry", "pain_points"):
                 continue
-            values: list = answer_val if isinstance(answer_val, list) else [answer_val]
+
+            values: list[str] = answer_val if isinstance(answer_val, list) else [answer_val]
+
             for single_val in values:
                 if not isinstance(single_val, str):
                     continue
-                search_terms = [single_val.lower()] + [
-                    kw.lower() for kw in _ANSWER_EXPANSIONS.get(single_val, [])
-                ]
-                matched: Optional[dict] = None
-                for node in self.get_nodes_by_type("Constraint"):
-                    props = self.get_props(node["id"])
-                    av = props.get("answer_value", "").lower()
-                    if any(term in av for term in search_terms):
-                        matched = node
-                        break
+
+                matched = self._match_constraint(q_key, single_val)
                 if matched is None:
                     continue
+
                 props = self.get_props(matched["id"])
                 q_weight = float(props.get("weight", 0.1))
                 pressures = [float(props.get(pk, 0.0)) for pk in PRESSURE_KEYS]
                 contribution = pressures[axis_idx] * q_weight
+
+                # Edge-level contributions
                 for edge in self.get_out_edges(matched["id"], "PRESSURES_TOWARD"):
                     tgt = edge.get("to") or edge.get("target")
                     if tgt == pattern_id:
-                        contribution += float((edge.get("props") or {}).get("weight", 0.5)) * q_weight
+                        w = float((edge.get("props") or {}).get("weight", 0.5))
+                        contribution += w * q_weight
+
                 for edge in self.get_out_edges(matched["id"], "PRESSURES_AGAINST"):
                     tgt = edge.get("to") or edge.get("target")
                     if tgt == pattern_id:
-                        contribution -= float((edge.get("props") or {}).get("weight", 0.5)) * q_weight
+                        w = float((edge.get("props") or {}).get("weight", 0.5))
+                        contribution -= w * q_weight
+
                 if abs(contribution) > 0.001:
-                    _PATTERN_NAMES = {
-                        "pattern:federated":   "Federated Platform",
-                        "pattern:centralized": "Centralized Platform",
-                        "pattern:mesh":        "Data Mesh",
-                        "pattern:economy":     "Platform Economy",
-                    }
                     if contribution > 0:
-                        steers = _PATTERN_NAMES.get(pattern_id, pattern_id)
+                        steers = {
+                            "pattern:federated":   "Federated Platform",
+                            "pattern:centralized": "Centralized Platform",
+                            "pattern:mesh":        "Data Mesh",
+                            "pattern:economy":     "Platform Economy",
+                        }.get(pattern_id, pattern_id)
                     else:
-                        pressures_local = [float(self.get_props(matched["id"]).get(pk, 0.0)) for pk in PRESSURE_KEYS]
+                        # Find which pattern this signal most favors
                         best_alt = max(
                             [p for p in PATTERN_AXIS if p != pattern_id],
-                            key=lambda p: pressures_local[PATTERN_AXIS[p]],
+                            key=lambda p: pressures[PATTERN_AXIS[p]],
                             default=None,
                         )
-                        steers = _PATTERN_NAMES.get(best_alt, "Other") if best_alt else "Other"
+                        steers = {
+                            "pattern:federated":   "Federated Platform",
+                            "pattern:centralized": "Centralized Platform",
+                            "pattern:mesh":        "Data Mesh",
+                            "pattern:economy":     "Platform Economy",
+                        }.get(best_alt, "Other") if best_alt else "Other"
+
+                    reason_key = (q_key, single_val.lower(), contribution > 0)
+                    reason = self._SIGNAL_REASONS.get(reason_key, "")
 
                     signals.append({
                         "signal": _QUESTION_LABELS.get(q_key, q_key.replace("_", " ").title()),
@@ -306,6 +422,7 @@ class GraphEngine:
                         "contribution": round(contribution, 4),
                         "direction": "positive" if contribution > 0 else "negative",
                         "steers_toward": steers,
+                        "reason": reason,
                     })
 
         signals.sort(key=lambda x: abs(x["contribution"]), reverse=True)
@@ -334,8 +451,77 @@ class GraphEngine:
 
         return best_id, confidence
 
+    # ── Topology derivation (axis C — rule-based, per discovery-methodology §3.6) ──
+
+    def derive_topology(
+        self,
+        pattern_id: str,
+        answers: dict,
+        archetype: str = "",
+        pain_points: Optional[list[str]] = None,
+    ) -> dict:
+        """Deterministically derive the technical topology from the operating model
+        (pattern_id), data location (Q5/Q6), tenancy, archetype and pain points.
+
+        Not scored — a documented lookup. Returns:
+          {base, modifiers: [...], label, rationale}
+        """
+        pain = [p.lower() for p in (pain_points or [])]
+        lob = str(answers.get("lob_count", "")).lower()
+        cloud = str(answers.get("cloud_posture", "")).lower()
+        data = str(answers.get("data_gravity", "")).lower()
+        tenancy = str(answers.get("tenancy_model", "")).lower()
+
+        # ── Base topology from operating model (first match wins) ──
+        if pattern_id == "pattern:centralized" and lob in ("1-3", "1", "one", ""):
+            base, rationale = "single-account", "Single team on a centralized model — one account, no spokes needed."
+        elif pattern_id == "pattern:centralized":
+            base, rationale = "hub-and-spoke", "Centralized model with multiple teams — shared hub, thin spokes."
+        elif pattern_id == "pattern:federated":
+            base, rationale = "hub-and-spoke", "Federated model — shared spine (hub) with per-LOB spokes."
+        elif pattern_id == "pattern:mesh":
+            base, rationale = "peer-to-peer", "Mesh operating model — agents coordinate peer-to-peer (A2A)."
+        elif pattern_id == "pattern:economy":
+            base, rationale = "peer-to-peer", "Economy model — peer-to-peer with a marketplace control plane."
+        else:
+            base, rationale = "single-account", "Default single-account topology."
+
+        # ── Modifiers (additive) ──
+        modifiers: list[str] = []
+
+        # Multi-cloud / hybrid overlay from data location or cloud posture
+        if (
+            "2+" in cloud or "multi" in cloud or "multi_cloud" == cloud
+            or "on_prem" in cloud or "on-prem" in data or "hybrid" in data
+            or "on_prem_cloud" == data
+        ):
+            modifiers.append("multi-cloud/hybrid")
+
+        # Gateway-fronted for coding/customer-facing archetypes or auth/tool pains
+        arche = archetype.lower()
+        if (
+            arche in ("coding", "coding_dev", "dev_productivity", "customer_facing", "customer-facing")
+            or any(k in " ".join(pain) for k in ("auth", "tool integration", "tool fragmentation"))
+        ):
+            modifiers.append("gateway-fronted")
+
+        # Account-level isolation from tenancy answer
+        if "separate account" in tenancy or "account" == tenancy or "account_separated" in tenancy:
+            modifiers.append("account-isolated spokes")
+
+        label = base + ((" + " + ", ".join(modifiers)) if modifiers else "")
+        return {
+            "base": base,
+            "modifiers": modifiers,
+            "label": label,
+            "rationale": rationale,
+        }
+
     # ── Component selection ───────────────────────────────────
 
+    # Scope of each component in a federated pattern topology.
+    # "per_lob"    → each LOB/BU owns its own instance
+    # "shared_spine" → single shared instance across all LOBs
     _FEDERATED_SCOPE: dict[str, str] = {
         "component:registry":      "shared_spine",
         "component:gateway":       "shared_spine",
@@ -353,7 +539,7 @@ class GraphEngine:
     ) -> list[dict]:
         """
         Return components required by the pattern, with tier elevation applied.
-        Each entry: {id, name, category, layer, base_tier, final_tier, elevation_reason, scope}
+        Each entry: {id, name, category, layer, base_tier, final_tier, elevation_reason}
         """
         result: list[dict] = []
 
@@ -426,46 +612,112 @@ class GraphEngine:
 
         pain_lower = [p.lower() for p in pain_points]
 
+        def _norm_status(s: str) -> str:
+            """Normalize 'current' → 'ga', keep ga/preview/emerging as-is."""
+            s = s.lower()
+            if s in ("ga", "current", "released"):
+                return "ga"
+            if s in ("preview", "beta", "limited"):
+                return "preview"
+            return "emerging"
+
         for node in self.get_nodes_by_type("Innovation"):
             nid = node["id"]
             if nid in seen:
                 continue
             props = self.get_props(nid)
 
-            # Check SOLVES edges
+            # Check SOLVES edges — use edge.props.how as description (more readable)
             for edge in self.get_out_edges(nid, "SOLVES"):
                 tgt = edge.get("to") or edge.get("target")
                 tgt_props = self.get_props(tgt) if tgt and tgt in self.nodes else {}
-                solved_str = tgt_props.get("answer_value", tgt or "")
-                if any(pp in solved_str.lower() or solved_str.lower() in pp for pp in pain_lower):
+                # edge 'how' is a human-readable description of what is solved
+                edge_how = (edge.get("props") or {}).get("how", "")
+                constraint_av = tgt_props.get("answer_value", tgt or "")
+                # Match against: edge how description, constraint answer value, or
+                # keywords extracted from the innovation name itself
+                match_corpus = " ".join([
+                    edge_how, constraint_av, props.get("name", ""), nid
+                ]).lower()
+                matched = any(pp in match_corpus for pp in pain_lower)
+                if not matched:
+                    # Expand frontend pain point labels → graph constraint vocabulary
+                    _PP_EXPAND: dict[str, list[str]] = {
+                        "high latency":     ["too slow", "real-time", "streaming", "token_routing"],
+                        "security gaps":    ["auth", "identity", "oauth", "trust", "hallucination"],
+                        "high cost":        ["too expensive", "cost", "token_routing", "intelligent"],
+                        "lack of observability": ["govern/track", "govern", "track", "observab", "trace"],
+                        "vendor lock":      ["framework", "portable", "mcp", "convergence"],
+                        "vendor lock-in":   ["framework", "portable", "mcp", "convergence"],
+                        "scaling issues":   ["at scale", "managed_agent", "event_driven"],
+                        "poor governance":  ["govern", "ci/cd", "audit", "compliance"],
+                        "tool fragmentation": ["silos", "tool/api", "integration", "registry"],
+                        "no rag":           ["hallucination", "trust agent", "rag", "reasoning"],
+                        "multi-cloud":      ["portable", "mcp", "convergence"],
+                        "multi-cloud complexity": ["portable", "mcp", "convergence"],
+                    }
+                    # Broader keyword match: latency → token_routing, security → identity
+                    keyword_map = {
+                        "latency": ["token_routing", "streaming", "caching"],
+                        "cost": ["token_routing", "intelligent"],
+                        "security": ["identity", "oauth", "audit", "governance"],
+                        "observability": ["governance", "analytics", "audit", "trace"],
+                        "vendor lock": ["portable", "framework_convergence", "mcp"],
+                        "rag": ["rag", "reasoning", "retrieval"],
+                        "fragmentation": ["registry", "mcp", "legacy"],
+                        "governance": ["governance", "compliance", "audit"],
+                        "scaling": ["managed_agent", "event_driven"],
+                    }
+                    # Also check PP expansions against the match corpus
+                    for pp in pain_lower:
+                        exp_terms = _PP_EXPAND.get(pp, [])
+                        if any(t in match_corpus for t in exp_terms):
+                            matched = True
+                            break
+                    for pp in pain_lower:
+                        for kw, terms in keyword_map.items():
+                            if kw in pp and any(t in nid for t in terms):
+                                matched = True
+                                break
+                        if matched:
+                            break
+
+                if matched:
                     seen.add(nid)
                     result.append({
                         "id": nid,
                         "name": props.get("name", nid.split(":")[-1]),
                         "date_emerged": props.get("date_emerged", "2024"),
-                        "constraint_solved": solved_str,
+                        "constraint_solved": edge_how or constraint_av or "Platform improvement",
                         "replaces": props.get("replaces"),
                         "enables": props.get("enables"),
-                        "aws_implementation": props.get("aws_service", "Amazon Bedrock"),
-                        "status": props.get("status", "ga"),
+                        "aws_implementation": props.get("aws_service", "Amazon Bedrock AgentCore"),
+                        "status": _norm_status(props.get("status", "ga")),
                         "verified_via_mcp": False,
                         "enabled": True,
                     })
                     break
 
-        # Also return all innovations if pain_points is broad
+        # Fallback: return top innovations with sensible descriptions
         if not result:
             for node in self.get_nodes_by_type("Innovation"):
-                props = self.get_props(node["id"])
+                nid = node["id"]
+                props = self.get_props(nid)
+                # Use first SOLVES edge 'how' as description
+                first_how = ""
+                for edge in self.get_out_edges(nid, "SOLVES"):
+                    first_how = (edge.get("props") or {}).get("how", "")
+                    if first_how:
+                        break
                 result.append({
-                    "id": node["id"],
-                    "name": props.get("name", node["id"].split(":")[-1]),
+                    "id": nid,
+                    "name": props.get("name", nid.split(":")[-1]),
                     "date_emerged": props.get("date_emerged", "2024"),
-                    "constraint_solved": "General platform improvement",
+                    "constraint_solved": first_how or "Accelerates AI platform delivery",
                     "replaces": props.get("replaces"),
                     "enables": props.get("enables"),
-                    "aws_implementation": props.get("aws_service", "Amazon Bedrock"),
-                    "status": props.get("status", "ga"),
+                    "aws_implementation": props.get("aws_service", "Amazon Bedrock AgentCore"),
+                    "status": _norm_status(props.get("status", "ga")),
                     "verified_via_mcp": False,
                     "enabled": True,
                 })

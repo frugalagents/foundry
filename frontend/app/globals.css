@@ -187,27 +187,65 @@ code, pre { font-family: var(--font-mono-stack); }
 }
 
 /* ═══ BUTTONS (capa) ═══ */
-.btn-primary {
-  display: inline-flex; align-items: center; gap: 0.5rem;
-  padding: 0.7rem 1.25rem;
-  font-size: var(--text-sm); font-weight: 600;
-  background: var(--accent); color: #fff;
-  border-radius: 11px; border: none; cursor: pointer;
-  transition: all 0.15s ease; font-family: inherit;
+.app-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1.25;
+  letter-spacing: 0;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  user-select: none;
 }
-.btn-primary:hover { background: var(--accent-hover); }
-.btn-primary:active { transform: scale(0.98); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; background: #ece7dc; color: var(--text-muted); }
-.btn-secondary {
-  display: inline-flex; align-items: center; gap: 0.5rem;
-  padding: 0.7rem 1.25rem;
-  font-size: var(--text-sm); font-weight: 500;
-  background: var(--bg-card); color: #44413b;
-  border-radius: 11px; border: 1px solid var(--border-default); cursor: pointer;
-  transition: all 0.15s ease; font-family: inherit;
+.app-button--sm { padding: 0.5rem 0.8rem; font-size: var(--text-xs); }
+.app-button--md { padding: 0.7rem 1.25rem; font-size: var(--text-sm); }
+.app-button--lg { padding: 0.8rem 1.5rem; font-size: var(--text-base); }
+.app-button--primary {
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
 }
-.btn-secondary:hover { background: #f4f1ea; border-color: var(--border-strong); }
-.btn-secondary:active { transform: scale(0.98); }
+.app-button--primary:hover { background: var(--accent-hover); }
+.app-button--secondary {
+  border-color: var(--border-default);
+  background: var(--bg-card);
+  color: #44413b;
+  font-weight: 500;
+}
+.app-button--secondary:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+.app-button--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.app-button--ghost:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.app-button--danger {
+  background: var(--danger);
+  color: #fff;
+  font-weight: 600;
+}
+.app-button--danger:hover { filter: brightness(1.08); }
+.app-button:active:not(:disabled) { transform: scale(0.98); }
+.app-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+.app-button--primary:disabled {
+  background: #ece7dc;
+  color: var(--text-muted);
+}
 
 /* ═══ BADGES (capa) ═══ */
 .badge {
@@ -231,8 +269,12 @@ code, pre { font-family: var(--font-mono-stack); }
   background: var(--bg-primary); color: var(--text-primary);
   outline: none; transition: border-color 0.15s, box-shadow 0.15s; font-family: inherit;
 }
+.input-field:hover { border-color: var(--border-strong); }
 .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(47,122,115,0.12); }
 .input-field::placeholder { color: #b3aea3; }
+.input-field[aria-invalid='true'] { border-color: var(--danger); }
+.input-field[aria-invalid='true']:focus { box-shadow: 0 0 0 3px var(--danger-subtle); }
+.app-textarea { min-height: 104px; resize: vertical; }
 
 /* ═══ EMPTY STATE (capa) ═══ */
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 2rem; text-align: center; }

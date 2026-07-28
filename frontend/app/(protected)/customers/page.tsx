@@ -4,9 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, Building2, Search, X, Pencil, Trash2 } from 'lucide-react';
 import { listCustomers, createCustomer, updateCustomer, deleteCustomer, listSessions } from '@/lib/api';
 import type { Customer, Session } from '@/lib/types';
-import { Badge } from '@/components/ui/Badge';
-import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/Input';
+import { Badge, Button, Input, Modal } from '@/components/ui';
 import { relativeTime, statusLabel, isComplete } from '@/lib/session-format';
 
 const INDUSTRIES = ['Financial Services', 'Healthcare', 'Insurance', 'Retail', 'Manufacturing', 'Technology', 'Government', 'Other'];
@@ -37,6 +35,11 @@ export default function CustomersPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Controls
   const [query, setQuery] = useState('');
@@ -92,11 +95,30 @@ export default function CustomersPage() {
     }
   }
 
-  async function handleDelete(c: Customer, e: React.MouseEvent) {
+  function openDelete(c: Customer, e: React.MouseEvent) {
     e.preventDefault(); e.stopPropagation();
-    if (!confirm(`Delete "${c.name}" and all its blueprints? This cannot be undone.`)) return;
-    setCustomers((prev) => prev.filter((x) => x.customer_id !== c.customer_id));
-    try { await deleteCustomer(c.customer_id); } catch { /* ignore, optimistic */ }
+    setDeleteTarget(c);
+    setDeleteError(null);
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteCustomer(deleteTarget.customer_id);
+      setCustomers((prev) => prev.filter((c) => c.customer_id !== deleteTarget.customer_id));
+      setSessionsByCust((prev) => {
+        const next = { ...prev };
+        delete next[deleteTarget.customer_id];
+        return next;
+      });
+      setDeleteTarget(null);
+    } catch (err) {
+      setDeleteError((err as Error).message);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   const visible = useMemo(() => {
@@ -123,7 +145,7 @@ export default function CustomersPage() {
           </div>
           <div className="cust-actions">
             <button className="icon-btn" onClick={(e) => openEdit(c, e)} aria-label="Edit"><Pencil size={14} /></button>
-            <button className="icon-btn icon-btn--danger" onClick={(e) => handleDelete(c, e)} aria-label="Delete"><Trash2 size={14} /></button>
+            <button className="icon-btn icon-btn--danger" onClick={(e) => openDelete(c, e)} aria-label="Delete"><Trash2 size={14} /></button>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-4)' }}>
@@ -171,7 +193,7 @@ export default function CustomersPage() {
             </select>
           </div>
           <div style={{ flex: 1 }} />
-          <button className="btn-primary" onClick={openCreate}><Plus size={16} /> New customer</button>
+          <Button onClick={openCreate}><Plus size={16} /> New customer</Button>
         </div>
       )}
 
@@ -183,7 +205,7 @@ export default function CustomersPage() {
           <div className="empty-state-icon"><Building2 size={26} /></div>
           <div className="empty-state-title">No customers yet</div>
           <div className="empty-state-description">Add your first customer to start an advisory engagement.</div>
-          <button className="btn-primary" onClick={openCreate}><Plus size={16} /> New customer</button>
+          <Button onClick={openCreate}><Plus size={16} /> New customer</Button>
         </div>
       ) : visible.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
@@ -201,7 +223,14 @@ export default function CustomersPage() {
               {formError}
             </div>
           )}
-          <Input label="Customer / company name" placeholder="Acme Corp" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+          <Input
+            data-autofocus
+            label="Customer / company name"
+            placeholder="Acme Corp"
+            autoComplete="organization"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
             <label className="ctrl-field"><span>Industry</span>
               <select value={form.industry} onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))} className="input-field">
@@ -220,10 +249,37 @@ export default function CustomersPage() {
             </select>
           </label>
           <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 4 }}>
-            <button className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleSave} disabled={!form.name.trim() || saving}>
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button type="button" onClick={handleSave} disabled={!form.name.trim()} loading={saving}>
               {saving ? 'Saving…' : editing ? 'Save changes' : 'Create & open'}
-            </button>
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!deleteTarget}
+        onClose={() => !deleting && setDeleteTarget(null)}
+        title="Delete customer"
+        size="sm"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Delete <strong style={{ color: 'var(--text-primary)' }}>{deleteTarget?.name}</strong>?
+            This permanently removes the customer,{' '}
+            {sessionsByCust[deleteTarget?.customer_id ?? '']?.length ?? deleteTarget?.session_count ?? 0}
+            {' '}associated blueprint(s), and all generated panels.
+          </p>
+          {deleteError && (
+            <div style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--danger-subtle)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 'var(--text-sm)' }}>
+              {deleteError}
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button variant="secondary" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</Button>
+            <Button variant="danger" onClick={handleDelete} loading={deleting}>
+              <Trash2 size={15} /> Delete customer
+            </Button>
           </div>
         </div>
       </Modal>

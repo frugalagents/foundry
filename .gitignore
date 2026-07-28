@@ -21,7 +21,9 @@ out/
 
 # AWS SAM build artifacts
 .aws-sam/
+infra/.lambda-src/
 samconfig.toml.bak
+PlatformAdvisorAgent/agentcore/.cli/
 
 # macOS
 .DS_Store

@@ -12,23 +12,6 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-const variantStyles: Record<Variant, string> = {
-  primary:
-    'bg-[var(--accent)] text-[var(--accent-fg)] font-semibold hover:bg-[var(--accent-hover)]',
-  secondary:
-    'bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)] hover:border-[var(--border-strong)]',
-  ghost:
-    'bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
-  danger:
-    'bg-[var(--danger)] text-white font-semibold hover:brightness-110',
-};
-
-const sizeStyles: Record<Size, string> = {
-  sm: 'px-3 py-1.5 text-xs',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-2.5 text-base',
-};
-
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     { variant = 'primary', size = 'md', loading, disabled, children, className = '', ...rest },
@@ -38,12 +21,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || loading}
+        aria-busy={loading || undefined}
         className={[
-          'inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] transition-all duration-150 cursor-pointer select-none',
-          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
-          variantStyles[variant],
-          sizeStyles[size],
+          'app-button',
+          `app-button--${variant}`,
+          `app-button--${size}`,
           className,
         ].join(' ')}
         {...rest}

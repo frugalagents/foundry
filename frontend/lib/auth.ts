@@ -47,7 +47,8 @@ export function setToken(token: string): void {
 export function getAccessToken(): string | null {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(/(?:^|; )access_token=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  if (match) return decodeURIComponent(match[1]);
+  return process.env.NODE_ENV === 'development' ? getToken() : null;
 }
 
 export function setAccessToken(token: string): void {

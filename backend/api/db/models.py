@@ -37,24 +37,32 @@ class Customer(BaseModel):
 # ── Sessions ──────────────────────────────────────────────────────────────────
 
 class SessionCreate(BaseModel):
-    title: Optional[str] = None
-    notes: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    description: Optional[str] = Field(default=None, max_length=500)
+    notes: Optional[str] = Field(default=None, max_length=500)
 
 
 class SessionUpdate(BaseModel):
-    title: Optional[str] = None
-    notes: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    description: Optional[str] = Field(default=None, max_length=500)
+    notes: Optional[str] = Field(default=None, max_length=500)
     status: Optional[str] = None
+    current_step: Optional[int] = Field(default=None, ge=0, le=10)
+    recommendation: Optional[str] = None
+    evidence_state: Optional[str] = None
 
 
 class Session(BaseModel):
     session_id: str
     customer_id: str
     title: str
+    description: str = ""
     status: str = "active"
     current_step: int = 0
-    notes: Optional[str] = None
     intake_answers: Optional[dict] = None
+    primary_workload: Optional[str] = None
+    recommendation: Optional[str] = None
+    evidence_state: str = "not_started"
     created_by: str
     created_at: str
     updated_at: str

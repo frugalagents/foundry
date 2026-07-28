@@ -2,11 +2,12 @@ import type { Session, SessionStatus, Customer } from './types';
 
 // Human labels for each pipeline step (single source of truth, 1-indexed → 10 steps).
 export const STEP_NAMES = [
-  'Intake', 'Pattern scoring', 'Components', 'Innovations', 'Compliance',
-  'Service map', 'Risks', 'Roadmap', 'Cost', 'Blueprint',
+  'Evidence', 'Decision', 'Architecture', 'Requirements', 'Controls',
+  'AWS map', 'Risks', 'Roadmap', 'Cost', 'Blueprint',
 ] as const;
 
 const STATUS_LABEL: Record<SessionStatus, string> = {
+  active: 'Draft',
   intake: 'Intake', scoring: 'Pattern scoring', components: 'Components',
   innovation: 'Innovations', services: 'Service map', antipatterns: 'Risks',
   phasing: 'Roadmap', blueprint: 'Blueprint', complete: 'Complete',
@@ -30,14 +31,16 @@ export function prettyPattern(pattern?: string | null): string {
  * the pattern + industry, degrading to a draft label.
  */
 export function sessionTitle(s: Session): string {
-  const name = s.name?.trim();
+  const name = s.title?.trim() || s.name?.trim();
   if (name && !/^session\s+\d/i.test(name)) return name;
 
-  const pattern = prettyPattern(s.pattern_selected);
-  const industry = s.intake_answers?.industry;
+  const pattern = prettyPattern(s.recommendation ?? s.pattern_selected);
+  const industry = s.intake_answers?.industry as string | undefined;
+  const workload = s.intake_answers?.primary_workload as string | undefined;
   if (pattern) {
     return industry ? `${pattern} · ${industry}` : `${pattern} platform`;
   }
+  if (workload) return `${prettyPattern(workload.replaceAll('_', ' '))} assessment`;
   if (industry) return `${industry} draft`;
   return 'Untitled draft';
 }
@@ -51,14 +54,35 @@ export function suggestedTitle(customer: Pick<Customer, 'industry'>): string {
 /** Compact metadata line for a session card. */
 export function sessionMeta(s: Session): string {
   const parts: string[] = [];
-  const industry = s.intake_answers?.industry;
+  const industry = s.intake_answers?.industry as string | undefined;
   if (industry) parts.push(industry);
-  const compliance = s.intake_answers?.compliance_regime;
+  const workload = s.intake_answers?.primary_workload as string | undefined;
+  if (workload) parts.push(workload.replaceAll('_', ' '));
+  const compliance = (
+    s.intake_answers?.['data.regulations'] ?? s.intake_answers?.compliance_regime
+  ) as unknown;
   if (Array.isArray(compliance) && compliance.length && !compliance.includes('none')) {
-    parts.push(compliance.map((c) => c.toUpperCase()).join(', '));
+    parts.push(compliance.map((c) => String(c).toUpperCase()).join(', '));
   }
   if (!isComplete(s)) parts.push(`Step ${s.current_step || 1} of 10`);
   return parts.join(' · ');
+}
+
+export function workloadLabel(workload?: string | null): string {
+  if (!workload) return 'Not selected';
+  return workload
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+export function evidenceLabel(state: Session['evidence_state']): string {
+  return {
+    not_started: 'Not evaluated',
+    provisional: 'Provisional',
+    decision_ready: 'Decision-ready',
+    overridden: 'Overridden',
+  }[state];
 }
 
 /** Relative time: "just now", "3h ago", "5d ago", or a date. */

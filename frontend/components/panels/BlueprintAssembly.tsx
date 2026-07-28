@@ -27,7 +27,7 @@ export function BlueprintAssembly({
     );
   }
 
-  const confPct = Math.round((data.confidence ?? 0) * 100);
+  const confPct = Math.round((data.evidence_coverage ?? data.confidence ?? 0) * 100);
   const confColor = confPct > 60 ? 'green' : confPct > 30 ? 'orange' : 'red';
 
   return (
@@ -49,7 +49,9 @@ export function BlueprintAssembly({
               {data.pattern_name ?? data.pattern_id}
             </div>
           </div>
-          <Badge color={confColor} size="md">{confPct}% confidence</Badge>
+          <Badge color={confColor} size="md">
+            {confPct}% {data.evidence_coverage != null ? 'evidence' : 'confidence'}
+          </Badge>
         </div>
 
         {/* Stats row */}

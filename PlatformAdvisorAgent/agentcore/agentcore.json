@@ -63,7 +63,6 @@
       ]
     }
   ],
-  "knowledgeBases": [],
   "credentials": [],
   "evaluators": [],
   "onlineEvalConfigs": [],
@@ -72,6 +71,5 @@
   "configBundles": [],
   "abTests": [],
   "harnesses": [],
-  "datasets": [],
-  "payments": []
+  "datasets": []
 }

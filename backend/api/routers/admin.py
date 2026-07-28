@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from api.middleware.auth import require_admin
 from api.db import dynamodb as db
 from api.db.models import AdminMetrics, GraphConfigUpdate
+from api.engine_manifest import build_engine_manifest
 from agent.graph_loader import get_graph, reload_graph
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -18,6 +19,12 @@ AdminUser = Annotated[dict, Depends(require_admin)]
 async def get_metrics(user: AdminUser):
     metrics = db.get_admin_metrics()
     return AdminMetrics(**metrics)
+
+
+@router.get("/engine")
+async def get_engine_manifest(user: AdminUser):
+    """Describe the deployed deterministic engine without exposing mutable config."""
+    return build_engine_manifest()
 
 
 @router.get("/graph/nodes")

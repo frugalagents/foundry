@@ -29,7 +29,7 @@ async def create_session(customer_id: str, body: SessionCreate, user: CurrentUse
         customer_id=customer_id,
         created_by=get_user_id(user),
         title=body.title or "",
-        notes=body.notes or "",
+        description=body.description if body.description is not None else (body.notes or ""),
     )
     return _to_session(item)
 
@@ -46,6 +46,9 @@ async def get_session(customer_id: str, session_id: str, user: CurrentUser):
 async def update_session(customer_id: str, session_id: str,
                          body: SessionUpdate, user: CurrentUser):
     updates = body.model_dump(exclude_none=True)
+    legacy_notes = updates.pop("notes", None)
+    if "description" not in updates and legacy_notes is not None:
+        updates["description"] = legacy_notes
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
     item = db.update_session(customer_id, session_id, updates)
@@ -82,14 +85,59 @@ async def save_inputs(customer_id: str, session_id: str, body: dict, user: Curre
 
 
 def _to_session(item: dict) -> Session:
+    pipeline = item.get("pipeline_ctx") if isinstance(item.get("pipeline_ctx"), dict) else {}
+    result = (
+        pipeline.get("assessment_result")
+        if isinstance(pipeline.get("assessment_result"), dict)
+        else {}
+    )
+    assessment_input = (
+        pipeline.get("assessment_input")
+        if isinstance(pipeline.get("assessment_input"), dict)
+        else {}
+    )
+    intake_answers = item.get("intake_answers")
+    if not isinstance(intake_answers, dict):
+        intake_answers = {}
+
+    current_step = int(item.get("current_step") or pipeline.get("current_step") or 0)
+    recommendation = (
+        item.get("recommendation")
+        or item.get("pattern_selected")
+        or result.get("operating_model")
+        or pipeline.get("pattern_id")
+        or None
+    )
+    primary_workload = (
+        item.get("primary_workload")
+        or intake_answers.get("primary_workload")
+        or assessment_input.get("primary_workload")
+        or None
+    )
+
+    evidence_state = item.get("evidence_state")
+    if not evidence_state:
+        evidence_state = {
+            "needs_information": "provisional",
+            "complete": "decision_ready",
+            "overridden": "overridden",
+        }.get(result.get("status"), "not_started")
+
+    status = item.get("status", "active")
+    if current_step >= 10 and evidence_state != "provisional":
+        status = "complete"
+
     return Session(
         session_id=item["session_id"],
         customer_id=item["customer_id"],
-        title=item.get("title", "Untitled"),
-        status=item.get("status", "active"),
-        current_step=int(item.get("current_step", 0)),
-        notes=item.get("notes"),
-        intake_answers=item.get("intake_answers"),
+        title=item.get("title") or item.get("name") or "Untitled blueprint",
+        description=item.get("description") or item.get("notes") or "",
+        status=status,
+        current_step=current_step,
+        intake_answers=intake_answers or None,
+        primary_workload=primary_workload,
+        recommendation=recommendation,
+        evidence_state=evidence_state,
         created_by=item.get("created_by", ""),
         created_at=item.get("created_at", ""),
         updated_at=item.get("updated_at", ""),

@@ -4,8 +4,10 @@
 
 export type PanelType =
   | 'intake_form'
+  | 'decision_summary'
   | 'radar_chart'
   | 'architecture_diagram'
+  | 'requirements'
   | 'innovation_overlay'
   | 'service_map'
   | 'risk_cards'
@@ -123,6 +125,7 @@ export interface Customer {
 }
 
 export type SessionStatus =
+  | 'active'
   | 'intake'
   | 'scoring'
   | 'components'
@@ -133,19 +136,34 @@ export type SessionStatus =
   | 'blueprint'
   | 'complete';
 
+export type EvidenceState =
+  | 'not_started'
+  | 'provisional'
+  | 'decision_ready'
+  | 'overridden';
+
 export interface Session {
   session_id: string;
   customer_id: string;
-  user_id: string;
+  title: string;
+  description: string;
   status: SessionStatus;
   current_step: number;
-  pattern_selected: string | null;
-  pattern_scores: Record<string, number> | null;
-  intake_answers?: Partial<IntakeAnswers>;
+  intake_answers?: Record<string, unknown>;
+  primary_workload?: string | null;
+  recommendation?: string | null;
+  evidence_state: EvidenceState;
+  created_by: string;
   created_at: string;
   updated_at: string;
-  graph_version: string;
+
+  // Legacy fields remain optional while existing records are migrated.
   name?: string;
+  notes?: string;
+  user_id?: string;
+  pattern_selected?: string | null;
+  pattern_scores?: Record<string, number> | null;
+  graph_version?: string;
 }
 
 // 'not_sure' is a valid, present value that contributes ZERO scoring pressure
@@ -194,10 +212,40 @@ export interface ChatMessage {
 // ============================================================
 
 export interface IntakeFormData {
-  answers: Partial<IntakeAnswers>;
+  answers: Record<string, unknown>;
   missing: string[];
   complete: boolean;
   streaming: boolean;
+  schema_version?: string;
+  status?: string;
+}
+
+export interface DecisionSummaryData {
+  status: 'needs_information' | 'complete' | 'overridden';
+  evidence_coverage: number;
+  missing_evidence: { field: string; reason: string; critical: boolean; question_id?: string }[];
+  operating_model: string | null;
+  ownership_matrix: { capability: string; owner: string; evidence: string[] }[];
+  topology: {
+    control_plane: string;
+    runtime_placement: string;
+    isolation_boundary: string;
+    regional_model: string;
+    modifiers: string[];
+  } | null;
+  trace: { decision: string; rule_id: string; evidence: string[]; outcome: string }[];
+  overrides: Record<string, unknown>[];
+}
+
+export interface RequirementsData {
+  requirements: {
+    id: string;
+    category: string;
+    statement: string;
+    evidence: string[];
+    hard: boolean;
+  }[];
+  assumptions: string[];
 }
 
 export interface RadarPatternScore {
@@ -404,11 +452,28 @@ export interface CostEstimateData {
   total_team_weeks: number;
 }
 
+export interface CostEstimateV2 {
+  currency: 'USD';
+  price_catalog_date: string;
+  low: { monthly_usd: number; annual_usd: number };
+  base: { monthly_usd: number; annual_usd: number };
+  high: { monthly_usd: number; annual_usd: number };
+  assumptions: string[];
+  line_items: {
+    id: string;
+    name: string;
+    monthly_base_usd: number;
+    scope: string;
+    aws_services: string[];
+  }[];
+}
+
 export interface BlueprintData {
   // Flat structure emitted by blueprint_skill.py panel_complete
   pattern_id: string;
   pattern_name: string;
-  confidence: number;        // 0–1
+  confidence?: number;       // v1 only
+  evidence_coverage?: number;
   markdown: string;          // LLM-generated executive blueprint text
   components_count: number;
   phases_count: number;
@@ -455,6 +520,81 @@ export interface AdminMetrics {
     pattern: string;
     step: number;
     date: string;
+  }[];
+}
+
+export interface EngineQuestion {
+  id: string;
+  path: string;
+  prompt: string;
+  type: string;
+  unit: string | null;
+  critical: boolean;
+  consumers: string[];
+}
+
+export interface EngineBranch {
+  workload: string;
+  label: string;
+  question_count: number;
+  critical_count: number;
+  questions: EngineQuestion[];
+}
+
+export interface EngineComponent {
+  id: string;
+  name: string;
+  layer: string;
+  activation: string;
+  dependencies: string[];
+  aws_services: string[];
+  monthly_planning_base_usd: number;
+}
+
+export interface EngineManifest {
+  engine: {
+    name: string;
+    schema_version: string;
+    questionnaire_version: string;
+    methodology_version: string;
+    catalog_version: string;
+    price_catalog_date: string;
+    execution_model: string;
+    llm_decision_authority: boolean;
+  };
+  summary: {
+    workloads: number;
+    universal_questions: number;
+    branch_questions: number;
+    components: number;
+    regulatory_controls: number;
+  };
+  pipeline: {
+    id: string;
+    label: string;
+    description: string;
+    outputs: string[];
+  }[];
+  questionnaire: {
+    universal: EngineQuestion[];
+    branches: EngineBranch[];
+  };
+  catalog: {
+    components: EngineComponent[];
+    controls: {
+      regime: string;
+      control_count: number;
+      controls: {
+        id: string;
+        name: string;
+        implementation: string;
+      }[];
+    }[];
+  };
+  checks: {
+    id: string;
+    label: string;
+    ok: boolean;
   }[];
 }
 

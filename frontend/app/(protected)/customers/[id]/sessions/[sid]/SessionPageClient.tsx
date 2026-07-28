@@ -5,31 +5,21 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useAgentStream } from '@/hooks/useAgentStream';
-import { getSession, getCustomer, exportBlueprint, updateIntakeAnswers } from '@/lib/api';
+import {
+  getSession,
+  getCustomer,
+  getPanelStates,
+  exportBlueprint,
+  updateIntakeAnswers,
+} from '@/lib/api';
 import { ChatPanel } from '@/components/session/ChatPanel';
 import { StepIndicator } from '@/components/session/StepIndicator';
 import { PanelRouter } from '@/components/panels/PanelRouter';
 import { DrilldownDrawer } from '@/components/panels/DrilldownDrawer';
 import { Badge } from '@/components/ui/Badge';
-import type { IntakeAnswers } from '@/lib/types';
+import type { AssessmentDraft } from '@/lib/advisor-v2';
+import { buildAssessmentInput, missingRequired } from '@/lib/advisor-v2';
 import { STEP_NAMES, prettyPattern, sessionTitle } from '@/lib/session-format';
-
-// Scored spine + archetype filter (discovery-methodology §3). Must match the
-// agent's _INTAKE_REQUIRED. Secondary/current-state fields are optional.
-const REQUIRED_IDS: (keyof IntakeAnswers)[] = [
-  'archetype', 'autonomy_model', 'lob_count', 'team_expertise',
-  'cloud_posture', 'data_gravity', 'cost_sensitivity', 'compliance_regime',
-];
-
-// A required field counts as answered when present and (for multi-selects) non-empty.
-const isAnswered = (answers: Partial<IntakeAnswers>, id: keyof IntakeAnswers): boolean => {
-  const v = answers[id];
-  if (v === undefined || v === null || v === '') return false;
-  if (Array.isArray(v)) return v.length > 0;
-  return true;
-};
-const missingRequired = (answers: Partial<IntakeAnswers>): string[] =>
-  REQUIRED_IDS.filter((id) => !isAnswered(answers, id));
 
 export default function SessionPage() {
   const { id: paramCustomerId, sid: paramSessionId } =
@@ -69,27 +59,36 @@ export default function SessionPage() {
   }, [store.panelData, store.currentStep]);
 
   // Intake answers collected locally before first submit
-  const [pendingAnswers, setPendingAnswers] = useState<Partial<IntakeAnswers>>({});
-  const [industry,       setIndustry]       = useState('');
-  const [painPoints,     setPainPoints]     = useState<string[]>([]);
+  const [pendingAnswers, setPendingAnswers] = useState<AssessmentDraft>({});
 
-  const { sendMessage, sendDrilldown, sendWhatIf, stopStream } = useAgentStream(customerId, sessionId);
+  const { sendMessage, sendDrilldown, stopStream } = useAgentStream(customerId, sessionId);
 
   // Restore session state on mount
   useEffect(() => {
     if (!customerId || customerId === '_' || !sessionId || sessionId === '_') return;
-    getCustomer(customerId).then((c) => setCustomerName(c.name)).catch(() => {});
-    getSession(customerId, sessionId)
-      .then((session) => {
+    store.resetSession();
+    userSelectedRef.current = false;
+    setSelectedStep(1);
+    Promise.all([
+      getCustomer(customerId),
+      getSession(customerId, sessionId),
+      getPanelStates(customerId, sessionId),
+    ])
+      .then(([customer, session, panelResponse]) => {
+        setCustomerName(customer.name);
         setSessionName(sessionTitle(session));
+        for (const item of panelResponse.panels) {
+          const panel = item as { step?: number; data?: unknown };
+          if (typeof panel.step === 'number') {
+            store.setPanelData(panel.step, panel.data);
+          }
+        }
         store.setCurrentStep(
           session.current_step && session.current_step > 0 ? session.current_step : 1,
         );
         const saved = session.intake_answers;
-        if (saved && Object.keys(saved).length > 0) {
-          setPendingAnswers(saved);
-          if (saved.industry)    setIndustry(saved.industry as string);
-          if (saved.pain_points) setPainPoints(saved.pain_points as string[]);
+        if (saved && Object.keys(saved).length > 0 && saved.primary_workload) {
+          setPendingAnswers(saved as AssessmentDraft);
           const missing = missingRequired(saved);
           store.setPanelData(1, {
             answers: saved, missing, complete: missing.length === 0, streaming: false,
@@ -103,14 +102,18 @@ export default function SessionPage() {
   // ── Intake form handlers ────────────────────────────────────────────────
 
   const handleAnswer = useCallback(
-    (questionId: string, value: string | string[]) => {
-      if (questionId === 'industry') {
-        setIndustry(value as string);
-      } else if (questionId === 'pain_points') {
-        setPainPoints(Array.isArray(value) ? value : [value]);
-      }
+    (questionId: string, value: unknown) => {
       setPendingAnswers((prev) => {
-        const next    = { ...prev, [questionId]: value };
+        let next: AssessmentDraft = { ...prev, [questionId]: value };
+        if (questionId === 'primary_workload' && prev.primary_workload !== value) {
+          next = Object.fromEntries(
+            Object.entries(next).filter(([key]) => !key.startsWith('workload_profile.')),
+          );
+          const secondary = Array.isArray(next.secondary_workloads)
+            ? next.secondary_workloads.filter((item) => item !== value)
+            : [];
+          next.secondary_workloads = secondary;
+        }
         const missing = missingRequired(next);
         store.setPanelData(1, {
           answers: next, missing, complete: missing.length === 0, streaming: false,
@@ -131,15 +134,30 @@ export default function SessionPage() {
    * natural-language context to start the pipeline conversation.
    */
   const handleSubmit = useCallback(() => {
+    const assessmentInput = buildAssessmentInput(pendingAnswers);
     sendMessage(
-      'I have provided my organizational constraints. Please analyze them and recommend an architecture pattern.',
-      {
-        answers:     pendingAnswers,
-        industry,
-        pain_points: painPoints,
-      },
+      'Evaluate this evidence and generate the architecture blueprint.',
+      { assessment_input: assessmentInput },
     );
-  }, [sendMessage, pendingAnswers, industry, painPoints]);
+  }, [sendMessage, pendingAnswers]);
+
+  const handleOverride = useCallback(
+    (path: string, value: string, rationale: string, engineValue: string) => {
+      const assessmentInput = buildAssessmentInput(pendingAnswers);
+      sendMessage('Apply the recorded architecture override and recompute all downstream decisions.', {
+        assessment_input: assessmentInput,
+        overrides: [{
+          decision_path: path,
+          engine_value: engineValue,
+          override_value: value,
+          rationale,
+          author: 'session-user',
+          timestamp: new Date().toISOString(),
+        }],
+      });
+    },
+    [sendMessage, pendingAnswers],
+  );
 
   /**
    * Confirmation / pattern override — sent as a plain user message.
@@ -187,9 +205,9 @@ export default function SessionPage() {
   const availableSteps = new Set(
     Object.keys(store.panelData).map(Number).filter((n) => !!store.panelData[n]),
   );
-  const radar = store.panelData[2] as { recommended_pattern?: string; pattern_name?: string; confidence?: number } | undefined;
-  const recommendedPattern = radar?.pattern_name || prettyPattern(radar?.recommended_pattern);
-  const confidencePct = typeof radar?.confidence === 'number' ? Math.round(radar.confidence * 100) : null;
+  const decision = store.panelData[2] as { operating_model?: string; evidence_coverage?: number } | undefined;
+  const recommendedPattern = prettyPattern(decision?.operating_model);
+  const confidencePct = typeof decision?.evidence_coverage === 'number' ? Math.round(decision.evidence_coverage * 100) : null;
 
   // ── Render ──────────────────────────────────────────────────────────────
 
@@ -273,12 +291,9 @@ export default function SessionPage() {
               streaming={store.isStreaming}
               onAnswer={handleAnswer}
               onSubmit={handleSubmit}
-              onConfirm={handleConfirm}
               onExport={handleExport}
               onComponentClick={handleComponentClick}
-              onWhatIf={sendWhatIf}
-              whatIfData={store.whatIfData}
-              whatIfLoading={store.whatIfLoading}
+              onOverride={handleOverride}
               customerName={customerName}
               sessionName={sessionName}
               exportError={exportError}
