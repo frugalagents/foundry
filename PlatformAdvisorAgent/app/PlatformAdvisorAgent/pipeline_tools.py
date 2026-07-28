@@ -37,11 +37,13 @@ from pipeline_skills import (
 
 log = logging.getLogger(__name__)
 
+# Scored spine + archetype filter (discovery-methodology §3). These must be present
+# before scoring. "not_sure" is an accepted value that contributes zero pressure.
+# Secondary/current-state fields (governance_model, intake_maturity, observability,
+# auth_identity, stack_preference) are optional and drive non-scoring outputs.
 _INTAKE_REQUIRED = [
-    "autonomy_model", "team_expertise", "cloud_posture",
-    "stack_preference", "lob_count", "governance_model",
-    "auth_identity", "observability", "intake_maturity",
-    "agent_purpose", "cost_sensitivity", "data_gravity",
+    "archetype", "autonomy_model", "lob_count", "team_expertise",
+    "cloud_posture", "data_gravity", "cost_sensitivity", "compliance_regime",
 ]
 
 _VALID_PATTERNS = {

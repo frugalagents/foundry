@@ -148,20 +148,34 @@ export interface Session {
   name?: string;
 }
 
+// 'not_sure' is a valid, present value that contributes ZERO scoring pressure
+// (the engine matches no constraint for it) and is surfaced as an assumption.
+type NotSure = 'not_sure';
+
 export interface IntakeAnswers {
-  autonomy_model?: 'full' | 'hitl' | 'supervised';
-  team_expertise?: 'high' | 'medium' | 'low';
-  cloud_posture?: 'single_aws' | 'aws_primary' | 'multi_cloud';
+  // Q0 — archetype (question filter, not scored)
+  archetype?:
+    | 'coding'
+    | 'internal_copilot'
+    | 'hosting_platform'
+    | 'customer_facing'
+    | 'process_automation'
+    | 'marketplace';
+  autonomy_model?: 'full' | 'hitl' | 'supervised' | NotSure;
+  team_expertise?: 'high' | 'medium' | 'low' | NotSure;
+  cloud_posture?: 'single_aws' | 'aws_primary' | 'multi_cloud' | NotSure;
   stack_preference?: 'open_source' | 'managed' | 'hybrid';
-  lob_count?: '1-3' | '4-10' | '10+';
+  lob_count?: '1-3' | '4-10' | '10+' | NotSure;
   governance_model?: 'centralized' | 'federated' | 'undecided';
   auth_identity?: 'oauth_oidc' | 'iam_heavy' | 'greenfield' | 'complex_multi';
   observability?: 'existing_stack' | 'greenfield';
   intake_maturity?: 'mature' | 'emerging' | 'greenfield';
   agent_purpose?: 'internal' | 'customer_facing' | 'both';
-  cost_sensitivity?: 'primary' | 'secondary' | 'optimize_later';
-  data_gravity?: 'single_region' | 'multi_region' | 'on_prem_cloud' | 'edge';
-  compliance_regime?: 'hipaa' | 'soc2' | 'gdpr' | 'pci_dss' | 'fedramp' | 'none';
+  cost_sensitivity?: 'primary' | 'secondary' | 'optimize_later' | NotSure;
+  data_gravity?: 'single_region' | 'multi_region' | 'on_prem_cloud' | 'edge' | NotSure;
+  compliance_regime?: string[]; // multi-select: sox, pci_dss, hipaa, fedramp, gdpr, eu_ai_act, none
+  // Stage-3 branch answer used by topology derivation (axis C)
+  tenancy_model?: 'shared_rbac' | 'namespace' | 'account' | 'tiered';
   industry?: string;
   pain_points?: string[];
 }
@@ -218,6 +232,7 @@ export interface RadarChartData {
   signals?: ScoringSignal[];
   runner_up?: { pattern_id: string; pattern_name: string; total: number } | null;
   follow_up_questions?: FollowUpQuestion[];
+  topology?: { base: string; modifiers: string[]; label: string; rationale: string };
   streaming: boolean;
 }
 

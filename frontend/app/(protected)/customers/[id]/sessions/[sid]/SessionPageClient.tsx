@@ -25,12 +25,22 @@ const STEP_LABELS: Record<number, string> = {
   10: 'Blueprint',
 };
 
+// Scored spine + archetype filter (discovery-methodology §3). Must match the
+// agent's _INTAKE_REQUIRED. Secondary/current-state fields are optional.
 const REQUIRED_IDS: (keyof IntakeAnswers)[] = [
-  'autonomy_model', 'lob_count', 'governance_model',
-  'cloud_posture', 'stack_preference', 'auth_identity', 'data_gravity',
-  'observability', 'intake_maturity', 'agent_purpose',
-  'team_expertise', 'cost_sensitivity', 'compliance_regime',
+  'archetype', 'autonomy_model', 'lob_count', 'team_expertise',
+  'cloud_posture', 'data_gravity', 'cost_sensitivity', 'compliance_regime',
 ];
+
+// A required field counts as answered when present and (for multi-selects) non-empty.
+const isAnswered = (answers: Partial<IntakeAnswers>, id: keyof IntakeAnswers): boolean => {
+  const v = answers[id];
+  if (v === undefined || v === null) return false;
+  if (Array.isArray(v)) return v.length > 0;
+  return true;
+};
+const missingRequired = (answers: Partial<IntakeAnswers>): string[] =>
+  REQUIRED_IDS.filter((id) => !isAnswered(answers, id));
 
 export default function SessionPage() {
   const { id: paramCustomerId, sid: paramSessionId } =
@@ -90,7 +100,7 @@ export default function SessionPage() {
           setPendingAnswers(saved);
           if (saved.industry)    setIndustry(saved.industry as string);
           if (saved.pain_points) setPainPoints(saved.pain_points as string[]);
-          const missing = REQUIRED_IDS.filter((id) => !(id in saved));
+          const missing = missingRequired(saved);
           store.setPanelData(1, {
             answers: saved, missing, complete: missing.length === 0, streaming: false,
           });
@@ -111,7 +121,7 @@ export default function SessionPage() {
       }
       setPendingAnswers((prev) => {
         const next    = { ...prev, [questionId]: value };
-        const missing = REQUIRED_IDS.filter((id) => !(id in next));
+        const missing = missingRequired(next);
         store.setPanelData(1, {
           answers: next, missing, complete: missing.length === 0, streaming: false,
         });

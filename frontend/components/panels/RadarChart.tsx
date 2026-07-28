@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 
+// Scored inputs only (must move the recommendation) — matches the graph engine.
 const WHATIF_FIELDS: { id: string; label: string; options: string[] }[] = [
-  { id: 'lob_count',       label: 'LOB count',     options: ['1', '2-5', '6-10', '10+'] },
+  { id: 'lob_count',       label: 'Teams',          options: ['1-3', '4-10', '10+'] },
   { id: 'autonomy_model',  label: 'Autonomy',       options: ['full', 'hitl', 'supervised'] },
-  { id: 'governance_model',label: 'Governance',     options: ['centralized', 'federated', 'undecided'] },
-  { id: 'compliance_regime',label: 'Compliance',    options: ['none', 'soc2', 'hipaa', 'pci_dss', 'gdpr', 'fedramp'] },
+  { id: 'team_expertise',  label: 'Builders',       options: ['high', 'medium', 'low'] },
+  { id: 'cloud_posture',   label: 'Cloud',          options: ['single_aws', 'aws_primary', 'multi_cloud'] },
   { id: 'cost_sensitivity',label: 'Cost priority',  options: ['primary', 'secondary', 'optimize_later'] },
 ];
 
@@ -81,6 +82,15 @@ export function RadarChart({ data, onConfirm, streaming, onWhatIf, whatIfData, w
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, marginBottom: 12 }}>
             Total score: <strong style={{ color: selected.color }}>{selected.total.toFixed(2)}</strong>
           </div>
+          {data.topology?.label && (
+            <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 8, background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Technical topology</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{data.topology.label}</div>
+              {data.topology.rationale && (
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{data.topology.rationale}</div>
+              )}
+            </div>
+          )}
           {/* Score comparison bars */}
           {(() => {
             const sorted = [...data.patterns].sort((a, b) => b.total - a.total);
