@@ -1,31 +1,17 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Play } from 'lucide-react';
-import { getCustomer, listSessions, createSession } from '@/lib/api';
+import { ArrowLeft, Plus, Play, Pencil, Trash2, Check, X } from 'lucide-react';
+import { getCustomer, listSessions, createSession, updateSession, deleteSession } from '@/lib/api';
 import type { Customer, Session } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-
-const STATUS_COLORS: Record<string, 'blue' | 'green' | 'orange' | 'gray'> = {
-  complete: 'green', blueprint: 'blue', phasing: 'blue',
-  services: 'orange', innovation: 'orange', default: 'gray',
-};
-
-const STEP_LABELS: Record<string, string> = {
-  intake: '1/10', scoring: '2/10', components: '3/10', innovation: '4/10',
-  compliance: '5/10', services: '6/10', antipatterns: '7/10', phasing: '8/10',
-  costs: '9/10', blueprint: '10/10', complete: '✓',
-};
-
-const PATTERN_COLORS: Record<string, string> = {
-  'pattern:federated':   '#10B981',
-  'pattern:centralized': '#3B82F6',
-  'pattern:mesh':        '#F59E0B',
-  'pattern:economy':     '#8B5CF6',
-};
+import {
+  sessionTitle, sessionMeta, suggestedTitle, statusLabel, isComplete,
+  isStaleDraft, relativeTime, prettyPattern,
+} from '@/lib/session-format';
 
 export default function CustomerDetailPage() {
   const { id: paramId } = useParams<{ id: string }>();
@@ -35,9 +21,10 @@ export default function CustomerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
 
-  // With static export the RSC payload bakes in the placeholder id '_'.
-  // Read the real customer ID from the browser URL on mount.
+  // Static export bakes placeholder '_'; read real id from the URL.
   const [id, setId] = useState(paramId ?? '');
   useEffect(() => {
     const parts = window.location.pathname.split('/').filter(Boolean);
@@ -58,7 +45,8 @@ export default function CustomerDetailPage() {
     setCreating(true);
     setError(null);
     try {
-      const session = await createSession(id);
+      const title = customer ? suggestedTitle(customer) : undefined;
+      const session = await createSession(id, title);
       router.push(`/customers/${id}/sessions/${session.session_id}`);
     } catch (err) {
       setError((err as Error).message);
@@ -67,115 +55,167 @@ export default function CustomerDetailPage() {
     }
   }
 
+  async function saveRename(s: Session) {
+    const title = editTitle.trim();
+    setEditingId(null);
+    if (!title || title === s.name) return;
+    setSessions((prev) => prev.map((x) => (x.session_id === s.session_id ? { ...x, name: title } : x)));
+    try { await updateSession(id, s.session_id, { title }); }
+    catch { /* optimistic; ignore */ }
+  }
+
+  async function handleDelete(s: Session) {
+    if (!confirm(`Delete "${sessionTitle(s)}"? This cannot be undone.`)) return;
+    setSessions((prev) => prev.filter((x) => x.session_id !== s.session_id));
+    try { await deleteSession(id, s.session_id); }
+    catch { /* ignore */ }
+  }
+
+  const { completed, inProgress } = useMemo(() => {
+    const byRecent = [...sessions].sort((a, b) => +new Date(b.updated_at) - +new Date(a.updated_at));
+    return {
+      completed: byRecent.filter(isComplete),
+      inProgress: byRecent.filter((s) => !isComplete(s)),
+    };
+  }, [sessions]);
+
   if (loading) {
     return (
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: 'var(--space-6)' }}>
         <div className="skeleton" style={{ height: 80, marginBottom: 20 }} />
         <div className="skeleton" style={{ height: 200 }} />
       </div>
     );
   }
 
+  const renderSession = (s: Session) => {
+    const editing = editingId === s.session_id;
+    const stale = isStaleDraft(s);
+    return (
+      <Card key={s.session_id} hover={!editing} style={{ padding: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {editing ? (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  autoFocus
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveRename(s); if (e.key === 'Escape') setEditingId(null); }}
+                  className="rename-input"
+                />
+                <button className="icon-btn" onClick={() => saveRename(s)} aria-label="Save"><Check size={15} /></button>
+                <button className="icon-btn" onClick={() => setEditingId(null)} aria-label="Cancel"><X size={15} /></button>
+              </div>
+            ) : (
+              <Link href={`/customers/${id}/sessions/${s.session_id}`} style={{ textDecoration: 'none' }}>
+                <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {sessionTitle(s)}
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 3 }}>
+                  {[sessionMeta(s), `Updated ${relativeTime(s.updated_at)}`].filter(Boolean).join(' · ')}
+                </div>
+              </Link>
+            )}
+          </div>
+
+          {!editing && (
+            <>
+              {stale && <Badge color="gray">Paused</Badge>}
+              {s.pattern_selected && isComplete(s) && (
+                <Badge color="blue">{prettyPattern(s.pattern_selected)}</Badge>
+              )}
+              {isComplete(s)
+                ? <Badge color="green">Complete</Badge>
+                : <Badge color="orange">{statusLabel(s.status)}</Badge>}
+              <button className="icon-btn" onClick={() => { setEditingId(s.session_id); setEditTitle(s.name ?? sessionTitle(s)); }} aria-label="Rename">
+                <Pencil size={14} />
+              </button>
+              <button className="icon-btn icon-btn--danger" onClick={() => handleDelete(s)} aria-label="Delete">
+                <Trash2 size={14} />
+              </button>
+            </>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
   return (
-    <div style={{ padding: 24, maxWidth: 900 }}>
-      <Link href="/customers" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-        <ArrowLeft size={13} /> All Customers
+    <div style={{ padding: 'var(--space-6)', maxWidth: 960, margin: '0 auto' }}>
+      <Link href="/customers" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-5)' }}>
+        <ArrowLeft size={14} /> All customers
       </Link>
 
       {customer && (
-        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ marginBottom: 'var(--space-6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{customer.name}</h1>
-            <Badge color="blue">{customer.industry}</Badge>
+            <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, marginBottom: 8 }}>{customer.name}</h1>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Badge color="blue">{customer.industry}</Badge>
+              {customer.metadata?.region && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{customer.metadata.region}</span>}
+              {customer.metadata?.company_size && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>· {customer.metadata.company_size}</span>}
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>· {sessions.length} blueprint{sessions.length === 1 ? '' : 's'}</span>
+            </div>
+            {customer.metadata?.notes && (
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 'var(--space-3)', maxWidth: 640 }}>
+                {customer.metadata.notes}
+              </p>
+            )}
           </div>
-          <Button onClick={handleNewSession} loading={creating}>
-            <Plus size={14} /> New Blueprint
+          <Button size="lg" onClick={handleNewSession} loading={creating} style={{ flexShrink: 0 }}>
+            <Plus size={16} /> New blueprint
           </Button>
         </div>
       )}
 
       {error && (
-        <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050', fontSize: 13 }}>
+        <div style={{ marginBottom: 'var(--space-4)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--danger-subtle)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 'var(--text-sm)' }}>
           {error}
         </div>
       )}
 
-      {/* P5: Prior blueprint continuity banner */}
-      {sessions.some((s) => s.status === 'complete') && (
-        <div style={{
-          marginBottom: 20,
-          padding: '12px 16px',
-          background: 'var(--accent-blue)0a',
-          border: '1px solid var(--accent-blue)33',
-          borderRadius: 10,
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-blue)', marginBottom: 2 }}>
-              Returning customer
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              {(() => {
-                const completed = sessions.filter((s) => s.status === 'complete');
-                if (completed.length === 0) return null;
-                const latest = completed[0];
-                const patternName = latest.pattern_selected
-                  ? latest.pattern_selected.split(':')[1]?.replace(/^\w/, (c) => c.toUpperCase()) ?? latest.pattern_selected
-                  : null;
-                return patternName
-                  ? `Prior blueprint: ${patternName} — new sessions will build on this context.`
-                  : `${completed.length} prior blueprint${completed.length !== 1 ? 's' : ''} — new sessions will reference earlier work.`;
-              })()}
-            </div>
-          </div>
-          <Button onClick={handleNewSession} loading={creating} style={{ flexShrink: 0 }}>
-            <Plus size={13} /> New Blueprint
-          </Button>
-        </div>
-      )}
-
-      {/* Sessions */}
-      <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>
-        Sessions ({sessions.length})
-      </h2>
-
       {sessions.length === 0 ? (
-        <Card style={{ padding: 40, textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)', marginBottom: 16 }}>No sessions yet.</p>
+        <Card style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>No blueprints yet.</p>
           <Button onClick={handleNewSession} loading={creating}>
-            <Play size={14} /> Start First Blueprint
+            <Play size={16} /> Start first blueprint
           </Button>
         </Card>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {sessions.map((s) => (
-            <Link key={s.session_id} href={`/customers/${id}/sessions/${s.session_id}`} style={{ textDecoration: 'none' }}>
-              <Card hover style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 3 }}>
-                    {s.name ?? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
-                  {s.pattern_selected && (
-                    <span style={{
-                      fontSize: 11, fontWeight: 600,
-                      color: PATTERN_COLORS[s.pattern_selected] ?? 'var(--accent-blue)',
-                    }}>
-                      {s.pattern_selected.split(':')[1]?.replace(/^\w/, (c) => c.toUpperCase()) ?? s.pattern_selected}
-                    </span>
-                  )}
-                </div>
-                <Badge color={STATUS_COLORS[s.status] ?? 'gray'}>
-                  {STEP_LABELS[s.status] ?? s.status}
-                </Badge>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  {new Date(s.updated_at).toLocaleDateString()}
-                </span>
-              </Card>
-            </Link>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+          {completed.length > 0 && (
+            <section>
+              <div className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>Completed blueprints ({completed.length})</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>{completed.map(renderSession)}</div>
+            </section>
+          )}
+          {inProgress.length > 0 && (
+            <section>
+              <div className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>In progress ({inProgress.length})</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>{inProgress.map(renderSession)}</div>
+            </section>
+          )}
         </div>
       )}
+
+      <style jsx global>{`
+        .icon-btn {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; flex-shrink: 0;
+          background: none; border: 1px solid transparent; border-radius: var(--radius-sm);
+          color: var(--text-muted); cursor: pointer;
+          transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-default); }
+        .icon-btn--danger:hover { color: var(--danger); }
+        .rename-input {
+          flex: 1; background: var(--bg-elevated); border: 1px solid var(--accent);
+          border-radius: var(--radius-sm); color: var(--text-primary);
+          padding: 6px 10px; font-size: var(--text-base); outline: none;
+          box-shadow: 0 0 0 3px var(--accent-subtle);
+        }
+      `}</style>
     </div>
   );
 }
-

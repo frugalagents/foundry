@@ -57,7 +57,7 @@ export default function AdminDashboard() {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Analytics</h1>
         <p className="text-sm text-[var(--text-muted)] mt-1">
           Platform usage metrics and system health
         </p>

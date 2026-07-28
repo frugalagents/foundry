@@ -1,38 +1,77 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Building2, Calendar } from 'lucide-react';
-import { listCustomers, createCustomer } from '@/lib/api';
-import type { Customer } from '@/lib/types';
+import { Plus, Building2, Search } from 'lucide-react';
+import { listCustomers, createCustomer, listSessions } from '@/lib/api';
+import type { Customer, Session } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+import { relativeTime, statusLabel, isComplete } from '@/lib/session-format';
+
+const INDUSTRIES = ['Financial Services', 'Healthcare', 'Insurance', 'Retail', 'Manufacturing', 'Technology', 'Government', 'Other'];
+const COMPANY_SIZES = ['Startup', 'Mid-market', 'Enterprise'];
+const REGIONS = ['US', 'EU', 'APAC', 'Global'];
+
+type SortKey = 'recent' | 'name' | 'sessions';
+
+// Latest-session-derived engagement status for a customer.
+interface Engagement { label: string; color: 'green' | 'orange' | 'gray' }
+
+function engagementFor(sessions: Session[] | undefined): Engagement {
+  if (!sessions || sessions.length === 0) return { label: 'No blueprints', color: 'gray' };
+  const latest = [...sessions].sort((a, b) => +new Date(b.updated_at) - +new Date(a.updated_at))[0];
+  if (isComplete(latest)) {
+    const done = sessions.filter(isComplete).length;
+    return { label: `${done} complete`, color: 'green' };
+  }
+  return { label: `In progress · ${statusLabel(latest.status)}`, color: 'orange' };
+}
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [sessionsByCust, setSessionsByCust] = useState<Record<string, Session[]>>({});
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ name: '', industry: 'Technology' });
+  const [form, setForm] = useState({ name: '', industry: 'Technology', region: 'US', company_size: 'Enterprise' });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // Controls
+  const [query, setQuery] = useState('');
+  const [industryFilter, setIndustryFilter] = useState('All');
+  const [sort, setSort] = useState<SortKey>('recent');
+
   useEffect(() => {
     listCustomers()
-      .then(setCustomers)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .then(async (custs) => {
+        setCustomers(custs);
+        setLoading(false);
+        // Fetch sessions in the background to derive status pills.
+        const entries = await Promise.all(
+          custs.map((c) =>
+            listSessions(c.customer_id).then((s) => [c.customer_id, s] as const).catch(() => [c.customer_id, []] as const),
+          ),
+        );
+        setSessionsByCust(Object.fromEntries(entries));
+      })
+      .catch((e) => { console.error(e); setLoading(false); });
   }, []);
 
   async function handleCreate() {
     setCreating(true);
     setCreateError(null);
     try {
-      const c = await createCustomer(form);
+      const c = await createCustomer({
+        name: form.name,
+        industry: form.industry,
+        metadata: { region: form.region, company_size: form.company_size },
+      });
       setCustomers((prev) => [c, ...prev]);
       setShowCreate(false);
-      setForm({ name: '', industry: 'Technology' });
+      setForm({ name: '', industry: 'Technology', region: 'US', company_size: 'Enterprise' });
     } catch (err) {
       setCreateError((err as Error).message);
     } finally {
@@ -40,107 +79,161 @@ export default function CustomersPage() {
     }
   }
 
-  const INDUSTRIES = ['Financial Services', 'Healthcare', 'Insurance', 'Retail', 'Manufacturing', 'Technology', 'Government', 'Other'];
-  const industryColor = (ind: string) => {
-    const map: Record<string, 'blue' | 'green' | 'orange' | 'purple' | 'cyan' | 'gray'> = {
-      'Financial Services': 'green', 'Healthcare': 'blue', 'Insurance': 'orange',
-      'Technology': 'purple', 'Retail': 'cyan', default: 'gray',
-    } as const;
-    return map[ind] ?? 'gray';
+  const visible = useMemo(() => {
+    let list = customers;
+    if (query.trim()) list = list.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
+    if (industryFilter !== 'All') list = list.filter((c) => c.industry === industryFilter);
+    const sorted = [...list];
+    if (sort === 'recent') sorted.sort((a, b) => +new Date(b.updated_at) - +new Date(a.updated_at));
+    else if (sort === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
+    else sorted.sort((a, b) => (b.session_count ?? 0) - (a.session_count ?? 0));
+    return sorted;
+  }, [customers, query, industryFilter, sort]);
+
+  const renderCard = (c: Customer) => {
+    const eng = engagementFor(sessionsByCust[c.customer_id]);
+    return (
+      <Link key={c.customer_id} href={`/customers/${c.customer_id}`} style={{ textDecoration: 'none' }}>
+        <Card hover style={{ padding: 'var(--space-4)', height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-primary)' }}>{c.name}</div>
+            <Badge color={eng.color}>{eng.label}</Badge>
+          </div>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+            {[c.industry, c.metadata?.region, c.metadata?.company_size].filter(Boolean).join(' · ')}
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-4)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: 'auto' }}>
+            <span>{c.session_count ?? 0} blueprint{c.session_count === 1 ? '' : 's'}</span>
+            <span>Updated {relativeTime(c.updated_at)}</span>
+          </div>
+        </Card>
+      </Link>
+    );
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100 }}>
+    <div style={{ padding: 'var(--space-6)', maxWidth: 1400, margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-5)' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>Customers</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+          <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--text-primary)' }}>Customers</h1>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 2 }}>
             {loading ? '…' : `${customers.length} customer${customers.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus size={14} /> New Customer
+        <Button size="lg" onClick={() => setShowCreate(true)}>
+          <Plus size={16} /> New customer
         </Button>
       </div>
 
+      {/* Controls */}
+      {!loading && customers.length > 0 && (
+        <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-5)', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name…"
+              className="ctrl-input"
+              style={{ paddingLeft: 32 }}
+            />
+          </div>
+          <select value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value)} className="ctrl-input">
+            <option>All</option>
+            {INDUSTRIES.map((i) => <option key={i}>{i}</option>)}
+          </select>
+          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="ctrl-input">
+            <option value="recent">Recently active</option>
+            <option value="name">Name (A–Z)</option>
+            <option value="sessions">Most blueprints</option>
+          </select>
+        </div>
+      )}
+
       {/* Grid */}
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 14 }}>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="skeleton" style={{ height: 140, borderRadius: 12 }} />
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 'var(--space-3)' }}>
+          {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton" style={{ height: 120 }} />)}
         </div>
       ) : customers.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 64, color: 'var(--text-muted)' }}>
-          <Building2 size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
-          <p style={{ fontSize: 14 }}>No customers yet. Create your first one.</p>
+        <Card style={{ textAlign: 'center', padding: 'var(--space-8)' }}>
+          <Building2 size={40} style={{ margin: '0 auto var(--space-3)', color: 'var(--text-muted)', opacity: 0.4 }} />
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+            No customers yet.
+          </p>
+          <Button onClick={() => setShowCreate(true)}><Plus size={16} /> Add your first customer</Button>
+        </Card>
+      ) : visible.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
+          No customers match your filters.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 14 }}>
-          {customers.map((c) => (
-            <Link key={c.customer_id} href={`/customers/${c.customer_id}`} style={{ textDecoration: 'none' }}>
-              <Card
-                hover
-                style={{ padding: 18, cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{c.name}</div>
-                    <Badge color={industryColor(c.industry)} size="sm">{c.industry}</Badge>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text-muted)', marginTop: 'auto' }}>
-                  <span>{c.session_count ?? 0} session{c.session_count !== 1 ? 's' : ''}</span>
-                  <span>{new Date(c.updated_at).toLocaleDateString()}</span>
-                </div>
-              </Card>
-            </Link>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 'var(--space-3)' }}>
+          {visible.map(renderCard)}
         </div>
       )}
 
       {/* Create modal */}
-      <Modal open={showCreate} onClose={() => { setShowCreate(false); setCreateError(null); }} title="New Customer">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Modal open={showCreate} onClose={() => { setShowCreate(false); setCreateError(null); }} title="New customer">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           {createError && (
-            <div style={{ padding: '8px 12px', borderRadius: 6, background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050', fontSize: 13 }}>
+            <div style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--danger-subtle)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 'var(--text-sm)' }}>
               {createError}
             </div>
           )}
           <Input
-            label="Customer / Company Name"
+            label="Customer / company name"
             placeholder="Acme Corp"
             value={form.name}
+            error={!form.name.trim() && createError ? 'Name is required' : undefined}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Industry</label>
-            <select
-              value={form.industry}
-              onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))}
-              style={{
-                background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)',
-                padding: '8px 12px', fontSize: 14, outline: 'none',
-              }}
-            >
-              {INDUSTRIES.map((i) => <option key={i}>{i}</option>)}
-            </select>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+            <label className="ctrl-field">
+              <span>Industry</span>
+              <select value={form.industry} onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))} className="ctrl-input">
+                {INDUSTRIES.map((i) => <option key={i}>{i}</option>)}
+              </select>
+            </label>
+            <label className="ctrl-field">
+              <span>Region</span>
+              <select value={form.region} onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))} className="ctrl-input">
+                {REGIONS.map((r) => <option key={r}>{r}</option>)}
+              </select>
+            </label>
           </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+          <label className="ctrl-field">
+            <span>Company size</span>
+            <select value={form.company_size} onChange={(e) => setForm((f) => ({ ...f, company_size: e.target.value }))} className="ctrl-input">
+              {COMPANY_SIZES.map((s) => <option key={s}>{s}</option>)}
+            </select>
+          </label>
+          <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 4 }}>
             <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
-            <Button
-              variant="primary"
-              onClick={handleCreate}
-              loading={creating}
-              disabled={!form.name.trim()}
-            >
-              Create Customer
+            <Button variant="primary" onClick={handleCreate} loading={creating} disabled={!form.name.trim()}>
+              Create customer
             </Button>
           </div>
         </div>
       </Modal>
+
+      <style jsx global>{`
+        .ctrl-input {
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-default);
+          border-radius: var(--radius-sm);
+          color: var(--text-primary);
+          padding: 8px 12px;
+          font-size: var(--text-sm);
+          outline: none;
+          width: 100%;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .ctrl-input::placeholder { color: var(--text-muted); }
+        .ctrl-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-subtle); }
+        .ctrl-field { display: flex; flex-direction: column; gap: 6px; font-size: var(--text-sm); color: var(--text-secondary); font-weight: 500; }
+      `}</style>
     </div>
   );
 }

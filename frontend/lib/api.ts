@@ -55,6 +55,7 @@ export const createCustomer = (data: {
   industry: string;
   contact_email?: string;
   notes?: string;
+  metadata?: Partial<{ region: string; company_size: string; notes: string }>;
 }) => apiFetch<Customer>('/customers', { method: 'POST', body: JSON.stringify(data) });
 
 export const getCustomer = (id: string) =>
