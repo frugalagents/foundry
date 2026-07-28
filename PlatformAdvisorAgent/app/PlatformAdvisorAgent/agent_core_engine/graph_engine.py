@@ -49,6 +49,82 @@ PRESSURE_KEYS = [
 class GraphEngine:
     """In-memory graph traversal for deterministic scoring and component selection."""
 
+    # Map app-facing intake keys → graph Constraint signal_id.
+    # Answer→constraint matching is scoped to the answer's own signal group so a
+    # value never collides with a same-substring answer_value under a different
+    # question (e.g. data-location "single" matching "1-3 teams (single org)").
+    # Keys with no graph signal yet (governance_model, stack_preference,
+    # auth_identity, observability, intake_maturity) are intentionally absent and
+    # contribute no pressure until the graph adds matching constraints.
+    _INTAKE_TO_SIGNAL: dict[str, str] = {
+        "autonomy_model":    "Q1",
+        "team_expertise":    "Q2",
+        "lob_count":         "Q3",
+        "agent_purpose":     "Q4",
+        "cloud_posture":     "Q5",
+        "data_gravity":      "Q6",
+        "cost_sensitivity":  "Q7",
+        "compliance_regime": "Q8",
+    }
+
+    # Map short intake form values → keywords that appear in the graph constraint
+    # answer_value text (which is long-form). Shared by scoring + signal display.
+    _ANSWER_EXPANSIONS: dict[str, list[str]] = {
+        # autonomy_model (Q1)
+        "full":          ["full autonomy", "independently"],
+        "hitl":          ["humans approve", "approval gates", "human-in-the-loop"],
+        "supervised":    ["copilot", "humans execute", "supervised"],
+        # team_expertise (Q2)
+        "high":          ["dedicated", "ai/ml engineers", "engineers"],
+        "medium":        ["full-stack", "developer"],
+        "low":           ["no-code", "business"],
+        # lob_count (Q3) — values "1-3","4-10","10+" substring-match directly
+        # agent_purpose (Q4)
+        "internal":      ["internal", "back-office"],
+        "customer_facing": ["customer-facing", "customer facing"],
+        "both":          ["mix of all", "both"],
+        # cloud_posture (Q5)
+        "single_aws":    ["all-in on aws", "all-in on amazon"],
+        "aws_primary":   ["aws-primary", "aws primary"],
+        "multi_cloud":   ["2+ clouds", "multi-cloud", "multiple clouds"],
+        "on_prem":       ["on-prem", "edge"],
+        # data_gravity (Q6)
+        "single_region": ["single aws region", "single region"],
+        "multi_region":  ["multiple aws regions", "multi-region", "multiple region"],
+        "on_prem_cloud": ["hybrid", "on-prem"],
+        "edge":          ["edge", "distributed"],
+        # cost_sensitivity (Q7)
+        "primary":       ["#1 constraint", "cost is the", "optimize from day"],
+        "secondary":     ["performance first"],
+        "optimize_later": ["predictable spend", "fixed budget"],
+        # compliance_regime (Q8) — values match the spec's Q6 list / graph nodes
+        "hipaa":         ["hipaa", "health"],
+        "sox":           ["sox", "financial controls"],
+        "eu_ai_act":     ["eu ai act"],
+        "gdpr":          ["gdpr"],
+        "pci_dss":       ["pci", "payment"],
+        "fedramp":       ["fedramp", "fisma", "government"],
+        "none":          ["none", "internal only"],
+    }
+
+    def _match_constraint(self, intake_key: str, single_val: str) -> Optional[dict]:
+        """Find the Constraint node for an intake (key, value), scoped to the key's
+        signal group. Returns None if the key has no signal or nothing matches."""
+        signal = self._INTAKE_TO_SIGNAL.get(intake_key)
+        if not signal:
+            return None
+        search_terms = [single_val.lower()] + [
+            kw.lower() for kw in self._ANSWER_EXPANSIONS.get(single_val, [])
+        ]
+        for node in self.get_nodes_by_type("Constraint"):
+            props = self.get_props(node["id"])
+            if props.get("signal_id") != signal:
+                continue
+            av = props.get("answer_value", "").lower()
+            if any(term in av for term in search_terms):
+                return node
+        return None
+
     def __init__(self, graph_data: dict) -> None:
         # Index nodes by id
         self.nodes: dict[str, dict] = {}
@@ -109,81 +185,6 @@ class GraphEngine:
         scores: dict[str, float] = {p: 0.0 for p in pattern_ids}
         axis_scores: dict[str, list[float]] = {p: [0.0] * 5 for p in pattern_ids}
 
-        # Build a lookup: (signal_id, answer_value) → constraint node
-        # Constraint props carry both signal_id and answer_value
-        # We'll iterate all constraints and match by signal_id
-
-        # Map from app-facing question IDs to graph signal IDs
-        # The graph uses Q1, Q2, … keys; our intake uses named keys.
-        # We derive the mapping from the constraint nodes themselves.
-        constraint_by_signal: dict[str, list[dict]] = {}
-        for node in self.get_nodes_by_type("Constraint"):
-            props = self.get_props(node["id"])
-            sig = props.get("signal_id", "")
-            constraint_by_signal.setdefault(sig, []).append(node)
-
-        # The intake answers dict has named keys (autonomy_model, lob_count, …).
-        # For each answer, find the matching constraint by answer_value text
-        # OR fall back to reading pressure values from the constraint directly
-        # (since graph edges carry the same information as props).
-
-        # Map short intake form values → keywords that appear in graph constraint answer_values.
-        # The graph uses long-form descriptions; the intake form uses short coded values.
-        _ANSWER_EXPANSIONS: dict[str, list[str]] = {
-            # autonomy_model
-            "full":          ["full autonomy", "independently"],
-            "hitl":          ["humans approve", "approval gates", "human-in-the-loop"],
-            "supervised":    ["copilot", "humans execute", "supervised"],
-            # lob_count  (these already substring-match: "1-3", "4-10", "10+")
-            # governance_model
-            "centralized":   ["centralized"],
-            "federated":     ["federated"],
-            "undecided":     ["undecided", "distributed"],
-            # cloud_posture
-            "single_aws":    ["all-in on aws", "all-in on amazon", "single aws"],
-            "aws_primary":   ["aws-primary", "aws primary", "primary"],
-            "multi_cloud":   ["2+ clouds", "multi-cloud", "multiple clouds"],
-            "on_prem":       ["on-prem", "edge"],
-            # stack_preference
-            "open_source":   ["open-source", "open source", "oss"],
-            "managed":       ["managed service", "fully managed"],
-            "hybrid":        ["hybrid"],
-            # auth_identity
-            "oauth_oidc":    ["oauth", "oidc", "saml"],
-            "iam_heavy":     ["iam", "identity", "rbac"],
-            "greenfield":    ["greenfield", "new build"],
-            "complex_multi": ["multi-idp", "complex", "multiple identity"],
-            # data_gravity
-            "single_region": ["single", "single region"],
-            "multi_region":  ["multiple", "multi-region", "multiple region"],
-            "on_prem_cloud": ["hybrid", "on-prem"],
-            "edge":          ["edge", "distributed"],
-            # observability
-            "existing_stack": ["existing", "existing stack"],
-            # intake_maturity
-            "mature":        ["mature", "production ai", "prod"],
-            "emerging":      ["emerging", "pilot"],
-            # agent_purpose
-            "internal":      ["internal", "back-office"],
-            "customer_facing": ["customer-facing", "customer facing", "external"],
-            "both":          ["both"],
-            # compliance_regime
-            "hipaa":         ["hipaa", "health"],
-            "soc2":          ["soc", "soc2", "soc 2"],
-            "gdpr":          ["gdpr"],
-            "pci_dss":       ["pci", "payment"],
-            "fedramp":       ["fedramp", "fisma", "government"],
-            "none":          ["none", "internal only"],
-            # team_expertise
-            "high":          ["high", "engineers", "dedicated"],
-            "medium":        ["medium", "full-stack", "developer"],
-            "low":           ["low", "no-code", "business"],
-            # cost_sensitivity
-            "primary":       ["#1 constraint", "cost is the", "optimize from day"],
-            "secondary":     ["secondary", "performance first"],
-            "optimize_later": ["optimize later", "predictable"],
-        }
-
         for _q_key, answer_val in answers.items():
             if _q_key in ("industry", "pain_points"):
                 continue
@@ -195,20 +196,10 @@ class GraphEngine:
                 if not isinstance(single_val, str):
                     continue
 
-                # Expand short form to a list of search terms
-                search_terms = [single_val.lower()] + [
-                    kw.lower() for kw in _ANSWER_EXPANSIONS.get(single_val, [])
-                ]
-
-                # Find any constraint whose answer_value matches any search term
-                matched: Optional[dict] = None
-                for node in self.get_nodes_by_type("Constraint"):
-                    props = self.get_props(node["id"])
-                    av = props.get("answer_value", "").lower()
-                    if any(term in av for term in search_terms):
-                        matched = node
-                        break
-
+                # Match the answer to a constraint within its OWN signal group,
+                # so it never collides with a same-substring answer under another
+                # question.
+                matched = self._match_constraint(_q_key, single_val)
                 if matched is None:
                     continue
 
@@ -248,21 +239,45 @@ class GraphEngine:
         }
 
     def apply_laws(self, scores: dict[str, dict], answers: dict) -> dict[str, dict]:
-        """Disqualify patterns blocked by Law nodes triggered by the intake answers."""
+        """Disqualify patterns blocked by Law nodes whose trigger matches the answers.
+
+        A law only fires when it carries a non-empty `trigger_condition` dict AND
+        every key/value in it matches the intake answers. A law with no (or empty)
+        trigger_condition never fires — otherwise `all()` over an empty condition is
+        vacuously True and the law would disqualify its BLOCKS targets on every input.
+        """
         for node in self.get_nodes_by_type("Law"):
             props = self.get_props(node["id"])
-            trigger = props.get("trigger_condition", {})
-            triggered = False
-            if isinstance(trigger, dict):
-                triggered = all(
-                    str(answers.get(k, "")).lower() == str(v).lower()
+            trigger = props.get("trigger_condition") or {}
+            triggered = (
+                isinstance(trigger, dict)
+                and len(trigger) > 0
+                and all(
+                    self._answer_matches_trigger(answers.get(k), v)
                     for k, v in trigger.items()
                 )
+            )
+            if not triggered:
+                continue
             for edge in self.get_out_edges(node["id"], "BLOCKS"):
                 tgt = edge.get("to") or edge.get("target")
-                if triggered and tgt in scores:
+                if tgt in scores:
                     scores[tgt]["total"] = -999.0
         return scores
+
+    @staticmethod
+    def _answer_matches_trigger(answer, expected) -> bool:
+        """True if the intake `answer` satisfies a law trigger `expected` value.
+
+        Supports scalar answers and multi-select (list) answers. `expected` may be a
+        single value or a list of acceptable values (any-of).
+        """
+        expected_vals = expected if isinstance(expected, list) else [expected]
+        expected_norm = {str(e).lower() for e in expected_vals}
+        if isinstance(answer, list):
+            answer_norm = {str(a).lower() for a in answer}
+            return bool(answer_norm & expected_norm)
+        return str(answer or "").lower() in expected_norm
 
     # Human-readable explanations for key signal+answer+direction combinations.
     # Key: (question_key, answer_value_lowercase, is_positive_for_winning_pattern)
@@ -342,48 +357,6 @@ class GraphEngine:
             "team_maturity":    "Team Maturity",
         }
 
-        _ANSWER_EXPANSIONS: dict[str, list[str]] = {
-            "full":           ["full autonomy", "independently"],
-            "hitl":           ["humans approve", "approval gates", "human-in-the-loop"],
-            "supervised":     ["copilot", "humans execute", "supervised"],
-            "centralized":    ["centralized"],
-            "federated":      ["federated"],
-            "undecided":      ["undecided", "distributed"],
-            "single_aws":     ["all-in on aws", "all-in on amazon", "single aws"],
-            "aws_primary":    ["aws-primary", "aws primary", "primary"],
-            "multi_cloud":    ["2+ clouds", "multi-cloud", "multiple clouds"],
-            "on_prem":        ["on-prem", "edge"],
-            "open_source":    ["open-source", "open source", "oss"],
-            "managed":        ["managed service", "fully managed"],
-            "hybrid":         ["hybrid"],
-            "oauth_oidc":     ["oauth", "oidc", "saml"],
-            "iam_heavy":      ["iam", "identity", "rbac"],
-            "greenfield":     ["greenfield", "new build"],
-            "complex_multi":  ["multi-idp", "complex", "multiple identity"],
-            "single_region":  ["single", "single region"],
-            "multi_region":   ["multiple", "multi-region", "multiple region"],
-            "on_prem_cloud":  ["hybrid", "on-prem"],
-            "edge":           ["edge", "distributed"],
-            "existing_stack": ["existing", "existing stack"],
-            "mature":         ["mature", "production ai", "prod"],
-            "emerging":       ["emerging", "pilot"],
-            "internal":       ["internal", "back-office"],
-            "customer_facing":["customer-facing", "customer facing", "external"],
-            "both":           ["both"],
-            "hipaa":          ["hipaa", "health"],
-            "soc2":           ["soc", "soc2", "soc 2"],
-            "gdpr":           ["gdpr"],
-            "pci_dss":        ["pci", "payment"],
-            "fedramp":        ["fedramp", "fisma", "government"],
-            "none":           ["none", "internal only"],
-            "high":           ["high", "engineers", "dedicated"],
-            "medium":         ["medium", "full-stack", "developer"],
-            "low":            ["low", "no-code", "business"],
-            "primary":        ["#1 constraint", "cost is the", "optimize from day"],
-            "secondary":      ["secondary", "performance first"],
-            "optimize_later": ["optimize later", "predictable"],
-        }
-
         signals: list[dict] = []
 
         for q_key, answer_val in answers.items():
@@ -396,18 +369,7 @@ class GraphEngine:
                 if not isinstance(single_val, str):
                     continue
 
-                search_terms = [single_val.lower()] + [
-                    kw.lower() for kw in _ANSWER_EXPANSIONS.get(single_val, [])
-                ]
-
-                matched: Optional[dict] = None
-                for node in self.get_nodes_by_type("Constraint"):
-                    props = self.get_props(node["id"])
-                    av = props.get("answer_value", "").lower()
-                    if any(term in av for term in search_terms):
-                        matched = node
-                        break
-
+                matched = self._match_constraint(q_key, single_val)
                 if matched is None:
                     continue
 
@@ -488,6 +450,72 @@ class GraphEngine:
             confidence = 1.0
 
         return best_id, confidence
+
+    # ── Topology derivation (axis C — rule-based, per discovery-methodology §3.6) ──
+
+    def derive_topology(
+        self,
+        pattern_id: str,
+        answers: dict,
+        archetype: str = "",
+        pain_points: Optional[list[str]] = None,
+    ) -> dict:
+        """Deterministically derive the technical topology from the operating model
+        (pattern_id), data location (Q5/Q6), tenancy, archetype and pain points.
+
+        Not scored — a documented lookup. Returns:
+          {base, modifiers: [...], label, rationale}
+        """
+        pain = [p.lower() for p in (pain_points or [])]
+        lob = str(answers.get("lob_count", "")).lower()
+        cloud = str(answers.get("cloud_posture", "")).lower()
+        data = str(answers.get("data_gravity", "")).lower()
+        tenancy = str(answers.get("tenancy_model", "")).lower()
+
+        # ── Base topology from operating model (first match wins) ──
+        if pattern_id == "pattern:centralized" and lob in ("1-3", "1", "one", ""):
+            base, rationale = "single-account", "Single team on a centralized model — one account, no spokes needed."
+        elif pattern_id == "pattern:centralized":
+            base, rationale = "hub-and-spoke", "Centralized model with multiple teams — shared hub, thin spokes."
+        elif pattern_id == "pattern:federated":
+            base, rationale = "hub-and-spoke", "Federated model — shared spine (hub) with per-LOB spokes."
+        elif pattern_id == "pattern:mesh":
+            base, rationale = "peer-to-peer", "Mesh operating model — agents coordinate peer-to-peer (A2A)."
+        elif pattern_id == "pattern:economy":
+            base, rationale = "peer-to-peer", "Economy model — peer-to-peer with a marketplace control plane."
+        else:
+            base, rationale = "single-account", "Default single-account topology."
+
+        # ── Modifiers (additive) ──
+        modifiers: list[str] = []
+
+        # Multi-cloud / hybrid overlay from data location or cloud posture
+        if (
+            "2+" in cloud or "multi" in cloud or "multi_cloud" == cloud
+            or "on_prem" in cloud or "on-prem" in data or "hybrid" in data
+            or "on_prem_cloud" == data
+        ):
+            modifiers.append("multi-cloud/hybrid")
+
+        # Gateway-fronted for coding/customer-facing archetypes or auth/tool pains
+        arche = archetype.lower()
+        if (
+            arche in ("coding", "coding_dev", "dev_productivity", "customer_facing", "customer-facing")
+            or any(k in " ".join(pain) for k in ("auth", "tool integration", "tool fragmentation"))
+        ):
+            modifiers.append("gateway-fronted")
+
+        # Account-level isolation from tenancy answer
+        if "separate account" in tenancy or "account" == tenancy or "account_separated" in tenancy:
+            modifiers.append("account-isolated spokes")
+
+        label = base + ((" + " + ", ".join(modifiers)) if modifiers else "")
+        return {
+            "base": base,
+            "modifiers": modifiers,
+            "label": label,
+            "rationale": rationale,
+        }
 
     # ── Component selection ───────────────────────────────────
 
