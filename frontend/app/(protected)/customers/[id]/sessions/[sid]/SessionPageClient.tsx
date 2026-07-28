@@ -5,25 +5,14 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useAgentStream } from '@/hooks/useAgentStream';
-import { getSession, exportBlueprint, updateIntakeAnswers } from '@/lib/api';
+import { getSession, getCustomer, exportBlueprint, updateIntakeAnswers } from '@/lib/api';
 import { ChatPanel } from '@/components/session/ChatPanel';
 import { StepIndicator } from '@/components/session/StepIndicator';
 import { PanelRouter } from '@/components/panels/PanelRouter';
 import { DrilldownDrawer } from '@/components/panels/DrilldownDrawer';
+import { Badge } from '@/components/ui/Badge';
 import type { IntakeAnswers } from '@/lib/types';
-
-const STEP_LABELS: Record<number, string> = {
-  1: 'Intake',
-  2: 'Patterns',
-  3: 'Components',
-  4: 'Innovations',
-  5: 'Compliance',
-  6: 'Services',
-  7: 'Risks',
-  8: 'Roadmap',
-  9: 'Costs',
-  10: 'Blueprint',
-};
+import { STEP_NAMES, prettyPattern, sessionTitle } from '@/lib/session-format';
 
 // Scored spine + archetype filter (discovery-methodology §3). Must match the
 // agent's _INTAKE_REQUIRED. Secondary/current-state fields are optional.
@@ -64,18 +53,17 @@ export default function SessionPage() {
   // Which panel is visible in the right pane (user can navigate independently of current step)
   const [selectedStep, setSelectedStep] = useState(1);
   const userSelectedRef = useRef(false);
+  const [customerName, setCustomerName] = useState('');
+  const [sessionName, setSessionName] = useState('');
 
-  // Auto-advance to new panel when pipeline progresses, unless user manually picked a tab
+  // Auto-advance to the newest panel ONLY while the user is following the pipeline.
+  // Once they manually pick a step, never yank them away — surface a "new" hint instead.
   useEffect(() => {
-    if (!userSelectedRef.current) {
-      setSelectedStep(store.currentStep);
-    }
+    if (!userSelectedRef.current) setSelectedStep(store.currentStep);
   }, [store.currentStep]);
 
-  // When new panel data lands for the current step, snap back to following the pipeline
   useEffect(() => {
-    if (store.panelData[store.currentStep]) {
-      userSelectedRef.current = false;
+    if (!userSelectedRef.current && store.panelData[store.currentStep]) {
       setSelectedStep(store.currentStep);
     }
   }, [store.panelData, store.currentStep]);
@@ -90,8 +78,10 @@ export default function SessionPage() {
   // Restore session state on mount
   useEffect(() => {
     if (!customerId || customerId === '_' || !sessionId || sessionId === '_') return;
+    getCustomer(customerId).then((c) => setCustomerName(c.name)).catch(() => {});
     getSession(customerId, sessionId)
       .then((session) => {
+        setSessionName(sessionTitle(session));
         store.setCurrentStep(
           session.current_step && session.current_step > 0 ? session.current_step : 1,
         );
@@ -175,17 +165,31 @@ export default function SessionPage() {
     store.setDrilldownComponentId(null);
   }, [store]);
 
+  const [exporting, setExporting] = useState<'pdf' | 'pptx' | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const handleExport = useCallback(
     async (format: 'pdf' | 'pptx') => {
+      setExporting(format);
+      setExportError(null);
       try {
         const { url } = await exportBlueprint(customerId, sessionId, format);
         window.open(url, '_blank');
       } catch (err) {
-        console.error('Export failed', err);
+        setExportError(`Export failed: ${(err as Error).message}. Try again.`);
+      } finally {
+        setExporting(null);
       }
     },
     [customerId, sessionId],
   );
+
+  // ── Derived view state ───────────────────────────────────────────────────
+  const availableSteps = new Set(
+    Object.keys(store.panelData).map(Number).filter((n) => !!store.panelData[n]),
+  );
+  const radar = store.panelData[2] as { recommended_pattern?: string; pattern_name?: string; confidence?: number } | undefined;
+  const recommendedPattern = radar?.pattern_name || prettyPattern(radar?.recommended_pattern);
+  const confidencePct = typeof radar?.confidence === 'number' ? Math.round(radar.confidence * 100) : null;
 
   // ── Render ──────────────────────────────────────────────────────────────
 
@@ -194,7 +198,7 @@ export default function SessionPage() {
       display: 'flex', flexDirection: 'column',
       height: 'calc(100vh - 56px)', overflow: 'hidden',
     }}>
-      {/* Session header */}
+      {/* Session header: breadcrumb + recommended pattern */}
       <div style={{
         padding: '10px 20px',
         borderBottom: '1px solid var(--border-default)',
@@ -203,22 +207,41 @@ export default function SessionPage() {
       }}>
         <Link
           href={`/customers/${customerId}`}
-          style={{
-            color: 'var(--text-muted)', display: 'flex',
-            alignItems: 'center', gap: 4, fontSize: 13,
-          }}
+          style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--text-sm)', flexShrink: 0 }}
         >
-          <ArrowLeft size={13} /> Back
+          <ArrowLeft size={14} />
         </Link>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-          <StepIndicator currentStep={store.currentStep} />
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, flexShrink: 1 }}>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            {customerName || 'Customer'}
+          </span>
+          <span style={{ color: 'var(--border-strong)' }}>/</span>
+          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {sessionName || 'Advisory session'}
+          </span>
         </div>
-        <span style={{
-          fontSize: 12, color: 'var(--text-muted)',
-          minWidth: 60, textAlign: 'right',
-        }}>
-          Step {store.currentStep}/9
-        </span>
+        <div style={{ flex: 1 }} />
+        {recommendedPattern && (
+          <Badge color="blue" size="md">
+            {recommendedPattern}{confidencePct != null ? ` · ${confidencePct}%` : ''}
+          </Badge>
+        )}
+      </div>
+
+      {/* Step navigator (single, clickable, all 10 states) */}
+      <div style={{
+        padding: '6px 16px',
+        borderBottom: '1px solid var(--border-default)',
+        background: 'var(--bg-card)',
+        flexShrink: 0,
+      }}>
+        <StepIndicator
+          currentStep={store.currentStep}
+          selectedStep={selectedStep}
+          availableSteps={availableSteps}
+          streaming={store.isStreaming}
+          onSelect={(step) => { userSelectedRef.current = true; setSelectedStep(step); }}
+        />
       </div>
 
       {/* Split panel */}
@@ -232,6 +255,7 @@ export default function SessionPage() {
             confirmationRequest={store.confirmationRequest}
             onSendMessage={sendMessage}
             onConfirm={handleConfirm}
+            onStop={stopStream}
           />
         </div>
 
@@ -242,62 +266,6 @@ export default function SessionPage() {
           position: 'relative',
           display: 'flex', flexDirection: 'column',
         }}>
-          {/* Panel tab bar — shows all steps that have data */}
-          {Object.keys(store.panelData).length > 0 && (
-            <div style={{
-              display: 'flex', flexShrink: 0, overflowX: 'auto',
-              borderBottom: '1px solid var(--border-default)',
-              background: 'var(--bg-card)',
-              scrollbarWidth: 'none',
-            }}>
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((step) => {
-                const hasData = !!store.panelData[step];
-                const isActive = selectedStep === step;
-                const isCurrent = store.currentStep === step && store.isStreaming && !hasData;
-                if (!hasData && !isCurrent) return null;
-                return (
-                  <button
-                    key={step}
-                    onClick={() => {
-                      if (hasData) {
-                        userSelectedRef.current = true;
-                        setSelectedStep(step);
-                      }
-                    }}
-                    style={{
-                      padding: '8px 14px',
-                      fontSize: 12,
-                      fontWeight: isActive ? 600 : 400,
-                      color: isActive ? 'var(--accent-blue)' : isCurrent ? 'var(--text-secondary)' : 'var(--text-muted)',
-                      background: 'none',
-                      border: 'none',
-                      borderBottom: isActive ? '2px solid var(--accent-blue)' : '2px solid transparent',
-                      cursor: hasData ? 'pointer' : 'default',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                      transition: 'color 0.15s',
-                      display: 'flex', alignItems: 'center', gap: 5,
-                    }}
-                  >
-                    {isCurrent && (
-                      <span style={{
-                        width: 6, height: 6, borderRadius: '50%',
-                        background: 'var(--accent-blue)',
-                        animation: 'pulse-dot 1s ease-in-out infinite',
-                        flexShrink: 0,
-                      }} />
-                    )}
-                    {STEP_LABELS[step] ?? `Step ${step}`}
-                  </button>
-                );
-              })}
-              <style>{`
-                @keyframes pulse-dot{0%,100%{opacity:0.4}50%{opacity:1}}
-                div::-webkit-scrollbar{display:none}
-              `}</style>
-            </div>
-          )}
-
           {/* Panel content */}
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
             <PanelRouter
@@ -312,6 +280,10 @@ export default function SessionPage() {
               onWhatIf={sendWhatIf}
               whatIfData={store.whatIfData}
               whatIfLoading={store.whatIfLoading}
+              customerName={customerName}
+              sessionName={sessionName}
+              exportError={exportError}
+              exporting={exporting}
             />
           </div>
 
@@ -340,7 +312,9 @@ export default function SessionPage() {
                   margin: '0 auto 10px',
                 }} />
                 <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-                <p style={{ fontSize: 12 }}>Analyzing…</p>
+                <p style={{ fontSize: 'var(--text-sm)' }}>
+                  {STEP_NAMES[store.currentStep - 1] ? `${STEP_NAMES[store.currentStep - 1]}…` : 'Analyzing…'}
+                </p>
               </div>
             </div>
           )}

@@ -8,9 +8,15 @@ interface BlueprintAssemblyProps {
   data: BlueprintData | null;
   streaming: boolean;
   onExport: (format: 'pdf' | 'pptx') => void;
+  customerName?: string;
+  sessionName?: string;
+  exportError?: string | null;
+  exporting?: 'pdf' | 'pptx' | null;
 }
 
-export function BlueprintAssembly({ data, streaming, onExport }: BlueprintAssemblyProps) {
+export function BlueprintAssembly({
+  data, streaming, onExport, customerName, sessionName, exportError, exporting,
+}: BlueprintAssemblyProps) {
   if (!data) {
     return (
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -27,14 +33,19 @@ export function BlueprintAssembly({ data, streaming, onExport }: BlueprintAssemb
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* Header */}
-      <Card glow style={{ padding: 16 }}>
+      {/* Document header — client-ready identity */}
+      <Card glow style={{ padding: 20 }}>
+        {(customerName || sessionName) && (
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {customerName && <span>{customerName}</span>}
+            {sessionName && <span>· {sessionName}</span>}
+            <span>· Generated {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-              Recommended Architecture
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent-blue)' }}>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>Recommended architecture</div>
+            <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--text-primary)' }}>
               {data.pattern_name ?? data.pattern_id}
             </div>
           </div>
@@ -67,12 +78,17 @@ export function BlueprintAssembly({ data, streaming, onExport }: BlueprintAssemb
 
       {/* Export */}
       {data.export_ready && (
-        <div style={{ display: 'flex', gap: 10, padding: 14, background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border-default)' }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1, alignSelf: 'center' }}>
-            Blueprint ready to export
-          </span>
-          <Button variant="primary" size="sm" onClick={() => onExport('pdf')}>Export PDF</Button>
-          <Button variant="secondary" size="sm" onClick={() => onExport('pptx')}>Export PPTX</Button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14, background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', flex: 1 }}>
+              Share this blueprint with your client
+            </span>
+            <Button variant="primary" size="sm" onClick={() => onExport('pdf')} loading={exporting === 'pdf'}>Export PDF</Button>
+            <Button variant="secondary" size="sm" onClick={() => onExport('pptx')} loading={exporting === 'pptx'}>Export PPTX</Button>
+          </div>
+          {exportError && (
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--danger)' }}>{exportError}</span>
+          )}
         </div>
       )}
     </div>

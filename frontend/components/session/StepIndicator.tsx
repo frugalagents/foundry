@@ -1,91 +1,101 @@
 'use client';
 import type { SessionStatus } from '@/lib/types';
-
-const STEPS = [
-  { n: 1, label: 'Intake' },
-  { n: 2, label: 'Score' },
-  { n: 3, label: 'Architecture' },
-  { n: 4, label: 'Innovations' },
-  { n: 5, label: 'Compliance' },
-  { n: 6, label: 'Services' },
-  { n: 7, label: 'Risks' },
-  { n: 8, label: 'Phasing' },
-  { n: 9, label: 'Costs' },
-  { n: 10, label: 'Blueprint' },
-];
+import { STEP_NAMES } from '@/lib/session-format';
+import { Check } from 'lucide-react';
 
 interface StepIndicatorProps {
   currentStep: number;
+  selectedStep: number;
+  /** Steps that have panel data (are navigable). */
+  availableSteps: Set<number>;
+  streaming?: boolean;
   sessionStatus?: SessionStatus;
+  onSelect: (step: number) => void;
 }
 
-export function StepIndicator({ currentStep, sessionStatus }: StepIndicatorProps) {
-  const isComplete = sessionStatus === 'complete';
+/**
+ * The single step navigator. Renders all 10 steps with three states —
+ * done (clickable), current (active), upcoming (locked) — and is the
+ * only way to move between panels.
+ */
+export function StepIndicator({
+  currentStep, selectedStep, availableSteps, streaming, sessionStatus, onSelect,
+}: StepIndicatorProps) {
+  const complete = sessionStatus === 'complete';
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-      {STEPS.map((s, i) => {
-        const done = isComplete || s.n < currentStep;
-        const active = s.n === currentStep && !isComplete;
+    <div className="stepnav" role="tablist" aria-label="Advisory steps">
+      {STEP_NAMES.map((label, i) => {
+        const n = i + 1;
+        const has = availableSteps.has(n);
+        const done = complete || (n < currentStep && has);
+        const isCurrent = n === currentStep;
+        const selected = n === selectedStep;
+        const clickable = has;
+        const streamingHere = isCurrent && streaming && !has;
+
         return (
-          <div key={s.n} style={{ display: 'flex', alignItems: 'center' }}>
-            <div
-              title={s.label}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 4,
-                cursor: 'default',
-              }}
-            >
-              <div
-                style={{
-                  width: active ? 10 : 8,
-                  height: active ? 10 : 8,
-                  borderRadius: '50%',
-                  background: done
-                    ? 'var(--accent-green)'
-                    : active
-                    ? 'var(--accent-blue)'
-                    : 'var(--border-default)',
-                  boxShadow: active
-                    ? '0 0 8px rgba(88,166,255,0.6)'
-                    : 'none',
-                  transition: 'all 0.2s',
-                }}
-              />
-              <span
-                style={{
-                  fontSize: 9,
-                  color: active
-                    ? 'var(--accent-blue)'
-                    : done
-                    ? 'var(--accent-green)'
-                    : 'var(--text-muted)',
-                  whiteSpace: 'nowrap',
-                  fontWeight: active ? 600 : 400,
-                }}
-              >
-                {s.label}
-              </span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div
-                style={{
-                  width: 20,
-                  height: 1,
-                  marginBottom: 14,
-                  background: done
-                    ? 'var(--accent-green)'
-                    : 'var(--border-default)',
-                  transition: 'background 0.2s',
-                }}
-              />
-            )}
-          </div>
+          <button
+            key={n}
+            role="tab"
+            aria-selected={selected}
+            disabled={!clickable}
+            onClick={() => clickable && onSelect(n)}
+            className={[
+              'step',
+              selected ? 'step--selected' : '',
+              done ? 'step--done' : '',
+              isCurrent ? 'step--current' : '',
+              !clickable ? 'step--locked' : '',
+            ].join(' ')}
+            title={label}
+          >
+            <span className="step-marker">
+              {done ? <Check size={11} strokeWidth={3} />
+                : streamingHere ? <span className="step-pulse" />
+                : n}
+            </span>
+            <span className="step-label">{label}</span>
+          </button>
         );
       })}
+
+      <style jsx>{`
+        .stepnav {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .stepnav::-webkit-scrollbar { display: none; }
+        .step {
+          display: flex; align-items: center; gap: 6px;
+          padding: 5px 10px;
+          background: none; border: none; border-radius: var(--radius-sm);
+          font-size: var(--text-xs); white-space: nowrap;
+          color: var(--text-muted); cursor: pointer;
+          transition: background 0.15s, color 0.15s;
+        }
+        .step:hover:not(.step--locked) { background: var(--bg-hover); color: var(--text-primary); }
+        .step--locked { cursor: default; opacity: 0.5; }
+        .step--done { color: var(--success); }
+        .step--current { color: var(--accent); }
+        .step--selected { background: var(--bg-elevated); color: var(--text-primary); font-weight: 600; }
+        .step-marker {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 18px; height: 18px; border-radius: 50%;
+          font-size: 10px; font-weight: 600; flex-shrink: 0;
+          border: 1px solid currentColor;
+        }
+        .step--selected .step-marker { border-color: var(--accent); color: var(--accent); }
+        .step-pulse {
+          width: 7px; height: 7px; border-radius: 50%;
+          background: var(--accent); animation: pulse-glow 1s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }
+
+export default StepIndicator;

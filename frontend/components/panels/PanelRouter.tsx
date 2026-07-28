@@ -36,6 +36,10 @@ interface PanelRouterProps {
   onWhatIf?: (overrides: Record<string, string>) => void;
   whatIfData?: WhatIfData | null;
   whatIfLoading?: boolean;
+  customerName?: string;
+  sessionName?: string;
+  exportError?: string | null;
+  exporting?: 'pdf' | 'pptx' | null;
 }
 
 // Backend step → panel mapping
@@ -55,6 +59,10 @@ export function PanelRouter({
   onWhatIf,
   whatIfData,
   whatIfLoading,
+  customerName,
+  sessionName,
+  exportError,
+  exporting,
 }: PanelRouterProps) {
   switch (step) {
     case 1:
@@ -129,6 +137,10 @@ export function PanelRouter({
           data={(panelData[10] as BlueprintData) ?? null}
           streaming={streaming}
           onExport={onExport}
+          customerName={customerName}
+          sessionName={sessionName}
+          exportError={exportError}
+          exporting={exporting}
         />
       );
     default:

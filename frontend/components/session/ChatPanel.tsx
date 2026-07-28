@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Square } from 'lucide-react';
 import type { ChatMessage, ConfirmationRequestEvent } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 
@@ -11,6 +11,7 @@ interface ChatPanelProps {
   confirmationRequest: ConfirmationRequestEvent | null;
   onSendMessage: (content: string) => void;
   onConfirm: (choice: string) => void;
+  onStop?: () => void;
 }
 
 export function ChatPanel({
@@ -20,9 +21,19 @@ export function ChatPanel({
   confirmationRequest,
   onSendMessage,
   onConfirm,
+  onStop,
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-grow the composer up to ~5 lines.
+  useEffect(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
+  }, [input]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -190,34 +201,41 @@ export function ChatPanel({
         }}
       >
         <textarea
+          ref={taRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask the advisor…"
+          placeholder={isStreaming ? 'Advisor is responding…' : 'Ask the advisor…'}
           rows={1}
           style={{
             flex: 1,
             background: 'var(--bg-elevated)',
             border: '1px solid var(--border-default)',
-            borderRadius: 8,
+            borderRadius: 'var(--radius-sm)',
             color: 'var(--text-primary)',
             padding: '8px 10px',
-            fontSize: 13,
+            fontSize: 'var(--text-sm)',
             outline: 'none',
             resize: 'none',
             fontFamily: 'inherit',
             lineHeight: 1.5,
           }}
         />
-        <Button
-          size="sm"
-          variant="primary"
-          onClick={handleSend}
-          disabled={!input.trim() || isStreaming}
-          style={{ flexShrink: 0 }}
-        >
-          <Send size={13} />
-        </Button>
+        {isStreaming && onStop ? (
+          <Button size="sm" variant="secondary" onClick={onStop} style={{ flexShrink: 0 }} title="Stop generating">
+            <Square size={12} /> Stop
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={handleSend}
+            disabled={!input.trim() || isStreaming}
+            style={{ flexShrink: 0 }}
+          >
+            <Send size={13} />
+          </Button>
+        )}
       </div>
     </div>
   );
