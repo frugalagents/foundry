@@ -7,7 +7,7 @@ from functools import lru_cache
 from typing import Annotated
 
 import httpx
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
@@ -67,12 +67,16 @@ def _decode_cognito_token(token: str) -> dict:
 
 
 async def get_current_user(
+    request: Request,
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> dict:
-    if not creds:
+    token = creds.credentials if creds else None
+    if not token and DEV_MODE:
+        # EventSource cannot send Authorization headers. Keep the existing
+        # local-dev query-token transport without enabling it in production.
+        token = request.query_params.get("token")
+    if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
-
-    token = creds.credentials
 
     try:
         if DEV_MODE:
@@ -85,17 +89,62 @@ async def get_current_user(
             detail=f"Invalid token: {exc}",
         )
 
+    get_user_id(payload)
     return payload
 
 
 async def require_admin(user: Annotated[dict, Depends(get_current_user)]) -> dict:
-    groups = user.get("cognito:groups", user.get("groups", []))
-    if isinstance(groups, str):
-        groups = [groups]
-    if user.get("custom:role") != "admin" and "admin" not in groups:
+    if not is_admin(user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin required")
     return user
 
 
 def get_user_id(user: dict) -> str:
-    return user.get("sub", user.get("user_id", "unknown"))
+    actor_id = user.get("sub") or user.get("user_id")
+    if not isinstance(actor_id, str) or not actor_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated token is missing an actor identifier",
+        )
+    return actor_id
+
+
+def is_admin(user: dict) -> bool:
+    groups = user.get("cognito:groups", user.get("groups", []))
+    if isinstance(groups, str):
+        groups = [groups]
+    return user.get("custom:role") == "admin" or "admin" in groups
+
+
+def authorize_owned_resource(
+    user: dict,
+    item: dict | None,
+    *,
+    resource_name: str,
+    write: bool = False,
+) -> dict:
+    """Enforce owner CRUD and admin read-only access to another user's data."""
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{resource_name} not found",
+        )
+
+    actor_id = get_user_id(user)
+    if item.get("created_by") == actor_id:
+        return item
+    if item.get("demo_data") is True and not write:
+        return item
+    if is_admin(user) and not write:
+        return item
+    if is_admin(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"{resource_name} is read-only because it belongs to another user",
+        )
+
+    # Do not disclose another user's resource existence to standard users.
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"{resource_name} not found",
+    )

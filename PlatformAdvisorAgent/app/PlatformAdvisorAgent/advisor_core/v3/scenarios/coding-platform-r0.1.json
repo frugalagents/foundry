@@ -1,0 +1,346 @@
+{
+  "id": "scenario-suite:coding-platform-r0-1",
+  "version": "1.1.0",
+  "catalog_id": "catalog:coding-platform",
+  "catalog_version": "3.0.0",
+  "baseline_requirements": {
+    "requirement:approved-package-registries": true,
+    "requirement:concurrent-agent-tasks": 100,
+    "requirement:developer-count": 5000,
+    "requirement:enterprise-identity": "entra",
+    "requirement:execution-placement": "customer-managed",
+    "requirement:restricted-egress": false,
+    "requirement:runtime-isolation": "container",
+    "requirement:source-control": "gitlab-saas"
+  },
+  "scenarios": [
+    {
+      "id": "scenario:developer-local-positive",
+      "version": "1.1.0",
+      "kind": "positive",
+      "target_pattern_id": "pattern:developer-local",
+      "requirements": {
+        "requirement:execution-placement": "local",
+        "requirement:runtime-isolation": "developer-endpoint"
+      },
+      "expected_status": "feasible"
+    },
+    {
+      "id": "scenario:developer-local-rejection",
+      "version": "1.1.0",
+      "kind": "rejection",
+      "target_pattern_id": "pattern:developer-local",
+      "requirements": {
+        "requirement:execution-placement": "local",
+        "requirement:runtime-isolation": "microvm"
+      },
+      "expected_status": "rejected",
+      "expected_rejection_rule_ids": [
+        "rule:reject-developer-local-isolation"
+      ]
+    },
+    {
+      "id": "scenario:developer-local-unknown",
+      "version": "1.1.0",
+      "kind": "unknown",
+      "target_pattern_id": "pattern:developer-local",
+      "requirements": {
+        "requirement:execution-placement": "local",
+        "requirement:runtime-isolation": "developer-endpoint"
+      },
+      "unset_requirements": ["requirement:runtime-isolation"],
+      "expected_status": "unknown",
+      "expected_blocking_requirement_ids": [
+        "requirement:runtime-isolation"
+      ]
+    },
+    {
+      "id": "scenario:developer-local-one-variable-flip",
+      "version": "1.1.0",
+      "kind": "one_variable_flip",
+      "target_pattern_id": "pattern:developer-local",
+      "requirements": {
+        "requirement:execution-placement": "local",
+        "requirement:runtime-isolation": "developer-endpoint"
+      },
+      "flip": {
+        "requirement_id": "requirement:runtime-isolation",
+        "from": "developer-endpoint",
+        "to": "microvm",
+        "expected_before_status": "feasible",
+        "expected_after_status": "rejected",
+        "expected_rejection_rule_ids": [
+          "rule:reject-developer-local-isolation"
+        ]
+      }
+    },
+    {
+      "id": "scenario:vendor-ephemeral-positive",
+      "version": "1.1.0",
+      "kind": "positive",
+      "target_pattern_id": "pattern:vendor-ephemeral",
+      "requirements": {
+        "requirement:execution-placement": "vendor-managed"
+      },
+      "expected_status": "feasible"
+    },
+    {
+      "id": "scenario:vendor-ephemeral-rejection",
+      "version": "1.1.0",
+      "kind": "rejection",
+      "target_pattern_id": "pattern:vendor-ephemeral",
+      "requirements": {
+        "requirement:execution-placement": "vendor-managed",
+        "requirement:private-connectivity": true,
+        "requirement:restricted-egress": true
+      },
+      "expected_status": "rejected",
+      "expected_rejection_rule_ids": [
+        "rule:reject-vendor-ephemeral-private-connectivity"
+      ]
+    },
+    {
+      "id": "scenario:vendor-ephemeral-unknown",
+      "version": "1.1.0",
+      "kind": "unknown",
+      "target_pattern_id": "pattern:vendor-ephemeral",
+      "requirements": {
+        "requirement:execution-placement": "vendor-managed"
+      },
+      "unset_requirements": ["requirement:restricted-egress"],
+      "expected_status": "unknown",
+      "expected_blocking_requirement_ids": [
+        "requirement:restricted-egress"
+      ]
+    },
+    {
+      "id": "scenario:vendor-ephemeral-one-variable-flip",
+      "version": "1.1.0",
+      "kind": "one_variable_flip",
+      "target_pattern_id": "pattern:vendor-ephemeral",
+      "requirements": {
+        "requirement:execution-placement": "vendor-managed",
+        "requirement:private-connectivity": false,
+        "requirement:restricted-egress": true
+      },
+      "flip": {
+        "requirement_id": "requirement:private-connectivity",
+        "from": false,
+        "to": true,
+        "expected_before_status": "feasible",
+        "expected_after_status": "rejected",
+        "expected_rejection_rule_ids": [
+          "rule:reject-vendor-ephemeral-private-connectivity"
+        ]
+      }
+    },
+    {
+      "id": "scenario:managed-customer-positive",
+      "version": "1.1.0",
+      "kind": "positive",
+      "target_pattern_id": "pattern:managed-customer-execution",
+      "requirements": {},
+      "expected_status": "feasible"
+    },
+    {
+      "id": "scenario:managed-customer-rejection",
+      "version": "1.1.0",
+      "kind": "rejection",
+      "target_pattern_id": "pattern:managed-customer-execution",
+      "requirements": {
+        "requirement:execution-placement": "vendor-managed"
+      },
+      "expected_status": "rejected",
+      "expected_rejection_rule_ids": [
+        "rule:reject-managed-customer-placement"
+      ]
+    },
+    {
+      "id": "scenario:managed-customer-unknown",
+      "version": "1.1.0",
+      "kind": "unknown",
+      "target_pattern_id": "pattern:managed-customer-execution",
+      "requirements": {},
+      "unset_requirements": ["requirement:enterprise-identity"],
+      "expected_status": "unknown",
+      "expected_blocking_requirement_ids": [
+        "requirement:enterprise-identity"
+      ]
+    },
+    {
+      "id": "scenario:managed-customer-one-variable-flip",
+      "version": "1.1.0",
+      "kind": "one_variable_flip",
+      "target_pattern_id": "pattern:managed-customer-execution",
+      "requirements": {},
+      "flip": {
+        "requirement_id": "requirement:execution-placement",
+        "from": "customer-managed",
+        "to": "vendor-managed",
+        "expected_before_status": "feasible",
+        "expected_after_status": "rejected",
+        "expected_rejection_rule_ids": [
+          "rule:reject-managed-customer-placement"
+        ]
+      }
+    },
+    {
+      "id": "scenario:persistent-workspace-positive",
+      "version": "1.1.0",
+      "kind": "positive",
+      "target_pattern_id": "pattern:persistent-remote-workspace",
+      "requirements": {
+        "requirement:long-running-workspaces": true
+      },
+      "expected_status": "feasible"
+    },
+    {
+      "id": "scenario:persistent-workspace-rejection",
+      "version": "1.1.0",
+      "kind": "rejection",
+      "target_pattern_id": "pattern:persistent-remote-workspace",
+      "requirements": {
+        "requirement:long-running-workspaces": false
+      },
+      "expected_status": "rejected",
+      "expected_rejection_rule_ids": [
+        "rule:reject-nonpersistent-workspace"
+      ]
+    },
+    {
+      "id": "scenario:persistent-workspace-unknown",
+      "version": "1.1.0",
+      "kind": "unknown",
+      "target_pattern_id": "pattern:persistent-remote-workspace",
+      "requirements": {
+        "requirement:long-running-workspaces": true
+      },
+      "unset_requirements": ["requirement:developer-count"],
+      "expected_status": "unknown",
+      "expected_blocking_requirement_ids": [
+        "requirement:developer-count"
+      ]
+    },
+    {
+      "id": "scenario:persistent-workspace-one-variable-flip",
+      "version": "1.1.0",
+      "kind": "one_variable_flip",
+      "target_pattern_id": "pattern:persistent-remote-workspace",
+      "requirements": {
+        "requirement:long-running-workspaces": true
+      },
+      "flip": {
+        "requirement_id": "requirement:long-running-workspaces",
+        "from": true,
+        "to": false,
+        "expected_before_status": "feasible",
+        "expected_after_status": "rejected",
+        "expected_rejection_rule_ids": [
+          "rule:reject-nonpersistent-workspace"
+        ]
+      }
+    },
+    {
+      "id": "scenario:self-hosted-container-positive",
+      "version": "1.1.0",
+      "kind": "positive",
+      "target_pattern_id": "pattern:self-hosted-container",
+      "requirements": {},
+      "expected_status": "feasible"
+    },
+    {
+      "id": "scenario:self-hosted-container-rejection",
+      "version": "1.1.0",
+      "kind": "rejection",
+      "target_pattern_id": "pattern:self-hosted-container",
+      "requirements": {
+        "requirement:runtime-isolation": "microvm"
+      },
+      "expected_status": "rejected",
+      "expected_rejection_rule_ids": [
+        "rule:reject-self-hosted-container-isolation"
+      ]
+    },
+    {
+      "id": "scenario:self-hosted-container-unknown",
+      "version": "1.1.0",
+      "kind": "unknown",
+      "target_pattern_id": "pattern:self-hosted-container",
+      "requirements": {},
+      "unset_requirements": ["requirement:source-control"],
+      "expected_status": "unknown",
+      "expected_blocking_requirement_ids": [
+        "requirement:source-control"
+      ]
+    },
+    {
+      "id": "scenario:self-hosted-container-one-variable-flip",
+      "version": "1.1.0",
+      "kind": "one_variable_flip",
+      "target_pattern_id": "pattern:self-hosted-container",
+      "requirements": {},
+      "flip": {
+        "requirement_id": "requirement:runtime-isolation",
+        "from": "container",
+        "to": "microvm",
+        "expected_before_status": "feasible",
+        "expected_after_status": "rejected",
+        "expected_rejection_rule_ids": [
+          "rule:reject-self-hosted-container-isolation"
+        ]
+      }
+    },
+    {
+      "id": "scenario:self-hosted-kubernetes-positive",
+      "version": "1.1.0",
+      "kind": "positive",
+      "target_pattern_id": "pattern:self-hosted-kubernetes",
+      "requirements": {},
+      "expected_status": "feasible"
+    },
+    {
+      "id": "scenario:self-hosted-kubernetes-rejection",
+      "version": "1.1.0",
+      "kind": "rejection",
+      "target_pattern_id": "pattern:self-hosted-kubernetes",
+      "requirements": {
+        "requirement:execution-placement": "hybrid"
+      },
+      "expected_status": "rejected",
+      "expected_rejection_rule_ids": [
+        "rule:reject-self-hosted-kubernetes-placement"
+      ]
+    },
+    {
+      "id": "scenario:self-hosted-kubernetes-unknown",
+      "version": "1.1.0",
+      "kind": "unknown",
+      "target_pattern_id": "pattern:self-hosted-kubernetes",
+      "requirements": {},
+      "unset_requirements": [
+        "requirement:approved-package-registries"
+      ],
+      "expected_status": "unknown",
+      "expected_blocking_requirement_ids": [
+        "requirement:approved-package-registries"
+      ]
+    },
+    {
+      "id": "scenario:self-hosted-kubernetes-one-variable-flip",
+      "version": "1.1.0",
+      "kind": "one_variable_flip",
+      "target_pattern_id": "pattern:self-hosted-kubernetes",
+      "requirements": {},
+      "flip": {
+        "requirement_id": "requirement:execution-placement",
+        "from": "customer-managed",
+        "to": "hybrid",
+        "expected_before_status": "feasible",
+        "expected_after_status": "rejected",
+        "expected_rejection_rule_ids": [
+          "rule:reject-self-hosted-kubernetes-placement"
+        ]
+      }
+    }
+  ]
+}

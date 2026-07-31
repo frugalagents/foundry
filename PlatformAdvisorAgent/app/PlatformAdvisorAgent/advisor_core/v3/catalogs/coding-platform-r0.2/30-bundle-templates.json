@@ -1,0 +1,118 @@
+{
+  "bundle_templates": [
+    {
+      "id": "bundle-template:aws-governed",
+      "version": "1.0.0",
+      "name": "AWS governed managed stack",
+      "description": "AWS-managed control, execution, governance, and observability services.",
+      "deployment_family_id": "pattern:managed-customer-execution",
+      "default_provider_class": "aws",
+      "requirement_acceptance": [
+        {
+          "requirement_id": "requirement:execution-placement",
+          "accepted_values": ["customer-managed", "vendor-managed", "hybrid"]
+        }
+      ],
+      "score_adjustments": [
+        {"dimension_id": "dimension:security", "value": 2},
+        {"dimension_id": "dimension:operability", "value": 1},
+        {"dimension_id": "dimension:delivery-speed", "value": -1}
+      ],
+      "integration_penalty": 0.5
+    },
+    {
+      "id": "bundle-template:oss-sovereign",
+      "version": "1.0.0",
+      "name": "Open-source sovereign stack",
+      "description": "Customer-operated open-source control and execution plane.",
+      "deployment_family_id": "pattern:self-hosted-kubernetes",
+      "default_provider_class": "oss",
+      "requirement_acceptance": [
+        {
+          "requirement_id": "requirement:execution-placement",
+          "accepted_values": ["customer-managed"]
+        }
+      ],
+      "score_adjustments": [
+        {"dimension_id": "dimension:operability", "value": -2},
+        {"dimension_id": "dimension:portability", "value": 2},
+        {"dimension_id": "dimension:economics", "value": 2}
+      ],
+      "integration_penalty": 1.0
+    },
+    {
+      "id": "bundle-template:saas-composable",
+      "version": "1.0.0",
+      "name": "Composable SaaS stack",
+      "description": "Managed SaaS control plane and vendor-operated execution services.",
+      "deployment_family_id": "pattern:vendor-ephemeral",
+      "default_provider_class": "saas",
+      "requirement_acceptance": [
+        {
+          "requirement_id": "requirement:execution-placement",
+          "accepted_values": ["vendor-managed", "hybrid"]
+        }
+      ],
+      "score_adjustments": [
+        {"dimension_id": "dimension:operability", "value": 1},
+        {"dimension_id": "dimension:portability", "value": -2},
+        {"dimension_id": "dimension:delivery-speed", "value": 2}
+      ],
+      "integration_penalty": 0.5
+    },
+    {
+      "id": "bundle-template:byop-portable",
+      "version": "1.0.0",
+      "name": "BYOP portable stack",
+      "description": "Contract-driven adapters around customer-selected platform services.",
+      "deployment_family_id": "pattern:persistent-remote-workspace",
+      "default_provider_class": "byop",
+      "requirement_acceptance": [
+        {
+          "requirement_id": "requirement:execution-placement",
+          "accepted_values": ["local", "customer-managed", "vendor-managed", "hybrid"]
+        },
+        {
+          "requirement_id": "requirement:long-running-workspaces",
+          "accepted_values": [true]
+        }
+      ],
+      "score_adjustments": [
+        {"dimension_id": "dimension:portability", "value": 3},
+        {"dimension_id": "dimension:delivery-speed", "value": -3}
+      ],
+      "integration_penalty": 2.0
+    },
+    {
+      "id": "bundle-template:hybrid-governed",
+      "version": "1.0.0",
+      "name": "Hybrid governed stack",
+      "description": "AWS governance and execution with portable SaaS experience and orchestration services.",
+      "deployment_family_id": "pattern:managed-customer-execution",
+      "default_provider_class": "saas",
+      "plane_selections": [
+        {"plane": "access", "provider_class": "aws"},
+        {"plane": "execution", "provider_class": "aws"},
+        {"plane": "governance", "provider_class": "aws"},
+        {"plane": "knowledge", "provider_class": "aws"},
+        {"plane": "observability", "provider_class": "aws"}
+      ],
+      "component_selections": [
+        {"component_id": "component:model-gateway", "provider_class": "aws"},
+        {"component_id": "component:tool-gateway", "provider_class": "aws"}
+      ],
+      "requirement_acceptance": [
+        {
+          "requirement_id": "requirement:execution-placement",
+          "accepted_values": ["customer-managed", "hybrid"]
+        }
+      ],
+      "score_adjustments": [
+        {"dimension_id": "dimension:security", "value": 1},
+        {"dimension_id": "dimension:operability", "value": -1},
+        {"dimension_id": "dimension:portability", "value": 3}
+      ],
+      "integration_penalty": 3.0
+    }
+  ]
+}

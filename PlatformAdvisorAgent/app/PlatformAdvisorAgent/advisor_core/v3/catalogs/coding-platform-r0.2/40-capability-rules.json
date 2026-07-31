@@ -1,0 +1,114 @@
+{
+  "capability_rules": [
+    {
+      "id": "capability-rule:private-connectivity",
+      "version": "1.0.0",
+      "name": "Private connectivity",
+      "requirement_id": "requirement:private-connectivity",
+      "operator": "equals",
+      "value": true,
+      "target_component_ids": ["component:execution-broker", "component:model-gateway", "component:tool-gateway"],
+      "required_capability": "private_connectivity",
+      "rationale": "Control-plane and execution traffic must remain on approved private paths."
+    },
+    {
+      "id": "capability-rule:restricted-egress",
+      "version": "1.0.0",
+      "name": "Restricted runtime egress",
+      "requirement_id": "requirement:restricted-egress",
+      "operator": "equals",
+      "value": true,
+      "target_component_ids": ["component:container-runtime", "component:ephemeral-runtime", "component:execution-broker", "component:kubernetes-runtime", "component:local-runtime", "component:persistent-workspace", "component:tool-gateway"],
+      "required_capability": "restricted_egress",
+      "rationale": "Selected execution and tool services must enforce explicit outbound destinations."
+    },
+    {
+      "id": "capability-rule:microvm-isolation",
+      "version": "1.0.0",
+      "name": "MicroVM isolation",
+      "requirement_id": "requirement:runtime-isolation",
+      "operator": "equals",
+      "value": "microvm",
+      "target_component_ids": ["component:container-runtime", "component:ephemeral-runtime", "component:kubernetes-runtime", "component:local-runtime", "component:persistent-workspace"],
+      "required_capability": "microvm_isolation",
+      "rationale": "Every selected active execution service must provide a MicroVM isolation boundary."
+    },
+    {
+      "id": "capability-rule:dedicated-tenancy",
+      "version": "1.0.0",
+      "name": "Dedicated tenancy",
+      "requirement_id": "requirement:runtime-isolation",
+      "operator": "equals",
+      "value": "dedicated-tenant",
+      "target_component_ids": ["component:container-runtime", "component:ephemeral-runtime", "component:kubernetes-runtime", "component:local-runtime", "component:persistent-workspace"],
+      "required_capability": "dedicated_tenancy",
+      "rationale": "Execution services must preserve a dedicated customer tenancy boundary."
+    },
+    {
+      "id": "capability-rule:enterprise-scale",
+      "version": "1.0.0",
+      "name": "Enterprise scale",
+      "requirement_id": "requirement:developer-count",
+      "operator": "greater_than_or_equal",
+      "value": 1000,
+      "target_component_ids": ["component:execution-broker", "component:orchestration-runtime", "component:quota-manager"],
+      "required_capability": "high_scale",
+      "rationale": "Shared control-plane services must support enterprise developer population and concurrency."
+    },
+    {
+      "id": "capability-rule:gitlab-saas",
+      "version": "1.0.0",
+      "name": "GitLab SaaS integration",
+      "requirement_id": "requirement:source-control",
+      "operator": "equals",
+      "value": "gitlab-saas",
+      "target_component_ids": ["component:source-control-integration"],
+      "required_capability": "gitlab_saas",
+      "rationale": "The source-control adapter must support GitLab SaaS events and APIs."
+    },
+    {
+      "id": "capability-rule:entra-workforce",
+      "version": "1.0.0",
+      "name": "Microsoft Entra workforce federation",
+      "requirement_id": "requirement:enterprise-identity",
+      "operator": "equals",
+      "value": "entra",
+      "target_component_ids": ["component:workforce-identity"],
+      "required_capability": "entra_oidc",
+      "rationale": "The workforce identity service must federate Entra users and groups."
+    },
+    {
+      "id": "capability-rule:approved-packages",
+      "version": "1.0.0",
+      "name": "Approved private package registries",
+      "requirement_id": "requirement:approved-package-registries",
+      "operator": "equals",
+      "value": true,
+      "target_component_ids": ["component:package-access"],
+      "required_capability": "private_registry",
+      "rationale": "Package access must authenticate to approved private registries and deny unapproved sources."
+    },
+    {
+      "id": "capability-rule:durable-audit",
+      "version": "1.0.0",
+      "name": "Durable audit retention",
+      "requirement_id": "requirement:audit-retention-days",
+      "operator": "greater_than_or_equal",
+      "value": 90,
+      "target_component_ids": ["component:audit-ledger"],
+      "required_capability": "durable_audit",
+      "rationale": "The audit ledger must preserve immutable records for the required retention period."
+    },
+    {
+      "id": "capability-rule:approved-regions",
+      "version": "1.0.0",
+      "name": "Approved-region deployment",
+      "requirement_id": "requirement:approved-regions",
+      "operator": "equals",
+      "value": "any-approved",
+      "target_component_ids": ["component:multi-region", "component:orchestration-runtime"],
+      "required_capability": "multi_region",
+      "rationale": "Regional deployment must be configurable across the approved region set."
+    }
+  ]
+}

@@ -25,11 +25,14 @@ import json
 import logging
 import os
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import AsyncIterator, Optional
 
 import boto3
+import jwt
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
+from jwt import PyJWKClient
 from strands import Agent
 from strands.models import BedrockModel
 
@@ -42,6 +45,12 @@ from pipeline_skills.base import (
     make_chat_stream,
 )
 from pipeline_skills.v2_assessment_skill import run_v2_assessment
+from memory.context_store import (
+    list_customer_contexts,
+    load_context,
+    save_context,
+    session_is_owned,
+)
 from memory.session import get_memory_session_manager
 from pipeline_tools import make_pipeline_tools
 
@@ -53,6 +62,14 @@ log = app.logger
 _TABLE = os.environ.get("DYNAMODB_TABLE", "platform-advisor-main")
 _REGION = os.environ.get("AWS_REGION", "us-east-1")
 _MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6")
+_COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "")
+_COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID", "")
+_COGNITO_ISSUER = (
+    f"https://cognito-idp.{_REGION}.amazonaws.com/{_COGNITO_USER_POOL_ID}"
+)
+_COGNITO_TOKEN_HEADER = (
+    "x-amzn-bedrock-agentcore-runtime-custom-cognito-id-token"
+)
 
 _V2_SYSTEM_ADDENDUM = """
 
@@ -79,74 +96,35 @@ def _get_ddb():
     return _ddb
 
 
-def _save_ctx(ctx: PipelineContext) -> None:
-    """Persist PipelineContext to DynamoDB for next-turn retrieval."""
+def _save_ctx(ctx: PipelineContext, actor_id: str) -> None:
+    """Persist PipelineContext into the API-owned session aggregate."""
     table = _get_ddb().Table(_TABLE)
-    table.put_item(Item={
-        "PK": f"CUST#{ctx.customer_id}",
-        "SK": f"SESSION#{ctx.session_id}#PIPELINE_CTX",
-        "entity_type": "PipelineContext",
-        "ctx_json": json.dumps({
-            "session_id":       ctx.session_id,
-            "customer_id":      ctx.customer_id,
-            "answers":          ctx.answers,
-            "industry":         ctx.industry,
-            "pain_points":      ctx.pain_points,
-            "pattern_id":       ctx.pattern_id,
-            "confidence":       ctx.confidence,
-            "axis_scores":      ctx.axis_scores,
-            "topology":         ctx.topology,
-            "components":       ctx.components,
-            "innovations":      ctx.innovations,
-            "compliance_notes": ctx.compliance_notes,
-            "service_map":      ctx.service_map,
-            "antipatterns":     ctx.antipatterns,
-            "phases":           ctx.phases,
-            "blueprint_md":     ctx.blueprint_md,
-            "customer_history": ctx.customer_history,
-            "current_step":     ctx.current_step,
-            "cost_estimate":    ctx.cost_estimate,
-            "schema_version":   ctx.schema_version,
-            "assessment_input": ctx.assessment_input,
-            "assessment_result": ctx.assessment_result,
-            "overrides":        ctx.overrides,
-        }),
-    })
+    save_context(table, ctx, owner_id=actor_id)
 
 
-def _load_customer_history(customer_id: str, current_session_id: str) -> str:
+def _load_customer_history(
+    customer_id: str,
+    current_session_id: str,
+    actor_id: str,
+) -> str:
     """Query prior completed advisory sessions for this customer and return a summary."""
     try:
-        from boto3.dynamodb.conditions import Key, Attr
         table = _get_ddb().Table(_TABLE)
-        resp = table.query(
-            KeyConditionExpression=(
-                Key("PK").eq(f"CUST#{customer_id}") &
-                Key("SK").begins_with("SESSION#")
-            ),
-            FilterExpression=Attr("entity_type").eq("PipelineContext"),
-        )
-        items = resp.get("Items", [])
         history_parts = []
-        for item in items:
-            sk = item.get("SK", "")
-            # SK: SESSION#{session_id}#PIPELINE_CTX
-            sk_parts = sk.split("#")
-            if len(sk_parts) < 3:
-                continue
-            sess_id = sk_parts[1]
+        for data in list_customer_contexts(
+            table,
+            customer_id,
+            owner_id=actor_id,
+        ):
+            sess_id = data.get("session_id")
             if sess_id == current_session_id:
                 continue
-            try:
-                d = json.loads(item.get("ctx_json", "{}"))
-            except Exception:
-                continue
-            if not d.get("blueprint_md"):
+            if not data.get("blueprint_md"):
                 continue  # only completed sessions
-            pattern = d.get("pattern_id", "").split(":")[-1].title()
-            answers = d.get("answers", {})
+            pattern = data.get("pattern_id", "").split(":")[-1].title()
+            answers = data.get("answers", {})
             lobs = answers.get("lob_count", "?")
-            industry = d.get("industry", "")
+            industry = data.get("industry", "")
             regime = answers.get("compliance_regime", "none")
             history_parts.append(
                 f"{pattern} pattern, {lobs} LOBs"
@@ -161,40 +139,64 @@ def _load_customer_history(customer_id: str, current_session_id: str) -> str:
         return ""
 
 
-def _load_ctx(customer_id: str, session_id: str) -> PipelineContext | None:
+def _load_ctx(
+    customer_id: str,
+    session_id: str,
+    actor_id: str,
+) -> PipelineContext | None:
     """Load a previously saved PipelineContext from DynamoDB."""
     table = _get_ddb().Table(_TABLE)
-    resp = table.get_item(Key={
-        "PK": f"CUST#{customer_id}",
-        "SK": f"SESSION#{session_id}#PIPELINE_CTX",
-    })
-    item = resp.get("Item")
-    if not item:
+    return load_context(
+        table,
+        customer_id,
+        session_id,
+        owner_id=actor_id,
+    )
+
+
+def _session_is_owned(customer_id: str, session_id: str, actor_id: str) -> bool:
+    table = _get_ddb().Table(_TABLE)
+    return session_is_owned(table, customer_id, session_id, actor_id)
+
+
+def _request_header(context, name: str) -> str | None:
+    headers = getattr(context, "request_headers", None)
+    if not isinstance(headers, dict):
         return None
-    d = json.loads(item["ctx_json"])
-    ctx = PipelineContext(session_id=d["session_id"], customer_id=d["customer_id"])
-    ctx.answers          = d.get("answers", {})
-    ctx.industry         = d.get("industry", "")
-    ctx.pain_points      = d.get("pain_points", [])
-    ctx.pattern_id       = d.get("pattern_id", "")
-    ctx.confidence       = d.get("confidence", 0.0)
-    ctx.axis_scores      = d.get("axis_scores", [])
-    ctx.topology         = d.get("topology", {})
-    ctx.components       = d.get("components", [])
-    ctx.innovations      = d.get("innovations", [])
-    ctx.compliance_notes = d.get("compliance_notes", [])
-    ctx.service_map      = d.get("service_map", [])
-    ctx.antipatterns     = d.get("antipatterns", [])
-    ctx.phases           = d.get("phases", [])
-    ctx.blueprint_md     = d.get("blueprint_md", "")
-    ctx.customer_history = d.get("customer_history", "")
-    ctx.current_step     = d.get("current_step", 0)
-    ctx.cost_estimate    = d.get("cost_estimate", {})
-    ctx.schema_version   = d.get("schema_version", "1.0")
-    ctx.assessment_input = d.get("assessment_input", {})
-    ctx.assessment_result = d.get("assessment_result", {})
-    ctx.overrides        = d.get("overrides", [])
-    return ctx
+    target = name.lower()
+    for header_name, value in headers.items():
+        if header_name.lower() == target and isinstance(value, str):
+            return value.strip() or None
+    return None
+
+
+@lru_cache(maxsize=1)
+def _cognito_jwk_client() -> PyJWKClient:
+    return PyJWKClient(f"{_COGNITO_ISSUER}/.well-known/jwks.json")
+
+
+def _runtime_actor_id(context) -> str | None:
+    """Verify the forwarded Cognito ID token and return its immutable subject."""
+    token = _request_header(context, _COGNITO_TOKEN_HEADER)
+    if not token or not _COGNITO_USER_POOL_ID or not _COGNITO_CLIENT_ID:
+        return None
+    try:
+        signing_key = _cognito_jwk_client().get_signing_key_from_jwt(token)
+        claims = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=_COGNITO_CLIENT_ID,
+            issuer=_COGNITO_ISSUER,
+            options={"require": ["exp", "iat", "sub", "token_use"]},
+        )
+    except jwt.PyJWTError as exc:
+        log.warning("Rejected Cognito identity token: %s", type(exc).__name__)
+        return None
+    if claims.get("token_use") != "id":
+        return None
+    actor_id = claims.get("sub")
+    return actor_id.strip() if isinstance(actor_id, str) and actor_id.strip() else None
 
 
 # ── System prompt ─────────────────────────────────────────────────────────────
@@ -341,7 +343,7 @@ async def invoke(payload: dict, context):
     user_message = payload.get("user_message") or "Start the advisory session."
 
     agentcore_session_id = getattr(context, "session_id", None) or session_id
-    actor_id             = getattr(context, "user_id", None) or customer_id or "anonymous"
+    actor_id             = _runtime_actor_id(context)
 
     log.info(
         "invoke: session=%s customer=%s action=%s msg=%.120s",
@@ -373,8 +375,19 @@ async def invoke(payload: dict, context):
         yield make_complete(session_id)
         return
 
+    if not actor_id:
+        yield make_error(
+            0,
+            "Authenticated runtime user identity is required.",
+            recoverable=False,
+        )
+        return
+    if not _session_is_owned(customer_id, session_id, actor_id):
+        yield make_error(0, "Session not found.", recoverable=False)
+        return
+
     if action == "whatif":
-        ctx = _load_ctx(customer_id, session_id) or PipelineContext(
+        ctx = _load_ctx(customer_id, session_id, actor_id) or PipelineContext(
             session_id=session_id,
             customer_id=customer_id,
         )
@@ -388,7 +401,7 @@ async def invoke(payload: dict, context):
     if payload.get("action") == "drilldown":
         component_id   = payload.get("component_id", "")
         component_name = payload.get("component_name", "")
-        ctx = _load_ctx(customer_id, session_id) or PipelineContext(
+        ctx = _load_ctx(customer_id, session_id, actor_id) or PipelineContext(
             session_id=session_id,
             customer_id=customer_id,
         )
@@ -420,7 +433,7 @@ async def invoke(payload: dict, context):
         return
 
     # ── Restore or create pipeline context ────────────────────────────────
-    ctx = _load_ctx(customer_id, session_id) or PipelineContext(
+    ctx = _load_ctx(customer_id, session_id, actor_id) or PipelineContext(
         session_id=session_id,
         customer_id=customer_id,
     )
@@ -440,7 +453,7 @@ async def invoke(payload: dict, context):
             result = DecisionEngine().assess(assessment, overrides)
             async for event in run_v2_assessment(ctx, assessment, result):
                 yield event
-            _save_ctx(ctx)
+            _save_ctx(ctx, actor_id)
         except Exception as exc:
             log.exception("V2 assessment failed")
             yield make_error(1, f"Assessment validation failed: {exc}")
@@ -486,7 +499,7 @@ async def invoke(payload: dict, context):
     # On the first interaction (no pattern yet), check for prior completed
     # sessions so the agent can reference them in conversation.
     if not ctx.customer_history and not ctx.pattern_id:
-        history = _load_customer_history(customer_id, session_id)
+        history = _load_customer_history(customer_id, session_id, actor_id)
         if history:
             ctx.customer_history = history
             log.info("Loaded customer history for %s: %s", customer_id, history[:80])
@@ -535,7 +548,7 @@ async def invoke(payload: dict, context):
     finally:
         # Persist updated context so the next turn picks up where we left off
         try:
-            _save_ctx(ctx)
+            _save_ctx(ctx, actor_id)
         except Exception as exc:
             log.warning("Failed to persist pipeline context: %s", exc)
 

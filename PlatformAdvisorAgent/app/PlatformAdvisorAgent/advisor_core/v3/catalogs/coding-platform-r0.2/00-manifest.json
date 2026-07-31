@@ -1,0 +1,10 @@
+{
+  "manifest": {
+    "id": "deployable-catalog:coding-platform",
+    "version": "0.2.0",
+    "schema_version": "3.0-r0.2",
+    "title": "Coding agent platform deployable offerings",
+    "effective_on": "2026-07-30",
+    "logical_catalog_id": "catalog:coding-platform"
+  }
+}

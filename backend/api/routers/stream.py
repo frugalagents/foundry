@@ -14,7 +14,7 @@ from typing import Annotated, AsyncIterator
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from api.middleware.auth import get_current_user
+from api.middleware.auth import authorize_owned_resource, get_current_user, get_user_id
 from api.db import dynamodb as db
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,28 @@ router = APIRouter(prefix="/sessions", tags=["stream"])
 CurrentUser = Annotated[dict, Depends(get_current_user)]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _get_authorized_session(
+    customer_id: str,
+    session_id: str,
+    user: dict,
+    *,
+    write: bool,
+) -> dict:
+    authorize_owned_resource(
+        user,
+        db.get_customer(customer_id),
+        resource_name="Customer",
+        write=write,
+    )
+    return authorize_owned_resource(
+        user,
+        db.get_session(customer_id, session_id),
+        resource_name="Session",
+        write=write,
+    )
+
 
 def _ctx_to_dict(ctx) -> dict:
     return {
@@ -108,6 +130,7 @@ def _is_confirmation(msg: str) -> bool:
 async def run_session(
     customer_id: str,
     session_id: str,
+    user: CurrentUser,
     user_message: str = Query(default=""),
     answers: str = Query(default="{}"),
     industry: str = Query(default=""),
@@ -131,13 +154,20 @@ async def run_session(
       pattern confirmed, pipeline incomplete  → run remaining steps from current state
       blueprint complete                      → return placeholder chat reply
     """
+    session_data = _get_authorized_session(
+        customer_id,
+        session_id,
+        user,
+        write=True,
+    )
+    actor_id = get_user_id(user)
+
     from advisor_core import AssessmentInput, DecisionEngine
     from advisor_core.models import OverrideRecord
     from pipeline_skills.base import PipelineContext, make_chat_message, make_complete, make_error
     from pipeline_skills.v2_assessment_skill import run_v2_assessment
 
-    # Load or create pipeline context
-    session_data = db.get_session(customer_id, session_id)
+    # Load the authorized pipeline context.
     ctx_data = (session_data or {}).get("pipeline_ctx")
     if ctx_data:
         ctx = _ctx_from_dict(ctx_data, session_id, customer_id)
@@ -194,7 +224,7 @@ async def run_session(
                     "recommendation": result.get("operating_model") or ctx.pattern_id or "",
                     "evidence_state": evidence_state,
                     "primary_workload": ctx.assessment_input.get("primary_workload", ""),
-                })
+                }, owner_id=actor_id)
             except Exception as persist_exc:
                 logger.warning("Failed to persist pipeline ctx: %s", persist_exc)
 
@@ -210,6 +240,7 @@ async def whatif_scenario(
     customer_id: str,
     session_id: str,
     body: dict,
+    user: CurrentUser,
     token: str = Query(default=""),
 ):
     """
@@ -217,6 +248,7 @@ async def whatif_scenario(
     Returns the full radar diff payload as JSON.
     Local dev only — production uses AgentCore directly (action:"whatif").
     """
+    _get_authorized_session(customer_id, session_id, user, write=False)
     raise HTTPException(
         status_code=410,
         detail="Legacy score-only what-if is removed. Re-evaluate a cloned v2 AssessmentInput.",
@@ -227,6 +259,7 @@ async def whatif_scenario(
 async def drilldown_component(
     customer_id: str,
     session_id: str,
+    user: CurrentUser,
     component_id: str = Query(...),
     component_name: str = Query(default=""),
     token: str = Query(default=""),
@@ -241,7 +274,12 @@ async def drilldown_component(
     and receives an SSE drilldown_complete event. This REST endpoint is for
     local development only.
     """
-    session_data = db.get_session(customer_id, session_id)
+    session_data = _get_authorized_session(
+        customer_id,
+        session_id,
+        user,
+        write=False,
+    )
     ctx_data = (session_data or {}).get("pipeline_ctx")
     result = (ctx_data or {}).get("assessment_result", {})
     component = next(

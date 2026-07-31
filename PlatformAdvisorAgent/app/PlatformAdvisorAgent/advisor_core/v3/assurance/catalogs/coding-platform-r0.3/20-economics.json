@@ -1,0 +1,170 @@
+{
+  "economic_assumptions": [
+    {
+      "id": "economic-assumption:tasks-per-developer-month",
+      "name": "Requested coding tasks per developer per month",
+      "unit": "tasks/developer-month",
+      "value_range": {"low": 4, "high": 12},
+      "rationale": "Planning range pending measured task-arrival data."
+    },
+    {
+      "id": "economic-assumption:turns-per-task",
+      "name": "Agent turns per requested task",
+      "unit": "turns/task",
+      "value_range": {"low": 6, "high": 25},
+      "rationale": "Covers focused edits through multi-step migrations."
+    },
+    {
+      "id": "economic-assumption:input-tokens-per-turn",
+      "name": "Input tokens per turn",
+      "unit": "tokens/turn",
+      "value_range": {"low": 3000, "high": 12000},
+      "rationale": "Includes instructions, retrieved context, and working state."
+    },
+    {
+      "id": "economic-assumption:output-tokens-per-turn",
+      "name": "Output tokens per turn",
+      "unit": "tokens/turn",
+      "value_range": {"low": 600, "high": 4000},
+      "rationale": "Includes reasoning-visible output, code, and tool arguments."
+    },
+    {
+      "id": "economic-assumption:cache-hit-ratio",
+      "name": "Eligible input served from prompt cache",
+      "unit": "ratio",
+      "value_range": {"low": 0.1, "high": 0.6},
+      "rationale": "Varies by provider, model, task locality, and cache policy."
+    },
+    {
+      "id": "economic-assumption:retry-rate",
+      "name": "Retry and failed-attempt overhead",
+      "unit": "ratio",
+      "value_range": {"low": 0.05, "high": 0.25},
+      "rationale": "Captures model, tool, runtime, and policy retries."
+    },
+    {
+      "id": "economic-assumption:runtime-hours-per-task",
+      "name": "Execution runtime per requested task",
+      "unit": "runtime-hours/task",
+      "value_range": {"low": 0.05, "high": 0.75},
+      "rationale": "Covers short interactive work through asynchronous CI-heavy work."
+    },
+    {
+      "id": "economic-assumption:storage-gb-month-per-task",
+      "name": "Allocated storage duration per task",
+      "unit": "GB-month/task",
+      "value_range": {"low": 0.02, "high": 0.3},
+      "rationale": "Represents workspace snapshots, artifacts, logs, and caches."
+    },
+    {
+      "id": "economic-assumption:network-gb-per-task",
+      "name": "Chargeable network transfer per task",
+      "unit": "GB/task",
+      "value_range": {"low": 0.05, "high": 1},
+      "rationale": "Depends on source size, artifacts, model path, and region placement."
+    },
+    {
+      "id": "economic-assumption:telemetry-gb-per-task",
+      "name": "Telemetry ingestion per task",
+      "unit": "GB/task",
+      "value_range": {"low": 0.01, "high": 0.3},
+      "rationale": "Depends on span detail, retention, code diffs, and redaction."
+    },
+    {
+      "id": "economic-assumption:successful-task-rate",
+      "name": "Requested tasks meeting completion criteria",
+      "unit": "ratio",
+      "value_range": {"low": 0.55, "high": 0.9},
+      "rationale": "Must be replaced with task-evaluation and GitLab outcome observations."
+    },
+    {
+      "id": "economic-assumption:accepted-pr-per-success",
+      "name": "Successful tasks producing an accepted pull request",
+      "unit": "ratio",
+      "value_range": {"low": 0.35, "high": 0.8},
+      "rationale": "Separates technical task completion from accepted engineering value."
+    }
+  ],
+  "unit_costs": [
+    {
+      "id": "unit-cost:model-input-million-tokens",
+      "name": "Model input",
+      "unit": "USD/million tokens",
+      "currency": "USD",
+      "value_range": {"low": 0.15, "high": 15},
+      "effective_on": "2026-07-30",
+      "status": "placeholder",
+      "source": "Planning placeholder spanning provider and model classes."
+    },
+    {
+      "id": "unit-cost:model-cached-input-million-tokens",
+      "name": "Cached model input",
+      "unit": "USD/million tokens",
+      "currency": "USD",
+      "value_range": {"low": 0.02, "high": 3.75},
+      "effective_on": "2026-07-30",
+      "status": "placeholder",
+      "source": "Planning placeholder; provider cache eligibility and terms vary."
+    },
+    {
+      "id": "unit-cost:model-output-million-tokens",
+      "name": "Model output",
+      "unit": "USD/million tokens",
+      "currency": "USD",
+      "value_range": {"low": 0.6, "high": 75},
+      "effective_on": "2026-07-30",
+      "status": "placeholder",
+      "source": "Planning placeholder spanning provider and model classes."
+    },
+    {
+      "id": "unit-cost:runtime-hour",
+      "name": "Agent execution runtime",
+      "unit": "USD/runtime-hour",
+      "currency": "USD",
+      "value_range": {"low": 0.03, "high": 3},
+      "effective_on": "2026-07-30",
+      "status": "placeholder",
+      "source": "Planning placeholder spanning managed, container, and isolated runtimes."
+    },
+    {
+      "id": "unit-cost:storage-gb-month",
+      "name": "Workspace and artifact storage",
+      "unit": "USD/GB-month",
+      "currency": "USD",
+      "value_range": {"low": 0.02, "high": 0.25},
+      "effective_on": "2026-07-30",
+      "status": "placeholder",
+      "source": "Planning placeholder for durable storage and snapshots."
+    },
+    {
+      "id": "unit-cost:network-gb",
+      "name": "Chargeable data transfer",
+      "unit": "USD/GB",
+      "currency": "USD",
+      "value_range": {"low": 0, "high": 0.2},
+      "effective_on": "2026-07-30",
+      "status": "placeholder",
+      "source": "Planning placeholder dependent on provider, path, and region."
+    },
+    {
+      "id": "unit-cost:observability-gb",
+      "name": "Telemetry ingestion and analysis",
+      "unit": "USD/GB",
+      "currency": "USD",
+      "value_range": {"low": 0.05, "high": 3},
+      "effective_on": "2026-07-30",
+      "status": "placeholder",
+      "source": "Planning placeholder for logs, metrics, traces, and retention."
+    },
+    {
+      "id": "unit-cost:control-overhead-task",
+      "name": "Policy, audit, evaluation, and control overhead",
+      "unit": "USD/task",
+      "currency": "USD",
+      "value_range": {"low": 0.01, "high": 1},
+      "effective_on": "2026-07-30",
+      "status": "placeholder",
+      "source": "Planning placeholder pending measured gateway and control-plane cost."
+    }
+  ]
+}

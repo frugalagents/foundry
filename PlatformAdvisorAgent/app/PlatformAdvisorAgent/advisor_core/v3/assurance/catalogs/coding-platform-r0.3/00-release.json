@@ -1,0 +1,32 @@
+{
+  "schema_version": "3.0",
+  "catalog_id": "assurance-catalog:coding-platform",
+  "version": "0.3.0",
+  "effective_on": "2026-07-30",
+  "roadmap": {
+    "owner_by_plane": {
+      "experience": "Developer Experience",
+      "access": "Identity and Access",
+      "orchestration": "Agent Platform",
+      "model": "AI Platform",
+      "tool": "Developer Tooling",
+      "execution": "Runtime Platform",
+      "knowledge": "Architecture Governance",
+      "governance": "Security Engineering",
+      "observability": "Platform Reliability"
+    },
+    "effort_days_by_plane": {
+      "experience": {"low": 3, "high": 8},
+      "access": {"low": 5, "high": 12},
+      "orchestration": {"low": 8, "high": 20},
+      "model": {"low": 5, "high": 15},
+      "tool": {"low": 5, "high": 15},
+      "execution": {"low": 8, "high": 25},
+      "knowledge": {"low": 4, "high": 12},
+      "governance": {"low": 6, "high": 18},
+      "observability": {"low": 6, "high": 18}
+    },
+    "dependency_effort_days": {"low": 1, "high": 3},
+    "control_verification_effort_days": {"low": 2, "high": 6}
+  }
+}

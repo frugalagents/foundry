@@ -1,0 +1,145 @@
+{
+  "score_dimensions": [
+    {
+      "id": "dimension:security",
+      "version": "1.0.0",
+      "name": "Security and governance",
+      "description": "Identity, isolation, policy enforcement, auditability, and control coverage."
+    },
+    {
+      "id": "dimension:operability",
+      "version": "1.0.0",
+      "name": "Operability",
+      "description": "Operational burden, reliability, supportability, and managed-service depth."
+    },
+    {
+      "id": "dimension:portability",
+      "version": "1.0.0",
+      "name": "Portability",
+      "description": "Ability to move providers, preserve interfaces, and avoid proprietary coupling."
+    },
+    {
+      "id": "dimension:economics",
+      "version": "1.0.0",
+      "name": "Economics",
+      "description": "Expected platform efficiency before workload-specific consumption pricing."
+    },
+    {
+      "id": "dimension:delivery-speed",
+      "version": "1.0.0",
+      "name": "Delivery speed",
+      "description": "Time to establish a governed production service and onboard teams."
+    }
+  ],
+  "score_profiles": [
+    {
+      "id": "score-profile:balanced-enterprise",
+      "version": "1.0.0",
+      "name": "Balanced enterprise coding platform",
+      "weights": [
+        {"dimension_id": "dimension:security", "weight": 0.25},
+        {"dimension_id": "dimension:operability", "weight": 0.2},
+        {"dimension_id": "dimension:portability", "weight": 0.15},
+        {"dimension_id": "dimension:economics", "weight": 0.15},
+        {"dimension_id": "dimension:delivery-speed", "weight": 0.25}
+      ],
+      "conditional_penalty": 8.0
+    }
+  ],
+  "providers": [
+    {
+      "id": "provider:aws-managed",
+      "version": "1.0.0",
+      "name": "AWS managed and AWS-native",
+      "provider_class": "aws",
+      "delivery_model": "managed",
+      "dimension_scores": [
+        {"dimension_id": "dimension:security", "value": 92},
+        {"dimension_id": "dimension:operability", "value": 88},
+        {"dimension_id": "dimension:portability", "value": 62},
+        {"dimension_id": "dimension:economics", "value": 72},
+        {"dimension_id": "dimension:delivery-speed", "value": 84}
+      ],
+      "supported_capabilities": [
+        "dedicated_tenancy",
+        "durable_audit",
+        "entra_oidc",
+        "gitlab_saas",
+        "high_scale",
+        "microvm_isolation",
+        "multi_region",
+        "private_connectivity",
+        "private_registry",
+        "restricted_egress"
+      ]
+    },
+    {
+      "id": "provider:oss-self-managed",
+      "version": "1.0.0",
+      "name": "Open-source self-managed",
+      "provider_class": "oss",
+      "delivery_model": "self_managed",
+      "dimension_scores": [
+        {"dimension_id": "dimension:security", "value": 78},
+        {"dimension_id": "dimension:operability", "value": 62},
+        {"dimension_id": "dimension:portability", "value": 95},
+        {"dimension_id": "dimension:economics", "value": 86},
+        {"dimension_id": "dimension:delivery-speed", "value": 58}
+      ],
+      "supported_capabilities": [
+        "dedicated_tenancy",
+        "durable_audit",
+        "entra_oidc",
+        "gitlab_saas",
+        "high_scale",
+        "microvm_isolation",
+        "multi_region",
+        "private_connectivity",
+        "private_registry",
+        "restricted_egress"
+      ]
+    },
+    {
+      "id": "provider:saas-managed",
+      "version": "1.0.0",
+      "name": "Composable SaaS",
+      "provider_class": "saas",
+      "delivery_model": "managed",
+      "dimension_scores": [
+        {"dimension_id": "dimension:security", "value": 80},
+        {"dimension_id": "dimension:operability", "value": 94},
+        {"dimension_id": "dimension:portability", "value": 52},
+        {"dimension_id": "dimension:economics", "value": 70},
+        {"dimension_id": "dimension:delivery-speed", "value": 96}
+      ],
+      "supported_capabilities": [
+        "durable_audit",
+        "entra_oidc",
+        "gitlab_saas",
+        "high_scale",
+        "multi_region",
+        "private_registry"
+      ],
+      "unsupported_capabilities": [
+        "dedicated_tenancy",
+        "microvm_isolation",
+        "private_connectivity",
+        "restricted_egress"
+      ]
+    },
+    {
+      "id": "provider:byop-adapter",
+      "version": "1.0.0",
+      "name": "Bring your own platform adapter",
+      "provider_class": "byop",
+      "delivery_model": "customer_selected",
+      "dimension_scores": [
+        {"dimension_id": "dimension:security", "value": 65},
+        {"dimension_id": "dimension:operability", "value": 50},
+        {"dimension_id": "dimension:portability", "value": 88},
+        {"dimension_id": "dimension:economics", "value": 62},
+        {"dimension_id": "dimension:delivery-speed", "value": 48}
+      ]
+    }
+  ]
+}

@@ -4,7 +4,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Depends, status
 
-from api.middleware.auth import get_current_user, get_user_id
+from api.middleware.auth import (
+    authorize_owned_resource,
+    get_current_user,
+    get_user_id,
+    is_admin,
+)
 from api.db import dynamodb as db
 from api.db.models import Customer, CustomerCreate, CustomerUpdate
 
@@ -15,7 +20,17 @@ CurrentUser = Annotated[dict, Depends(get_current_user)]
 
 @router.get("", response_model=list[Customer])
 async def list_customers(user: CurrentUser):
-    items = db.list_customers()
+    actor_id = get_user_id(user)
+    items = db.list_customers(
+        created_by=None if is_admin(user) else actor_id,
+        include_demo=not is_admin(user),
+    )
+    if not is_admin(user):
+        items = [
+            item
+            for item in items
+            if item.get("created_by") == actor_id or item.get("demo_data") is True
+        ]
     return [_to_customer(i) for i in items]
 
 
@@ -33,18 +48,26 @@ async def create_customer(body: CustomerCreate, user: CurrentUser):
 
 @router.get("/{customer_id}", response_model=Customer)
 async def get_customer(customer_id: str, user: CurrentUser):
-    item = db.get_customer(customer_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Customer not found")
+    item = authorize_owned_resource(
+        user,
+        db.get_customer(customer_id),
+        resource_name="Customer",
+    )
     return _to_customer(item)
 
 
 @router.patch("/{customer_id}", response_model=Customer)
 async def update_customer(customer_id: str, body: CustomerUpdate, user: CurrentUser):
+    authorize_owned_resource(
+        user,
+        db.get_customer(customer_id),
+        resource_name="Customer",
+        write=True,
+    )
     updates = body.model_dump(exclude_none=True)
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
-    item = db.update_customer(customer_id, updates)
+    item = db.update_customer(customer_id, updates, owner_id=get_user_id(user))
     if not item:
         raise HTTPException(status_code=404, detail="Customer not found")
     return _to_customer(item)
@@ -52,7 +75,13 @@ async def update_customer(customer_id: str, body: CustomerUpdate, user: CurrentU
 
 @router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_customer(customer_id: str, user: CurrentUser):
-    ok = db.delete_customer(customer_id)
+    authorize_owned_resource(
+        user,
+        db.get_customer(customer_id),
+        resource_name="Customer",
+        write=True,
+    )
+    ok = db.delete_customer(customer_id, owner_id=get_user_id(user))
     if not ok:
         raise HTTPException(status_code=404, detail="Customer not found")
 

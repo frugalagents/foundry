@@ -1,0 +1,312 @@
+{
+  "threats": [
+    {
+      "id": "threat:identity-confusion",
+      "title": "User and workload identity confusion",
+      "description": "An agent action is attributed to the wrong developer, team, or workload.",
+      "category": "identity",
+      "component_ids": ["component:workforce-identity", "component:workload-identity", "component:team-workspaces"],
+      "likelihood": 4,
+      "impact": 5
+    },
+    {
+      "id": "threat:credential-exposure",
+      "title": "Long-lived credential exposure",
+      "description": "Agents or tools obtain reusable credentials beyond the task boundary.",
+      "category": "secrets",
+      "component_ids": ["component:secrets-broker", "component:tool-gateway", "component:execution-broker"],
+      "likelihood": 4,
+      "impact": 5
+    },
+    {
+      "id": "threat:prompt-tool-injection",
+      "title": "Prompt-driven tool misuse",
+      "description": "Repository content or tool output induces an agent to invoke an unauthorized action.",
+      "category": "agent-control",
+      "component_ids": ["component:tool-gateway", "component:connector-registry", "component:orchestration-runtime"],
+      "likelihood": 5,
+      "impact": 4
+    },
+    {
+      "id": "threat:source-chain-compromise",
+      "title": "Source and dependency supply-chain compromise",
+      "description": "An agent introduces untrusted code, packages, or artifacts into a change.",
+      "category": "supply-chain",
+      "component_ids": ["component:source-control-integration", "component:package-access", "component:execution-broker"],
+      "likelihood": 4,
+      "impact": 5
+    },
+    {
+      "id": "threat:runtime-escape",
+      "title": "Execution boundary escape",
+      "description": "Agent-executed code crosses the declared workload or tenant isolation boundary.",
+      "category": "isolation",
+      "component_ids": ["component:local-runtime", "component:ephemeral-runtime", "component:persistent-workspace", "component:container-runtime", "component:kubernetes-runtime"],
+      "likelihood": 3,
+      "impact": 5
+    },
+    {
+      "id": "threat:data-egress",
+      "title": "Unauthorized data egress",
+      "description": "Source, prompts, credentials, or generated artifacts leave approved destinations.",
+      "category": "network",
+      "component_ids": ["component:model-gateway", "component:tool-gateway", "component:restricted-egress", "component:private-connectivity"],
+      "likelihood": 4,
+      "impact": 5
+    },
+    {
+      "id": "threat:model-routing-bypass",
+      "title": "Model policy or residency bypass",
+      "description": "A request reaches a model or region outside the approved catalog and routing policy.",
+      "category": "model-governance",
+      "component_ids": ["component:model-gateway", "component:model-catalog", "component:model-router", "component:model-fallback"],
+      "likelihood": 3,
+      "impact": 4
+    },
+    {
+      "id": "threat:unreviewed-change",
+      "title": "Unauthorized or unreviewed repository change",
+      "description": "An autonomous action bypasses required review, approval, or protected-branch policy.",
+      "category": "change-control",
+      "component_ids": ["component:source-control-integration", "component:human-approval", "component:policy-engine"],
+      "likelihood": 4,
+      "impact": 5
+    },
+    {
+      "id": "threat:audit-gap",
+      "title": "Incomplete decision and action evidence",
+      "description": "A material agent decision or action cannot be reconstructed for investigation.",
+      "category": "audit",
+      "component_ids": ["component:audit-ledger", "component:telemetry-pipeline", "component:evaluation-service"],
+      "likelihood": 3,
+      "impact": 4
+    },
+    {
+      "id": "threat:resource-exhaustion",
+      "title": "Unbounded model or runtime consumption",
+      "description": "Runaway tasks exhaust quota, budget, concurrency, or shared platform capacity.",
+      "category": "availability",
+      "component_ids": ["component:quota-manager", "component:model-gateway", "component:execution-broker", "component:orchestration-runtime"],
+      "likelihood": 4,
+      "impact": 4
+    }
+  ],
+  "controls": [
+    {
+      "id": "control:identity-binding",
+      "title": "End-to-end actor and workload binding",
+      "description": "Bind every task and downstream action to immutable workforce and workload identities.",
+      "threat_ids": ["threat:identity-confusion"],
+      "component_ids": ["component:workforce-identity", "component:workload-identity", "component:audit-ledger"],
+      "effectiveness": 0.65,
+      "verification": {
+        "id": "verification:identity-binding",
+        "method": "Run positive and cross-tenant negative authorization tests and inspect audit linkage.",
+        "evidence_type": "signed test result and audit samples",
+        "acceptance_criteria": "All actions contain matching actor, tenant, team, task, and workload identity; cross-tenant tests are denied.",
+        "frequency": "each release and quarterly"
+      }
+    },
+    {
+      "id": "control:short-lived-credentials",
+      "title": "Task-scoped short-lived credentials",
+      "description": "Issue credentials only after policy evaluation and expire them at task completion.",
+      "threat_ids": ["threat:credential-exposure", "threat:prompt-tool-injection"],
+      "component_ids": ["component:secrets-broker", "component:tool-gateway", "component:execution-broker"],
+      "effectiveness": 0.7,
+      "verification": {
+        "id": "verification:credential-lifetime",
+        "method": "Inspect issued credential scope and attempt reuse after task termination.",
+        "evidence_type": "configuration snapshot and negative test",
+        "acceptance_criteria": "Credentials are least-privilege, absent from logs, and unusable after the declared task lifetime.",
+        "frequency": "each release"
+      }
+    },
+    {
+      "id": "control:tool-policy-boundary",
+      "title": "Schema-aware tool policy boundary",
+      "description": "Authenticate, authorize, validate, and record every tool invocation.",
+      "threat_ids": ["threat:prompt-tool-injection", "threat:unreviewed-change"],
+      "component_ids": ["component:tool-gateway", "component:connector-registry", "component:policy-engine"],
+      "effectiveness": 0.65,
+      "verification": {
+        "id": "verification:tool-policy",
+        "method": "Replay adversarial tool requests across allowed, denied, and approval-required actions.",
+        "evidence_type": "policy test suite",
+        "acceptance_criteria": "All unauthorized and malformed requests fail closed; approval-required actions cannot execute without an approval record.",
+        "frequency": "each policy or connector change"
+      }
+    },
+    {
+      "id": "control:approved-dependencies",
+      "title": "Approved package and artifact path",
+      "description": "Resolve dependencies only from approved registries with provenance and integrity checks.",
+      "threat_ids": ["threat:source-chain-compromise"],
+      "component_ids": ["component:package-access", "component:source-control-integration"],
+      "effectiveness": 0.6,
+      "verification": {
+        "id": "verification:dependency-path",
+        "method": "Attempt direct public-registry access and inject an unsigned dependency.",
+        "evidence_type": "egress test and build provenance",
+        "acceptance_criteria": "Public bypass is denied and every accepted dependency has approved origin, version, and integrity evidence.",
+        "frequency": "continuous CI"
+      }
+    },
+    {
+      "id": "control:runtime-isolation",
+      "title": "Verified runtime isolation",
+      "description": "Enforce the selected process, container, microVM, or tenant boundary for untrusted execution.",
+      "threat_ids": ["threat:runtime-escape", "threat:credential-exposure"],
+      "component_ids": ["component:execution-broker", "component:ephemeral-runtime", "component:persistent-workspace", "component:container-runtime", "component:kubernetes-runtime"],
+      "effectiveness": 0.7,
+      "verification": {
+        "id": "verification:runtime-isolation",
+        "method": "Run escape, filesystem, metadata, process, and neighboring-workload isolation tests.",
+        "evidence_type": "isolation test report",
+        "acceptance_criteria": "Tests demonstrate the declared boundary and no access to host, metadata, or another task.",
+        "frequency": "each runtime image or platform release"
+      }
+    },
+    {
+      "id": "control:egress-allowlist",
+      "title": "Default-deny runtime egress",
+      "description": "Restrict model, tool, package, and enterprise traffic to approved destinations.",
+      "threat_ids": ["threat:data-egress", "threat:source-chain-compromise"],
+      "component_ids": ["component:restricted-egress", "component:execution-broker", "component:tool-gateway"],
+      "effectiveness": 0.7,
+      "verification": {
+        "id": "verification:egress-policy",
+        "method": "Probe approved and unapproved DNS names, IPs, ports, and proxy bypass paths.",
+        "evidence_type": "network policy test and flow logs",
+        "acceptance_criteria": "Only approved destinations succeed and every decision is observable with task identity.",
+        "frequency": "each network policy change"
+      }
+    },
+    {
+      "id": "control:model-eligibility",
+      "title": "Fail-closed model eligibility",
+      "description": "Resolve models through a versioned catalog that enforces provider, region, and data policy.",
+      "threat_ids": ["threat:model-routing-bypass", "threat:data-egress"],
+      "component_ids": ["component:model-gateway", "component:model-catalog", "component:model-router"],
+      "effectiveness": 0.6,
+      "verification": {
+        "id": "verification:model-eligibility",
+        "method": "Request ineligible providers, models, and regions through every routing and fallback path.",
+        "evidence_type": "routing decision trace",
+        "acceptance_criteria": "Every ineligible route is denied and every eligible route records catalog version and policy rationale.",
+        "frequency": "each catalog or router release"
+      }
+    },
+    {
+      "id": "control:protected-change-boundary",
+      "title": "Protected merge and approval boundary",
+      "description": "Require GitLab review, protected branches, and risk-based approval for material changes.",
+      "threat_ids": ["threat:unreviewed-change", "threat:prompt-tool-injection"],
+      "component_ids": ["component:source-control-integration", "component:human-approval", "component:policy-engine"],
+      "effectiveness": 0.7,
+      "verification": {
+        "id": "verification:protected-change",
+        "method": "Attempt direct push, self-approval, approval bypass, and merge with failed CI.",
+        "evidence_type": "GitLab policy configuration and negative tests",
+        "acceptance_criteria": "Protected changes require independent approval and passing mandatory CI; bypass attempts are denied and audited.",
+        "frequency": "continuous and quarterly review"
+      }
+    },
+    {
+      "id": "control:tamper-evident-audit",
+      "title": "Replayable tamper-evident audit trail",
+      "description": "Record requirements, model/tool actions, policy decisions, and GitLab outcomes with stable correlation.",
+      "threat_ids": ["threat:audit-gap", "threat:identity-confusion"],
+      "component_ids": ["component:audit-ledger", "component:telemetry-pipeline", "component:outcome-correlator"],
+      "effectiveness": 0.55,
+      "verification": {
+        "id": "verification:audit-replay",
+        "method": "Select sampled tasks and reconstruct actor, inputs, decisions, actions, code changes, CI, and merge outcome.",
+        "evidence_type": "replay report and immutable record hashes",
+        "acceptance_criteria": "At least 99 percent of sampled tasks replay end to end with no unexplained identity or event gaps.",
+        "frequency": "monthly"
+      }
+    },
+    {
+      "id": "control:quota-budget",
+      "title": "Hierarchical quota and budget enforcement",
+      "description": "Enforce tenant, team, agent, model, and runtime limits before capacity is consumed.",
+      "threat_ids": ["threat:resource-exhaustion"],
+      "component_ids": ["component:quota-manager", "component:model-gateway", "component:execution-broker"],
+      "effectiveness": 0.65,
+      "verification": {
+        "id": "verification:quota-enforcement",
+        "method": "Drive usage through warning, throttle, and hard budget thresholds under concurrency.",
+        "evidence_type": "load test and billing reconciliation",
+        "acceptance_criteria": "Usage is attributed correctly and hard limits prevent consumption beyond the configured tolerance.",
+        "frequency": "each quota change and quarterly"
+      }
+    }
+  ],
+  "best_practices": [
+    {
+      "id": "best-practice:separate-control-runtime",
+      "title": "Separate control and execution trust boundaries",
+      "rationale": "Compromise of agent-executed code must not grant control-plane authority.",
+      "implementation": "Use separate identities, networks, credentials, and audit paths for orchestration and execution.",
+      "component_ids": ["component:orchestration-runtime", "component:execution-broker"],
+      "control_ids": ["control:identity-binding", "control:runtime-isolation"]
+    },
+    {
+      "id": "best-practice:fail-closed-tools",
+      "title": "Fail closed on unknown tools and schemas",
+      "rationale": "Unrecognized capabilities cannot be safely authorized from natural language intent.",
+      "implementation": "Require registry membership, versioned schemas, owner, policy, and explicit action class before invocation.",
+      "component_ids": ["component:tool-gateway", "component:connector-registry"],
+      "control_ids": ["control:tool-policy-boundary"]
+    },
+    {
+      "id": "best-practice:ephemeral-secrets",
+      "title": "Use task-scoped credentials",
+      "rationale": "Credential lifetime should not exceed the authorized task lifetime.",
+      "implementation": "Broker short-lived credentials after policy evaluation and revoke them on completion or cancellation.",
+      "component_ids": ["component:secrets-broker", "component:workload-identity"],
+      "control_ids": ["control:short-lived-credentials"]
+    },
+    {
+      "id": "best-practice:protected-gitlab",
+      "title": "Make GitLab the transaction boundary",
+      "rationale": "Repository policy and independent review provide a durable control point for generated changes.",
+      "implementation": "Use protected branches, required CI, CODEOWNERS, approval rules, and bot identities with no direct merge authority.",
+      "component_ids": ["component:source-control-integration", "component:human-approval"],
+      "control_ids": ["control:protected-change-boundary"]
+    },
+    {
+      "id": "best-practice:deny-egress",
+      "title": "Default-deny execution egress",
+      "rationale": "Agent-executed code and retrieved content are not trusted to choose destinations.",
+      "implementation": "Route model, tool, source, and package traffic through identity-aware approved gateways.",
+      "component_ids": ["component:restricted-egress", "component:execution-broker"],
+      "control_ids": ["control:egress-allowlist"]
+    },
+    {
+      "id": "best-practice:pin-model-policy",
+      "title": "Pin catalog and routing decisions",
+      "rationale": "A reproducible recommendation requires the exact eligible model and policy release.",
+      "implementation": "Record model, provider, region, router rule, fallback reason, and catalog content hash per invocation.",
+      "component_ids": ["component:model-gateway", "component:model-catalog"],
+      "control_ids": ["control:model-eligibility"]
+    },
+    {
+      "id": "best-practice:replay-actions",
+      "title": "Preserve an end-to-end action replay",
+      "rationale": "Token logs alone cannot explain code, policy, CI, and approval outcomes.",
+      "implementation": "Correlate advisor revision, task, spans, GitLab objects, CI, approvals, cost, and production result.",
+      "component_ids": ["component:audit-ledger", "component:outcome-correlator"],
+      "control_ids": ["control:tamper-evident-audit"]
+    },
+    {
+      "id": "best-practice:budget-by-team",
+      "title": "Budget by outcome-owning team",
+      "rationale": "Global limits hide runaway tenants and prevent accountable optimization.",
+      "implementation": "Apply team quotas for concurrency, models, runtime, and monthly cost with explicit override workflow.",
+      "component_ids": ["component:team-workspaces", "component:quota-manager"],
+      "control_ids": ["control:quota-budget"]
+    }
+  ]
+}

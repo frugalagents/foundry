@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from api.routers import customers, sessions, stream, admin
+from api.routers import admin, architecture, customers, sessions, stream
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,6 +38,7 @@ app.include_router(customers.router, prefix="/api/v1")
 app.include_router(sessions.router,  prefix="/api/v1")
 app.include_router(stream.router,    prefix="/api/v1")
 app.include_router(admin.router,     prefix="/api/v1")
+app.include_router(architecture.router, prefix="/api/v1")
 
 
 @app.get("/health")

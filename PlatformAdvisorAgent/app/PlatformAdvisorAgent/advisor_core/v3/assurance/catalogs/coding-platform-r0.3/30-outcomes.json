@@ -1,0 +1,227 @@
+{
+  "outcome_events": [
+    {
+      "id": "event:advisor-decision",
+      "event_type": "advisor.decision.committed",
+      "producer": "Platform Advisor",
+      "description": "A versioned architecture decision is committed.",
+      "required_fields": ["event_id", "occurred_at", "workspace_id", "revision_id", "catalog_hash", "decision_id"],
+      "correlation_fields": ["workspace_id", "revision_id", "decision_id"]
+    },
+    {
+      "id": "event:agent-task-started",
+      "event_type": "agent.task.started",
+      "producer": "Coding agent platform",
+      "description": "A coding task begins under a specific decision and policy context.",
+      "required_fields": ["event_id", "occurred_at", "workspace_id", "decision_id", "task_id", "team_id", "agent_id"],
+      "correlation_fields": ["workspace_id", "decision_id", "task_id", "team_id"]
+    },
+    {
+      "id": "event:agent-task-completed",
+      "event_type": "agent.task.completed",
+      "producer": "Coding agent platform",
+      "description": "A coding task terminates with quality, intervention, policy, and cost fields.",
+      "required_fields": ["event_id", "occurred_at", "task_id", "status", "human_intervention", "policy_violation_count", "actual_cost_usd"],
+      "correlation_fields": ["task_id", "decision_id", "project_id", "issue_iid", "merge_request_iid"]
+    },
+    {
+      "id": "event:agent-span",
+      "event_type": "agent.span.completed",
+      "producer": "Agent telemetry pipeline",
+      "description": "A model, tool, runtime, policy, or approval span completes.",
+      "required_fields": ["event_id", "occurred_at", "task_id", "trace_id", "span_id", "span_kind", "duration_ms", "status"],
+      "correlation_fields": ["task_id", "trace_id", "span_id"]
+    },
+    {
+      "id": "event:gitlab-issue",
+      "event_type": "gitlab.issue.linked",
+      "producer": "GitLab integration",
+      "description": "A GitLab issue is linked to an agent task.",
+      "required_fields": ["event_id", "occurred_at", "task_id", "project_id", "issue_iid", "issue_url"],
+      "correlation_fields": ["task_id", "project_id", "issue_iid"]
+    },
+    {
+      "id": "event:gitlab-commit",
+      "event_type": "gitlab.commit.pushed",
+      "producer": "GitLab webhook",
+      "description": "An agent-attributed commit is pushed.",
+      "required_fields": ["event_id", "occurred_at", "task_id", "project_id", "commit_sha", "author_identity"],
+      "correlation_fields": ["task_id", "project_id", "commit_sha", "merge_request_iid"]
+    },
+    {
+      "id": "event:gitlab-merge-request",
+      "event_type": "gitlab.merge_request.updated",
+      "producer": "GitLab webhook",
+      "description": "An agent-linked merge request is created or changes state.",
+      "required_fields": ["event_id", "occurred_at", "task_id", "project_id", "merge_request_iid", "state", "merge_request_url"],
+      "correlation_fields": ["task_id", "project_id", "issue_iid", "merge_request_iid", "commit_sha"]
+    },
+    {
+      "id": "event:gitlab-ci-pipeline",
+      "event_type": "gitlab.ci_pipeline.completed",
+      "producer": "GitLab CI",
+      "description": "A pipeline associated with an agent change completes.",
+      "required_fields": ["event_id", "occurred_at", "project_id", "pipeline_id", "pipeline_url", "commit_sha", "status", "duration_seconds"],
+      "correlation_fields": ["task_id", "project_id", "pipeline_id", "commit_sha", "merge_request_iid"]
+    },
+    {
+      "id": "event:gitlab-review",
+      "event_type": "gitlab.review.completed",
+      "producer": "GitLab integration",
+      "description": "A human review or required approval reaches a decision.",
+      "required_fields": ["event_id", "occurred_at", "project_id", "merge_request_iid", "reviewer_id", "decision", "approval_latency_seconds"],
+      "correlation_fields": ["task_id", "project_id", "merge_request_iid"]
+    },
+    {
+      "id": "event:gitlab-merge",
+      "event_type": "gitlab.merge_request.merged",
+      "producer": "GitLab webhook",
+      "description": "An agent-linked merge request is accepted and merged.",
+      "required_fields": ["event_id", "occurred_at", "project_id", "merge_request_iid", "merge_commit_sha", "merged_by"],
+      "correlation_fields": ["task_id", "project_id", "issue_iid", "merge_request_iid", "commit_sha"]
+    },
+    {
+      "id": "event:deployment",
+      "event_type": "delivery.deployment.completed",
+      "producer": "GitLab deployment or delivery platform",
+      "description": "A merged change is deployed to an environment.",
+      "required_fields": ["event_id", "occurred_at", "project_id", "deployment_id", "commit_sha", "environment", "status"],
+      "correlation_fields": ["task_id", "project_id", "commit_sha", "deployment_id"]
+    },
+    {
+      "id": "event:production-outcome",
+      "event_type": "production.outcome.observed",
+      "producer": "Reliability and incident systems",
+      "description": "A rollback, incident, error-budget, or healthy-window outcome is attributed to a deployment.",
+      "required_fields": ["event_id", "occurred_at", "project_id", "deployment_id", "outcome_type", "severity", "observation_window"],
+      "correlation_fields": ["task_id", "project_id", "commit_sha", "deployment_id", "incident_id"]
+    },
+    {
+      "id": "event:economics-observation",
+      "event_type": "economics.task.observed",
+      "producer": "Economics ledger",
+      "description": "Forecast and actual token, runtime, storage, network, and observability cost are reconciled.",
+      "required_fields": ["event_id", "occurred_at", "task_id", "forecast_cost_usd", "actual_cost_usd", "currency", "pricing_effective_on"],
+      "correlation_fields": ["workspace_id", "decision_id", "task_id", "team_id"]
+    }
+  ],
+  "outcome_metrics": [
+    {
+      "id": "metric:task-success-rate",
+      "name": "Task success rate",
+      "formula": "successful agent.task.completed / agent.task.started",
+      "unit": "ratio",
+      "source_event_ids": ["event:agent-task-started", "event:agent-task-completed"],
+      "source_systems": ["coding agent platform"],
+      "denominator": "requested agent tasks"
+    },
+    {
+      "id": "metric:human-intervention-rate",
+      "name": "Human intervention rate",
+      "formula": "completed tasks with human_intervention=true / completed tasks",
+      "unit": "ratio",
+      "source_event_ids": ["event:agent-task-completed"],
+      "source_systems": ["coding agent platform"],
+      "denominator": "completed agent tasks"
+    },
+    {
+      "id": "metric:issue-to-merge-hours",
+      "name": "Issue-to-merge lead time",
+      "formula": "merged_at - linked_issue_created_at",
+      "unit": "hours",
+      "source_event_ids": ["event:gitlab-issue", "event:gitlab-merge"],
+      "source_systems": ["GitLab"],
+      "denominator": "merged agent-linked issues"
+    },
+    {
+      "id": "metric:rework-rate",
+      "name": "Post-review rework rate",
+      "formula": "merge requests with commits after first review / reviewed merge requests",
+      "unit": "ratio",
+      "source_event_ids": ["event:gitlab-commit", "event:gitlab-merge-request", "event:gitlab-review"],
+      "source_systems": ["GitLab"],
+      "denominator": "reviewed agent-linked merge requests"
+    },
+    {
+      "id": "metric:accepted-change-rate",
+      "name": "Accepted change rate",
+      "formula": "merged agent-linked merge requests / agent-linked merge requests",
+      "unit": "ratio",
+      "source_event_ids": ["event:gitlab-merge-request", "event:gitlab-merge"],
+      "source_systems": ["GitLab"],
+      "denominator": "agent-linked merge requests"
+    },
+    {
+      "id": "metric:ci-pass-rate",
+      "name": "CI pass rate",
+      "formula": "successful terminal pipelines / terminal pipelines",
+      "unit": "ratio",
+      "source_event_ids": ["event:gitlab-ci-pipeline"],
+      "source_systems": ["GitLab CI"],
+      "denominator": "terminal pipelines for agent commits"
+    },
+    {
+      "id": "metric:rollback-rate",
+      "name": "Rollback rate",
+      "formula": "deployments with rollback outcome / successful deployments",
+      "unit": "ratio",
+      "source_event_ids": ["event:deployment", "event:production-outcome"],
+      "source_systems": ["GitLab deployments", "reliability systems"],
+      "denominator": "successful deployments containing agent changes"
+    },
+    {
+      "id": "metric:policy-violations-per-task",
+      "name": "Policy violations per task",
+      "formula": "sum policy_violation_count / completed tasks",
+      "unit": "violations/task",
+      "source_event_ids": ["event:agent-task-completed", "event:agent-span"],
+      "source_systems": ["policy engine", "coding agent platform"],
+      "denominator": "completed agent tasks"
+    },
+    {
+      "id": "metric:approval-latency",
+      "name": "Approval latency",
+      "formula": "p50 and p95 approval_latency_seconds",
+      "unit": "seconds",
+      "source_event_ids": ["event:gitlab-review", "event:agent-span"],
+      "source_systems": ["GitLab", "policy engine"],
+      "denominator": "approval-required actions and merge requests"
+    },
+    {
+      "id": "metric:incidents-per-million",
+      "name": "Incidents per million executions",
+      "formula": "production incidents attributable to agent changes * 1000000 / completed tasks",
+      "unit": "incidents/million tasks",
+      "source_event_ids": ["event:agent-task-completed", "event:deployment", "event:production-outcome"],
+      "source_systems": ["coding agent platform", "delivery platform", "incident management"],
+      "denominator": "one million completed agent tasks"
+    },
+    {
+      "id": "metric:cost-per-successful-task",
+      "name": "Actual cost per successful task",
+      "formula": "sum actual_cost_usd / successful completed tasks",
+      "unit": "USD/successful task",
+      "source_event_ids": ["event:agent-task-completed", "event:economics-observation"],
+      "source_systems": ["economics ledger", "coding agent platform"],
+      "denominator": "successful completed tasks"
+    },
+    {
+      "id": "metric:cost-per-accepted-pr",
+      "name": "Actual cost per accepted pull request",
+      "formula": "sum actual_cost_usd for linked tasks / merged agent-linked merge requests",
+      "unit": "USD/accepted pull request",
+      "source_event_ids": ["event:agent-task-completed", "event:gitlab-merge", "event:economics-observation"],
+      "source_systems": ["economics ledger", "GitLab"],
+      "denominator": "merged agent-linked merge requests"
+    },
+    {
+      "id": "metric:cost-forecast-error",
+      "name": "Cost forecast error",
+      "formula": "abs(actual_cost_usd - forecast_cost_usd) / forecast_cost_usd",
+      "unit": "ratio",
+      "source_event_ids": ["event:economics-observation"],
+      "source_systems": ["economics ledger"],
+      "denominator": "tasks with non-zero forecast and actual cost"
+    }
+  ]
+}

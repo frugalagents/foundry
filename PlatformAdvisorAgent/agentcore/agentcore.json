@@ -16,6 +16,9 @@
       "runtimeVersion": "PYTHON_3_14",
       "networkMode": "PUBLIC",
       "protocol": "HTTP",
+      "requestHeaderAllowlist": [
+        "X-Amzn-Bedrock-AgentCore-Runtime-Custom-Cognito-Id-Token"
+      ],
       "envVars": [
         {
           "name": "KNOWLEDGE_BASE_ID",
@@ -24,6 +27,14 @@
         {
           "name": "AWS_DOCS_MCP_ENDPOINT",
           "value": ""
+        },
+        {
+          "name": "COGNITO_USER_POOL_ID",
+          "value": "us-east-1_oSEwvKdfd"
+        },
+        {
+          "name": "COGNITO_CLIENT_ID",
+          "value": "6gbe6mt1il74sdqlq8boc60ld4"
         }
       ]
     }
