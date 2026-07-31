@@ -16,12 +16,15 @@ Environment variables (all optional — defaults match .env.local / stack output
   TEST_PASSWORD     Cognito password    (default: PlatformAdvisor2025!)
   API_URL           API base URL
   CF_URL            CloudFront base URL
+  S3_BUCKET         Static frontend bucket
   USER_POOL_ID      Cognito User Pool ID
   CLIENT_ID         Cognito App Client ID
   AWS_PROFILE       AWS profile for boto3 (default: platform-advisor)
+  AWS_REGION        AWS region (default: us-east-1)
 """
 from __future__ import annotations
 import argparse
+import base64
 import json
 import os
 import sys
@@ -35,18 +38,27 @@ CF_URL       = os.environ.get("CF_URL",       "https://d1wa5bvm23hhld.cloudfront
 USER_POOL_ID = os.environ.get("USER_POOL_ID", "us-east-1_oSEwvKdfd")
 CLIENT_ID    = os.environ.get("CLIENT_ID",    "6gbe6mt1il74sdqlq8boc60ld4")
 AWS_PROFILE  = os.environ.get("AWS_PROFILE",  "platform-advisor")
+AWS_REGION   = os.environ.get("AWS_REGION",   "us-east-1")
+S3_BUCKET    = os.environ.get("S3_BUCKET",    "platform-advisor-frontend-dev-616627284001")
+AGENTCORE_RUNTIME_ARN = os.environ.get(
+    "AGENTCORE_RUNTIME_ARN",
+    "arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/"
+    "PlatformAdvisorAgent_PlatformAdvisorAgent-3U71dVBprI",
+)
 TEST_EMAIL   = os.environ.get("TEST_EMAIL",   "admin@platform-advisor.com")
 TEST_PASS    = os.environ.get("TEST_PASSWORD","PlatformAdvisor2025!")
 
-# Expected CloudFront pages → expected HTTP status
+# Expected CloudFront pages → expected HTTP status and optional page-specific text.
 CF_PAGES = [
-    ("/",                      200),
-    ("/login/",                200),
-    ("/customers/",            200),
-    ("/customers/_/",          200),
-    ("/customers/_/sessions/_/", 200),
-    ("/api/auth/callback/",    200),
+    ("/",                         200, None),
+    ("/login/",                   200, None),
+    ("/customers/",               200, None),
+    ("/customers/_/",             200, None),
+    ("/customers/_/sessions/_/",  200, None),
+    ("/api/auth/callback/",       200, None),
+    ("/architecture/",            200, "Start a blueprint"),
 ]
+ARCHITECTURE_OBJECT_KEY = "architecture/index.html"
 
 INTAKE_ANSWERS = {
     "autonomy_model":   "hitl",
@@ -104,11 +116,14 @@ def fail(label: str, err: str) -> None:
 
 # ── Cognito auth ───────────────────────────────────────────────────────────────
 
-def get_access_token() -> str:
-    """Authenticate via Cognito USER_PASSWORD_AUTH and return the AccessToken."""
+def get_auth_tokens() -> tuple[str, str]:
+    """Authenticate via Cognito and return the API access and runtime ID tokens."""
     try:
         import boto3
-        client = boto3.Session(profile_name=AWS_PROFILE).client("cognito-idp", region_name="us-east-1")
+        client = boto3.Session(profile_name=AWS_PROFILE).client(
+            "cognito-idp",
+            region_name=AWS_REGION,
+        )
         resp = client.initiate_auth(
             ClientId=CLIENT_ID,
             AuthFlow="USER_PASSWORD_AUTH",
@@ -123,10 +138,11 @@ def get_access_token() -> str:
                 ChallengeResponses={"USERNAME": TEST_EMAIL, "NEW_PASSWORD": TEST_PASS},
             )
         result = resp.get("AuthenticationResult", {})
-        token = result.get("AccessToken")
-        if not token:
-            raise RuntimeError(f"No AccessToken in response: {resp}")
-        return token
+        access_token = result.get("AccessToken")
+        id_token = result.get("IdToken")
+        if not access_token or not id_token:
+            raise RuntimeError(f"Missing Cognito tokens in response: {resp}")
+        return access_token, id_token
     except Exception as exc:
         raise RuntimeError(f"Cognito auth failed: {exc}") from exc
 
@@ -153,18 +169,94 @@ def api(method: str, path: str, token: str, body: dict | None = None) -> dict:
         raise RuntimeError(f"HTTP {e.code} {method} {path}: {body_text}") from e
 
 
-def cf_get(path: str) -> int:
-    """Return the HTTP status code for a CloudFront page."""
+def cf_get(path: str) -> tuple[int, str]:
+    """Return the status and body for a CloudFront page."""
     url = f"{CF_URL}{path}"
     req = urllib.request.Request(url, method="GET")
     req.add_header("Accept", "text/html")
     try:
         with urllib.request.urlopen(req, timeout=15) as r:
-            return r.status
+            return r.status, r.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as e:
-        return e.code
+        return e.code, e.read().decode("utf-8", errors="replace")
     except Exception:
-        return 0
+        return 0, ""
+
+
+def require_architecture_object() -> str:
+    """Require the real static object so CloudFront fallback cannot mask it."""
+    import boto3
+
+    client = boto3.Session(profile_name=AWS_PROFILE).client(
+        "s3",
+        region_name=AWS_REGION,
+    )
+    response = client.head_object(
+        Bucket=S3_BUCKET,
+        Key=ARCHITECTURE_OBJECT_KEY,
+    )
+    size = response.get("ContentLength", 0)
+    assert size > 0, f"s3://{S3_BUCKET}/{ARCHITECTURE_OBJECT_KEY} is empty"
+    return f"{ARCHITECTURE_OBJECT_KEY}, {size} bytes"
+
+
+def token_actor_id(token: str) -> str:
+    """Read the immutable Cognito subject used for AgentCore user scoping."""
+    parts = token.split(".")
+    if len(parts) < 2:
+        raise ValueError("Cognito token is not a JWT")
+    payload = parts[1] + "=" * (-len(parts[1]) % 4)
+    claims = json.loads(base64.urlsafe_b64decode(payload))
+    actor_id = claims.get("sub")
+    if not isinstance(actor_id, str) or not actor_id:
+        raise ValueError("Cognito token is missing sub")
+    return actor_id
+
+
+def invoke_owned_agentcore_session(
+    id_token: str,
+    customer_id: str,
+    session_id: str,
+) -> str:
+    """Invoke a cheap deterministic action while enforcing runtime ownership."""
+    import boto3
+
+    actor_id = token_actor_id(id_token)
+    runtime_session_id = f"{customer_id}-{session_id}".ljust(33, "0")
+    payload = {
+        "action": "whatif",
+        "customer_id": customer_id,
+        "session_id": session_id,
+        "user_message": "Verify owned-session runtime access.",
+    }
+    client = boto3.Session(profile_name=AWS_PROFILE).client(
+        "bedrock-agentcore",
+        region_name=AWS_REGION,
+    )
+    token_header = "X-Amzn-Bedrock-AgentCore-Runtime-Custom-Cognito-Id-Token"
+
+    def add_identity_header(request, **_kwargs):
+        request.headers[token_header] = id_token
+
+    client.meta.events.register(
+        "before-sign.bedrock-agentcore.InvokeAgentRuntime",
+        add_identity_header,
+    )
+    response = client.invoke_agent_runtime(
+        agentRuntimeArn=AGENTCORE_RUNTIME_ARN,
+        runtimeSessionId=runtime_session_id,
+        runtimeUserId=actor_id,
+        qualifier="DEFAULT",
+        contentType="application/json",
+        accept="text/event-stream",
+        payload=json.dumps(payload).encode(),
+    )
+    raw = response["response"].read()
+    text = raw.decode("utf-8", errors="replace")
+    assert response.get("statusCode") == 200, response
+    assert "Legacy score-only what-if is removed" in text, text[:500]
+    assert "Session not found" not in text, text[:500]
+    return f"HTTP 200, user {actor_id[:12]}..."
 
 
 # ── Cleanup ────────────────────────────────────────────────────────────────────
@@ -195,7 +287,7 @@ def cleanup(token: str) -> None:
 
 # ── Test runner ────────────────────────────────────────────────────────────────
 
-def run_api(token: str) -> tuple[int, int]:
+def run_api(token: str, id_token: str) -> tuple[int, int]:
     passed = failed = 0
 
     def check(label: str, fn) -> bool:
@@ -210,14 +302,146 @@ def run_api(token: str) -> tuple[int, int]:
             failed += 1
             return False
 
-    # 1. Health
-    section("1. Health check")
+    # 1. Browser CORS preflight
+    section("1. Browser CORS preflight")
+
+    def check_customer_create_preflight():
+        req = urllib.request.Request(
+            f"{API_URL}/customers",
+            headers={
+                "Origin": CF_URL,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "authorization,content-type",
+            },
+            method="OPTIONS",
+        )
+        with urllib.request.urlopen(req, timeout=15) as response:
+            allow_origin = response.headers.get("Access-Control-Allow-Origin")
+            allow_methods = response.headers.get(
+                "Access-Control-Allow-Methods", ""
+            ).upper()
+            allow_headers = response.headers.get(
+                "Access-Control-Allow-Headers", ""
+            ).lower()
+            assert 200 <= response.status < 300, response.status
+            assert allow_origin == CF_URL, allow_origin
+            assert "POST" in allow_methods, allow_methods
+            assert "authorization" in allow_headers, allow_headers
+            assert "content-type" in allow_headers, allow_headers
+            return f"HTTP {response.status}, origin allowed"
+
+    check("OPTIONS /customers permits browser POST",
+          check_customer_create_preflight)
+
+    # 2. Health
+    section("2. Health check")
     health_url = API_URL.replace("/api/v1", "/health")
     check("GET /health",
           lambda: urllib.request.urlopen(health_url, timeout=10).read().decode()[:30])
 
-    # 2. Customer CRUD
-    section("2. Customer CRUD")
+    # 3. Architecture workspace
+    section("3. Architecture workspace")
+
+    def check_architecture_requires_auth():
+        req = urllib.request.Request(
+            f"{API_URL}/architecture/workspace",
+            method="GET",
+        )
+        try:
+            urllib.request.urlopen(req, timeout=15)
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 401, f"Expected 401, got HTTP {exc.code}"
+            return "HTTP 401"
+        raise AssertionError("Unauthenticated architecture request succeeded")
+
+    check("GET /architecture/workspace requires auth",
+          check_architecture_requires_auth)
+
+    baseline_projection = None
+
+    def get_architecture_workspace():
+        nonlocal baseline_projection
+        projection = api("GET", "/architecture/workspace", token)
+        assert projection.get("schema_version") == "3.0", projection
+        pattern = projection.get("architecture", {}).get("pattern", {})
+        assert pattern.get("pattern_id") == "pattern:logical-reference", pattern
+        assert projection.get("projection_hash"), "Missing projection_hash"
+        assert projection.get("architecture", {}).get("planes"), "Missing planes"
+        baseline_projection = projection
+        return projection["projection_hash"][:24]
+
+    check("GET /architecture/workspace returns v3 projection",
+          get_architecture_workspace)
+
+    def evaluate_architecture_workspace():
+        assert baseline_projection is not None, "Baseline projection unavailable"
+        baseline_requirements = {
+            item["requirement_id"]: item
+            for item in baseline_projection.get("requirements", [])
+        }
+        current_value = baseline_requirements.get(
+            "requirement:long-running-workspaces",
+            {},
+        ).get("value")
+        answer = current_value is not True
+        workspace = baseline_projection.get("workspace", {})
+        refined = api(
+            "POST",
+            "/architecture/workspace/evaluate",
+            token,
+            {
+                "answers": {
+                    "requirement:long-running-workspaces": answer,
+                },
+                "base_revision_number": workspace.get(
+                    "persistence_revision"
+                ),
+                "base_state_hash": workspace.get("persistence_hash"),
+            },
+        )
+        requirements = {
+            item["requirement_id"]: item
+            for item in refined.get("requirements", [])
+        }
+        requirement = requirements.get("requirement:long-running-workspaces", {})
+        assert requirement.get("status") == "answered", requirement
+        assert requirement.get("value") is answer, requirement
+        component_ids = {
+            component["component_id"]
+            for plane in refined.get("architecture", {}).get("planes", [])
+            for component in plane.get("components", [])
+        }
+        assert (
+            "component:persistent-workspace" in component_ids
+        ) is answer, component_ids
+        assert refined.get("projection_hash") != baseline_projection.get("projection_hash")
+        reloaded = api("GET", "/architecture/workspace", token)
+        assert reloaded.get("projection_hash") == refined.get("projection_hash")
+        return f"persistent workspace {'added' if answer else 'removed'}"
+
+    check("POST /architecture/workspace/evaluate applies answer",
+          evaluate_architecture_workspace)
+
+    def reject_unknown_architecture_requirement():
+        try:
+            api(
+                "POST",
+                "/architecture/workspace/evaluate",
+                token,
+                {"answers": {"requirement:not-in-catalog": True}},
+            )
+        except RuntimeError as exc:
+            message = str(exc)
+            assert "HTTP 422" in message, message
+            assert "unknown requirement" in message, message
+            return "HTTP 422"
+        raise AssertionError("Unknown architecture requirement was accepted")
+
+    check("POST /architecture/workspace/evaluate rejects unknown input",
+          reject_unknown_architecture_requirement)
+
+    # 4. Customer CRUD
+    section("4. Customer CRUD")
     customer_id = None
 
     def create_customer():
@@ -235,8 +459,8 @@ def run_api(token: str) -> tuple[int, int]:
     check("GET /customers (list)",
           lambda: f"{len(api('GET', '/customers', token))} total")
 
-    # 3. Session CRUD
-    section("3. Session CRUD")
+    # 5. Session CRUD
+    section("5. Session CRUD")
     session_id = None
 
     def create_session():
@@ -254,8 +478,8 @@ def run_api(token: str) -> tuple[int, int]:
     check("GET /sessions (list)",
           lambda: f"{len(api('GET', f'/customers/{customer_id}/sessions', token))} total")
 
-    # 4. Intake answers round-trip
-    section("4. Intake answers round-trip")
+    # 6. Intake answers round-trip
+    section("6. Intake answers round-trip")
 
     def put_intake():
         api("PUT", f"/customers/{customer_id}/sessions/{session_id}/inputs", token,
@@ -273,8 +497,8 @@ def run_api(token: str) -> tuple[int, int]:
 
     check("GET /sessions (intake_answers restored)", get_intake_back)
 
-    # 5. Panel states
-    section("5. Panel states")
+    # 7. Panel states
+    section("7. Panel states")
 
     def save_panel():
         api(
@@ -289,14 +513,21 @@ def run_api(token: str) -> tuple[int, int]:
     check("GET /panels",
           lambda: f"{len(api('GET', f'/customers/{customer_id}/sessions/{session_id}/panels', token).get('panels', []))} panels")
 
-    # 6. Session update
-    section("6. Session update")
+    # 8. Session update
+    section("8. Session update")
     check("PATCH /sessions status→complete",
           lambda: api("PATCH", f"/customers/{customer_id}/sessions/{session_id}", token,
                       {"status": "complete"})["status"])
 
-    # 7. Admin metrics (403 expected for non-admin test user — counted as pass)
-    section("7. Admin metrics")
+    # 9. AgentCore direct invocation with runtime user identity.
+    section("9. AgentCore owned-session invocation")
+    check(
+        "InvokeAgentRuntimeForUser enforces owned session",
+        lambda: invoke_owned_agentcore_session(id_token, customer_id, session_id),
+    )
+
+    # 10. Admin metrics (403 expected for non-admin test user — counted as pass)
+    section("10. Admin metrics")
     def check_admin_metrics():
         try:
             m = api("GET", "/admin/metrics", token)
@@ -307,8 +538,8 @@ def run_api(token: str) -> tuple[int, int]:
             raise
     check("GET /admin/metrics", check_admin_metrics)
 
-    # 8. Admin engine manifest
-    section("8. Admin engine manifest")
+    # 11. Admin engine manifest
+    section("11. Admin engine manifest")
 
     def check_admin_engine():
         try:
@@ -325,8 +556,8 @@ def run_api(token: str) -> tuple[int, int]:
 
     check("GET /admin/engine", check_admin_engine)
 
-    # 9. Prebuilt Northwind Finance portfolio
-    section("9. Northwind Finance blueprints")
+    # 12. Prebuilt Northwind Finance portfolio
+    section("12. Northwind Finance blueprints")
 
     def check_demo_customer():
         customer = api("GET", f"/customers/{DEMO_CUSTOMER_ID}", token)
@@ -358,8 +589,8 @@ def run_api(token: str) -> tuple[int, int]:
 
         check(f"GET {demo_session_id} blueprint", check_demo_panels)
 
-    # 10. Cleanup
-    section("10. Cleanup")
+    # 13. Cleanup
+    section("13. Cleanup")
     check("DELETE /customers/{id} (cascade)",
           lambda: api("DELETE", f"/customers/{customer_id}", token) or "deleted")
 
@@ -384,15 +615,19 @@ def run_api(token: str) -> tuple[int, int]:
             raise
 
     check("Verify blueprint cascade", verify_session_gone)
+
     def verify_panels_gone():
-        response = api(
-            "GET",
-            f"/customers/{customer_id}/sessions/{session_id}/panels",
-            token,
-        )
-        panels = response.get("panels", [])
-        assert not panels, f"Panels still exist after customer delete: {panels}"
-        return "0 panels"
+        try:
+            api(
+                "GET",
+                f"/customers/{customer_id}/sessions/{session_id}/panels",
+                token,
+            )
+            raise AssertionError("Panel route still exists after customer delete")
+        except RuntimeError as exc:
+            if "404" in str(exc):
+                return "confirmed 404"
+            raise
 
     check("Verify panel cascade", verify_panels_gone)
 
@@ -402,15 +637,28 @@ def run_api(token: str) -> tuple[int, int]:
 def run_cf() -> tuple[int, int]:
     passed = failed = 0
     section("CloudFront page checks")
-    for path, expected in CF_PAGES:
-        status = cf_get(path)
+
+    try:
+        detail = require_architecture_object()
+        ok("S3 architecture object exists", detail)
+        passed += 1
+    except Exception as exc:
+        fail("S3 architecture object exists", str(exc))
+        failed += 1
+
+    for path, expected, marker in CF_PAGES:
+        status, body = cf_get(path)
         label = f"GET {path} → {expected}"
-        if status == expected:
-            ok(label, f"HTTP {status}")
-            passed += 1
-        else:
+        if status != expected:
             fail(label, f"got HTTP {status}")
             failed += 1
+        elif marker and marker not in body:
+            fail(label, f"missing page marker {marker!r}; possible fallback response")
+            failed += 1
+        else:
+            detail = f"HTTP {status}" + (f", found {marker!r}" if marker else "")
+            ok(label, detail)
+            passed += 1
     return passed, failed
 
 
@@ -429,11 +677,11 @@ def main():
     print(f"User:  {TEST_EMAIL}")
 
     # Always need a token unless cf-only
-    token = None
+    token = id_token = None
     if not args.cf_only:
         section("0. Cognito authentication")
         try:
-            token = get_access_token()
+            token, id_token = get_auth_tokens()
             ok("admin_initiate_auth → AccessToken", token[:20] + "…")
         except Exception as e:
             fail("Cognito auth", str(e))
@@ -448,7 +696,7 @@ def main():
 
     if not args.cf_only:
         cleanup(token)
-        p, f = run_api(token)
+        p, f = run_api(token, id_token)
         total_passed += p
         total_failed += f
 

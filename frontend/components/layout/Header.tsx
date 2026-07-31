@@ -18,7 +18,6 @@ export function Header() {
     if (u) setUser(u);
   }, [setUser]);
 
-  const isAdmin = user?.['custom:role'] === 'admin' && !viewingAsUser;
   const isRealAdmin = user?.['custom:role'] === 'admin';
   const displayName =
     user?.['custom:display_name'] ?? user?.['custom:amazon_alias'] ?? user?.email?.split('@')[0] ?? 'User';
@@ -26,21 +25,21 @@ export function Header() {
   const nav: NavItem[] = [
     { label: 'Home', href: '/' },
     { label: 'Customers', href: '/customers' },
-    ...(isAdmin ? [{ label: 'Analytics', href: '/admin/dashboard' }, { label: 'Engine', href: '/admin/config' }] : []),
+    { label: 'Architecture', href: '/architecture' },
   ];
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
   return (
     <header className="app-header">
       {/* Logo + nav */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0, minWidth: 0 }}>
+      <div className="app-header-left">
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <div className="app-logo text-display">P</div>
-          <span className="text-display" style={{ fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+          <span className="app-brand-label text-display" style={{ fontSize: '1.05rem', color: 'var(--text-primary)' }}>
             Platform Advisor
           </span>
         </Link>
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <nav className="app-header-nav">
           {nav.map((item) => (
             <Link
               key={item.href}
@@ -54,21 +53,23 @@ export function Header() {
       </div>
 
       {/* Right side */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        {isRealAdmin && !viewingAsUser && <Badge color="blue" size="sm">Admin</Badge>}
-        {isRealAdmin && viewingAsUser && <Badge color="orange" size="sm">Viewing as User</Badge>}
+      <div className="app-header-actions">
+        {isRealAdmin && !viewingAsUser && <span className="app-admin-context"><Badge color="blue" size="sm">Admin</Badge></span>}
+        {isRealAdmin && viewingAsUser && <span className="app-admin-context"><Badge color="orange" size="sm">Viewing as User</Badge></span>}
         {isRealAdmin && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setViewingAsUser(!viewingAsUser)}
-            title={viewingAsUser ? 'Switch back to Admin view' : 'View as regular user'}
-          >
-            {viewingAsUser ? <ShieldCheck size={13} /> : <User size={13} />}
-            {viewingAsUser ? 'Admin view' : 'User view'}
-          </Button>
+          <span className="app-admin-context">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setViewingAsUser(!viewingAsUser)}
+              title={viewingAsUser ? 'Switch back to Admin view' : 'View as regular user'}
+            >
+              {viewingAsUser ? <ShieldCheck size={13} /> : <User size={13} />}
+              {viewingAsUser ? 'Admin view' : 'User view'}
+            </Button>
+          </span>
         )}
-        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{displayName}</span>
+        <span className="app-user-name" style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{displayName}</span>
         <button onClick={logout} title="Sign out" className="app-header-icon">
           <LogOut size={15} />
         </button>
@@ -86,6 +87,28 @@ export function Header() {
           position: sticky;
           top: 0;
           z-index: 40;
+          flex-shrink: 0;
+        }
+        .app-header-left {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          min-width: 0;
+          flex: 1;
+        }
+        .app-header-nav {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          min-width: 0;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .app-header-nav::-webkit-scrollbar { display: none; }
+        .app-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
           flex-shrink: 0;
         }
         .app-logo {
@@ -111,6 +134,13 @@ export function Header() {
           transition: background 0.15s, color 0.15s;
         }
         .app-header-icon:hover { background: var(--bg-hover); color: var(--text-primary); }
+        @media (max-width: 900px) {
+          .app-header { padding: 0 12px; gap: 8px; }
+          .app-header-left { gap: 8px; }
+          .app-brand-label, .app-user-name, .app-admin-context { display: none; }
+          .hdr-nav { padding: 6px 9px; white-space: nowrap; }
+          .app-header-actions { gap: 4px; }
+        }
       `}</style>
     </header>
   );

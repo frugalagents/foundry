@@ -36,7 +36,15 @@ import {
 type Filter = 'all' | 'in_progress' | 'complete';
 type Sort = 'updated' | 'title' | 'status';
 
-const EMPTY_FORM = { title: '', description: '' };
+const EMPTY_FORM = { title: '', description: '', blueprintType: 'coding' };
+
+const BLUEPRINT_TYPES: { value: string; label: string; available: boolean }[] = [
+  { value: 'coding', label: 'Agentic Coding Platform', available: true },
+  { value: 'internal', label: 'Internal-Facing Platform', available: false },
+  { value: 'customer-facing', label: 'Customer-Facing Agentic Platform', available: false },
+  { value: 'saas', label: 'SaaS Decomposition', available: false },
+  { value: 'marketplace', label: 'Marketplace', available: false },
+];
 
 export default function CustomerDetailPage() {
   const { id: paramId } = useParams<{ id: string }>();
@@ -122,6 +130,7 @@ export default function CustomerDetailPage() {
     setCreateForm({
       title: customer ? suggestedTitle(customer) : '',
       description: '',
+      blueprintType: 'coding',
     });
     setCreateError(null);
     setCreateOpen(true);
@@ -137,13 +146,26 @@ export default function CustomerDetailPage() {
     setCreating(true);
     setCreateError(null);
     try {
-      const session = await createSession(id, {
-        title,
-        description: createForm.description.trim(),
-      });
+      const description = createForm.description.trim();
+      const blueprintType = createForm.blueprintType;
+      const session = await createSession(id, { title, description });
       setSessions((current) => [session, ...current]);
       setCreateOpen(false);
-      router.push(`/customers/${id}/sessions/${session.session_id}`);
+      // Agentic coding platform → the architecture-first canvas. The blueprint
+      // (name · description · type) is carried as context and shown on both
+      // panels; the questions are specific to the coding platform.
+      if (blueprintType === 'coding') {
+        const q = new URLSearchParams({
+          bp: title,
+          desc: description,
+          type: blueprintType,
+          customer: id,
+          session: session.session_id,
+        });
+        router.push(`/architecture?${q.toString()}`);
+      } else {
+        router.push(`/customers/${id}/sessions/${session.session_id}`);
+      }
     } catch (err) {
       setCreateError((err as Error).message);
     } finally {
@@ -157,6 +179,7 @@ export default function CustomerDetailPage() {
     setEditForm({
       title: sessionTitle(session),
       description: session.description || session.notes || '',
+      blueprintType: 'coding',
     });
     setEditError(null);
   }
@@ -211,7 +234,16 @@ export default function CustomerDetailPage() {
   }
 
   function openSession(session: Session) {
-    router.push(`/customers/${id}/sessions/${session.session_id}`);
+    // Reopen a blueprint in the architecture-first canvas (not the legacy
+    // session flow), carrying its name/description as context.
+    const q = new URLSearchParams({
+      bp: sessionTitle(session),
+      desc: session.description || session.notes || '',
+      type: 'coding',
+      customer: id,
+      session: session.session_id,
+    });
+    router.push(`/architecture?${q.toString()}`);
   }
 
   if (loading) {
@@ -718,6 +750,26 @@ function BlueprintForm({
         <div style={{ marginTop: 4, color: 'var(--text-muted)', fontSize: 10, textAlign: 'right' }}>
           {form.description.length}/500
         </div>
+      </div>
+      <div>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--text)' }}>
+          Blueprint type
+        </label>
+        <select
+          value={form.blueprintType}
+          onChange={(event) => setForm((current) => ({ ...current, blueprintType: event.target.value }))}
+          style={{
+            width: '100%', padding: '10px 12px', borderRadius: 8,
+            border: '1px solid var(--border)', background: 'var(--surface)',
+            color: 'var(--text)', fontSize: 14, fontFamily: 'inherit',
+          }}
+        >
+          {BLUEPRINT_TYPES.map((t) => (
+            <option key={t.value} value={t.value} disabled={!t.available}>
+              {t.label}{t.available ? '' : ' — coming soon'}
+            </option>
+          ))}
+        </select>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 2 }}>
         <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>Cancel</Button>
