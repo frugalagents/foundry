@@ -1,0 +1,312 @@
+{
+  "component_offerings": [
+    {
+      "component_id": "component:developer-clients",
+      "aws": "Enterprise coding-agent clients with AWS governance",
+      "oss": "Open-source IDE and CLI agent clients",
+      "saas": "Managed Claude Code and Codex clients",
+      "byop": "Customer-selected coding-agent client adapter"
+    },
+    {
+      "component_id": "component:advisor-workspace",
+      "aws": "AWS-hosted Platform Advisor workspace",
+      "oss": "Backstage-based architecture workspace",
+      "saas": "Managed Platform Advisor workspace",
+      "byop": "Customer portal workspace adapter"
+    },
+    {
+      "component_id": "component:workforce-identity",
+      "aws": "AWS IAM Identity Center federation",
+      "oss": "Keycloak workforce identity",
+      "saas": "Microsoft Entra ID or Okta federation",
+      "byop": "Customer OIDC identity adapter"
+    },
+    {
+      "component_id": "component:workload-identity",
+      "aws": "AWS IAM roles and STS",
+      "oss": "SPIFFE and SPIRE workload identity",
+      "saas": "Managed workload identity broker",
+      "byop": "Customer workload identity adapter"
+    },
+    {
+      "component_id": "component:team-workspaces",
+      "aws": "DynamoDB-backed team workspace registry",
+      "oss": "Backstage team workspace catalog",
+      "saas": "Managed team workspace service",
+      "byop": "Customer team workspace adapter"
+    },
+    {
+      "component_id": "component:agent-registry",
+      "aws": "Amazon ECR agent artifact registry",
+      "oss": "OCI agent artifact registry",
+      "saas": "Managed agent registry",
+      "byop": "Customer agent registry adapter"
+    },
+    {
+      "component_id": "component:workflow-definitions",
+      "aws": "Amazon S3 versioned workflow catalog",
+      "oss": "Git-backed workflow definitions",
+      "saas": "Managed workflow definition service",
+      "byop": "Customer workflow catalog adapter"
+    },
+    {
+      "component_id": "component:orchestration-runtime",
+      "aws": "Amazon Bedrock AgentCore Runtime",
+      "oss": "LangGraph and Temporal orchestration",
+      "saas": "Managed agent orchestration service",
+      "byop": "Customer orchestration runtime adapter"
+    },
+    {
+      "component_id": "component:model-gateway",
+      "aws": "Amazon Bedrock governed model gateway",
+      "oss": "LiteLLM model gateway",
+      "saas": "Managed AI model gateway",
+      "byop": "Customer model gateway adapter"
+    },
+    {
+      "component_id": "component:model-catalog",
+      "aws": "Amazon Bedrock model catalog",
+      "oss": "Open model metadata catalog",
+      "saas": "Managed model catalog",
+      "byop": "Customer model catalog adapter"
+    },
+    {
+      "component_id": "component:model-router",
+      "aws": "AWS policy-based model router",
+      "oss": "LiteLLM policy router",
+      "saas": "Managed AI gateway router",
+      "byop": "Customer model router adapter"
+    },
+    {
+      "component_id": "component:managed-model-provider",
+      "aws": "Amazon Bedrock managed inference",
+      "oss": "vLLM on customer compute",
+      "saas": "Anthropic API",
+      "byop": "Customer managed-provider adapter"
+    },
+    {
+      "component_id": "component:self-hosted-inference",
+      "aws": "Bedrock Custom Model Import / EC2 GPU inference",
+      "oss": "vLLM / TGI in-VPC inference",
+      "saas": "Dedicated single-tenant inference endpoint",
+      "byop": "Customer self-hosted inference stack"
+    },
+    {
+      "component_id": "component:tool-gateway",
+      "aws": "Amazon Bedrock AgentCore Gateway",
+      "oss": "Open-source MCP gateway",
+      "saas": "Managed MCP and API gateway",
+      "byop": "Customer tool gateway adapter"
+    },
+    {
+      "component_id": "component:connector-registry",
+      "aws": "AgentCore Gateway target catalog",
+      "oss": "Backstage connector catalog",
+      "saas": "Managed connector registry",
+      "byop": "Customer connector registry adapter"
+    },
+    {
+      "component_id": "component:source-control-integration",
+      "aws": "AWS event-driven GitLab integration",
+      "oss": "GitLab webhook and API integration",
+      "saas": "Managed GitLab SaaS connector",
+      "byop": "Customer source-control adapter"
+    },
+    {
+      "component_id": "component:package-access",
+      "aws": "AWS CodeArtifact",
+      "oss": "Sonatype Nexus Repository",
+      "saas": "GitLab SaaS package registry",
+      "byop": "Customer package registry adapter"
+    },
+    {
+      "component_id": "component:enterprise-api-access",
+      "aws": "Amazon API Gateway and AWS PrivateLink",
+      "oss": "Kong enterprise API access",
+      "saas": "Managed enterprise API integration",
+      "byop": "Customer API access adapter"
+    },
+    {
+      "component_id": "component:execution-broker",
+      "aws": "Amazon SQS and AWS Step Functions execution broker",
+      "oss": "Temporal task broker",
+      "saas": "Managed agent task broker",
+      "byop": "Customer execution broker adapter"
+    },
+    {
+      "component_id": "component:local-runtime",
+      "aws": "Enterprise-managed local runtime with AWS control",
+      "oss": "Dev Container local runtime",
+      "saas": "Managed endpoint agent runtime",
+      "byop": "Customer local runtime adapter"
+    },
+    {
+      "component_id": "component:ephemeral-runtime",
+      "aws": "AWS isolated ephemeral task runtime",
+      "oss": "Firecracker ephemeral worker",
+      "saas": "Managed isolated sandbox service",
+      "byop": "Customer ephemeral runtime adapter"
+    },
+    {
+      "component_id": "component:persistent-workspace",
+      "aws": "Amazon EC2 and EBS developer workspace",
+      "oss": "Coder persistent workspace",
+      "saas": "Managed cloud development workspace",
+      "byop": "Customer persistent workspace adapter"
+    },
+    {
+      "component_id": "component:container-runtime",
+      "aws": "Amazon ECS on AWS Fargate",
+      "oss": "HashiCorp Nomad container runtime",
+      "saas": "Managed container runner",
+      "byop": "Customer container runtime adapter"
+    },
+    {
+      "component_id": "component:kubernetes-runtime",
+      "aws": "Amazon EKS",
+      "oss": "Upstream Kubernetes",
+      "saas": "Managed Kubernetes service",
+      "byop": "Customer Kubernetes adapter"
+    },
+    {
+      "component_id": "component:policy-engine",
+      "aws": "Amazon Verified Permissions and Cedar",
+      "oss": "Open Policy Agent",
+      "saas": "Managed policy decision service",
+      "byop": "Customer policy engine adapter"
+    },
+    {
+      "component_id": "component:secrets-broker",
+      "aws": "AWS Secrets Manager",
+      "oss": "HashiCorp Vault",
+      "saas": "Managed secrets broker",
+      "byop": "Customer secrets broker adapter"
+    },
+    {
+      "component_id": "component:audit-ledger",
+      "aws": "AWS CloudTrail and Amazon S3 Object Lock",
+      "oss": "Append-only PostgreSQL audit ledger",
+      "saas": "Managed immutable audit export",
+      "byop": "Customer audit ledger adapter"
+    },
+    {
+      "component_id": "component:quota-manager",
+      "aws": "AWS quota and budget control service",
+      "oss": "Envoy rate-limit service",
+      "saas": "Managed AI quota and budget service",
+      "byop": "Customer quota manager adapter"
+    },
+    {
+      "component_id": "component:telemetry-pipeline",
+      "aws": "AWS Distro for OpenTelemetry and Amazon CloudWatch",
+      "oss": "OpenTelemetry Collector pipeline",
+      "saas": "Managed agent observability pipeline",
+      "byop": "Customer telemetry pipeline adapter"
+    },
+    {
+      "component_id": "component:evaluation-service",
+      "aws": "Amazon Bedrock evaluation service",
+      "oss": "Open-source agent evaluation harness",
+      "saas": "Managed agent evaluation service",
+      "byop": "Customer evaluation service adapter"
+    },
+    {
+      "component_id": "component:economics-ledger",
+      "aws": "AWS cost and token economics ledger",
+      "oss": "OpenCost and token usage ledger",
+      "saas": "Managed AI FinOps ledger",
+      "byop": "Customer economics ledger adapter"
+    },
+    {
+      "component_id": "component:outcome-correlator",
+      "aws": "AWS event-driven outcome correlator",
+      "oss": "OpenTelemetry and GitLab outcome correlator",
+      "saas": "Managed engineering outcome analytics",
+      "byop": "Customer outcome correlator adapter"
+    },
+    {
+      "component_id": "component:architecture-knowledge",
+      "aws": "Amazon OpenSearch Serverless architecture index",
+      "oss": "OpenSearch architecture knowledge index",
+      "saas": "Managed architecture knowledge service",
+      "byop": "Customer architecture knowledge adapter"
+    },
+    {
+      "component_id": "component:evidence-catalog",
+      "aws": "Amazon S3 and DynamoDB evidence catalog",
+      "oss": "Git-backed evidence catalog",
+      "saas": "Managed evidence catalog",
+      "byop": "Customer evidence catalog adapter"
+    },
+    {
+      "component_id": "component:multi-agent-supervisor",
+      "aws": "AWS multi-agent supervisor runtime",
+      "oss": "LangGraph multi-agent supervisor",
+      "saas": "Managed multi-agent supervisor",
+      "byop": "Customer supervisor adapter"
+    },
+    {
+      "component_id": "component:model-fallback",
+      "aws": "Amazon Bedrock model fallback policy",
+      "oss": "LiteLLM fallback policy",
+      "saas": "Managed model fallback service",
+      "byop": "Customer model fallback adapter"
+    },
+    {
+      "component_id": "component:private-connectivity",
+      "aws": "AWS PrivateLink and VPC endpoints",
+      "oss": "Service mesh private connectivity",
+      "saas": "SaaS private connectivity add-on",
+      "byop": "Customer private network adapter"
+    },
+    {
+      "component_id": "component:human-approval",
+      "aws": "AWS Step Functions callback approval",
+      "oss": "Temporal signal-based approval",
+      "saas": "Managed human approval workflow",
+      "byop": "Customer approval workflow adapter"
+    },
+    {
+      "component_id": "component:restricted-egress",
+      "aws": "AWS Network Firewall and VPC endpoints",
+      "oss": "Cilium egress policy",
+      "saas": "Managed sandbox egress policy",
+      "byop": "Customer egress control adapter"
+    },
+    {
+      "component_id": "component:multi-region",
+      "aws": "AWS multi-region service deployment",
+      "oss": "Multi-cluster Kubernetes deployment",
+      "saas": "Managed multi-region service",
+      "byop": "Customer multi-region adapter"
+    },
+    {
+      "component_id": "component:sequential-handoff",
+      "aws": "AWS sequential agent workflow",
+      "oss": "LangGraph sequential handoff",
+      "saas": "Managed sequential agent handoff",
+      "byop": "Customer handoff adapter"
+    },
+    {
+      "component_id": "component:parallel-reviewer",
+      "aws": "AWS parallel reviewer workflow",
+      "oss": "Temporal parallel reviewer workflow",
+      "saas": "Managed parallel reviewer",
+      "byop": "Customer parallel reviewer adapter"
+    },
+    {
+      "component_id": "component:static-model-binding",
+      "aws": "Amazon Bedrock inference profile binding",
+      "oss": "LiteLLM model alias binding",
+      "saas": "Managed static model binding",
+      "byop": "Customer model binding adapter"
+    },
+    {
+      "component_id": "component:warm-runtime-pool",
+      "aws": "AWS warm isolated runtime pool",
+      "oss": "Kubernetes warm worker pool",
+      "saas": "Managed warm sandbox pool",
+      "byop": "Customer warm runtime adapter"
+    }
+  ]
+}

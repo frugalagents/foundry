@@ -1,0 +1,369 @@
+{
+  "components": [
+    {
+      "id": "component:developer-clients",
+      "version": "1.0.0",
+      "name": "Coding agent clients",
+      "description": "Developer-facing CLI, IDE, and task interfaces.",
+      "plane": "experience"
+    },
+    {
+      "id": "component:advisor-workspace",
+      "version": "1.0.0",
+      "name": "Architecture workspace",
+      "description": "Versioned requirements, decisions, and architecture state.",
+      "plane": "experience",
+      "dependency_ids": ["component:workforce-identity"]
+    },
+    {
+      "id": "component:workforce-identity",
+      "version": "1.0.0",
+      "name": "Workforce identity",
+      "description": "Authenticates developers and resolves enterprise groups.",
+      "plane": "access"
+    },
+    {
+      "id": "component:workload-identity",
+      "version": "1.0.0",
+      "name": "Workload identity",
+      "description": "Issues scoped identities to agent runs and tools.",
+      "plane": "access",
+      "dependency_ids": ["component:workforce-identity"]
+    },
+    {
+      "id": "component:team-workspaces",
+      "version": "1.0.0",
+      "name": "Team workspaces",
+      "description": "Separates delegated policy, quota, and audit scopes.",
+      "plane": "access",
+      "dependency_ids": ["component:workforce-identity"]
+    },
+    {
+      "id": "component:agent-registry",
+      "version": "1.0.0",
+      "name": "Agent registry",
+      "description": "Controls approved coding agents, versions, and ownership.",
+      "plane": "orchestration",
+      "dependency_ids": ["component:workload-identity"]
+    },
+    {
+      "id": "component:workflow-definitions",
+      "version": "1.0.0",
+      "name": "Workflow definitions",
+      "description": "Defines reproducible single-agent and multi-agent workflows.",
+      "plane": "orchestration",
+      "dependency_ids": ["component:agent-registry"]
+    },
+    {
+      "id": "component:orchestration-runtime",
+      "version": "1.0.0",
+      "name": "Agent orchestration runtime",
+      "description": "Coordinates agent turns, handoffs, state, and cancellation.",
+      "plane": "orchestration",
+      "dependency_ids": ["component:workflow-definitions"]
+    },
+    {
+      "id": "component:model-gateway",
+      "version": "1.0.0",
+      "name": "Model gateway",
+      "description": "Provides a governed model invocation boundary.",
+      "plane": "model",
+      "dependency_ids": ["component:workload-identity"]
+    },
+    {
+      "id": "component:model-catalog",
+      "version": "1.0.0",
+      "name": "Model catalog",
+      "description": "Records approved models, providers, regions, and constraints.",
+      "plane": "model",
+      "dependency_ids": ["component:model-gateway"]
+    },
+    {
+      "id": "component:model-router",
+      "version": "1.0.0",
+      "name": "Model router",
+      "description": "Selects eligible models using declared policy and economics.",
+      "plane": "model",
+      "dependency_ids": ["component:model-catalog"]
+    },
+    {
+      "id": "component:managed-model-provider",
+      "version": "1.0.0",
+      "name": "Managed model provider",
+      "description": "Frontier inference via a managed provider (e.g. Amazon Bedrock, Anthropic API), reached through the model gateway.",
+      "plane": "model",
+      "kind": "overlay",
+      "dependency_ids": ["component:model-gateway"],
+      "evidence_claim_ids": ["claim:bedrock-managed-inference"]
+    },
+    {
+      "id": "component:self-hosted-inference",
+      "version": "1.0.0",
+      "name": "Self-hosted inference",
+      "description": "In-VPC or air-gapped model serving for residency-sensitive and sovereign workloads.",
+      "plane": "model",
+      "kind": "overlay",
+      "dependency_ids": ["component:model-gateway"],
+      "evidence_claim_ids": ["claim:self-hosted-residency"]
+    },
+    {
+      "id": "component:tool-gateway",
+      "version": "1.0.0",
+      "name": "Tool and API gateway",
+      "description": "Applies authentication, policy, and audit to tool invocation.",
+      "plane": "tool",
+      "dependency_ids": ["component:workload-identity"]
+    },
+    {
+      "id": "component:connector-registry",
+      "version": "1.0.0",
+      "name": "Connector registry",
+      "description": "Catalogs approved tools, APIs, schemas, and owners.",
+      "plane": "tool",
+      "dependency_ids": ["component:tool-gateway"]
+    },
+    {
+      "id": "component:source-control-integration",
+      "version": "1.0.0",
+      "name": "Source control integration",
+      "description": "Connects issues, repositories, branches, reviews, and merges.",
+      "plane": "tool",
+      "dependency_ids": ["component:tool-gateway"]
+    },
+    {
+      "id": "component:package-access",
+      "version": "1.0.0",
+      "name": "Approved package access",
+      "description": "Restricts dependency retrieval to governed registries.",
+      "plane": "tool",
+      "dependency_ids": ["component:tool-gateway"]
+    },
+    {
+      "id": "component:enterprise-api-access",
+      "version": "1.0.0",
+      "name": "Enterprise API access",
+      "description": "Connects approved enterprise systems with scoped credentials.",
+      "plane": "tool",
+      "dependency_ids": ["component:connector-registry"]
+    },
+    {
+      "id": "component:execution-broker",
+      "version": "1.0.0",
+      "name": "Execution broker",
+      "description": "Places tasks onto eligible local or remote runtimes.",
+      "plane": "execution",
+      "dependency_ids": ["component:workload-identity"]
+    },
+    {
+      "id": "component:local-runtime",
+      "version": "1.0.0",
+      "name": "Managed local runtime",
+      "description": "Runs interactive coding agents on governed developer endpoints.",
+      "plane": "execution",
+      "dependency_ids": ["component:execution-broker"]
+    },
+    {
+      "id": "component:ephemeral-runtime",
+      "version": "1.0.0",
+      "name": "Ephemeral task runtime",
+      "description": "Runs isolated asynchronous tasks in short-lived environments.",
+      "plane": "execution",
+      "dependency_ids": ["component:execution-broker"]
+    },
+    {
+      "id": "component:persistent-workspace",
+      "version": "1.0.0",
+      "name": "Persistent developer workspace",
+      "description": "Supports long migrations and durable development environments.",
+      "plane": "execution",
+      "dependency_ids": ["component:execution-broker"]
+    },
+    {
+      "id": "component:container-runtime",
+      "version": "1.0.0",
+      "name": "Self-hosted container runtime",
+      "description": "Runs coding-agent tasks on customer-operated container compute.",
+      "plane": "execution",
+      "dependency_ids": ["component:execution-broker"]
+    },
+    {
+      "id": "component:kubernetes-runtime",
+      "version": "1.0.0",
+      "name": "Self-hosted Kubernetes runtime",
+      "description": "Runs coding-agent tasks on a customer-operated Kubernetes platform.",
+      "plane": "execution",
+      "dependency_ids": ["component:container-runtime"]
+    },
+    {
+      "id": "component:policy-engine",
+      "version": "1.0.0",
+      "name": "Policy engine",
+      "description": "Evaluates tool, model, data, network, and approval policy.",
+      "plane": "governance",
+      "dependency_ids": ["component:workload-identity"]
+    },
+    {
+      "id": "component:secrets-broker",
+      "version": "1.0.0",
+      "name": "Secrets broker",
+      "description": "Issues short-lived credentials to approved agent actions.",
+      "plane": "governance",
+      "dependency_ids": ["component:policy-engine"]
+    },
+    {
+      "id": "component:audit-ledger",
+      "version": "1.0.0",
+      "name": "Decision and action ledger",
+      "description": "Preserves replayable requirements, decisions, and agent actions.",
+      "plane": "governance",
+      "dependency_ids": ["component:workforce-identity"]
+    },
+    {
+      "id": "component:quota-manager",
+      "version": "1.0.0",
+      "name": "Quota and budget manager",
+      "description": "Enforces team concurrency, usage, and economic limits.",
+      "plane": "governance",
+      "dependency_ids": ["component:team-workspaces"]
+    },
+    {
+      "id": "component:telemetry-pipeline",
+      "version": "1.0.0",
+      "name": "Agent telemetry pipeline",
+      "description": "Collects model, tool, runtime, and policy traces.",
+      "plane": "observability",
+      "dependency_ids": ["component:workload-identity"]
+    },
+    {
+      "id": "component:evaluation-service",
+      "version": "1.0.0",
+      "name": "Evaluation service",
+      "description": "Measures task quality, safety, and regression behavior.",
+      "plane": "observability",
+      "dependency_ids": ["component:telemetry-pipeline"]
+    },
+    {
+      "id": "component:economics-ledger",
+      "version": "1.0.0",
+      "name": "Token and platform economics",
+      "description": "Attributes model and platform cost to successful outcomes.",
+      "plane": "observability",
+      "dependency_ids": ["component:telemetry-pipeline"]
+    },
+    {
+      "id": "component:outcome-correlator",
+      "version": "1.0.0",
+      "name": "Outcome correlator",
+      "description": "Joins agent traces to source-control and CI results.",
+      "plane": "observability",
+      "dependency_ids": ["component:evaluation-service", "component:source-control-integration"]
+    },
+    {
+      "id": "component:architecture-knowledge",
+      "version": "1.0.0",
+      "name": "Architecture intelligence catalog",
+      "description": "Stores versioned patterns, components, rules, and controls.",
+      "plane": "knowledge",
+      "evidence_claim_ids": ["claim:architecture-first-authority"]
+    },
+    {
+      "id": "component:evidence-catalog",
+      "version": "1.0.0",
+      "name": "Evidence claim catalog",
+      "description": "Connects reviewed claims to immutable source snapshots.",
+      "plane": "knowledge",
+      "dependency_ids": ["component:architecture-knowledge"],
+      "evidence_claim_ids": ["claim:architecture-first-authority"]
+    },
+    {
+      "id": "component:multi-agent-supervisor",
+      "version": "1.0.0",
+      "name": "Multi-agent supervisor",
+      "description": "Coordinates specialist workers and independent review.",
+      "plane": "orchestration",
+      "kind": "overlay",
+      "dependency_ids": ["component:orchestration-runtime"]
+    },
+    {
+      "id": "component:model-fallback",
+      "version": "1.0.0",
+      "name": "Model-provider fallback",
+      "description": "Applies bounded fallback among eligible model providers.",
+      "plane": "model",
+      "kind": "overlay",
+      "dependency_ids": ["component:model-router"]
+    },
+    {
+      "id": "component:private-connectivity",
+      "version": "1.0.0",
+      "name": "Private connectivity",
+      "description": "Keeps eligible model, tool, and runtime traffic on private paths.",
+      "plane": "access",
+      "kind": "overlay",
+      "dependency_ids": ["component:workload-identity"]
+    },
+    {
+      "id": "component:human-approval",
+      "version": "1.0.0",
+      "name": "Risk-based human approval",
+      "description": "Requires approval at declared high-impact transaction boundaries.",
+      "plane": "governance",
+      "kind": "overlay",
+      "dependency_ids": ["component:policy-engine", "component:audit-ledger"]
+    },
+    {
+      "id": "component:restricted-egress",
+      "version": "1.0.0",
+      "name": "Restricted runtime egress",
+      "description": "Allows runtimes to reach only approved destinations.",
+      "plane": "governance",
+      "kind": "overlay",
+      "dependency_ids": ["component:policy-engine", "component:execution-broker"]
+    },
+    {
+      "id": "component:multi-region",
+      "version": "1.0.0",
+      "name": "Multi-region resilience",
+      "description": "Adds region-aware routing, failover, and evidence.",
+      "plane": "observability",
+      "kind": "overlay",
+      "dependency_ids": ["component:telemetry-pipeline"]
+    },
+    {
+      "id": "component:sequential-handoff",
+      "version": "1.0.0",
+      "name": "Sequential specialist handoff",
+      "description": "Passes bounded work products between specialist agents with explicit state and completion criteria.",
+      "plane": "orchestration",
+      "kind": "overlay",
+      "dependency_ids": ["component:orchestration-runtime"]
+    },
+    {
+      "id": "component:parallel-reviewer",
+      "version": "1.0.0",
+      "name": "Parallel candidates with independent review",
+      "description": "Runs independent candidate agents and routes their results through a separate reviewer.",
+      "plane": "orchestration",
+      "kind": "overlay",
+      "dependency_ids": ["component:multi-agent-supervisor"]
+    },
+    {
+      "id": "component:static-model-binding",
+      "version": "1.0.0",
+      "name": "Static multi-model binding",
+      "description": "Pins approved models to declared agent roles without request-time model selection.",
+      "plane": "model",
+      "kind": "overlay",
+      "dependency_ids": ["component:model-catalog"]
+    },
+    {
+      "id": "component:warm-runtime-pool",
+      "version": "1.0.0",
+      "name": "Warm pools and resumable snapshots",
+      "description": "Maintains pre-initialized or resumable execution capacity for startup-latency objectives.",
+      "plane": "execution",
+      "kind": "overlay",
+      "dependency_ids": ["component:ephemeral-runtime"]
+    }
+  ]
+}

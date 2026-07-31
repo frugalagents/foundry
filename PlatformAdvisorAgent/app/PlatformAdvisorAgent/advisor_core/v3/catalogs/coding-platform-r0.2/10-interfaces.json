@@ -1,0 +1,367 @@
+{
+  "interfaces": [
+    {
+      "id": "interface:identity-assertion",
+      "version": "1.0.0",
+      "name": "Workforce identity assertion",
+      "protocol": "OIDC",
+      "contract_version": "1.0",
+      "description": "Authenticated workforce subject, tenant, and group claims."
+    },
+    {
+      "id": "interface:workload-credential",
+      "version": "1.0.0",
+      "name": "Workload credential",
+      "protocol": "OAuth 2.0 token exchange",
+      "contract_version": "1.0",
+      "description": "Short-lived workload identity and scoped credential exchange."
+    },
+    {
+      "id": "interface:agent-specification",
+      "version": "1.0.0",
+      "name": "Agent specification",
+      "protocol": "OCI artifact plus JSON Schema",
+      "contract_version": "1.0",
+      "description": "Versioned coding-agent metadata, tools, models, and policy envelope."
+    },
+    {
+      "id": "interface:workflow-specification",
+      "version": "1.0.0",
+      "name": "Workflow specification",
+      "protocol": "JSON Schema",
+      "contract_version": "1.0",
+      "description": "Versioned orchestration graph and approval checkpoints."
+    },
+    {
+      "id": "interface:orchestration-control",
+      "version": "1.0.0",
+      "name": "Orchestration control",
+      "protocol": "CloudEvents",
+      "contract_version": "1.0",
+      "description": "Agent lifecycle, handoff, cancellation, and completion events."
+    },
+    {
+      "id": "interface:model-inference",
+      "version": "1.0.0",
+      "name": "Model inference",
+      "protocol": "OpenAI-compatible HTTP",
+      "contract_version": "2026-01",
+      "description": "Streaming and non-streaming inference with usage metadata."
+    },
+    {
+      "id": "interface:model-catalog",
+      "version": "1.0.0",
+      "name": "Model catalog",
+      "protocol": "JSON Schema",
+      "contract_version": "1.0",
+      "description": "Approved models, regions, limits, capabilities, and policy labels."
+    },
+    {
+      "id": "interface:tool-invocation",
+      "version": "1.0.0",
+      "name": "Tool invocation",
+      "protocol": "MCP",
+      "contract_version": "2025-11",
+      "description": "Discoverable, policy-scoped tool invocation and result envelope."
+    },
+    {
+      "id": "interface:connector-discovery",
+      "version": "1.0.0",
+      "name": "Connector discovery",
+      "protocol": "JSON Schema",
+      "contract_version": "1.0",
+      "description": "Connector metadata, ownership, scopes, and health state."
+    },
+    {
+      "id": "interface:source-control",
+      "version": "1.0.0",
+      "name": "Source control event",
+      "protocol": "CloudEvents",
+      "contract_version": "1.0",
+      "description": "Repository, merge request, review, pipeline, and deployment events."
+    },
+    {
+      "id": "interface:package-retrieval",
+      "version": "1.0.0",
+      "name": "Package retrieval",
+      "protocol": "OCI and native package protocols",
+      "contract_version": "1.0",
+      "description": "Authenticated access to approved packages and build artifacts."
+    },
+    {
+      "id": "interface:enterprise-api",
+      "version": "1.0.0",
+      "name": "Enterprise API access",
+      "protocol": "OpenAPI 3.1",
+      "contract_version": "1.0",
+      "description": "Approved enterprise API discovery and invocation."
+    },
+    {
+      "id": "interface:execution-dispatch",
+      "version": "1.0.0",
+      "name": "Execution dispatch",
+      "protocol": "CloudEvents",
+      "contract_version": "1.0",
+      "description": "Idempotent task dispatch, lease, heartbeat, and completion."
+    },
+    {
+      "id": "interface:policy-decision",
+      "version": "1.0.0",
+      "name": "Policy decision",
+      "protocol": "Cedar-compatible authorization request",
+      "contract_version": "1.0",
+      "description": "Allow, deny, and approval-required decisions with rationale."
+    },
+    {
+      "id": "interface:secret-lease",
+      "version": "1.0.0",
+      "name": "Secret lease",
+      "protocol": "Secret broker API",
+      "contract_version": "1.0",
+      "description": "Short-lived, audience-bound secret material."
+    },
+    {
+      "id": "interface:audit-write",
+      "version": "1.0.0",
+      "name": "Audit write",
+      "protocol": "CloudEvents",
+      "contract_version": "1.0",
+      "description": "Append-only agent decision, action, approval, and tool event."
+    },
+    {
+      "id": "interface:quota-decision",
+      "version": "1.0.0",
+      "name": "Quota decision",
+      "protocol": "Rate Limit Service",
+      "contract_version": "1.0",
+      "description": "Tenant, team, user, model, and tool quota decision."
+    },
+    {
+      "id": "interface:telemetry-ingest",
+      "version": "1.0.0",
+      "name": "Agent telemetry ingest",
+      "protocol": "OTLP",
+      "contract_version": "1.0",
+      "description": "Traces, metrics, logs, token usage, and semantic agent spans."
+    },
+    {
+      "id": "interface:evaluation-result",
+      "version": "1.0.0",
+      "name": "Evaluation result",
+      "protocol": "CloudEvents",
+      "contract_version": "1.0",
+      "description": "Quality, safety, regression, and task-completion evaluation."
+    },
+    {
+      "id": "interface:economics-record",
+      "version": "1.0.0",
+      "name": "Economics record",
+      "protocol": "CloudEvents",
+      "contract_version": "1.0",
+      "description": "Normalized token, runtime, storage, and network cost record."
+    },
+    {
+      "id": "interface:architecture-evidence",
+      "version": "1.0.0",
+      "name": "Architecture evidence",
+      "protocol": "JSON-LD",
+      "contract_version": "1.0",
+      "description": "Versioned architecture pattern and evidence claim retrieval."
+    },
+    {
+      "id": "interface:evidence-query",
+      "version": "1.0.0",
+      "name": "Evidence query",
+      "protocol": "JSON-LD",
+      "contract_version": "1.0",
+      "description": "Source-linked claim retrieval with review and expiry state."
+    }
+  ],
+  "component_bindings": [
+    {
+      "component_id": "component:developer-clients",
+      "requires_interface_ids": ["interface:identity-assertion", "interface:model-inference", "interface:tool-invocation"]
+    },
+    {
+      "component_id": "component:advisor-workspace",
+      "requires_interface_ids": ["interface:architecture-evidence", "interface:identity-assertion"]
+    },
+    {
+      "component_id": "component:workforce-identity",
+      "provides_interface_ids": ["interface:identity-assertion"]
+    },
+    {
+      "component_id": "component:workload-identity",
+      "provides_interface_ids": ["interface:workload-credential"]
+    },
+    {
+      "component_id": "component:team-workspaces",
+      "requires_interface_ids": ["interface:identity-assertion"]
+    },
+    {
+      "component_id": "component:agent-registry",
+      "provides_interface_ids": ["interface:agent-specification"],
+      "requires_interface_ids": ["interface:identity-assertion"]
+    },
+    {
+      "component_id": "component:workflow-definitions",
+      "provides_interface_ids": ["interface:workflow-specification"]
+    },
+    {
+      "component_id": "component:orchestration-runtime",
+      "provides_interface_ids": ["interface:orchestration-control"],
+      "requires_interface_ids": ["interface:agent-specification", "interface:execution-dispatch", "interface:model-inference", "interface:tool-invocation", "interface:workflow-specification"]
+    },
+    {
+      "component_id": "component:model-gateway",
+      "provides_interface_ids": ["interface:model-inference"],
+      "requires_interface_ids": ["interface:audit-write", "interface:identity-assertion", "interface:model-catalog", "interface:policy-decision", "interface:quota-decision"]
+    },
+    {
+      "component_id": "component:model-catalog",
+      "provides_interface_ids": ["interface:model-catalog"]
+    },
+    {
+      "component_id": "component:model-router",
+      "requires_interface_ids": ["interface:model-catalog"]
+    },
+    {
+      "component_id": "component:managed-model-provider",
+      "provides_interface_ids": ["interface:model-inference"],
+      "requires_interface_ids": ["interface:model-catalog"]
+    },
+    {
+      "component_id": "component:self-hosted-inference",
+      "provides_interface_ids": ["interface:model-inference"],
+      "requires_interface_ids": ["interface:model-catalog"]
+    },
+    {
+      "component_id": "component:tool-gateway",
+      "provides_interface_ids": ["interface:tool-invocation"],
+      "requires_interface_ids": ["interface:audit-write", "interface:connector-discovery", "interface:policy-decision", "interface:quota-decision", "interface:secret-lease"]
+    },
+    {
+      "component_id": "component:connector-registry",
+      "provides_interface_ids": ["interface:connector-discovery"]
+    },
+    {
+      "component_id": "component:source-control-integration",
+      "provides_interface_ids": ["interface:source-control"]
+    },
+    {
+      "component_id": "component:package-access",
+      "provides_interface_ids": ["interface:package-retrieval"]
+    },
+    {
+      "component_id": "component:enterprise-api-access",
+      "provides_interface_ids": ["interface:enterprise-api"]
+    },
+    {
+      "component_id": "component:execution-broker",
+      "provides_interface_ids": ["interface:execution-dispatch"],
+      "requires_interface_ids": ["interface:audit-write", "interface:policy-decision", "interface:quota-decision", "interface:workload-credential"]
+    },
+    {
+      "component_id": "component:local-runtime",
+      "requires_interface_ids": ["interface:execution-dispatch", "interface:package-retrieval", "interface:telemetry-ingest", "interface:workload-credential"]
+    },
+    {
+      "component_id": "component:ephemeral-runtime",
+      "requires_interface_ids": ["interface:execution-dispatch", "interface:package-retrieval", "interface:telemetry-ingest", "interface:workload-credential"]
+    },
+    {
+      "component_id": "component:persistent-workspace",
+      "requires_interface_ids": ["interface:execution-dispatch", "interface:package-retrieval", "interface:telemetry-ingest", "interface:workload-credential"]
+    },
+    {
+      "component_id": "component:container-runtime",
+      "requires_interface_ids": ["interface:execution-dispatch", "interface:package-retrieval", "interface:telemetry-ingest", "interface:workload-credential"]
+    },
+    {
+      "component_id": "component:kubernetes-runtime",
+      "requires_interface_ids": ["interface:execution-dispatch", "interface:package-retrieval", "interface:telemetry-ingest", "interface:workload-credential"]
+    },
+    {
+      "component_id": "component:policy-engine",
+      "provides_interface_ids": ["interface:policy-decision"]
+    },
+    {
+      "component_id": "component:secrets-broker",
+      "provides_interface_ids": ["interface:secret-lease"]
+    },
+    {
+      "component_id": "component:audit-ledger",
+      "provides_interface_ids": ["interface:audit-write"]
+    },
+    {
+      "component_id": "component:quota-manager",
+      "provides_interface_ids": ["interface:quota-decision"]
+    },
+    {
+      "component_id": "component:telemetry-pipeline",
+      "provides_interface_ids": ["interface:telemetry-ingest"]
+    },
+    {
+      "component_id": "component:evaluation-service",
+      "provides_interface_ids": ["interface:evaluation-result"],
+      "requires_interface_ids": ["interface:telemetry-ingest"]
+    },
+    {
+      "component_id": "component:economics-ledger",
+      "provides_interface_ids": ["interface:economics-record"],
+      "requires_interface_ids": ["interface:telemetry-ingest"]
+    },
+    {
+      "component_id": "component:outcome-correlator",
+      "requires_interface_ids": ["interface:economics-record", "interface:evaluation-result", "interface:source-control"]
+    },
+    {
+      "component_id": "component:architecture-knowledge",
+      "provides_interface_ids": ["interface:architecture-evidence"],
+      "requires_interface_ids": ["interface:evidence-query"]
+    },
+    {
+      "component_id": "component:evidence-catalog",
+      "provides_interface_ids": ["interface:evidence-query"]
+    },
+    {
+      "component_id": "component:multi-agent-supervisor",
+      "requires_interface_ids": ["interface:orchestration-control"]
+    },
+    {
+      "component_id": "component:model-fallback",
+      "requires_interface_ids": ["interface:model-catalog", "interface:model-inference"]
+    },
+    {
+      "component_id": "component:private-connectivity"
+    },
+    {
+      "component_id": "component:human-approval",
+      "requires_interface_ids": ["interface:audit-write", "interface:identity-assertion"]
+    },
+    {
+      "component_id": "component:restricted-egress",
+      "requires_interface_ids": ["interface:policy-decision"]
+    },
+    {
+      "component_id": "component:multi-region",
+      "requires_interface_ids": ["interface:telemetry-ingest"]
+    },
+    {
+      "component_id": "component:sequential-handoff",
+      "requires_interface_ids": ["interface:orchestration-control"]
+    },
+    {
+      "component_id": "component:parallel-reviewer",
+      "requires_interface_ids": ["interface:orchestration-control"]
+    },
+    {
+      "component_id": "component:static-model-binding",
+      "requires_interface_ids": ["interface:model-catalog"]
+    },
+    {
+      "component_id": "component:warm-runtime-pool",
+      "requires_interface_ids": ["interface:execution-dispatch", "interface:telemetry-ingest"]
+    }
+  ]
+}

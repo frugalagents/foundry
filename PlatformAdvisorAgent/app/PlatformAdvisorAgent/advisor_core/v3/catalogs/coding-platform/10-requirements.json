@@ -1,0 +1,254 @@
+{
+  "requirements": [
+    {
+      "id": "requirement:execution-placement",
+      "version": "1.0.0",
+      "name": "Execution placement",
+      "description": "Where must interactive and asynchronous coding-agent execution run?",
+      "value_type": "string",
+      "required": true,
+      "allowed_values": ["local", "customer-managed", "vendor-managed", "hybrid"]
+    },
+    {
+      "id": "requirement:runtime-isolation",
+      "version": "1.0.0",
+      "name": "Runtime isolation",
+      "description": "What minimum isolation boundary must separate coding-agent execution?",
+      "value_type": "string",
+      "required": true,
+      "allowed_values": [
+        "developer-endpoint",
+        "container",
+        "microvm",
+        "dedicated-tenant"
+      ]
+    },
+    {
+      "id": "requirement:asynchronous-tasks",
+      "version": "1.0.0",
+      "name": "Asynchronous tasks",
+      "description": "Must agents execute unattended issue-to-pull-request tasks?",
+      "value_type": "boolean"
+    },
+    {
+      "id": "requirement:long-running-workspaces",
+      "version": "1.0.0",
+      "name": "Long-running workspaces",
+      "description": "Are persistent workspaces required for migrations or durable development environments?",
+      "value_type": "boolean"
+    },
+    {
+      "id": "requirement:multi-agent",
+      "version": "1.0.0",
+      "name": "Multiple coding agents",
+      "description": "Must the platform coordinate multiple coding agents or specialist workers?",
+      "value_type": "boolean"
+    },
+    {
+      "id": "requirement:multi-model-provider",
+      "version": "1.0.0",
+      "name": "Multiple model providers",
+      "description": "Must the platform route across more than one model provider?",
+      "value_type": "boolean",
+      "required": true
+    },
+    {
+      "id": "requirement:provider-hosting",
+      "version": "1.0.0",
+      "name": "Model provider hosting",
+      "description": "How are model providers hosted and reached through the model gateway?",
+      "value_type": "string",
+      "required": true,
+      "allowed_values": ["managed", "self-hosted", "multi-provider"]
+    },
+    {
+      "id": "requirement:model-fallback",
+      "version": "1.0.0",
+      "name": "Model fallback",
+      "description": "Is automatic provider or model fallback required?",
+      "value_type": "boolean",
+      "ask_when": [
+        {
+          "requirement_id": "requirement:multi-model-provider",
+          "operator": "equals",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "requirement:model-residency-routing",
+      "version": "1.0.0",
+      "name": "Residency-aware routing",
+      "description": "Must model routing enforce region or data-residency constraints?",
+      "value_type": "boolean",
+      "ask_when": [
+        {
+          "requirement_id": "requirement:multi-model-provider",
+          "operator": "equals",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "requirement:restricted-egress",
+      "version": "1.0.0",
+      "name": "Restricted egress",
+      "description": "Must runtime network egress be restricted to approved destinations?",
+      "value_type": "boolean",
+      "required": true
+    },
+    {
+      "id": "requirement:private-connectivity",
+      "version": "1.0.0",
+      "name": "Private connectivity",
+      "description": "Must model, tool, and enterprise API traffic use private connectivity?",
+      "value_type": "boolean",
+      "ask_when": [
+        {
+          "requirement_id": "requirement:restricted-egress",
+          "operator": "equals",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "requirement:source-control",
+      "version": "1.0.0",
+      "name": "Source control system",
+      "description": "Which source-control and pull-request system is authoritative?",
+      "value_type": "string",
+      "required": true,
+      "allowed_values": ["gitlab-saas", "gitlab-self-managed", "github", "other"]
+    },
+    {
+      "id": "requirement:approved-package-registries",
+      "version": "1.0.0",
+      "name": "Approved package registries",
+      "description": "May coding agents download packages only from approved registries?",
+      "value_type": "boolean",
+      "required": true
+    },
+    {
+      "id": "requirement:enterprise-identity",
+      "version": "1.0.0",
+      "name": "Enterprise identity",
+      "description": "Which workforce identity provider and group source must authorize developers?",
+      "value_type": "string",
+      "required": true,
+      "allowed_values": ["entra", "okta", "cognito", "other-oidc"]
+    },
+    {
+      "id": "requirement:developer-count",
+      "version": "1.0.0",
+      "name": "Developer population",
+      "description": "How many developers must the platform support?",
+      "value_type": "integer",
+      "required": true
+    },
+    {
+      "id": "requirement:concurrent-agent-tasks",
+      "version": "1.0.0",
+      "name": "Concurrent agent tasks",
+      "description": "How many concurrent coding-agent tasks must be supported?",
+      "value_type": "integer",
+      "required": true
+    },
+    {
+      "id": "requirement:approved-regions",
+      "version": "1.0.0",
+      "name": "Approved regions",
+      "description": "May workloads run in any approved region or only a fixed region set?",
+      "value_type": "string",
+      "allowed_values": ["fixed-regions", "any-approved"]
+    },
+    {
+      "id": "requirement:action-approval",
+      "version": "1.0.0",
+      "name": "Action-dependent approval",
+      "description": "Must approval requirements vary by the risk of the action?",
+      "value_type": "boolean",
+      "required": true
+    },
+    {
+      "id": "requirement:audit-retention-days",
+      "version": "1.0.0",
+      "name": "Audit retention",
+      "description": "How many days must agent decisions and actions remain replayable?",
+      "value_type": "integer"
+    },
+    {
+      "id": "requirement:team-boundaries",
+      "version": "1.0.0",
+      "name": "Team boundaries",
+      "description": "Must teams receive separate policy, quota, and audit workspaces?",
+      "value_type": "boolean"
+    },
+    {
+      "id": "requirement:outcome-observability",
+      "version": "1.0.0",
+      "name": "Outcome observability",
+      "description": "Must agent traces correlate with Git and CI outcomes?",
+      "value_type": "boolean",
+      "required": true
+    },
+    {
+      "id": "requirement:economic-priority",
+      "version": "1.0.0",
+      "name": "Economic priority",
+      "description": "Should routing optimize cost, quality, latency, or a balanced outcome?",
+      "value_type": "string",
+      "allowed_values": ["balanced", "quality", "cost", "latency"],
+      "ask_when": [
+        {
+          "requirement_id": "requirement:multi-model-provider",
+          "operator": "equals",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "requirement:orchestration-mode",
+      "version": "1.0.0",
+      "name": "Agent orchestration mode",
+      "description": "Should agents work independently, hand off sequentially, or produce parallel candidates for review?",
+      "value_type": "string",
+      "allowed_values": ["independent", "sequential", "parallel-review"],
+      "ask_when": [
+        {
+          "requirement_id": "requirement:multi-agent",
+          "operator": "equals",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "requirement:model-routing-mode",
+      "version": "1.0.0",
+      "name": "Model routing mode",
+      "description": "Should model assignments be static or selected dynamically by policy?",
+      "value_type": "string",
+      "allowed_values": ["static", "dynamic"],
+      "ask_when": [
+        {
+          "requirement_id": "requirement:multi-model-provider",
+          "operator": "equals",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "requirement:warm-runtime-capacity",
+      "version": "1.0.0",
+      "name": "Warm runtime capacity",
+      "description": "Must the platform keep warm runtimes or resumable snapshots to meet startup SLOs?",
+      "value_type": "boolean",
+      "ask_when": [
+        {
+          "requirement_id": "requirement:asynchronous-tasks",
+          "operator": "equals",
+          "value": true
+        }
+      ]
+    }
+  ]
+}

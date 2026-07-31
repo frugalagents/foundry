@@ -1,0 +1,84 @@
+{
+  "manifest": {
+    "id": "catalog:coding-platform",
+    "version": "3.0.0",
+    "schema_version": "3.0",
+    "title": "Provider-neutral coding agent platform",
+    "effective_on": "2026-07-30"
+  },
+  "evidence_sources": [
+    {
+      "id": "source:platform-advisor-vision",
+      "version": "1.0.0",
+      "title": "Platform Advisor Product Vision",
+      "uri": "repo:docs/platform-advisor-product-vision.md",
+      "publisher": "Platform Advisor",
+      "retrieved_at": "2026-07-30T00:00:00Z",
+      "snapshot_hash": "sha256:a236155058acc31e350dc7094549a69454c795cef0da6c29a0d84471752b6a81"
+    },
+    {
+      "id": "source:aws-bedrock-docs",
+      "version": "1.0.0",
+      "title": "Amazon Bedrock Documentation",
+      "uri": "https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html",
+      "publisher": "Amazon Web Services",
+      "retrieved_at": "2026-07-30T00:00:00Z",
+      "snapshot_hash": "sha256:3641761e2dcdd2ab28d7b8e1ed3a5e7069022bee590fdb7ba481ad555a9b928c"
+    },
+    {
+      "id": "source:aws-well-architected",
+      "version": "1.0.0",
+      "title": "AWS Well-Architected Framework",
+      "uri": "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html",
+      "publisher": "Amazon Web Services",
+      "retrieved_at": "2026-07-30T00:00:00Z",
+      "snapshot_hash": "sha256:43321706ff284208766c402dc980802d9754dd27fbe1409b53230c278332a812"
+    }
+  ],
+  "evidence_claims": [
+    {
+      "id": "claim:architecture-first-authority",
+      "version": "1.0.0",
+      "source_id": "source:platform-advisor-vision",
+      "statement": "Provider-neutral architecture and deterministic constraints precede named service selection.",
+      "critical": false,
+      "review_status": "approved",
+      "effective_on": "2026-07-30",
+      "source_locator": "Vision and Product Principles",
+      "reviewer": "platform-architecture"
+    },
+    {
+      "id": "claim:bedrock-managed-inference",
+      "version": "1.0.0",
+      "source_id": "source:aws-bedrock-docs",
+      "statement": "Amazon Bedrock provides managed, region-scoped access to frontier models with private connectivity via VPC endpoints, removing the need to operate inference infrastructure.",
+      "critical": false,
+      "review_status": "approved",
+      "effective_on": "2026-07-30",
+      "source_locator": "What is Amazon Bedrock",
+      "reviewer": "platform-architecture"
+    },
+    {
+      "id": "claim:self-hosted-residency",
+      "version": "1.0.0",
+      "source_id": "source:aws-well-architected",
+      "statement": "Self-hosted, in-VPC or air-gapped inference keeps model traffic and data within a controlled boundary, satisfying data-residency and sovereignty constraints at the cost of operating the serving stack.",
+      "critical": false,
+      "review_status": "approved",
+      "effective_on": "2026-07-30",
+      "source_locator": "Security Pillar - Data Protection",
+      "reviewer": "platform-architecture"
+    },
+    {
+      "id": "claim:multi-provider-resilience",
+      "version": "1.0.0",
+      "source_id": "source:aws-well-architected",
+      "statement": "Routing across more than one model provider with bounded fallback improves availability and mitigates single-provider capacity and quota limits.",
+      "critical": false,
+      "review_status": "approved",
+      "effective_on": "2026-07-30",
+      "source_locator": "Reliability Pillar - Failure Management",
+      "reviewer": "platform-architecture"
+    }
+  ]
+}

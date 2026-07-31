@@ -16,6 +16,7 @@ Globals:
         COGNITO_CLIENT_ID: !Ref UserPoolClient
         ALLOWED_ORIGINS: !Ref AllowedOrigins
         DEV_MODE: !Ref DevMode
+        KNOWLEDGE_BASE_ID: !Ref KnowledgeBaseId
 
 Parameters:
   Env:
@@ -40,6 +41,10 @@ Parameters:
     NoEcho: true
     Default: ""
     Description: "Client secret for the Midway OIDC app (platform-advisor-dev)"
+  KnowledgeBaseId:
+    Type: String
+    Default: "EDDM8YZDNJ"
+    Description: "Bedrock Knowledge Base ID for architecture decision explanations (RAG). Empty disables retrieval."
 
 Resources:
   # ── DynamoDB Table ──────────────────────────────────────────────────────────
@@ -331,6 +336,11 @@ Resources:
                 - bedrock:InvokeModel
                 - bedrock:InvokeModelWithResponseStream
               Resource: "*"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:Retrieve
+              Resource: !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:knowledge-base/*"
       Events:
         ApiProxy:
           Type: HttpApi
