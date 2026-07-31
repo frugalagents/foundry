@@ -191,6 +191,31 @@ export interface ArchitectureExplanation {
   passages: ExplainPassage[];
 }
 
+export interface GeneratedArchitecture {
+  stack: { box_id: string; component_id: string; chosen: string; alternatives: string[] }[];
+  rationale: string;
+  grounded: boolean;
+  citations: { source: string; score: number }[];
+  cascades: { box_id: string; value: string; note: string }[];
+  critic_concerns: string[];
+  guard: { passed: boolean; guard_version: string; violations: { check: string; detail: string; remedy?: string }[] };
+  source: string;
+  persisted?: boolean;
+  decision_record?: unknown;
+}
+
+// Run the agentic engine (propose → guard → generate → critic) over the stored
+// answers and return the purpose-built architecture. Available at any point.
+export async function generateArchitecture(
+  boxes?: string[],
+): Promise<GeneratedArchitecture> {
+  const body = boxes ? { boxes } : {};
+  return await request('/architecture/generate', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }) as GeneratedArchitecture;
+}
+
 // Reference-only retrieval. This never changes a decision — it surfaces
 // supporting KB passages so a user can read more about a decision the
 // deterministic engine already made.

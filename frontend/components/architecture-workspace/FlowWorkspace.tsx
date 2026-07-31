@@ -13,6 +13,7 @@ import type {
 } from '@/lib/architecture-workspace';
 import { FlowCanvas, type FlowBlock, type FlowWire } from './FlowCanvas';
 import { BLOCKS, WIRES, PHASE, GROUP_COLOR, ACTIVE_MAP, LAYOUT, GROUP_LAYOUT, type BlockDef } from './architecture-model';
+import { generateArchitecture, type GeneratedArchitecture } from '@/lib/architecture-api';
 
 interface BlueprintContext { name: string; description: string; type: string }
 const TYPE_LABEL: Record<string, string> = {
@@ -29,6 +30,21 @@ interface Props {
 
 export function FlowWorkspace({ projection, blueprint, onAnswer, applying }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState<GeneratedArchitecture | null>(null);
+  const [genError, setGenError] = useState<string | null>(null);
+
+  async function runGenerate() {
+    setGenerating(true);
+    setGenError(null);
+    try {
+      setGenerated(await generateArchitecture());
+    } catch {
+      setGenError('Could not generate the architecture. Try again.');
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   const activeComponentIds = useMemo(() => {
     const set = new Set<string>();
@@ -115,6 +131,9 @@ export function FlowWorkspace({ projection, blueprint, onAnswer, applying }: Pro
           <span><i className="ln sup" />loads / composes</span>
           <span><i className="ln gov" />access &amp; policy</span>
         </div>
+        <button className="fw-generate" onClick={runGenerate} disabled={generating}>
+          {generating ? 'Generating…' : '✦ Generate my architecture'}
+        </button>
       </div>
 
       <div className="fw-main">
@@ -199,6 +218,74 @@ export function FlowWorkspace({ projection, blueprint, onAnswer, applying }: Pro
           )}
         </aside>
       </div>
+
+      {(generated || genError) && (
+        <div className="fw-modal-scrim" onClick={() => { setGenerated(null); setGenError(null); }}>
+          <div className="fw-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="fw-modal-hd">
+              <div>
+                <span className="fw-modal-kicker">Purpose-built architecture</span>
+                <h2>{blueprint?.name ?? 'Coding Agent Platform'}</h2>
+              </div>
+              <button className="fw-modal-x" onClick={() => { setGenerated(null); setGenError(null); }}>✕</button>
+            </div>
+            {genError && <div className="fw-modal-body"><p className="fw-err">{genError}</p></div>}
+            {generated && (
+              <div className="fw-modal-body">
+                <div className={`fw-verdict ${generated.guard.passed ? 'ok' : 'veto'}`}>
+                  {generated.guard.passed
+                    ? '✓ Passed the deterministic guard — no violated constraints or invented integrations.'
+                    : `✕ Guard vetoed ${generated.guard.violations.length} item(s).`}
+                  <span className="fw-verdict-meta">guard {generated.guard.guard_version} · {generated.source}</span>
+                </div>
+                {!generated.guard.passed && (
+                  <ul className="fw-viol">{generated.guard.violations.map((v, i) => <li key={i}><b>{v.check}</b> — {v.detail}</li>)}</ul>
+                )}
+
+                <h3 className="fw-modal-h3">Solution stack</h3>
+                <div className="fw-stack">
+                  {generated.stack.map((s) => (
+                    <div className="fw-stack-row" key={s.box_id}>
+                      <span className="fw-stack-box">{s.box_id}</span>
+                      <span className="fw-stack-chosen">{s.chosen}</span>
+                      {s.alternatives.length > 0 && (
+                        <span className="fw-stack-alts">over {s.alternatives.join(', ')}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {generated.cascades.length > 0 && (
+                  <>
+                    <h3 className="fw-modal-h3">Downstream decisions this opens</h3>
+                    <ul className="fw-casc">{generated.cascades.map((c, i) => <li key={i}>{c.note}</li>)}</ul>
+                  </>
+                )}
+
+                <h3 className="fw-modal-h3">
+                  Rationale
+                  <span className={`fw-ground ${generated.grounded ? 'on' : 'off'}`}>
+                    {generated.grounded ? 'grounded in knowledge base' : 'ungrounded (KB unavailable)'}
+                  </span>
+                </h3>
+                <div className="fw-rationale">{generated.rationale}</div>
+
+                {generated.critic_concerns.length > 0 && (
+                  <>
+                    <h3 className="fw-modal-h3">Critic flags</h3>
+                    <ul className="fw-casc">{generated.critic_concerns.map((c, i) => <li key={i}>{c}</li>)}</ul>
+                  </>
+                )}
+
+                <p className="fw-record-note">
+                  A Decision Record was {generated.persisted ? 'saved' : 'generated'} — answers, proposal,
+                  guard verdict, citations, and version stamps. Reproducible-with-trace, not bit-identical.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -267,6 +354,34 @@ function FwStyles() {
 .fw-plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
 .fw-plist li{padding-left:26px;position:relative;color:var(--ink-dim);font-size:12.5px;line-height:1.5}
 .fw-plist li::before{content:"✓";position:absolute;left:0;top:0;color:#37dd7d;font-weight:800;background:#37dd7d18;width:18px;height:18px;border-radius:6px;display:grid;place-items:center;font-size:10px}
+.fw-generate{margin-left:14px;background:linear-gradient(180deg,#37dd7d,#22c55e);color:#08131a;border:none;border-radius:9px;padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+.fw-generate:hover{filter:brightness(1.08);box-shadow:0 0 22px -6px #37dd7d}
+.fw-generate:disabled{opacity:.6;cursor:default}
+.fw-modal-scrim{position:fixed;inset:0;background:#060a0fcc;backdrop-filter:blur(3px);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;overflow:auto}
+.fw-modal{width:100%;max-width:760px;background:linear-gradient(180deg,#141a24,#0f141c);border:1px solid #2a3446;border-radius:16px;box-shadow:0 40px 90px -30px #000;overflow:hidden}
+.fw-modal-hd{display:flex;align-items:flex-start;justify-content:space-between;padding:22px 26px 18px;border-bottom:1px solid #1c2531}
+.fw-modal-kicker{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.11em;color:#37dd7d}
+.fw-modal-hd h2{margin:8px 0 0;font-size:20px;font-weight:680;letter-spacing:-.3px}
+.fw-modal-x{background:#ffffff08;border:1px solid #2a3446;color:#a7b2c2;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:13px}
+.fw-modal-body{padding:22px 26px 28px}
+.fw-err{color:#fb7185;font-size:13px}
+.fw-verdict{border-radius:10px;padding:12px 14px;font-size:12.5px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fw-verdict.ok{background:#12251c;border:1px solid #37dd7d55;color:#c7f0da}
+.fw-verdict.veto{background:#241318;border:1px solid #fb718555;color:#f6c9d1}
+.fw-verdict-meta{margin-left:auto;font-size:10px;font-family:var(--font-mono);color:#7c8899}
+.fw-viol{margin:10px 0 0;padding-left:18px;font-size:12px;color:#f6c9d1}
+.fw-modal-h3{margin:24px 0 10px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8b98ab;font-weight:700;display:flex;align-items:center;gap:10px}
+.fw-ground{font-size:9px;font-weight:700;text-transform:none;letter-spacing:0;padding:2px 7px;border-radius:5px}
+.fw-ground.on{background:#2dd4bf22;color:#5eead4}
+.fw-ground.off{background:#f0a85022;color:#f0c088}
+.fw-stack{display:flex;flex-direction:column;gap:8px}
+.fw-stack-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:#ffffff05;border:1px solid #1c2531;border-radius:9px;padding:10px 13px}
+.fw-stack-box{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7c8899;min-width:100px}
+.fw-stack-chosen{font-size:13.5px;font-weight:650;color:#e6e9ef}
+.fw-stack-alts{font-size:11px;color:#6a7789;font-style:italic}
+.fw-casc{margin:0;padding-left:18px;font-size:12.5px;color:#a7b2c2;line-height:1.6}
+.fw-rationale{font-size:13px;line-height:1.7;color:#c3ccd8;white-space:pre-wrap}
+.fw-record-note{margin-top:22px;padding-top:16px;border-top:1px solid #1c2531;font-size:11px;color:#6a7789;line-height:1.6}
     `}</style>
   );
 }

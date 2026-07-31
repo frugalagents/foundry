@@ -308,3 +308,63 @@ async def explain_architecture_decision(
         "kind": "reference",
         "passages": passages,
     }
+
+
+class GenerateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # boxes to decide now; defaults to the domains authored in the engine
+    boxes: list[str] = Field(default_factory=lambda: ["model-gateway", "harness"])
+
+
+@router.post("/generate")
+async def generate_architecture_endpoint(
+    payload: GenerateRequest,
+    current_user: CurrentUser,
+) -> dict[str, object]:
+    """Run the agentic engine (propose → guard → generate → critic) over the
+    stored answers and return the purpose-built architecture: solution stack,
+    grounded rationale, cascades, guard verdict, and a persisted Decision Record.
+
+    Available at any point — gaps fall back to constraint-compliant defaults, so
+    the output is always defensible even from partial input.
+    """
+    from datetime import datetime, timezone
+
+    state = _load_or_initialize(current_user)
+    answers = state.get("answers")
+    if not isinstance(answers, dict):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Persisted architecture workspace answers are invalid",
+        )
+
+    try:
+        from api.engine import generate_architecture
+    except ImportError as exc:  # engine package missing → cannot generate
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Architecture engine is unavailable",
+        ) from exc
+
+    result = generate_architecture(
+        workspace_id=state["workspace_id"],
+        answers=answers,
+        boxes=payload.boxes,
+        created_at=datetime.now(timezone.utc).isoformat(),
+    )
+
+    # Persist the Decision Record (best-effort; generation still returns on
+    # a persistence hiccup so the user isn't blocked).
+    try:
+        db.save_architecture_decision_record(
+            tenant_id=state["tenant_id"],
+            owner_id=state["created_by"],
+            record=result["decision_record"],
+        )
+    except Exception:  # noqa: BLE001
+        result["persisted"] = False
+    else:
+        result["persisted"] = True
+
+    return result
