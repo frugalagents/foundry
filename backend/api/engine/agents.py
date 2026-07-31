@@ -37,6 +37,11 @@ BASELINE_INTERFACES = frozenset({
     "interface:telemetry-ingest", "interface:model-inference",
     "interface:tool-invocation", "interface:connector-discovery",
     "interface:secret-lease",
+    # provided by baseline orchestration/registry/observability platform so a
+    # single-box proposal validates (the full platform supplies these):
+    "interface:orchestration-control", "interface:agent-specification",
+    "interface:workflow-specification", "interface:economics-record",
+    "interface:evaluation-result", "interface:source-control",
 })
 
 _CATALOG_R02 = (

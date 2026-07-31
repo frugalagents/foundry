@@ -73,7 +73,89 @@ HARNESS = BoxDecision(
     ),
 )
 
-BOXES: dict[str, BoxDecision] = {b.box_id: b for b in (MODEL_GATEWAY, HARNESS)}
+# ── Identity & Access ─────────────────────────────────────────────────────────
+IDENTITY = BoxDecision(
+    box_id="identity",
+    requirement_id="requirement:identity-impl",
+    question="How are workforce (developer) and workload (agent) identities established?",
+    options=(
+        Option("cognito", "Amazon Cognito (managed IdP + workload creds)",
+               "component:workforce-identity",
+               capabilities=("managed", "federation", "workload-identity", "audit"),
+               self_hosted=False),
+        Option("okta-entra", "Okta / Entra ID federation (existing enterprise IdP)",
+               "component:workforce-identity",
+               capabilities=("federation", "sso", "workload-identity", "audit"),
+               self_hosted=False),
+        Option("self-managed-oidc", "Self-managed OIDC (Keycloak / Dex)",
+               "component:workforce-identity",
+               capabilities=("federation", "sso", "workload-identity"),
+               self_hosted=True),
+    ),
+)
+
+# ── Observability & Audit ─────────────────────────────────────────────────────
+OBSERVABILITY = BoxDecision(
+    box_id="observability",
+    requirement_id="requirement:observability-impl",
+    question="How is agent telemetry, evaluation, and audit implemented?",
+    options=(
+        Option("agentcore-cloudwatch", "AWS · AgentCore Observability + CloudWatch (managed)",
+               "component:telemetry-pipeline",
+               capabilities=("managed", "tracing", "metrics", "audit"), self_hosted=False),
+        Option("managed-otel", "AWS · Managed OTel + X-Ray",
+               "component:telemetry-pipeline",
+               capabilities=("managed", "tracing", "metrics", "otel"), self_hosted=False),
+        Option("self-hosted-otel", "Self-hosted OTel (Grafana / Prometheus / Tempo)",
+               "component:telemetry-pipeline",
+               capabilities=("tracing", "metrics", "otel"), self_hosted=True),
+    ),
+)
+
+# ── Agent Orchestration ───────────────────────────────────────────────────────
+ORCHESTRATION = BoxDecision(
+    box_id="orchestration",
+    requirement_id="requirement:orchestration-topology",
+    question="Single coding agent, or a multi-agent topology?",
+    options=(
+        Option("single", "Single agent (one orchestration runtime)",
+               "component:orchestration-runtime",
+               capabilities=("managed", "single-agent"), self_hosted=False),
+        Option("multi-agent-supervisor", "Multi-agent supervisor (planner delegates to workers)",
+               "component:multi-agent-supervisor",
+               capabilities=("multi-agent", "supervisor", "delegation"), self_hosted=False),
+        Option("sequential-handoff", "Sequential handoff (staged specialist pipeline)",
+               "component:sequential-handoff",
+               capabilities=("multi-agent", "handoff", "staged"), self_hosted=False),
+        Option("parallel-reviewer", "Parallel reviewer (fan-out + critic agent)",
+               "component:parallel-reviewer",
+               capabilities=("multi-agent", "parallel", "review"), self_hosted=False),
+    ),
+)
+
+# ── Tool / MCP Gateway ────────────────────────────────────────────────────────
+TOOL_GATEWAY = BoxDecision(
+    box_id="toolgateway",
+    requirement_id="requirement:tool-gateway-impl",
+    question="How do agents broker access to enterprise tools and APIs?",
+    options=(
+        Option("agentcore-gateway", "Amazon Bedrock AgentCore Gateway (managed MCP)",
+               "component:tool-gateway",
+               capabilities=("managed", "mcp", "isolation", "audit"), self_hosted=False),
+        Option("self-hosted-mcp", "Self-hosted MCP gateway (EKS / ECS)",
+               "component:tool-gateway",
+               capabilities=("mcp", "audit"), self_hosted=True),
+        Option("direct-connectors", "Direct connectors (no broker)",
+               "component:connector-registry",
+               capabilities=(), self_hosted=False),
+    ),
+)
+
+BOXES: dict[str, BoxDecision] = {
+    b.box_id: b for b in (
+        MODEL_GATEWAY, HARNESS, IDENTITY, OBSERVABILITY, ORCHESTRATION, TOOL_GATEWAY,
+    )
+}
 
 
 # ── Cascades: a choice at one box opens a follow-up decision at another ───────
@@ -91,6 +173,15 @@ CASCADES: tuple[Cascade, ...] = (
     Cascade("harness", ("eks",),
             "Self-managed EKS adds node-pool sizing, patching, and cluster "
             "operations to the platform team's scope."),
+    Cascade("toolgateway", ("self-hosted-mcp",),
+            "A self-hosted MCP gateway needs a hosting decision (EKS / ECS), "
+            "connector lifecycle ownership, and its own availability SLO."),
+    Cascade("identity", ("self-managed-oidc",),
+            "A self-managed OIDC provider adds identity uptime, key rotation, "
+            "and federation maintenance to the platform team."),
+    Cascade("orchestration", ("multi-agent-supervisor", "sequential-handoff", "parallel-reviewer"),
+            "A multi-agent topology adds inter-agent state, handoff contracts, "
+            "and higher token spend — budget and observability must scale with it."),
 )
 
 
