@@ -28,6 +28,7 @@ export interface FlowBlock {
   label: string;
   detail: string;
   group: string;       // color group: surface|access|harness|registry|exec|gateway|external|ops
+  componentIds?: string[];
   x: number;
   y: number;
   w?: number;
@@ -43,11 +44,16 @@ export interface FlowWire {
   kind: 'req' | 'sup' | 'gov';
   label?: string;
   animated?: boolean;
+  sourceHandle?: string;
+  targetHandle?: string;
 }
 
 const GROUP_COLOR: Record<string, string> = {
   surface: '#b98cf0', access: '#7d9bff', harness: '#37dd7d', registry: '#2dd4bf',
   exec: '#fb7185', gateway: '#4cc4f5', external: '#8b98ab', ops: '#f0a850',
+  experience: '#b98cf0', orchestration: '#37dd7d', model: '#4cc4f5',
+  tool: '#2dd4bf', execution: '#fb7185', knowledge: '#8b98ab',
+  governance: '#7d9bff', observability: '#f0a850',
 };
 const WIRE_COLOR: Record<string, string> = { req: '#4cc4f5', sup: '#2dd4bf', gov: '#7d9bff' };
 
@@ -61,23 +67,32 @@ function BlockNode({ data }: NodeProps<Node<BlockNodeData>>) {
   const { block, selected, onSelect } = data;
   const color = GROUP_COLOR[block.group] ?? '#8b98ab';
   return (
-    <div
-      onClick={() => onSelect(block.id)}
-      className={`fc-node${block.active ? ' fc-active' : ''}${selected ? ' fc-sel' : ''}${block.heart ? ' fc-heart' : ''}`}
-      style={{ ['--fc-ac' as string]: color, width: block.w ?? 210, minHeight: block.h ?? 62 }}
-    >
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
-      <div className="fc-node-body">
-        <div className="fc-node-title">
-          {block.label}
-          {block.active && <span className="fc-badge">active</span>}
-          {block.answerable && <span className="fc-q">?</span>}
+    <div className="fc-node-shell" style={{ width: block.w ?? 210, minHeight: block.h ?? 62 }}>
+      <Handle id="target-top" type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle id="target-left" type="target" position={Position.Left} style={{ opacity: 0 }} />
+      <Handle id="target-right" type="target" position={Position.Right} style={{ opacity: 0 }} />
+      <Handle id="target-bottom" type="target" position={Position.Bottom} style={{ opacity: 0 }} />
+      <button
+        type="button"
+        aria-label={`${block.label}: ${block.detail}`}
+        aria-pressed={selected}
+        onClick={() => onSelect(block.id)}
+        className={`fc-node${block.active ? ' fc-active' : ''}${selected ? ' fc-sel' : ''}${block.heart ? ' fc-heart' : ''}`}
+        style={{ ['--fc-ac' as string]: color }}
+      >
+        <div className="fc-node-body">
+          <div className="fc-node-title">
+            {block.label}
+            {block.active && <span className="fc-badge">added</span>}
+            {block.answerable && <span className="fc-q" aria-hidden="true">?</span>}
+          </div>
+          <div className="fc-node-detail">{block.detail}</div>
         </div>
-        <div className="fc-node-detail">{block.detail}</div>
-      </div>
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
+      </button>
+      <Handle id="source-top" type="source" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle id="source-left" type="source" position={Position.Left} style={{ opacity: 0 }} />
+      <Handle id="source-bottom" type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+      <Handle id="source-right" type="source" position={Position.Right} style={{ opacity: 0 }} />
     </div>
   );
 }
@@ -129,6 +144,8 @@ export function FlowCanvas({ blocks, wires, groups, selected, onSelect }: Props)
         id: `${w.source}-${w.target}-${i}`,
         source: w.source,
         target: w.target,
+        sourceHandle: w.sourceHandle,
+        targetHandle: w.targetHandle,
         type: 'smoothstep',
         animated: Boolean(w.animated),
         label: w.label,
@@ -153,7 +170,7 @@ export function FlowCanvas({ blocks, wires, groups, selected, onSelect }: Props)
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.12 }}
-        minZoom={0.4}
+        minZoom={0.2}
         maxZoom={1.5}
         nodesDraggable={false}
         nodesConnectable={false}
@@ -176,9 +193,11 @@ function FlowStyles() {
 .fc-shell .react-flow__controls-button{background:#171d27;border-bottom:1px solid #242e3b;color:#a7b2c2}
 .fc-shell .react-flow__controls-button:hover{background:#1d2530}
 .fc-shell .react-flow__controls-button svg{fill:#a7b2c2}
-.fc-node{position:relative;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(180deg,#1d2530,#131922);border:1px solid #242e3b;border-radius:11px;padding:9px 12px;cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
+.fc-node-shell{position:relative}
+.fc-node{position:relative;display:flex;flex-direction:column;justify-content:center;width:100%;min-height:inherit;text-align:left;font-family:inherit;background:linear-gradient(180deg,#1d2530,#131922);border:1px solid #242e3b;border-radius:8px;padding:9px 12px;cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
 .fc-node::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--fc-ac)}
 .fc-node:hover{transform:translateY(-2px);border-color:var(--fc-ac);box-shadow:0 12px 26px -14px #000}
+.fc-node:focus-visible{outline:2px solid var(--fc-ac);outline-offset:3px}
 .fc-node.fc-sel{border-color:var(--fc-ac);box-shadow:0 0 0 1px var(--fc-ac),0 12px 26px -14px #000}
 .fc-node.fc-active{background:linear-gradient(180deg,#12251c,#0f1f18)}
 .fc-node.fc-heart{border-color:#37dd7d88;background:linear-gradient(180deg,#0f2318,#0d1a13);box-shadow:0 0 0 1px #37dd7d22,0 0 70px -30px #37dd7d}

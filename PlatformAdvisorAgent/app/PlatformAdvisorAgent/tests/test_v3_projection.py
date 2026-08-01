@@ -168,26 +168,21 @@ def test_projection_includes_deployable_matrix_and_assurance_packet():
     projection = _projection()
 
     deployable = projection["deployable_solution"]
-    assert deployable["recommendation"]["state"] == "recommended"
-    assert deployable["recommendation"]["candidate_id"] == (
-        "bundle:aws-governed-r2"
-    )
+    assert deployable["recommendation"]["state"] == "no_viable_candidate"
+    assert deployable["recommendation"]["candidate_id"] is None
     assert len(deployable["candidates"]) == 5
-    assert deployable["pareto_candidate_ids"] == [
-        "bundle:aws-governed-r2",
-        "bundle:hybrid-governed-r2",
-    ]
-    recommended = next(
+    assert deployable["pareto_candidate_ids"] == []
+    conditional = next(
         candidate
         for candidate in deployable["candidates"]
-        if candidate["bundle_id"] == deployable["recommendation"]["candidate_id"]
+        if candidate["bundle_id"] == "bundle:byop-portable-r2"
     )
-    assert len(recommended["selections"]) == (
+    assert len(conditional["selections"]) >= (
         projection["architecture"]["summary"]["current_component_count"]
     )
 
     assurance = projection["assurance"]
-    assert assurance["selected_bundle_id"] == recommended["bundle_id"]
+    assert assurance["selected_bundle_id"] is None
     assert assurance["workspace_revision_id"] == projection["revision"][
         "revision_id"
     ]

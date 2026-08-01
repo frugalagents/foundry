@@ -4,6 +4,11 @@
 // connector wires. Kept framework-agnostic so both the canvas and the panel
 // read from one source of truth.
 
+import type {
+  ArchitectureWorkspaceProjection,
+  DeployableCandidate,
+} from '@/lib/architecture-workspace';
+
 export interface Decision { q: string; opts: string[] }
 export interface BlockDef {
   id: string;
@@ -20,12 +25,18 @@ export interface BlockDef {
 export const GROUP_COLOR: Record<string, string> = {
   surface: '#b98cf0', access: '#7d9bff', harness: '#37dd7d', registry: '#2dd4bf',
   exec: '#fb7185', gateway: '#4cc4f5', external: '#8b98ab', ops: '#f0a850',
+  experience: '#b98cf0', orchestration: '#37dd7d', model: '#4cc4f5',
+  tool: '#2dd4bf', execution: '#fb7185', knowledge: '#8b98ab',
+  governance: '#7d9bff', observability: '#f0a850',
 };
 
 export const PHASE: Record<string, string> = {
   surface: 'Surface', access: 'Governance · control plane', registry: 'Registry · building blocks',
   harness: 'Harness core', exec: 'Execution', gateway: 'Gateway', external: 'External system',
   ops: 'Operations & economics',
+  experience: 'Experience', orchestration: 'Orchestration', model: 'Model',
+  tool: 'Tools and integration', execution: 'Execution', knowledge: 'Knowledge',
+  governance: 'Governance', observability: 'Observability',
 };
 
 // engine component ids that, when 'added', light a block up
@@ -118,3 +129,447 @@ export const GROUP_LAYOUT = [
   { id: 'g-ops', label: 'Operations', group: 'ops', x: 126, y: 810, w: 738, h: 128 },
 ];
 void NW;
+
+export type ArchitectureViewMode = 'logical' | 'deployable';
+
+export interface ProjectionCanvasBlock {
+  id: string;
+  label: string;
+  detail: string;
+  group: string;
+  componentIds?: string[];
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  active?: boolean;
+  answerable?: boolean;
+  heart?: boolean;
+}
+
+export interface ProjectionCanvasWire {
+  source: string;
+  target: string;
+  kind: 'req' | 'sup' | 'gov';
+  label?: string;
+  animated?: boolean;
+  sourceHandle?: string;
+  targetHandle?: string;
+}
+
+export interface ProjectionCanvasGroup {
+  id: string;
+  label: string;
+  group: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const FALLBACK_BLOCK: Record<string, keyof typeof BLOCKS> = {
+  'component:developer-clients': 'ide',
+  'component:workforce-identity': 'identity',
+  'component:workload-identity': 'identity',
+  'component:agent-registry': 'registry',
+  'component:orchestration-runtime': 'harness',
+  'component:multi-agent-supervisor': 'subagents',
+  'component:model-gateway': 'modelgw',
+  'component:model-router': 'modelgw',
+  'component:tool-gateway': 'mcpgw',
+  'component:connector-registry': 'mcpservers',
+  'component:execution-broker': 'exec',
+  'component:ephemeral-runtime': 'exec',
+  'component:local-runtime': 'exec',
+  'component:policy-engine': 'guardrails',
+  'component:human-approval': 'guardrails',
+  'component:quota-manager': 'quota',
+  'component:telemetry-pipeline': 'observability',
+  'component:economics-ledger': 'token',
+};
+
+export function componentPresentation(
+  componentId: string,
+  fallbackName: string,
+  fallbackDescription: string,
+) {
+  const metadata = BLOCKS[FALLBACK_BLOCK[componentId]];
+  return {
+    label: fallbackName || metadata?.t || componentId.replace('component:', '').replace(/-/g, ' '),
+    detail: fallbackDescription || metadata?.d || 'Architecture component',
+    bestPractices: metadata?.p ?? [],
+  };
+}
+
+function wireKind(
+  relationship: string,
+  targetPlane: string | undefined,
+): ProjectionCanvasWire['kind'] {
+  if (targetPlane === 'access' || targetPlane === 'governance') return 'gov';
+  if (targetPlane === 'knowledge' || relationship.includes('load')) return 'sup';
+  return 'req';
+}
+
+interface LogicalCapability {
+  id: string;
+  label: string;
+  detail: string;
+  group: string;
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  componentIds: string[];
+  heart?: boolean;
+}
+
+const LOGICAL_CAPABILITIES: LogicalCapability[] = [
+  {
+    id: 'logical:identity',
+    label: 'Identity & access',
+    detail: 'Developer and workload identity',
+    group: 'governance',
+    x: 44,
+    y: 54,
+    componentIds: [
+      'component:workforce-identity',
+      'component:workload-identity',
+      'component:team-workspaces',
+    ],
+  },
+  {
+    id: 'logical:policy',
+    label: 'Policy, secrets & approvals',
+    detail: 'Action boundaries and credentials',
+    group: 'governance',
+    x: 324,
+    y: 54,
+    w: 250,
+    componentIds: [
+      'component:policy-engine',
+      'component:secrets-broker',
+      'component:quota-manager',
+      'component:audit-ledger',
+      'component:human-approval',
+      'component:restricted-egress',
+    ],
+  },
+  {
+    id: 'logical:developer',
+    label: 'Developer experience',
+    detail: 'IDE, CLI, chat and CI entry points',
+    group: 'experience',
+    x: 44,
+    y: 218,
+    componentIds: [
+      'component:developer-clients',
+      'component:advisor-workspace',
+    ],
+  },
+  {
+    id: 'logical:agent-runtime',
+    label: 'Coding agent runtime',
+    detail: 'Plan, reason, act and recover',
+    group: 'orchestration',
+    x: 324,
+    y: 206,
+    w: 250,
+    h: 86,
+    componentIds: [
+      'component:agent-registry',
+      'component:workflow-definitions',
+      'component:orchestration-runtime',
+      'component:multi-agent-supervisor',
+      'component:sequential-handoff',
+      'component:parallel-reviewer',
+    ],
+    heart: true,
+  },
+  {
+    id: 'logical:models',
+    label: 'Models & routing',
+    detail: 'Policy-routed access to approved inference',
+    group: 'model',
+    x: 634,
+    y: 148,
+    componentIds: [
+      'component:model-gateway',
+      'component:model-catalog',
+      'component:model-router',
+      'component:model-fallback',
+      'component:managed-model-provider',
+      'component:self-hosted-inference',
+    ],
+  },
+  {
+    id: 'logical:tools',
+    label: 'Tools & integrations',
+    detail: 'MCP, APIs, packages and enterprise tools',
+    group: 'tool',
+    x: 634,
+    y: 238,
+    componentIds: [
+      'component:tool-gateway',
+      'component:connector-registry',
+      'component:package-access',
+      'component:enterprise-api-access',
+    ],
+  },
+  {
+    id: 'logical:execution',
+    label: 'Isolated execution',
+    detail: 'Workspace, shell, build and test runtime',
+    group: 'execution',
+    x: 634,
+    y: 328,
+    componentIds: [
+      'component:execution-broker',
+      'component:local-runtime',
+      'component:ephemeral-runtime',
+      'component:persistent-workspace',
+      'component:container-runtime',
+      'component:kubernetes-runtime',
+      'component:warm-runtime-pool',
+    ],
+  },
+  {
+    id: 'logical:source-control',
+    label: 'Source control',
+    detail: 'Repository, branch, review and merge',
+    group: 'external',
+    x: 914,
+    y: 238,
+    componentIds: ['component:source-control-integration'],
+  },
+  {
+    id: 'logical:context-memory',
+    label: 'Code context & task memory',
+    detail: 'Repository context, task state and team knowledge',
+    group: 'knowledge',
+    x: 324,
+    y: 494,
+    w: 250,
+    componentIds: [],
+  },
+  {
+    id: 'logical:observability',
+    label: 'Observability & evaluation',
+    detail: 'Traces, quality, cost and delivery outcomes',
+    group: 'observability',
+    x: 774,
+    y: 494,
+    w: 250,
+    componentIds: [
+      'component:telemetry-pipeline',
+      'component:evaluation-service',
+      'component:economics-ledger',
+      'component:outcome-correlator',
+    ],
+  },
+];
+
+const LOGICAL_GROUPS: ProjectionCanvasGroup[] = [
+  {
+    id: 'logical:controls',
+    label: 'Cross-cutting controls',
+    group: 'governance',
+    x: 18,
+    y: 18,
+    w: 1080,
+    h: 112,
+  },
+  {
+    id: 'logical:task-flow',
+    label: 'Coding task flow',
+    group: 'orchestration',
+    x: 18,
+    y: 138,
+    w: 1180,
+    h: 282,
+  },
+  {
+    id: 'logical:feedback',
+    label: 'Context and feedback',
+    group: 'observability',
+    x: 278,
+    y: 458,
+    w: 820,
+    h: 126,
+  },
+];
+
+const LOGICAL_WIRES: ProjectionCanvasWire[] = [
+  { source: 'logical:developer', target: 'logical:agent-runtime', kind: 'req', label: 'task / review', sourceHandle: 'source-right', targetHandle: 'target-left' },
+  { source: 'logical:context-memory', target: 'logical:agent-runtime', kind: 'sup', label: 'context', sourceHandle: 'source-top', targetHandle: 'target-bottom' },
+  { source: 'logical:agent-runtime', target: 'logical:models', kind: 'req', label: 'reason', sourceHandle: 'source-right', targetHandle: 'target-left' },
+  { source: 'logical:agent-runtime', target: 'logical:tools', kind: 'req', label: 'act', sourceHandle: 'source-right', targetHandle: 'target-left' },
+  { source: 'logical:agent-runtime', target: 'logical:execution', kind: 'req', label: 'run / test', sourceHandle: 'source-bottom', targetHandle: 'target-left' },
+  { source: 'logical:tools', target: 'logical:source-control', kind: 'req', label: 'read / write', sourceHandle: 'source-right', targetHandle: 'target-left' },
+  { source: 'logical:execution', target: 'logical:source-control', kind: 'req', sourceHandle: 'source-right', targetHandle: 'target-bottom' },
+  { source: 'logical:source-control', target: 'logical:context-memory', kind: 'sup', label: 'repo state', sourceHandle: 'source-bottom', targetHandle: 'target-right' },
+  { source: 'logical:identity', target: 'logical:agent-runtime', kind: 'gov', sourceHandle: 'source-bottom', targetHandle: 'target-top' },
+  { source: 'logical:policy', target: 'logical:agent-runtime', kind: 'gov', label: 'guardrails', sourceHandle: 'source-bottom', targetHandle: 'target-top' },
+  { source: 'logical:agent-runtime', target: 'logical:observability', kind: 'sup', label: 'traces', sourceHandle: 'source-bottom', targetHandle: 'target-left' },
+  { source: 'logical:source-control', target: 'logical:observability', kind: 'sup', label: 'outcomes', sourceHandle: 'source-bottom', targetHandle: 'target-top' },
+];
+
+function buildLogicalCanvas(
+  projection: ArchitectureWorkspaceProjection,
+  recentlyChanged: Set<string>,
+) {
+  const projectedComponentIds = new Set(
+    projection.architecture.planes.flatMap((plane) =>
+      plane.components.map((component) => component.id)),
+  );
+  const tracedComponentIds = new Set(
+    projection.decision_trace.flatMap((entry) => entry.target_component_ids),
+  );
+  const blocks = LOGICAL_CAPABILITIES.map((capability) => {
+    let detail = capability.detail;
+    if (capability.id === 'logical:agent-runtime') {
+      detail = projectedComponentIds.has('component:multi-agent-supervisor')
+        ? 'Plan, act and recover with specialist supervision'
+        : 'Plan, act and recover in a bounded agent loop';
+    }
+    if (capability.id === 'logical:execution') {
+      const placements = [
+        projectedComponentIds.has('component:local-runtime') ? 'local' : null,
+        projectedComponentIds.has('component:ephemeral-runtime') ? 'isolated remote' : null,
+        projectedComponentIds.has('component:persistent-workspace') ? 'persistent' : null,
+      ].filter(Boolean);
+      if (placements.length) detail = `${placements.join(' + ')} build and test runtime`;
+    }
+    if (capability.id === 'logical:policy' && projectedComponentIds.has('component:human-approval')) {
+      detail = 'Policy, short-lived secrets and risk-based approval';
+    }
+    if (capability.id === 'logical:observability'
+      && projectedComponentIds.has('component:outcome-correlator')) {
+      detail = 'Quality, cost and delivery outcomes linked to traces';
+    }
+    return {
+      id: capability.id,
+      label: capability.label,
+      detail,
+      group: capability.group,
+      componentIds: capability.componentIds,
+      x: capability.x,
+      y: capability.y,
+      w: capability.w ?? 230,
+      h: capability.h ?? 66,
+      active: capability.componentIds.some((id) =>
+        projectedComponentIds.has(id) && recentlyChanged.has(id)),
+      answerable: capability.componentIds.some((id) => tracedComponentIds.has(id)),
+      heart: capability.heart,
+    };
+  });
+  const capabilityByComponent = new Map<string, string>();
+  for (const capability of LOGICAL_CAPABILITIES) {
+    for (const componentId of capability.componentIds) {
+      capabilityByComponent.set(componentId, capability.id);
+    }
+  }
+  const wires = LOGICAL_WIRES.map((wire) => ({
+    ...wire,
+    animated: [...recentlyChanged].some((componentId) =>
+      capabilityByComponent.get(componentId) === wire.source
+      || capabilityByComponent.get(componentId) === wire.target),
+  }));
+  return { blocks, wires, groups: LOGICAL_GROUPS };
+}
+
+export function buildProjectionCanvas(
+  projection: ArchitectureWorkspaceProjection,
+  mode: ArchitectureViewMode,
+  candidate?: DeployableCandidate,
+) {
+  const nodeWidth = 220;
+  const nodeGap = 68;
+  const frameWidth = 252;
+  const frameGapX = 24;
+  const frameGapY = 24;
+  const frameHeader = 48;
+  const columns = 3;
+  const selectionByComponent = new Map(
+    (candidate?.selections ?? []).map((selection) => [selection.component_id, selection]),
+  );
+  const recentlyChanged = new Set<string>();
+  const lastTransition = projection.decision_history?.transitions.at(-1);
+  for (const component of lastTransition?.architecture_delta.components.added ?? []) {
+    recentlyChanged.add(component.component_id);
+  }
+  for (const component of lastTransition?.architecture_delta.components.removed ?? []) {
+    recentlyChanged.add(component.component_id);
+  }
+  if (mode === 'logical') {
+    return buildLogicalCanvas(projection, recentlyChanged);
+  }
+  const planeByComponent = new Map<string, string>();
+  for (const plane of projection.architecture.planes) {
+    for (const component of plane.components) planeByComponent.set(component.id, plane.id);
+  }
+
+  const rowHeights: number[] = [];
+  projection.architecture.planes.forEach((plane, index) => {
+    const row = Math.floor(index / columns);
+    const height = frameHeader + Math.max(1, plane.components.length) * nodeGap + 18;
+    rowHeights[row] = Math.max(rowHeights[row] ?? 0, height);
+  });
+  const rowOffsets = rowHeights.map((_, row) =>
+    rowHeights.slice(0, row).reduce((total, height) => total + height + frameGapY, 0),
+  );
+
+  const groups: ProjectionCanvasGroup[] = [];
+  const blocks: ProjectionCanvasBlock[] = [];
+  projection.architecture.planes.forEach((plane, index) => {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const x = column * (frameWidth + frameGapX);
+    const y = rowOffsets[row];
+    groups.push({
+      id: `plane:${plane.id}`,
+      label: plane.label,
+      group: plane.id,
+      x,
+      y,
+      w: frameWidth,
+      h: rowHeights[row],
+    });
+    plane.components.forEach((component, componentIndex) => {
+      const presentation = componentPresentation(
+        component.id,
+        component.name,
+        component.description,
+      );
+      const selection = selectionByComponent.get(component.id);
+      blocks.push({
+        id: component.id,
+        label: presentation.label,
+        detail: mode === 'deployable'
+          ? selection?.service_name ?? 'No deployable service selected'
+          : presentation.detail,
+        group: plane.id,
+        componentIds: [component.id],
+        x: x + 16,
+        y: y + frameHeader + componentIndex * nodeGap,
+        w: nodeWidth,
+        h: 56,
+        active: component.status === 'added',
+        answerable: projection.decision_trace.some(
+          (entry) => entry.target_component_ids.includes(component.id),
+        ),
+        heart: component.id === 'component:orchestration-runtime',
+      });
+    });
+  });
+
+  const wires: ProjectionCanvasWire[] = projection.architecture.edges.map((edge) => ({
+    source: edge.source_component_id,
+    target: edge.target_component_id,
+    kind: wireKind(edge.relationship, planeByComponent.get(edge.target_component_id)),
+    label: edge.relationship.replace(/_/g, ' '),
+    animated: recentlyChanged.has(edge.source_component_id)
+      || recentlyChanged.has(edge.target_component_id),
+  }));
+
+  return { blocks, wires, groups };
+}

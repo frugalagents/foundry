@@ -404,10 +404,12 @@ def _state_hash(
     })
 
 
-def _validate_current_revision(
+def validate_workspace_revision(
     revision: WorkspaceRevision,
     catalog: CatalogRelease,
 ) -> None:
+    """Re-derive a revision from its pinned inputs before downstream use."""
+
     if (
         revision.catalog_release_id != catalog.id
         or revision.catalog_release_version != catalog.version
@@ -659,7 +661,7 @@ def evaluate_deployment_feasibility(
     """Evaluate background deployment families without replacing the baseline."""
 
     current = workspace.revisions[-1]
-    _validate_current_revision(current, catalog)
+    validate_workspace_revision(current, catalog)
     logical_patterns = [
         pattern
         for pattern in catalog.patterns
@@ -671,13 +673,9 @@ def evaluate_deployment_feasibility(
         raise ValueError(
             "workspace architecture must remain on the logical reference"
         )
-    requirements = {
-        requirement.requirement_id: requirement
-        for requirement in current.requirements
-    }
-    family_evaluations = _deployment_family_evaluations(
+    family_evaluations = evaluate_revision_deployment_families(
+        current,
         catalog,
-        requirements,
     )
     hash_payload = {
         "baseline_pattern_id": current.architecture.pattern_id,
@@ -694,6 +692,31 @@ def evaluate_deployment_feasibility(
         **hash_payload,
         result_hash=content_hash(hash_payload),
     )
+
+
+def evaluate_revision_deployment_families(
+    revision: WorkspaceRevision,
+    catalog: CatalogRelease,
+) -> tuple[DeploymentFamilyEvaluation, ...]:
+    """Evaluate deployment families for one validated logical revision."""
+
+    validate_workspace_revision(revision, catalog)
+    logical_patterns = [
+        pattern
+        for pattern in catalog.patterns
+        if pattern.role is PatternRole.LOGICAL_REFERENCE
+    ]
+    if len(logical_patterns) != 1:
+        raise ValueError("catalog requires exactly one logical-reference pattern")
+    if revision.architecture.pattern_id != logical_patterns[0].id:
+        raise ValueError(
+            "workspace architecture must remain on the logical reference"
+        )
+    requirements = {
+        requirement.requirement_id: requirement
+        for requirement in revision.requirements
+    }
+    return _deployment_family_evaluations(catalog, requirements)
 
 
 def initialize_workspace(
@@ -747,7 +770,7 @@ def apply_requirement_patch(
             f"patch base revision {patch.base_revision_number} does not match "
             f"current revision {current.revision_number}"
         )
-    _validate_current_revision(current, catalog)
+    validate_workspace_revision(current, catalog)
     for constraint in patch.changes:
         _validate_requirement_constraint(constraint, catalog)
 
@@ -820,7 +843,7 @@ def rank_next_questions(
     catalog: CatalogRelease,
 ) -> tuple[QuestionCandidate, ...]:
     current = workspace.revisions[-1]
-    _validate_current_revision(current, catalog)
+    validate_workspace_revision(current, catalog)
     answered = {
         requirement.requirement_id for requirement in current.requirements
     }

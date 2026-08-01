@@ -8,7 +8,12 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from ..models import CatalogRelease, PatternRole, content_hash
+from ..models import (
+    CatalogRelease,
+    PatternRole,
+    RequirementValueType,
+    content_hash,
+)
 from .models import (
     ComponentInterfaceBinding,
     ComponentOffering,
@@ -115,15 +120,25 @@ def _unique_ids(kind: str, records: Iterable[object]) -> None:
 def _expand_offerings(
     offerings: tuple[ComponentOffering, ...],
     providers: tuple[ProviderProfile, ...],
+    logical_catalog: CatalogRelease,
+    bindings: tuple[ComponentInterfaceBinding, ...],
 ) -> tuple[ServiceVariant, ...]:
     provider_by_class = {
         provider.provider_class: provider for provider in providers
+    }
+    component_by_id = {
+        component.id: component for component in logical_catalog.components
+    }
+    binding_by_component = {
+        binding.component_id: binding for binding in bindings
     }
     variants: list[ServiceVariant] = []
     for offering in offerings:
         component_slug = offering.component_id.split(":", 1)[1]
         for provider_class in ProviderClass:
             provider = provider_by_class[provider_class]
+            component = component_by_id[offering.component_id]
+            binding = binding_by_component[offering.component_id]
             variants.append(ServiceVariant(
                 id=f"service:{component_slug}-{provider_class.value}",
                 version="1.0.0",
@@ -132,6 +147,9 @@ def _expand_offerings(
                 provider_id=provider.id,
                 provider_class=provider_class,
                 delivery_model=provider.delivery_model,
+                dependency_component_ids=component.dependency_ids,
+                provides_interface_ids=binding.provides_interface_ids,
+                requires_interface_ids=binding.requires_interface_ids,
             ))
     return tuple(variants)
 
@@ -186,6 +204,7 @@ def _validate_service_coverage(
     variants: tuple[ServiceVariant, ...],
     *,
     component_ids: set[str],
+    interface_ids: set[str],
     providers: tuple[ProviderProfile, ...],
 ) -> None:
     provider_by_id = {provider.id: provider for provider in providers}
@@ -228,6 +247,90 @@ def _validate_service_coverage(
         ):
             raise DeployableCatalogCompilationError(
                 f"service {variant.id!r} conflicts with provider profile"
+            )
+        unknown_dependencies = (
+            set(variant.dependency_component_ids) - component_ids
+        )
+        unknown_interfaces = (
+            set(variant.provides_interface_ids)
+            | set(variant.requires_interface_ids)
+        ) - interface_ids
+        if unknown_dependencies or unknown_interfaces:
+            raise DeployableCatalogCompilationError(
+                f"service {variant.id!r} has dangling dependency or "
+                "interface references"
+            )
+
+
+def _value_matches_type(value: object, value_type: RequirementValueType) -> bool:
+    validators = {
+        RequirementValueType.BOOLEAN: lambda item: isinstance(item, bool),
+        RequirementValueType.INTEGER: lambda item: (
+            isinstance(item, int) and not isinstance(item, bool)
+        ),
+        RequirementValueType.NUMBER: lambda item: (
+            isinstance(item, (int, float)) and not isinstance(item, bool)
+        ),
+        RequirementValueType.STRING: lambda item: isinstance(item, str),
+        RequirementValueType.STRING_SET: lambda item: (
+            isinstance(item, tuple)
+            and all(isinstance(member, str) for member in item)
+        ),
+    }
+    return value is not None and validators[value_type](value)
+
+
+def _validate_requirement_semantics(
+    templates: tuple[object, ...],
+    capability_rules: tuple[object, ...],
+    logical_catalog: CatalogRelease,
+) -> None:
+    definitions = {
+        requirement.id: requirement
+        for requirement in logical_catalog.requirements
+    }
+    for template in templates:
+        for acceptance in template.requirement_acceptance:
+            definition = definitions[acceptance.requirement_id]
+            for value in acceptance.accepted_values:
+                if (
+                    not _value_matches_type(value, definition.value_type)
+                    or (
+                        definition.allowed_values
+                        and value not in definition.allowed_values
+                    )
+                ):
+                    raise DeployableCatalogCompilationError(
+                        f"template {template.id!r} has invalid accepted value "
+                        f"for {definition.id!r}"
+                    )
+
+    for rule in capability_rules:
+        definition = definitions[rule.requirement_id]
+        if rule.operator == "greater_than_or_equal":
+            valid = (
+                definition.value_type
+                in (RequirementValueType.INTEGER, RequirementValueType.NUMBER)
+                and _value_matches_type(rule.value, definition.value_type)
+            )
+        elif rule.operator == "contains":
+            valid = (
+                definition.value_type is RequirementValueType.STRING_SET
+                and isinstance(rule.value, str)
+            )
+        else:
+            valid = _value_matches_type(rule.value, definition.value_type)
+        if (
+            valid
+            and rule.operator == "equals"
+            and definition.allowed_values
+            and rule.value not in definition.allowed_values
+        ):
+            valid = False
+        if not valid:
+            raise DeployableCatalogCompilationError(
+                f"capability rule {rule.id!r} has invalid operator or value "
+                f"for {definition.id!r}"
             )
 
 
@@ -310,12 +413,21 @@ def compile_deployable_catalog(
         )
 
     variants = _sorted(
-        (*_expand_offerings(offerings, providers), *explicit_variants)
+        (
+            *_expand_offerings(
+                offerings,
+                providers,
+                logical_catalog,
+                bindings,
+            ),
+            *explicit_variants,
+        )
     )
     _unique_ids("service", variants)
     _validate_service_coverage(
         variants,
         component_ids=component_ids,
+        interface_ids=interface_ids,
         providers=providers,
     )
 
@@ -354,7 +466,10 @@ def compile_deployable_catalog(
             raise DeployableCatalogCompilationError(
                 f"template {template.id!r} has dangling references"
             )
-    if len(templates) < len(ProviderClass):
+    covered_provider_classes = {
+        template.default_provider_class for template in templates
+    }
+    if covered_provider_classes != set(ProviderClass):
         raise DeployableCatalogCompilationError(
             "catalog requires at least one bundle template per provider class"
         )
@@ -383,6 +498,11 @@ def compile_deployable_catalog(
             raise DeployableCatalogCompilationError(
                 f"capability rule {rule.id!r} has dangling references"
             )
+    _validate_requirement_semantics(
+        templates,
+        capability_rules,
+        logical_catalog,
+    )
 
     groups = {
         "interfaces": interfaces,

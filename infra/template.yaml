@@ -34,25 +34,52 @@ Parameters:
     Description: "Set to true only for local dev — skips Cognito JWT verification"
   AdminAlias:
     Type: String
-    Default: "aigopala,thandavm"
-    Description: "Comma-separated Amazon aliases granted Platform Advisor admin access"
+    Default: ""
+    Description: "Comma-separated existing admin aliases used only by the guarded migration preflight and temporary fallback"
+  AdminGroupName:
+    Type: String
+    Default: "admin"
+    AllowedPattern: "^[A-Za-z0-9_+=,.@-]+$"
+    Description: "Administrator-managed Cognito group whose members receive Platform Advisor admin access"
+  AdminAliasMigrationEnabled:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: "Temporary migration fallback; deploy true only until current administrators are enrolled in the admin group"
   MidwayClientSecret:
     Type: String
     NoEcho: true
-    Default: ""
-    Description: "Client secret for the Midway OIDC app (platform-advisor-dev)"
+    Description: "Client secret for the Midway OIDC app; required at deploy time and never committed"
+  MidwayClientId:
+    Type: String
+    Default: "platform-advisor-dev"
+    MinLength: 1
+    Description: "Midway OIDC client ID for this environment"
   KnowledgeBaseId:
     Type: String
     Default: "EDDM8YZDNJ"
     Description: "Bedrock Knowledge Base ID for architecture decision explanations (RAG). Empty disables retrieval."
+  AgentCoreRuntimeArn:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^arn:(aws|aws-us-gov|aws-cn):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:runtime/[A-Za-z0-9][A-Za-z0-9_-]{0,255}$"
+    Description: "AgentCore Runtime ARN allowed for authenticated browser invocation. Empty disables browser invoke permission."
+
+Conditions:
+  IsDev: !Equals [!Ref Env, dev]
+  HasAgentCoreRuntimeArn: !Not [!Equals [!Ref AgentCoreRuntimeArn, ""]]
 
 Resources:
   # ── DynamoDB Table ──────────────────────────────────────────────────────────
   MainTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
-      TableName: platform-advisor-main
+      TableName: !If
+        - IsDev
+        - platform-advisor-main
+        - !Sub "platform-advisor-main-${Env}"
       BillingMode: PAY_PER_REQUEST
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -103,6 +130,8 @@ Resources:
           AttributeDataType: String
           Required: true
           Mutable: true
+        # Retained for compatibility with the existing user pool. The app
+        # client cannot write these attributes and authorization ignores them.
         - Name: role
           AttributeDataType: String
           Required: false
@@ -112,6 +141,14 @@ Resources:
           Required: false
           Mutable: true
 
+  UserPoolAdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: !Ref AdminGroupName
+      Description: Platform Advisor administrators
+      Precedence: 0
+
   UserPoolMidwayIdP:
     Type: AWS::Cognito::UserPoolIdentityProvider
     Properties:
@@ -119,7 +156,7 @@ Resources:
       ProviderName: Midway
       ProviderType: OIDC
       ProviderDetails:
-        client_id: platform-advisor-dev
+        client_id: !Ref MidwayClientId
         client_secret: !Ref MidwayClientSecret
         oidc_issuer: https://idp-integ.federate.amazon.com
         authorize_scopes: openid email
@@ -128,9 +165,25 @@ Resources:
         email: email
         custom:amazon_alias: sub
 
+  UserPoolResourceServer:
+    Type: AWS::Cognito::UserPoolResourceServer
+    Properties:
+      UserPoolId: !Ref UserPool
+      Identifier: platform-advisor-api
+      Name: Platform Advisor API
+      Scopes:
+        - ScopeName: read
+          ScopeDescription: Read customer architecture workspaces
+        - ScopeName: write
+          ScopeDescription: Change customer architecture workspaces
+        - ScopeName: admin
+          ScopeDescription: Access administrator operations
+
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
-    DependsOn: UserPoolMidwayIdP
+    DependsOn:
+      - UserPoolMidwayIdP
+      - UserPoolResourceServer
     Properties:
       UserPoolId: !Ref UserPool
       ClientName: !Sub platform-advisor-app-${Env}
@@ -139,6 +192,14 @@ Resources:
         - ALLOW_USER_SRP_AUTH
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
+      ReadAttributes:
+        - email
+        - custom:amazon_alias
+      WriteAttributes:
+        - email
+        # Required by Cognito for the Midway IdP attribute mapping. The
+        # migration fallback independently anchors this value to identities.
+        - custom:amazon_alias
       SupportedIdentityProviders:
         - COGNITO
         - Midway
@@ -149,7 +210,13 @@ Resources:
         - !Sub "${AllowedOrigins}/login"
         - "http://localhost:3000/login"
       AllowedOAuthFlows: [code]
-      AllowedOAuthScopes: [email, openid, profile]
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+        - platform-advisor-api/read
+        - platform-advisor-api/write
+        - platform-advisor-api/admin
       AllowedOAuthFlowsUserPoolClient: true
 
   UserPoolDomain:
@@ -187,13 +254,18 @@ Resources:
               "ForAnyValue:StringLike":
                 "cognito-identity.amazonaws.com:amr": authenticated
       Policies:
-        - PolicyName: AgentCoreInvokeOnly
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action: bedrock-agentcore:InvokeAgentRuntime
-                Resource: "*"
+        - !If
+          - HasAgentCoreRuntimeArn
+          - PolicyName: AgentCoreInvokeOnly
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - bedrock-agentcore:InvokeAgentRuntime
+                    - bedrock-agentcore:InvokeAgentRuntimeForUser
+                  Resource: !Ref AgentCoreRuntimeArn
+          - !Ref AWS::NoValue
 
   IdentityPoolRoles:
     Type: AWS::Cognito::IdentityPoolRoleAttachment
@@ -205,8 +277,29 @@ Resources:
   # ── Frontend: S3 + CloudFront ──────────────────────────────────────────────
   FrontendBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BucketName: !Sub platform-advisor-frontend-${Env}-${AWS::AccountId}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: RetainRollbackVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 30
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
 
   FrontendOAC:
     Type: AWS::CloudFront::OriginAccessControl
@@ -305,6 +398,8 @@ Resources:
       Description: Cognito PreTokenGeneration trigger — injects custom:role claim
       Environment:
         Variables:
+          ADMIN_GROUP: !Ref AdminGroupName
+          ADMIN_ALIAS_MIGRATION_ENABLED: !Ref AdminAliasMigrationEnabled
           ADMIN_ALIASES: !Ref AdminAlias
           # Override globals to break circular dependency with UserPool/UserPoolClient
           COGNITO_USER_POOL_ID: "unused"
@@ -354,12 +449,103 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /health
             Method: GET
+            Auth:
+              Authorizer: NONE
+        CorsPreflight:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+
+  AdvisorErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "platform-advisor-api-${Env}-errors"
+      AlarmDescription: "API Lambda has repeated errors in the dev rollout."
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AdvisorFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 2
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  AdvisorThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "platform-advisor-api-${Env}-throttles"
+      AlarmDescription: "API Lambda was throttled."
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AdvisorFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  AdvisorDurationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "platform-advisor-api-${Env}-duration-p99"
+      AlarmDescription: "API Lambda p99 duration exceeded 80 percent of its 900 second timeout."
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AdvisorFunction
+      ExtendedStatistic: p99
+      Period: 60
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 2
+      Threshold: 720000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  PreTokenErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "platform-advisor-pre-token-${Env}-errors"
+      AlarmDescription: "Cognito pre-token claim generation failed."
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref PreTokenFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
 
   # ── API Gateway HTTP API (JWT-secured) ─────────────────────────────────────
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
-      Description: Platform Advisor REST API — auth handled by Lambda middleware
+      Description: Platform Advisor REST API — Cognito JWT at the edge with Lambda verification as defense in depth
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            IdentitySource: "$request.header.Authorization"
+            JwtConfiguration:
+              audience:
+                - !Ref UserPoolClient
+              issuer: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigins

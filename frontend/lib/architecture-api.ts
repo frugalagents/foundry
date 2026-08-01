@@ -8,6 +8,30 @@ import type {
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
 type JsonObject = Record<string, unknown>;
 
+export interface ArchitectureWorkspaceScope {
+  customer_id: string;
+  session_id: string;
+}
+
+export class ArchitectureApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly detail?: unknown,
+  ) {
+    super(`Architecture API ${status}`);
+    this.name = 'ArchitectureApiError';
+  }
+}
+
+const scopedPath = (path: string, scope?: ArchitectureWorkspaceScope): string => {
+  if (!scope) return path;
+  const params = new URLSearchParams({
+    customer_id: scope.customer_id,
+    session_id: scope.session_id,
+  });
+  return `${path}?${params.toString()}`;
+};
+
 const object = (value: unknown) => value as JsonObject;
 const refs = (items: unknown, key: string): string[] =>
   ((items as JsonObject[]) ?? []).map((item) => String(item[key]));
@@ -47,6 +71,8 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
     requirements: (raw.requirements as JsonObject[]).map((item) => ({
       id: String(item.requirement_id),
       name: String(item.name),
+      description: item.description ? String(item.description) : undefined,
+      required: Boolean(item.required),
       value: item.value as RequirementValue,
       status: requirementStatus(item.status),
       source: item.source ? String(item.source) : undefined,
@@ -85,6 +111,8 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
     feasibility: (raw.deployment_families as JsonObject[]).map((family) => ({
       pattern_id: String(family.pattern_id),
       name: String(family.name),
+      description: family.description ? String(family.description) : undefined,
+      reason: family.reason ? String(family.reason) : undefined,
       status: String(family.status) as 'feasible' | 'rejected' | 'unknown',
       rejection_rule_ids: family.rejection_rule_ids as string[],
       blocking_requirement_ids: refs(family.blocking_requirements, 'requirement_id'),
@@ -156,12 +184,22 @@ async function request(path: string, options: RequestInit = {}, retry = true): P
   if (response.status === 401 && retry && await refreshIdToken()) {
     return request(path, options, false);
   }
-  if (!response.ok) throw new Error(`Architecture API ${response.status}`);
+  if (!response.ok) {
+    let detail: unknown;
+    try {
+      detail = await response.json();
+    } catch {
+      detail = await response.text().catch(() => undefined);
+    }
+    throw new ArchitectureApiError(response.status, detail);
+  }
   return response.json();
 }
 
-export async function getArchitectureWorkspace(): Promise<ArchitectureWorkspaceProjection> {
-  return normalizeArchitectureProjection(await request('/architecture/workspace'));
+export async function getArchitectureWorkspace(
+  scope?: ArchitectureWorkspaceScope,
+): Promise<ArchitectureWorkspaceProjection> {
+  return normalizeArchitectureProjection(await request(scopedPath('/architecture/workspace', scope)));
 }
 
 export interface ArchitectureEvaluationPayload {
@@ -172,8 +210,9 @@ export interface ArchitectureEvaluationPayload {
 
 export async function evaluateArchitectureWorkspace(
   payload: ArchitectureEvaluationPayload,
+  scope?: ArchitectureWorkspaceScope,
 ): Promise<ArchitectureWorkspaceProjection> {
-  return normalizeArchitectureProjection(await request('/architecture/workspace/evaluate', {
+  return normalizeArchitectureProjection(await request(scopedPath('/architecture/workspace/evaluate', scope), {
     method: 'POST',
     body: JSON.stringify(payload),
   }));
@@ -193,43 +232,20 @@ export interface ArchitectureExplanation {
 
 export interface ChatResult {
   reply: string;
-  applied_answers: Record<string, unknown>;
-  answers: Record<string, unknown>;
+  proposed_answers: Record<string, RequirementValue>;
   source: string;
 }
 
-// Conversational path into the SAME engine the canvas clicks feed. The message
-// is interpreted into typed answers, merged, and reflected in the next generate.
-export async function chatArchitecture(message: string): Promise<ChatResult> {
-  return await request('/architecture/chat', {
+// Chat proposes a typed requirement patch. Only the workspace evaluate command
+// can commit an accepted proposal.
+export async function chatArchitecture(
+  message: string,
+  scope?: ArchitectureWorkspaceScope,
+): Promise<ChatResult> {
+  return await request(scopedPath('/architecture/chat', scope), {
     method: 'POST',
     body: JSON.stringify({ message }),
   }) as ChatResult;
-}
-
-export interface GeneratedArchitecture {
-  stack: { box_id: string; component_id: string; chosen: string; alternatives: string[] }[];
-  rationale: string;
-  grounded: boolean;
-  citations: { source: string; score: number }[];
-  cascades: { box_id: string; value: string; note: string }[];
-  critic_concerns: string[];
-  guard: { passed: boolean; guard_version: string; violations: { check: string; detail: string; remedy?: string }[] };
-  source: string;
-  persisted?: boolean;
-  decision_record?: unknown;
-}
-
-// Run the agentic engine (propose → guard → generate → critic) over the stored
-// answers and return the purpose-built architecture. Available at any point.
-export async function generateArchitecture(
-  boxes?: string[],
-): Promise<GeneratedArchitecture> {
-  const body = boxes ? { boxes } : {};
-  return await request('/architecture/generate', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  }) as GeneratedArchitecture;
 }
 
 // Reference-only retrieval. This never changes a decision — it surfaces
@@ -238,8 +254,9 @@ export async function generateArchitecture(
 export async function explainArchitectureDecision(
   query: string,
   topK = 4,
+  scope?: ArchitectureWorkspaceScope,
 ): Promise<ArchitectureExplanation> {
-  const raw = object(await request('/architecture/explain', {
+  const raw = object(await request(scopedPath('/architecture/explain', scope), {
     method: 'POST',
     body: JSON.stringify({ query, top_k: topK }),
   }));
@@ -251,5 +268,27 @@ export async function explainArchitectureDecision(
       score: Number(p.score ?? 0),
       source: String(p.source ?? ''),
     })),
+  };
+}
+
+export async function downloadArchitecturePackage(
+  revisionNumber: number,
+  scope?: ArchitectureWorkspaceScope,
+): Promise<{ blob: Blob; filename: string; packageHash: string }> {
+  const packageData = await request(scopedPath('/architecture/workspace/exports', scope), {
+    method: 'POST',
+    body: JSON.stringify({ revision_number: revisionNumber }),
+  }) as JsonObject;
+  const workspace = object(packageData.workspace);
+  const revision = object(packageData.revision);
+  const workspaceName = String(workspace.workspace_id ?? 'architecture')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-');
+  const exportedRevision = Number(revision.revision_number ?? revisionNumber);
+  return {
+    blob: new Blob([`${JSON.stringify(packageData, null, 2)}\n`], {
+      type: 'application/json',
+    }),
+    filename: `${workspaceName}-revision-${exportedRevision}.json`,
+    packageHash: String(packageData.package_hash ?? ''),
   };
 }

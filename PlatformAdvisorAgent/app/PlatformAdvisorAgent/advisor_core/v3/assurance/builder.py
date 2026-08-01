@@ -6,11 +6,14 @@ from datetime import date
 
 from pydantic import BaseModel
 
+from ..deployable import build_deployable_solution
+from ..engine import validate_workspace_revision
 from ..models import ArchitectureWorkspace, CatalogRelease, content_hash
 from .catalog import load_assurance_catalog
 from .economics import build_economics_plan
 from .models import AssuranceOutputs, SelectedBundleContext
 from .outcomes import build_outcome_plan
+from .readiness import build_decision_readiness
 from .roadmap import build_implementation_roadmap
 from .security import build_security_plan
 
@@ -41,12 +44,7 @@ def build_assurance_outputs(
     revision = workspace.revisions[-1]
     if revision.revision_id != workspace.current_revision_id:
         raise ValueError("workspace current revision is inconsistent")
-    if (
-        revision.catalog_release_id != catalog.id
-        or revision.catalog_release_version != catalog.version
-        or revision.catalog_content_hash != catalog.content_hash
-    ):
-        raise ValueError("workspace revision is not pinned to the supplied catalog")
+    validate_workspace_revision(revision, catalog)
 
     bundle = _coerce_bundle(selected_bundle)
     active_component_ids = {
@@ -63,6 +61,19 @@ def build_assurance_outputs(
             )
 
     assurance_catalog = load_assurance_catalog(catalog, as_of=as_of)
+    if bundle is not None:
+        unknown_controls = {
+            item.control_id for item in bundle.control_evidence
+        } - {item.id for item in assurance_catalog.controls}
+        unknown_costs = {
+            item.cost_id for item in bundle.unit_cost_overrides
+        } - {item.id for item in assurance_catalog.unit_costs}
+        if unknown_controls or unknown_costs:
+            raise ValueError(
+                "selected bundle contains unknown assurance inputs: "
+                f"controls={sorted(unknown_controls)}, "
+                f"costs={sorted(unknown_costs)}"
+            )
     security = build_security_plan(
         assurance_catalog,
         active_component_ids,
@@ -83,6 +94,16 @@ def build_assurance_outputs(
         as_of=as_of,
     )
     outcomes = build_outcome_plan(assurance_catalog)
+    decision_matrix = build_deployable_solution(revision, catalog)
+    readiness = build_decision_readiness(
+        revision,
+        catalog,
+        decision_matrix,
+        economics,
+        security,
+        selected_bundle_id=bundle.bundle_id if bundle is not None else None,
+        as_of=as_of,
+    )
     payload = {
         "schema_version": "3.0",
         "workspace_id": workspace.workspace_id,
@@ -100,6 +121,7 @@ def build_assurance_outputs(
         "roadmap": roadmap,
         "economics": economics,
         "outcomes": outcomes,
+        "readiness": readiness,
     }
     hash_payload = {
         **payload,
@@ -108,5 +130,6 @@ def build_assurance_outputs(
         "roadmap": roadmap.model_dump(mode="json"),
         "economics": economics.model_dump(mode="json"),
         "outcomes": outcomes.model_dump(mode="json"),
+        "readiness": readiness.model_dump(mode="json"),
     }
     return AssuranceOutputs(**payload, packet_hash=content_hash(hash_payload))

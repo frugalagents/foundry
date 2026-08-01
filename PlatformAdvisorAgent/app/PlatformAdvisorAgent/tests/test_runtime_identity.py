@@ -1,3 +1,4 @@
+import asyncio
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -38,6 +39,14 @@ def test_runtime_actor_id_verifies_forwarded_cognito_token(monkeypatch):
     assert main._runtime_actor_id(context) == "cognito-user-123"
 
 
+def test_runtime_tenant_id_uses_trusted_claim_then_actor_fallback():
+    assert main._runtime_tenant_id(
+        {"custom:tenant_id": "tenant-one"},
+        "actor-one",
+    ) == "tenant-one"
+    assert main._runtime_tenant_id({}, "actor-one") == "actor-one"
+
+
 def test_runtime_actor_id_rejects_access_token(monkeypatch):
     context = SimpleNamespace(
         request_headers={
@@ -65,3 +74,96 @@ def test_runtime_actor_id_fails_closed_without_trusted_identity():
     context = SimpleNamespace(request_headers={})
 
     assert main._runtime_actor_id(context) is None
+
+
+def test_entrypoint_dispatches_versioned_v3_action_without_v2_agent(
+    monkeypatch,
+):
+    calls = {}
+
+    class FakeAdapter:
+        def __init__(self, table, **scope):
+            calls["table"] = table
+            calls["scope"] = scope
+
+        def execute(self, request):
+            calls["request"] = request
+            return {
+                "contract_version": "3.0",
+                "action": "architecture.v3.workspace",
+                "operation": "get",
+                "projection": {"schema_version": "3.0"},
+            }
+
+    table = object()
+    ddb = SimpleNamespace(Table=lambda name: table)
+    monkeypatch.setattr(
+        main,
+        "_runtime_identity_claims",
+        lambda context: {
+            "sub": "actor-one",
+            "custom:tenant_id": "tenant-one",
+        },
+    )
+    monkeypatch.setattr(main, "_session_is_owned", lambda *args: True)
+    monkeypatch.setattr(main, "_get_ddb", lambda: ddb)
+    monkeypatch.setattr(main, "ArchitectureV3RuntimeAdapter", FakeAdapter)
+
+    async def collect():
+        return [
+            event
+            async for event in main.invoke(
+                {
+                    "action": "architecture.v3.workspace",
+                    "customer_id": "cust-one",
+                    "session_id": "sess-one",
+                    "architecture_v3": {
+                        "schema_version": "3.0",
+                        "operation": "get",
+                    },
+                },
+                SimpleNamespace(session_id="runtime-session"),
+            )
+        ]
+
+    events = asyncio.run(collect())
+
+    assert events[0].startswith("event: architecture_v3_complete\n")
+    assert events[1].startswith("event: complete\n")
+    assert calls == {
+        "table": table,
+        "scope": {
+            "tenant_id": "tenant-one",
+            "owner_id": "actor-one",
+            "customer_id": "cust-one",
+            "session_id": "sess-one",
+        },
+        "request": {
+            "schema_version": "3.0",
+            "operation": "get",
+        },
+    }
+
+
+def test_existing_v2_questionnaire_protocol_is_unchanged():
+    async def collect():
+        return [
+            event
+            async for event in main.invoke(
+                {
+                    "action": "questionnaire",
+                    "customer_id": "cust-one",
+                    "session_id": "sess-one",
+                    "primary_workload": "coding",
+                },
+                SimpleNamespace(session_id="runtime-session"),
+            )
+        ]
+
+    events = asyncio.run(collect())
+    payload = json.loads(events[0].split("data: ", 1)[1])
+
+    assert events[0].startswith("event: panel_complete\n")
+    assert payload["data"]["panel_type"] == "intake"
+    assert payload["data"]["data"]["schema_version"] == "2.0"
+    assert events[1].startswith("event: complete\n")

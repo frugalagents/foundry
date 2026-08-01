@@ -19,6 +19,7 @@ from advisor_core.v3.guard import (
     load_bindings,
     run_guard,
 )
+from advisor_core.v3.models import RequirementDefinition, RequirementValueType
 
 from . import domain
 from .llm import MODEL_ID, converse, converse_json, prompt_hash
@@ -285,6 +286,88 @@ INTERPRET_SYSTEM = (
     "{\"answers\":{<key>:<value>,...},\"reply\":\"<one short confirmation sentence>\"}. "
     "Only include answers you are confident about; omit the rest."
 )
+
+
+REQUIREMENT_INTERPRET_SYSTEM = (
+    "You extract proposed requirements for an enterprise coding-agent platform. "
+    "Use only requirement IDs and values from the supplied catalog. Do not make "
+    "architecture or service decisions. Omit anything the user did not state or "
+    "clearly imply. Reply JSON only: "
+    "{\"answers\":{<requirement_id>:<catalog_value>,...},"
+    "\"reply\":\"<one short proposal summary>\"}."
+)
+
+
+def _valid_requirement_value(
+    definition: RequirementDefinition,
+    value: object,
+) -> bool:
+    validators = {
+        RequirementValueType.BOOLEAN: lambda item: isinstance(item, bool),
+        RequirementValueType.INTEGER: lambda item: (
+            isinstance(item, int) and not isinstance(item, bool)
+        ),
+        RequirementValueType.NUMBER: lambda item: (
+            isinstance(item, (int, float)) and not isinstance(item, bool)
+        ),
+        RequirementValueType.STRING: lambda item: isinstance(item, str),
+        RequirementValueType.STRING_SET: lambda item: (
+            isinstance(item, list)
+            and all(isinstance(member, str) for member in item)
+        ),
+    }
+    if not validators[definition.value_type](value):
+        return False
+    if definition.allowed_values and value not in definition.allowed_values:
+        return False
+    return True
+
+
+def interpret_requirements(
+    message: str,
+    requirements: tuple[RequirementDefinition, ...],
+) -> dict:
+    """Extract a catalog-constrained requirement patch without committing it."""
+
+    menu = {
+        requirement.id: {
+            "name": requirement.name,
+            "description": requirement.description,
+            "value_type": requirement.value_type.value,
+            "allowed_values": list(requirement.allowed_values),
+        }
+        for requirement in requirements
+    }
+    user = (
+        f"Customer statement: {message}\n\n"
+        f"Requirement catalog: {json.dumps(menu, sort_keys=True)}\n\n"
+        "Return only requirements supported by the statement."
+    )
+    output = converse_json(REQUIREMENT_INTERPRET_SYSTEM, user, max_tokens=800)
+    if not output or not isinstance(output.get("answers"), dict):
+        return {
+            "answers": {},
+            "reply": "I could not derive a confident requirement proposal.",
+            "source": "none",
+        }
+
+    definitions = {requirement.id: requirement for requirement in requirements}
+    answers = {
+        requirement_id: value
+        for requirement_id, value in output["answers"].items()
+        if requirement_id in definitions
+        and _valid_requirement_value(definitions[requirement_id], value)
+    }
+    reply = output.get("reply")
+    return {
+        "answers": answers,
+        "reply": (
+            str(reply)
+            if isinstance(reply, str) and reply.strip()
+            else "I prepared a requirement proposal for review."
+        ),
+        "source": "agent" if answers else "none",
+    }
 
 
 def interpret(message: str, answers: dict) -> dict:

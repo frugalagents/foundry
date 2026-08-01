@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "playwright test",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@aws-crypto/sha256-browser": "^5.0.0",

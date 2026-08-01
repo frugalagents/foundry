@@ -57,7 +57,7 @@ export function PlatformTypeGate({ onSelect }: { onSelect: (id: string) => void 
 function PgateStyles() {
   return (
     <style>{`
-.pgate{min-height:100vh;background:radial-gradient(1000px 560px at 62% -10%,#1a35601c,transparent),radial-gradient(760px 520px at 100% 110%,#f0a8500a,transparent),#0e1116;color:#e6e9ef;font:14px/1.55 "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;align-items:center;justify-content:center;padding:40px 24px}
+.pgate{height:100%;min-height:0;background:radial-gradient(1000px 560px at 62% -10%,#1a35601c,transparent),radial-gradient(760px 520px at 100% 110%,#f0a8500a,transparent),#0e1116;color:#e6e9ef;font:14px/1.55 "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;align-items:center;justify-content:center;padding:40px 24px;overflow:auto}
 .pgate *{box-sizing:border-box}
 .pgate-inner{width:100%;max-width:720px}
 .pgate-mark{width:40px;height:40px;border-radius:11px;background:conic-gradient(from 210deg,#37dd7d,#4cc4f5,#7d9bff,#b98cf0,#37dd7d);box-shadow:0 0 0 1px #ffffff12;margin-bottom:22px;position:relative}

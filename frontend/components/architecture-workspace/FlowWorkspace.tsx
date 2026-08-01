@@ -1,336 +1,717 @@
 'use client';
 
-// Assembles the approved architecture into React Flow blocks/wires and pairs
-// the canvas with the discovery-questions side panel. The block content,
-// per-block questions, live-answer wiring, and evidence display are shared with
-// the approved design; only the diagram engine is now React Flow.
-
-import { useCallback, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  Download,
+  FileCheck2,
+  ListChecks,
+  MessageSquare,
+  Pencil,
+  RefreshCw,
+  Send,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import type {
+  ArchitectureRequirement,
   ArchitectureWorkspaceProjection,
   EvidenceClaim,
+  NextArchitectureQuestion,
   RequirementValue,
 } from '@/lib/architecture-workspace';
-import { FlowCanvas, type FlowBlock, type FlowWire } from './FlowCanvas';
-import { BLOCKS, WIRES, PHASE, GROUP_COLOR, ACTIVE_MAP, LAYOUT, GROUP_LAYOUT, type BlockDef } from './architecture-model';
-import { generateArchitecture, chatArchitecture, type GeneratedArchitecture } from '@/lib/architecture-api';
+import { deriveWorkspaceGuidance } from '@/lib/architecture-workspace';
+import {
+  chatArchitecture,
+  downloadArchitecturePackage,
+  type ArchitectureWorkspaceScope,
+} from '@/lib/architecture-api';
+import { FlowCanvas } from './FlowCanvas';
+import {
+  buildProjectionCanvas,
+  componentPresentation,
+  GROUP_COLOR,
+  PHASE,
+  type ArchitectureViewMode,
+} from './architecture-model';
 
-interface BlueprintContext { name: string; description: string; type: string }
-const TYPE_LABEL: Record<string, string> = {
-  coding: 'Agentic Coding Platform', internal: 'Internal-Facing Platform',
-  'customer-facing': 'Customer-Facing Agentic Platform', saas: 'SaaS Decomposition', marketplace: 'Marketplace',
-};
+interface BlueprintContext {
+  name: string;
+  description: string;
+  type: string;
+}
 
 interface Props {
   projection: ArchitectureWorkspaceProjection;
   blueprint?: BlueprintContext | null;
-  onAnswer?: (requirementId: string, value: RequirementValue) => Promise<void> | void;
+  onApplyPatch?: (answers: Record<string, RequirementValue>) => Promise<boolean> | boolean;
+  scope?: ArchitectureWorkspaceScope;
   applying?: boolean;
+  connectionState: 'live' | 'snapshot' | 'stale';
+  onReload?: () => Promise<void> | void;
 }
 
-export function FlowWorkspace({ projection, blueprint, onAnswer, applying }: Props) {
+const TYPE_LABEL: Record<string, string> = {
+  coding: 'Agentic Coding Platform',
+  'agentic-coding': 'Agentic Coding Platform',
+  internal: 'Internal-Facing Platform',
+  'internal-facing': 'Internal-Facing Platform',
+  'customer-facing': 'Customer-Facing Agentic Platform',
+  saas: 'SaaS Decomposition',
+  'saas-decomposition': 'SaaS Decomposition',
+  marketplace: 'Marketplace',
+};
+
+const answerLabel = (answer: RequirementValue) => {
+  if (answer === true) return 'Yes';
+  if (answer === false) return 'No';
+  if (answer == null) return 'Not sure yet';
+  const labels: Record<string, string> = {
+    'developer-endpoint': 'Developer device',
+    container: 'Isolated container',
+    microvm: 'MicroVM',
+    'dedicated-tenant': 'Dedicated environment',
+  };
+  if (labels[String(answer)]) return labels[String(answer)];
+  return String(answer).replace(/[-_]/g, ' ').replace(/\b\w/g, (value) => value.toUpperCase());
+};
+
+function answerDescription(requirementId: string, answer: RequirementValue) {
+  if (requirementId !== 'requirement:runtime-isolation') return '';
+  const descriptions: Record<string, string> = {
+    'developer-endpoint': 'Runs on the developer workstation with endpoint controls.',
+    container: 'Separates tasks with an isolated process and filesystem.',
+    microvm: 'Uses a lightweight virtual machine for stronger workload isolation.',
+    'dedicated-tenant': 'Uses dedicated customer capacity for the strongest boundary.',
+    null: 'Keep the alternatives open and confirm this later.',
+  };
+  return descriptions[String(answer)] ?? '';
+}
+
+const shortId = (value: string) => value.replace(/^[^:]+:/, '').replace(/-/g, ' ');
+
+function moneyRange(range?: { low: number; high: number }) {
+  if (!range) return 'Not available';
+  return `$${range.low.toLocaleString(undefined, { maximumFractionDigits: 2 })} - $${range.high.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+export function FlowWorkspace({
+  projection,
+  blueprint,
+  onApplyPatch,
+  scope,
+  applying = false,
+  connectionState,
+  onReload,
+}: Props) {
   const [selected, setSelected] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [generated, setGenerated] = useState<GeneratedArchitecture | null>(null);
-  const [genError, setGenError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ArchitectureViewMode>('logical');
+  const [asideView, setAsideView] = useState<'questions' | 'chat'>('questions');
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [chatLog, setChatLog] = useState<{ role: 'user' | 'agent'; text: string }[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
+  const [pendingPatch, setPendingPatch] = useState<Record<string, RequirementValue> | null>(null);
+  const [proposalEditing, setProposalEditing] = useState(false);
+  const [downloadBusy, setDownloadBusy] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadedHash, setDownloadedHash] = useState<string | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const canMutate = connectionState === 'live' && !applying;
+
+  const guidance = useMemo(() => deriveWorkspaceGuidance(projection), [projection]);
+  const recommendation = projection.deployable_solution?.recommendation;
+  const selectedCandidate = projection.deployable_solution?.candidates.find(
+    (candidate) => candidate.bundle_id === recommendation?.candidate_id,
+  ) ?? projection.deployable_solution?.candidates[0];
+  const canvas = useMemo(
+    () => buildProjectionCanvas(projection, viewMode, selectedCandidate),
+    [projection, selectedCandidate, viewMode],
+  );
+  const requirementsById = useMemo(
+    () => new Map(projection.requirements.map((requirement) => [requirement.id, requirement])),
+    [projection.requirements],
+  );
+  const claimsById = useMemo(
+    () => new Map((projection.evidence ?? []).map((claim) => [claim.claim_id, claim])),
+    [projection.evidence],
+  );
+  const selectedCanvasBlock = canvas.blocks.find((block) => block.id === selected);
+  const selectedComponentIds = new Set(
+    selectedCanvasBlock?.componentIds ?? (selected ? [selected] : []),
+  );
+  const selectedPlane = projection.architecture.planes.find(
+    (plane) => plane.id === selectedCanvasBlock?.group
+      || plane.components.some((component) => selectedComponentIds.has(component.id)),
+  );
+  const selectedComponent = selectedPlane?.components.find(
+    (component) => selectedComponentIds.has(component.id),
+  );
+  const selectedPresentation = selectedCanvasBlock
+    ? {
+      ...(selectedComponent
+        ? componentPresentation(
+          selectedComponent.id,
+          selectedComponent.name,
+          selectedComponent.description,
+        )
+        : { bestPractices: [] }),
+      label: selectedCanvasBlock.label,
+      detail: selectedCanvasBlock.detail,
+    }
+    : null;
+  const selectedService = selectedCandidate?.selections.find(
+    (selection) => selectedComponentIds.has(selection.component_id),
+  );
+  const selectedTrace = projection.decision_trace.filter(
+    (entry) => entry.target_component_ids.some((componentId) =>
+      selectedComponentIds.has(componentId)),
+  );
+  const selectedRequirementIds = new Set(selectedTrace.flatMap((entry) => entry.requirement_ids));
+  const selectedRequirements = projection.requirements.filter(
+    (requirement) => selectedRequirementIds.has(requirement.id),
+  );
+  const selectedClaims = selectedTrace.flatMap((entry) =>
+    (entry.evidence_claim_ids ?? [])
+      .map((claimId) => claimsById.get(claimId))
+      .filter((claim): claim is EvidenceClaim => Boolean(claim)),
+  ).filter((claim, index, claims) =>
+    claims.findIndex((candidate) => candidate.claim_id === claim.claim_id) === index,
+  );
+  const assurance = projection.assurance;
+  const selectedPractices = (assurance?.security.best_practices ?? []).filter(
+    (practice) => practice.applicable_component_ids?.some((componentId) =>
+      selectedComponentIds.has(componentId)),
+  );
+  const selectedControls = (assurance?.security.controls ?? []).filter(
+    (control) => control.applicable_component_ids?.some((componentId) =>
+      selectedComponentIds.has(componentId)),
+  );
+  const canDownload = canMutate && guidance.readiness === 'publishable';
+
+  useEffect(() => {
+    if (!reviewOpen) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setReviewOpen(false);
+      if (event.key === 'Tab') {
+        const dialog = closeButtonRef.current?.closest('[role="dialog"]');
+        const focusable = dialog
+          ? Array.from(dialog.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), details > summary, a[href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ))
+          : [];
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previous?.focus();
+    };
+  }, [reviewOpen]);
+
+  function proposePatch(
+    answers: Record<string, RequirementValue>,
+    message = 'Review the proposed requirement change before applying it.',
+  ) {
+    if (!canMutate) return;
+    setPendingPatch(answers);
+    setProposalEditing(false);
+    setChatLog((log) => [...log, { role: 'agent', text: message }]);
+  }
 
   async function sendChat() {
-    const msg = chatInput.trim();
-    if (!msg || chatBusy) return;
+    const message = chatInput.trim();
+    if (!message || chatBusy || !canMutate) return;
     setChatInput('');
-    setChatLog((l) => [...l, { role: 'user', text: msg }]);
+    setChatLog((log) => [...log, { role: 'user', text: message }]);
     setChatBusy(true);
     try {
-      const res = await chatArchitecture(msg);
-      const applied = Object.keys(res.applied_answers).length;
-      setChatLog((l) => [...l, {
-        role: 'agent',
-        text: applied ? res.reply : (res.reply || 'I couldn’t map that to a decision — try naming a specific choice.'),
-      }]);
+      const result = await chatArchitecture(message, scope);
+      if (Object.keys(result.proposed_answers).length) {
+        proposePatch(result.proposed_answers, result.reply || 'Review the extracted customer requirements.');
+      } else {
+        setChatLog((log) => [...log, {
+          role: 'agent',
+          text: result.reply || 'I could not map that to a decision. Name a concrete customer constraint.',
+        }]);
+      }
     } catch {
-      setChatLog((l) => [...l, { role: 'agent', text: 'Something went wrong — try again.' }]);
+      setChatLog((log) => [...log, {
+        role: 'agent',
+        text: 'The proposal service is unavailable. No architecture changes were made.',
+      }]);
     } finally {
       setChatBusy(false);
     }
   }
 
-  async function runGenerate() {
-    setGenerating(true);
-    setGenError(null);
-    try {
-      setGenerated(await generateArchitecture());
-    } catch {
-      setGenError('Could not generate the architecture. Try again.');
-    } finally {
-      setGenerating(false);
+  async function acceptPatch() {
+    if (!pendingPatch || !canMutate) return;
+    const committed = await onApplyPatch?.(pendingPatch);
+    if (committed === true) {
+      const count = Object.keys(pendingPatch).length;
+      setPendingPatch(null);
+      setProposalEditing(false);
+      setChatLog((log) => [...log, {
+        role: 'agent',
+        text: `Accepted ${count} change${count === 1 ? '' : 's'} and committed a new architecture revision.`,
+      }]);
+    } else {
+      setChatLog((log) => [...log, {
+        role: 'agent',
+        text: 'The proposal was not committed. Reload the workspace before retrying.',
+      }]);
     }
   }
 
-  const activeComponentIds = useMemo(() => {
-    const set = new Set<string>();
-    for (const plane of projection.architecture.planes)
-      for (const c of plane.components) if (c.status === 'added') set.add(c.id);
-    return set;
-  }, [projection]);
+  function rejectPatch() {
+    setPendingPatch(null);
+    setProposalEditing(false);
+    setChatLog((log) => [...log, {
+      role: 'agent',
+      text: 'Proposal rejected. The architecture was not changed.',
+    }]);
+  }
 
-  const isActive = useCallback((id: string) =>
-    (ACTIVE_MAP[id] ?? []).some((cid) => activeComponentIds.has(cid)), [activeComponentIds]);
+  function clearGuidedAnswer() {
+    setPendingPatch(null);
+    setProposalEditing(false);
+  }
 
-  // components changed by the most recent revision → animate their wires
-  const recentlyChanged = useMemo(() => {
-    const set = new Set<string>();
-    const transitions = projection.decision_history?.transitions ?? [];
-    const last = transitions[transitions.length - 1];
-    for (const c of last?.architecture_delta.components.added ?? []) set.add(c.component_id);
-    for (const c of last?.architecture_delta.components.removed ?? []) set.add(c.component_id);
-    return set;
-  }, [projection]);
+  function updateProposal(requirement: ArchitectureRequirement, rawValue: string) {
+    if (!pendingPatch) return;
+    let value: RequirementValue = rawValue;
+    if (typeof requirement.value === 'number') value = Number(rawValue);
+    if (rawValue === 'true') value = true;
+    if (rawValue === 'false') value = false;
+    if (rawValue === 'null') value = null;
+    setPendingPatch({ ...pendingPatch, [requirement.id]: value });
+  }
 
-  const byClaimId = useMemo(() => {
-    const m = new Map<string, EvidenceClaim>();
-    for (const e of projection.evidence ?? []) m.set(e.claim_id, e);
-    return m;
-  }, [projection]);
-
-  const evidenceForRequirement = useCallback((requirementId?: string): EvidenceClaim[] => {
-    if (!requirementId) return [];
-    const claims: EvidenceClaim[] = [];
-    for (const t of projection.decision_trace) {
-      if (t.requirement_ids.includes(requirementId)) {
-        for (const cid of t.evidence_claim_ids ?? []) {
-          const c = byClaimId.get(cid);
-          if (c && !claims.includes(c)) claims.push(c);
-        }
-      }
+  async function downloadPackage() {
+    if (!canDownload) return;
+    setDownloadBusy(true);
+    setDownloadError(null);
+    try {
+      const result = await downloadArchitecturePackage(
+        projection.meta.persistence_revision ?? projection.meta.revision_number,
+        scope,
+      );
+      const url = URL.createObjectURL(result.blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setDownloadedHash(result.packageHash);
+    } catch {
+      setDownloadError('The immutable package could not be exported. Reload and try again.');
+    } finally {
+      setDownloadBusy(false);
     }
-    return claims;
-  }, [projection, byClaimId]);
+  }
 
-  const blocks = useMemo<FlowBlock[]>(() =>
-    Object.values(BLOCKS).map((b: BlockDef) => {
-      const pos = LAYOUT[b.id];
-      return {
-        id: b.id, label: b.t, detail: b.d, group: b.group,
-        x: pos?.x ?? 0, y: pos?.y ?? 0, w: pos?.w, h: pos?.h,
-        active: isActive(b.id),
-        answerable: Boolean(b.requirement),
-        heart: b.id === 'harness',
-      };
-    }), [isActive]);
-
-  const wires = useMemo<FlowWire[]>(() =>
-    WIRES.map((w) => {
-      // animate a wire if either endpoint block maps to a recently-changed component
-      const touches = (blockId: string) =>
-        (ACTIVE_MAP[blockId] ?? []).some((cid) => recentlyChanged.has(cid));
-      return { ...w, animated: touches(w.source) || touches(w.target) };
-    }), [recentlyChanged]);
-
-  const sel = selected ? BLOCKS[selected] : null;
-  const selValue = sel?.requirement
-    ? projection.requirements.find((r) => r.id === sel.requirement)?.value
-    : undefined;
-  const coerce = (v: string): RequirementValue => (v === 'true' ? true : v === 'false' ? false : v);
-  const selClaims = evidenceForRequirement(sel?.requirement);
+  const nextQuestion = projection.next_question;
+  const activeJourneyStep = guidance.readiness === 'publishable'
+    ? 4
+    : guidance.openRequirements.length || guidance.assumedRequirements
+      ? 2
+      : projection.deployable_solution ? 3 : 2;
 
   return (
     <div className="fw-root">
-      <FwStyles />
-      <div className="fw-head">
+      <WorkspaceStyles />
+      <header className="fw-head">
         <div className="fw-brand">
-          <div className="fw-mark" />
+          <div className="fw-mark" aria-hidden="true" />
           <div>
             <h1>{blueprint?.name ?? 'Coding Agent Platform'}</h1>
             <p>{blueprint
-              ? <>{TYPE_LABEL[blueprint.type] ?? blueprint.type}{blueprint.description ? ` · ${blueprint.description}` : ''}</>
-              : 'Logical reference architecture · click any block for its design decisions'}</p>
+              ? `${TYPE_LABEL[blueprint.type] ?? blueprint.type}${blueprint.description ? ` | ${blueprint.description}` : ''}`
+              : 'Customer-specific architecture workspace'}</p>
           </div>
         </div>
-        <div className="fw-legend">
-          <span><i className="ln req" />runtime call</span>
-          <span><i className="ln sup" />loads / composes</span>
-          <span><i className="ln gov" />access &amp; policy</span>
+        <div className="fw-segment" aria-label="Architecture view">
+          {(['logical', 'deployable'] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={viewMode === mode}
+              className={viewMode === mode ? 'active' : ''}
+              onClick={() => setViewMode(mode)}
+              disabled={mode === 'deployable' && !selectedCandidate}
+            >
+              {mode === 'logical' ? 'Logical' : 'Deployable'}
+            </button>
+          ))}
         </div>
-        <button className="fw-generate" onClick={runGenerate} disabled={generating}>
-          {generating ? 'Generating…' : '✦ Generate my architecture'}
+        <span className={`fw-connection ${connectionState}`}>
+          {connectionState === 'live' ? 'Live revision' : connectionState === 'stale' ? 'Stale revision' : 'Read-only snapshot'}
+        </span>
+        <button className="fw-package-button" type="button" onClick={() => setReviewOpen(true)}>
+          <Sparkles size={14} /> Review package
         </button>
+      </header>
+
+      <div className="fw-journey" aria-label="Architecture workflow">
+        {[
+          ['Baseline', 'Engine projection loaded'],
+          ['Decisions', `${guidance.openRequirements.length} open, ${guidance.assumedRequirements} assumed`],
+          ['Solution', selectedCandidate ? 'Deployable comparison available' : 'Awaiting viable stack'],
+          ['Package', guidance.readiness === 'publishable' ? 'Ready to export' : `${guidance.publicationBlockers.length} gates open`],
+        ].map(([label, detail], index) => {
+          const step = index + 1;
+          return (
+            <div key={label} className={`fw-step${step < activeJourneyStep ? ' done' : ''}${step === activeJourneyStep ? ' current' : ''}`}>
+              <span className="fw-step-icon">{step < activeJourneyStep ? <Check size={12} /> : step}</span>
+              <span><b>{label}</b><small>{detail}</small></span>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="fw-main">
-        <div className="fw-canvas-wrap">
-          <FlowCanvas blocks={blocks} wires={wires} groups={GROUP_LAYOUT} selected={selected} onSelect={setSelected} />
-        </div>
+      <main className="fw-main">
+        <section className="fw-canvas-wrap" aria-label={`${viewMode} architecture diagram`}>
+          <div className="fw-view-caption">
+            <b>{viewMode === 'logical' ? 'Provider-neutral logical architecture' : selectedCandidate?.name}</b>
+            <span>{canvas.blocks.length} {viewMode === 'logical' ? 'capabilities' : 'services'} | {canvas.wires.length} relationships</span>
+          </div>
+          <FlowCanvas
+            key={viewMode}
+            blocks={canvas.blocks}
+            wires={canvas.wires}
+            groups={canvas.groups}
+            selected={selected}
+            onSelect={(componentId) => {
+              setSelected(componentId);
+              setAsideView('questions');
+            }}
+          />
+        </section>
 
-        <aside className="fw-aside">
+        <aside className="fw-aside" aria-label="Architecture inspector and discovery">
+          <div className="fw-aside-tabs" role="tablist" aria-label="Advisor panel">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={asideView === 'questions'}
+              className={asideView === 'questions' ? 'active' : ''}
+              onClick={() => {
+                setAsideView('questions');
+                setSelected(null);
+              }}
+            >
+              <ListChecks size={14} /> Questions
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={asideView === 'chat'}
+              className={asideView === 'chat' ? 'active' : ''}
+              onClick={() => setAsideView('chat')}
+            >
+              <MessageSquare size={14} /> Ask advisor
+            </button>
+          </div>
           <div className="fw-aside-scroll">
-          {!sel ? (
-            <div>
-              {blueprint && (
-                <div className="fw-bp">
-                  <span className="fw-bp-kicker">Blueprint</span>
-                  <h2>{blueprint.name}</h2>
-                  <span className="fw-bp-type">{TYPE_LABEL[blueprint.type] ?? blueprint.type}</span>
-                  {blueprint.description && <p className="fw-bp-desc">{blueprint.description}</p>}
+            {asideView === 'chat' ? (
+              <div className="fw-chat">
+                <div className="fw-chat-intro">
+                  <b>Ask about an exception</b>
+                  <span>Use free-form input when the guided choices do not describe the customer.</span>
                 </div>
-              )}
-              <div className="fw-empty">
-                <div className="ic">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7d9bff" strokeWidth="1.6"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" opacity=".6" /></svg>
+                <div className="fw-chat-log" aria-live="polite">
+                  {chatLog.map((message, index) => (
+                    <div key={`${message.role}-${index}`} className={`fw-message ${message.role}`}>{message.text}</div>
+                  ))}
+                  {chatBusy && <div className="fw-message agent">Interpreting requirements...</div>}
                 </div>
-                <h4>Answer the discovery questions</h4>
-                <p>Click any block on the canvas to see the <b>questions for this blueprint</b> — as you answer, the architecture changes to fit.</p>
+                {pendingPatch && (
+                  <ProposalPreview
+                    patch={pendingPatch}
+                    requirementsById={requirementsById}
+                    editing={proposalEditing}
+                    disabled={!canMutate}
+                    applying={applying}
+                    onEdit={() => setProposalEditing((value) => !value)}
+                    onChange={updateProposal}
+                    onReject={rejectPatch}
+                    onAccept={acceptPatch}
+                  />
+                )}
+                <div className="fw-chat-input">
+                  <input
+                    aria-label="Customer discovery message"
+                    value={chatInput}
+                    onChange={(event) => setChatInput(event.target.value)}
+                    onKeyDown={(event) => { if (event.key === 'Enter') void sendChat(); }}
+                    placeholder={canMutate ? 'Describe the exception or constraint...' : 'Workspace is read-only'}
+                    disabled={!canMutate || chatBusy}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void sendChat()}
+                    disabled={!canMutate || chatBusy || !chatInput.trim()}
+                    aria-label="Send discovery message"
+                  >
+                    <Send size={14} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div>
-              <div className="fw-hd" style={kVars(GROUP_COLOR[sel.group])}>
-                <span className="fw-kicker"><i style={{ width: 7, height: 7, borderRadius: 2, background: GROUP_COLOR[sel.group], display: 'inline-block' }} />{PHASE[sel.group]}</span>
-                <h2>{sel.t}</h2>
-                <p>{sel.what}</p>
-              </div>
-
-              {sel.requirement && sel.answers && (
-                <div className="fw-sec" style={kVars(GROUP_COLOR[sel.group])}>
-                  <h3><span className="bar" />Answer this decision <span className="fw-live">live</span></h3>
-                  <div className="fw-answers">
-                    {sel.answers.map((a) => (
-                      <button key={a.value} type="button" disabled={applying}
-                        className={`fw-answer${selValue === coerce(a.value) ? ' on' : ''}`}
-                        onClick={() => onAnswer?.(sel.requirement!, coerce(a.value))}>
-                        <span className="dot" />{a.label}
-                      </button>
-                    ))}
-                  </div>
-                  {applying && <p className="fw-current">Updating architecture…</p>}
-                  {!applying && selValue != null && <p className="fw-current">Current: <b>{String(selValue)}</b> — the diagram reflects this.</p>}
-                  {selClaims.length > 0 && (
-                    <div className="fw-evidence">
-                      {selClaims.map((c) => (
-                        <div className="fw-claim" key={c.claim_id}>
-                          <p>{c.statement}</p>
-                          <div className="src">
-                            {c.source_title ?? c.source_id} · {c.source_locator}
-                            {c.source_uri && <a href={c.source_uri} target="_blank" rel="noreferrer">source ↗</a>}
-                          </div>
-                        </div>
-                      ))}
+            ) : !selectedCanvasBlock || !selectedPlane || !selectedPresentation ? (
+              <WorkspaceSummary
+                projection={projection}
+                guidance={guidance}
+                nextQuestion={nextQuestion}
+                applying={!canMutate}
+                pendingPatch={pendingPatch}
+                onPropose={(requirementId, answer) => {
+                  setPendingPatch({ [requirementId]: answer });
+                  setProposalEditing(false);
+                }}
+                onChangeAnswer={clearGuidedAnswer}
+                onApplyAnswer={acceptPatch}
+              />
+            ) : (
+              <div>
+                <div className="fw-inspector-head" style={colorVars(GROUP_COLOR[selectedCanvasBlock.group] ?? '#8b98ab')}>
+                  <span>{PHASE[selectedCanvasBlock.group] ?? selectedPlane.label}</span>
+                  <h2>{selectedPresentation.label}</h2>
+                  <p>{selectedPresentation.detail}</p>
+                  {viewMode === 'deployable' && (
+                    <div className="fw-service">
+                      <b>{selectedService?.service_name ?? 'No service selected'}</b>
+                      <small>{selectedService
+                        ? `${selectedService.provider_class} | ${selectedService.delivery_model.replace(/_/g, ' ')}`
+                        : 'The selected candidate does not bind this component.'}</small>
                     </div>
                   )}
                 </div>
-              )}
-
-              <div className="fw-sec" style={kVars(GROUP_COLOR[sel.group])}>
-                <h3><span className="bar" />Architecture decisions</h3>
-                {sel.dec.map((d, i) => (
-                  <div className="fw-dec" key={i}>
-                    <div className="q">{d.q}</div>
-                    {d.opts.map((o, j) => (
-                      <div className="opt" key={j}><span className="k">▸</span><span dangerouslySetInnerHTML={{ __html: o }} /></div>
+                <InspectorSection title="Decision rationale">
+                  {selectedTrace.length ? selectedTrace.map((entry) => (
+                    <div className="fw-rationale-item" key={entry.evaluation_id}>
+                      <span>{entry.effect}</span>
+                      <p>{entry.rationale}</p>
+                    </div>
+                  )) : <p className="fw-muted">This is a baseline component of the selected logical pattern.</p>}
+                </InspectorSection>
+                {selectedRequirements.length > 0 && (
+                  <InspectorSection title="Customer requirements">
+                    {selectedRequirements.map((requirement) => (
+                      <div className="fw-requirement" key={requirement.id}>
+                        <span>{requirement.name}</span>
+                        <b>{answerLabel(requirement.value)}</b>
+                        <small>{requirement.status}</small>
+                      </div>
                     ))}
-                  </div>
-                ))}
+                  </InspectorSection>
+                )}
+                {(selectedPractices.length > 0 || selectedPresentation.bestPractices.length > 0) && (
+                  <InspectorSection title="Best practices">
+                    <ul className="fw-practices">
+                      {selectedPractices.map((practice) => (
+                        <li key={practice.practice_id}>
+                          <b>{practice.title}</b><span>{practice.implementation}</span>
+                        </li>
+                      ))}
+                      {selectedPractices.length === 0 && selectedPresentation.bestPractices.map((practice) => (
+                        <li key={practice}><span>{practice}</span></li>
+                      ))}
+                    </ul>
+                  </InspectorSection>
+                )}
+                {selectedControls.length > 0 && (
+                  <InspectorSection title="Required controls">
+                    {selectedControls.map((control) => (
+                      <div className="fw-control" key={control.control_id}>
+                        <span className={control.status}>{control.status}</span>
+                        <p><b>{control.title}</b><small>{control.verification.acceptance_criteria}</small></p>
+                      </div>
+                    ))}
+                  </InspectorSection>
+                )}
+                {selectedClaims.length > 0 && (
+                  <InspectorSection title="Approved evidence">
+                    {selectedClaims.map((claim) => (
+                      <div className="fw-claim" key={claim.claim_id}>
+                        <p>{claim.statement}</p>
+                        <small>{claim.source_title ?? claim.source_id} | {claim.source_locator}</small>
+                      </div>
+                    ))}
+                  </InspectorSection>
+                )}
               </div>
-
-              <div className="fw-sec" style={kVars(GROUP_COLOR[sel.group])}>
-                <h3><span className="bar" />Best practices</h3>
-                <ul className="fw-plist">{sel.p.map((x, i) => <li key={i}>{x}</li>)}</ul>
-              </div>
-            </div>
-          )}
-          </div>
-
-          <div className="fw-chat">
-            <div className="fw-chat-hd">◇ Discovery chat<span>describe the customer — it fills the blueprint</span></div>
-            <div className="fw-chat-log">
-              {chatLog.length === 0 && (
-                <p className="fw-chat-hint">e.g. “Regulated bank, ~3-person platform team, no self-hosting, standardise on Bedrock.”</p>
-              )}
-              {chatLog.map((m, i) => (
-                <div key={i} className={`fw-msg ${m.role}`}>{m.text}</div>
-              ))}
-              {chatBusy && <div className="fw-msg agent">…</div>}
-            </div>
-            <div className="fw-chat-input">
-              <input
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') sendChat(); }}
-                placeholder="Describe the customer or a decision…"
-                disabled={chatBusy}
-              />
-              <button onClick={sendChat} disabled={chatBusy || !chatInput.trim()}>Send</button>
-            </div>
+            )}
           </div>
         </aside>
-      </div>
+      </main>
 
-      {(generated || genError) && (
-        <div className="fw-modal-scrim" onClick={() => { setGenerated(null); setGenError(null); }}>
-          <div className="fw-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="fw-modal-hd">
+      {reviewOpen && (
+        <div
+          className="fw-dialog-scrim"
+          onMouseDown={(event) => { if (event.target === event.currentTarget) setReviewOpen(false); }}
+        >
+          <div className="fw-dialog" role="dialog" aria-modal="true" aria-labelledby="architecture-package-title">
+            <header>
               <div>
-                <span className="fw-modal-kicker">Purpose-built architecture</span>
-                <h2>{blueprint?.name ?? 'Coding Agent Platform'}</h2>
+                <span>Customer architecture package</span>
+                <h2 id="architecture-package-title">{blueprint?.name ?? 'Coding Agent Platform'}</h2>
+                <small>Revision {projection.meta.revision_number} | catalog {projection.meta.catalog_version}</small>
               </div>
-              <button className="fw-modal-x" onClick={() => { setGenerated(null); setGenError(null); }}>✕</button>
-            </div>
-            {genError && <div className="fw-modal-body"><p className="fw-err">{genError}</p></div>}
-            {generated && (
-              <div className="fw-modal-body">
-                <div className={`fw-verdict ${generated.guard.passed ? 'ok' : 'veto'}`}>
-                  {generated.guard.passed
-                    ? '✓ Passed the deterministic guard — no violated constraints or invented integrations.'
-                    : `✕ Guard vetoed ${generated.guard.violations.length} item(s).`}
-                  <span className="fw-verdict-meta">guard {generated.guard.guard_version} · {generated.source}</span>
-                </div>
-                {!generated.guard.passed && (
-                  <ul className="fw-viol">{generated.guard.violations.map((v, i) => <li key={i}><b>{v.check}</b> — {v.detail}</li>)}</ul>
-                )}
+              <button ref={closeButtonRef} type="button" aria-label="Close package review" onClick={() => setReviewOpen(false)}>
+                <X size={16} />
+              </button>
+            </header>
+            <div className="fw-dialog-body">
+              <div className={`fw-verdict ${guidance.readiness}`}>
+                {guidance.readiness === 'publishable' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                <p><b>{guidance.readinessLabel}</b><span>{guidance.readinessDetail}</span></p>
+              </div>
+              {guidance.publicationBlockers.length > 0 && (
+                <section>
+                  <h3>Publication gates</h3>
+                  <ul className="fw-gates">{guidance.publicationBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul>
+                </section>
+              )}
 
-                <h3 className="fw-modal-h3">Solution stack</h3>
-                <div className="fw-stack">
-                  {generated.stack.map((s) => (
-                    <div className="fw-stack-row" key={s.box_id}>
-                      <span className="fw-stack-box">{s.box_id}</span>
-                      <span className="fw-stack-chosen">{s.chosen}</span>
-                      {s.alternatives.length > 0 && (
-                        <span className="fw-stack-alts">over {s.alternatives.join(', ')}</span>
-                      )}
+              <section>
+                <h3>Recommended deployable solution</h3>
+                {selectedCandidate ? (
+                  <>
+                    <p className="fw-dialog-copy"><b>{selectedCandidate.name}</b> | {recommendation?.rationale}</p>
+                    <div className="fw-stack">
+                      {selectedCandidate.selections.map((selection) => (
+                        <div key={selection.component_id}>
+                          <span>{shortId(selection.component_id)}</span>
+                          <b>{selection.service_name}</b>
+                          <small>{selection.provider_class} | {selection.delivery_model.replace(/_/g, ' ')}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : <p className="fw-muted">No viable deployable candidate is available.</p>}
+              </section>
+
+              <section>
+                <h3>Alternatives and decision matrix</h3>
+                <div className="fw-alternatives">
+                  {(projection.deployable_solution?.candidates ?? []).map((candidate) => (
+                    <details key={candidate.bundle_id} open={candidate.bundle_id === selectedCandidate?.bundle_id}>
+                      <summary>
+                        <span><b>#{candidate.rank} {candidate.name}</b><small>{candidate.compatibility_status}</small></span>
+                        <span className="fw-score">{candidate.weighted_score.toFixed(1)}</span>
+                        {candidate.pareto_optimal && <i>Pareto</i>}
+                      </summary>
+                      <div>
+                        {candidate.tradeoffs.map((tradeoff) => (
+                          <p key={tradeoff.tradeoff_id}><b>{tradeoff.kind}</b>{tradeoff.statement}</p>
+                        ))}
+                        {(candidate.findings ?? []).map((finding) => (
+                          <p key={finding.finding_id} className="finding"><b>{finding.severity}</b>{finding.message}</p>
+                        ))}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+                <div className="fw-feasibility">
+                  {projection.feasibility.map((family) => (
+                    <div key={family.pattern_id} className={family.status}>
+                      <span>{family.status}</span>
+                      <p><b>{family.name}</b><small>{family.reason ?? family.description}</small></p>
                     </div>
                   ))}
                 </div>
+              </section>
 
-                {generated.cascades.length > 0 && (
-                  <>
-                    <h3 className="fw-modal-h3">Downstream decisions this opens</h3>
-                    <ul className="fw-casc">{generated.cascades.map((c, i) => <li key={i}>{c.note}</li>)}</ul>
-                  </>
-                )}
+              {(projection.deployable_solution?.sensitivity.length ?? 0) > 0 && (
+                <section>
+                  <h3>Sensitivity</h3>
+                  <div className="fw-sensitivity">
+                    {projection.deployable_solution?.sensitivity.map((indicator) => (
+                      <div key={indicator.dimension_id}>
+                        <b>{shortId(indicator.dimension_id)}</b>
+                        <span>{indicator.winner_changes
+                          ? `Winner changes to ${shortId(indicator.challenger_candidate_id ?? 'challenger')} at weight ${indicator.switch_weight?.toFixed(2)}`
+                          : 'Recommendation remains stable across tested weights'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
-                <h3 className="fw-modal-h3">
-                  Rationale
-                  <span className={`fw-ground ${generated.grounded ? 'on' : 'off'}`}>
-                    {generated.grounded ? 'grounded in knowledge base' : 'ungrounded (KB unavailable)'}
-                  </span>
-                </h3>
-                <div className="fw-rationale">{generated.rationale}</div>
+              {assurance && (
+                <>
+                  <section>
+                    <h3>Assurance, economics, and outcomes</h3>
+                    <div className="fw-metrics">
+                      <div><span>Verified controls</span><b>{assurance.security.verified_control_count}/{assurance.security.controls.length}</b></div>
+                      <div><span>High / critical risks</span><b>{assurance.security.high_or_critical_residual_count}</b></div>
+                      <div><span>Monthly platform cost</span><b>{moneyRange(assurance.economics.totals.monthly_platform_cost)}</b></div>
+                      <div><span>Cost / accepted PR</span><b>{moneyRange(assurance.economics.totals.cost_per_accepted_pull_request)}</b></div>
+                    </div>
+                    <p className="fw-warning">{assurance.economics.pricing_warning}</p>
+                    <div className="fw-outcomes">
+                      {assurance.outcomes.metrics.map((metric) => (
+                        <div key={metric.metric_id}><b>{metric.name}</b><span>{metric.formula}</span></div>
+                      ))}
+                    </div>
+                  </section>
+                  <section>
+                    <h3>Implementation roadmap</h3>
+                    <div className="fw-roadmap">
+                      {assurance.roadmap.phases.map((phase) => (
+                        <div key={phase.phase_id}>
+                          <span>{phase.sequence}</span>
+                          <p><b>{phase.name}</b><small>{phase.work_packages.length} work packages | {phase.exit_criteria.join('; ')}</small></p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </>
+              )}
 
-                {generated.critic_concerns.length > 0 && (
-                  <>
-                    <h3 className="fw-modal-h3">Critic flags</h3>
-                    <ul className="fw-casc">{generated.critic_concerns.map((c, i) => <li key={i}>{c}</li>)}</ul>
-                  </>
-                )}
-
-                <p className="fw-record-note">
-                  A Decision Record was {generated.persisted ? 'saved' : 'generated'} — answers, proposal,
-                  guard verdict, citations, and version stamps. Reproducible-with-trace, not bit-identical.
-                </p>
-              </div>
-            )}
+              <section>
+                <h3>Decision and evidence trace</h3>
+                <div className="fw-trace">
+                  {projection.decision_trace.map((entry) => (
+                    <div key={entry.evaluation_id}>
+                      <span>{entry.effect}</span>
+                      <p><b>{shortId(entry.rule_id)}</b>{entry.rationale}</p>
+                      <small>{entry.evidence_claim_ids?.length ?? 0} claims</small>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+            <footer>
+              <p><FileCheck2 size={15} /> Export pins the workspace revision, catalog, decision matrix, assurance packet, roadmap, and evidence trace.</p>
+              {connectionState !== 'live' && (
+                <button type="button" className="secondary" onClick={() => void onReload?.()}>
+                  <RefreshCw size={14} /> Reload live revision
+                </button>
+              )}
+              <button type="button" onClick={() => void downloadPackage()} disabled={!canDownload || downloadBusy}>
+                <Download size={14} /> {downloadBusy ? 'Exporting...' : 'Download immutable package'}
+              </button>
+              {downloadError && <span role="alert">{downloadError}</span>}
+              {downloadedHash && <span className="success">Package hash: {downloadedHash}</span>}
+            </footer>
           </div>
         </div>
       )}
@@ -338,112 +719,191 @@ export function FlowWorkspace({ projection, blueprint, onAnswer, applying }: Pro
   );
 }
 
-function kVars(col: string): React.CSSProperties {
-  return { ['--k-fg' as string]: col, ['--k-bg' as string]: `${col}18`, ['--k-bd' as string]: `${col}44` };
+function WorkspaceSummary({
+  projection,
+  guidance,
+  nextQuestion,
+  applying,
+  pendingPatch,
+  onPropose,
+  onChangeAnswer,
+  onApplyAnswer,
+}: {
+  projection: ArchitectureWorkspaceProjection;
+  guidance: ReturnType<typeof deriveWorkspaceGuidance>;
+  nextQuestion: NextArchitectureQuestion | null;
+  applying: boolean;
+  pendingPatch: Record<string, RequirementValue> | null;
+  onPropose: (requirementId: string, answer: RequirementValue) => void;
+  onChangeAnswer: () => void;
+  onApplyAnswer: () => void;
+}) {
+  const questionNumber = guidance.confirmedRequirements + guidance.assumedRequirements + 1;
+  const questionCount = projection.requirements.length;
+  const pendingAnswer = nextQuestion && pendingPatch
+    && Object.prototype.hasOwnProperty.call(pendingPatch, nextQuestion.requirement_id)
+    ? pendingPatch[nextQuestion.requirement_id]
+    : undefined;
+  return (
+    <div className="fw-discovery">
+      <header>
+        <div>
+          <b>Guided discovery</b>
+          <span>{guidance.openRequirements.length} decisions remaining</span>
+        </div>
+        <span>{guidance.coveredPercent}% complete</span>
+      </header>
+      <div className="fw-discovery-progress" aria-label={`${guidance.coveredPercent}% complete`}>
+        <i style={{ width: `${guidance.coveredPercent}%` }} />
+      </div>
+      {nextQuestion && (
+        <div className="fw-next">
+          <span>Question {Math.min(questionNumber, questionCount)} of {questionCount}</span>
+          <h2>{nextQuestion.prompt}</h2>
+          <p>Select the closest customer requirement. You can revise it later.</p>
+          <div className="fw-answer-list" role="radiogroup" aria-label={nextQuestion.prompt}>
+            {nextQuestion.candidate_answers.map((answer) => {
+              const selectedAnswer = pendingAnswer === answer;
+              const description = answerDescription(nextQuestion.requirement_id, answer);
+              return (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={selectedAnswer}
+                  className={selectedAnswer ? 'selected' : ''}
+                  key={String(answer)}
+                  disabled={applying}
+                  onClick={() => onPropose(nextQuestion.requirement_id, answer)}
+                >
+                  <i>{selectedAnswer && <Check size={12} />}</i>
+                  <span><b>{answerLabel(answer)}</b>{description && <small>{description}</small>}</span>
+                </button>
+              );
+            })}
+          </div>
+          {pendingAnswer !== undefined && (
+            <div className="fw-answer-actions">
+              <button type="button" onClick={onChangeAnswer} disabled={applying}>Change</button>
+              <button type="button" className="primary" onClick={onApplyAnswer} disabled={applying}>
+                {applying ? 'Applying...' : 'Apply answer'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function FwStyles() {
+function InspectorSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section className="fw-inspector-section"><h3>{title}</h3>{children}</section>;
+}
+
+function ProposalPreview({
+  patch,
+  requirementsById,
+  editing,
+  disabled,
+  applying,
+  onEdit,
+  onChange,
+  onReject,
+  onAccept,
+}: {
+  patch: Record<string, RequirementValue>;
+  requirementsById: Map<string, ArchitectureRequirement>;
+  editing: boolean;
+  disabled: boolean;
+  applying: boolean;
+  onEdit: () => void;
+  onChange: (requirement: ArchitectureRequirement, value: string) => void;
+  onReject: () => void;
+  onAccept: () => void;
+}) {
+  return (
+    <div className="fw-proposal">
+      <span>Review proposed answers</span>
+      {Object.entries(patch).map(([requirementId, value]) => {
+        const requirement = requirementsById.get(requirementId) ?? {
+          id: requirementId,
+          name: shortId(requirementId),
+          value,
+          status: 'unanswered' as const,
+        };
+        return (
+          <label key={requirementId}>
+            <span>{requirement.name}</span>
+            {editing ? (
+              typeof value === 'boolean' ? (
+                <select value={String(value)} onChange={(event) => onChange(requirement, event.target.value)}>
+                  <option value="true">Yes</option><option value="false">No</option>
+                </select>
+              ) : (
+                <input
+                  type={typeof value === 'number' ? 'number' : 'text'}
+                  value={value == null ? '' : String(value)}
+                  onChange={(event) => onChange(requirement, event.target.value)}
+                />
+              )
+            ) : <b>{answerLabel(value)}</b>}
+          </label>
+        );
+      })}
+      <div>
+        <button type="button" onClick={onEdit} disabled={disabled}><Pencil size={13} />{editing ? 'Done' : 'Edit'}</button>
+        <button type="button" onClick={onReject} disabled={disabled}><X size={13} />Reject</button>
+        <button type="button" className="accept" onClick={onAccept} disabled={disabled}>
+          <Check size={13} />{applying ? 'Applying...' : 'Accept'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function colorVars(color: string): React.CSSProperties {
+  return {
+    ['--section-color' as string]: color,
+    ['--section-tint' as string]: `${color}18`,
+  };
+}
+
+function WorkspaceStyles() {
   return (
     <style>{`
-.fw-root{--bg:#0e1116;--bg-soft:#12161d;--line:#242e3b;--line-soft:#1c2531;--ink:#e6e9ef;--ink-dim:#a7b2c2;--muted:#7c8899;--muted2:#556072;
-  --font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;--font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
-  background:radial-gradient(1000px 560px at 62% -10%,#1a35601c,transparent),var(--bg);color:var(--ink);font:14px/1.55 var(--font);display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.fw-root *{box-sizing:border-box}
-.fw-head{padding:14px 24px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:16px;background:linear-gradient(180deg,#0f131a,#0e1116);flex-shrink:0}
-.fw-brand{display:flex;align-items:center;gap:12px}
-.fw-mark{width:32px;height:32px;border-radius:9px;background:conic-gradient(from 210deg,#37dd7d,#4cc4f5,#7d9bff,#b98cf0,#37dd7d);box-shadow:0 0 0 1px #ffffff12;position:relative}
-.fw-mark::after{content:"";position:absolute;inset:11px;border-radius:4px;background:var(--bg)}
-.fw-brand h1{font-size:15.5px;margin:0;font-weight:650;letter-spacing:-.15px}
-.fw-brand p{margin:1px 0 0;font-size:11px;color:var(--muted)}
-.fw-legend{margin-left:auto;display:flex;gap:13px;font-size:10.5px;color:var(--muted);align-items:center}
-.fw-legend span{display:flex;align-items:center;gap:6px}
-.fw-legend .ln{width:20px;height:0;border-top:2px solid #4cc4f5}
-.fw-legend .ln.sup{border-top:2px dashed #2dd4bf}
-.fw-legend .ln.gov{border-top:2px dashed #7d9bff}
-.fw-main{flex:1;display:flex;min-height:0}
-.fw-canvas-wrap{flex:1;position:relative;min-width:0}
-.fw-aside{width:412px;border-left:1px solid var(--line-soft);background:var(--bg-soft);flex-shrink:0;display:flex;flex-direction:column;min-height:0}
-.fw-aside-scroll{flex:1;overflow:auto;min-height:0}
-.fw-chat{border-top:1px solid var(--line-soft);background:#0d1119;display:flex;flex-direction:column;max-height:44%}
-.fw-chat-hd{padding:10px 16px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#37dd7d;display:flex;flex-direction:column;gap:2px}
-.fw-chat-hd span{font-size:9.5px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)}
-.fw-chat-log{flex:1;overflow:auto;padding:6px 16px;display:flex;flex-direction:column;gap:7px;min-height:70px}
-.fw-chat-hint{margin:0;font-size:11px;color:var(--muted2);font-style:italic;line-height:1.5}
-.fw-msg{font-size:12px;line-height:1.45;padding:7px 10px;border-radius:9px;max-width:90%}
-.fw-msg.user{align-self:flex-end;background:#1d3a2b;color:#d6f0e2;border:1px solid #37dd7d44}
-.fw-msg.agent{align-self:flex-start;background:#161d27;color:var(--ink-dim);border:1px solid var(--line)}
-.fw-chat-input{display:flex;gap:8px;padding:10px 14px 12px;border-top:1px solid var(--line-soft)}
-.fw-chat-input input{flex:1;background:#0e1116;border:1px solid var(--line);border-radius:8px;padding:9px 11px;color:var(--ink);font-size:12.5px;font-family:inherit}
-.fw-chat-input input:focus{outline:none;border-color:#37dd7d}
-.fw-chat-input button{background:#37dd7d;color:#08131a;border:none;border-radius:8px;padding:0 15px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
-.fw-chat-input button:disabled{opacity:.5;cursor:default}
-.fw-bp{padding:22px 26px 4px;border-bottom:1px solid var(--line-soft)}
-.fw-bp-kicker{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.11em;color:#37dd7d}
-.fw-bp h2{margin:8px 0 0;font-size:19px;font-weight:680;letter-spacing:-.3px}
-.fw-bp-type{display:inline-block;margin-top:8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0e1a13;background:#37dd7d;padding:3px 9px;border-radius:6px}
-.fw-bp-desc{margin:12px 0 0;font-size:12.5px;line-height:1.6;color:var(--ink-dim)}
-.fw-empty{padding:60px 34px;color:var(--muted2);text-align:center}
-.fw-empty .ic{width:58px;height:58px;border-radius:15px;margin:0 auto 20px;background:#ffffff06;border:1px solid var(--line);display:grid;place-items:center}
-.fw-empty h4{color:var(--ink-dim);font-size:14px;margin:0 0 8px;font-weight:600}
-.fw-empty p{margin:0;font-size:12.5px;line-height:1.65}
-.fw-hd{padding:24px 26px 20px;border-bottom:1px solid var(--line-soft);position:sticky;top:0;background:linear-gradient(180deg,var(--bg-soft),#0f141b);z-index:3}
-.fw-kicker{display:inline-flex;align-items:center;gap:7px;font-size:10px;text-transform:uppercase;letter-spacing:.11em;margin-bottom:12px;font-weight:700;padding:4px 10px;border-radius:20px;background:var(--k-bg);color:var(--k-fg);border:1px solid var(--k-bd)}
-.fw-hd h2{margin:0;font-size:20px;font-weight:680;letter-spacing:-.3px}
-.fw-hd p{margin:11px 0 0;color:var(--ink-dim);font-size:13px;line-height:1.65}
-.fw-sec{padding:20px 26px;border-bottom:1px solid var(--line-soft)}
-.fw-sec h3{margin:0 0 14px;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:8px}
-.fw-sec h3 .bar{width:16px;height:2px;border-radius:2px;background:var(--k-fg)}
-.fw-live{margin-left:auto;font-size:8px;color:#0e1a13;background:#37dd7d;padding:2px 6px;border-radius:5px;letter-spacing:.06em}
-.fw-answers{display:flex;flex-direction:column;gap:7px}
-.fw-answer{display:flex;align-items:center;gap:9px;text-align:left;background:#ffffff05;border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--ink-dim);font-size:12px;cursor:pointer;font-family:inherit;transition:.14s}
-.fw-answer:hover{border-color:#37dd7d;color:var(--ink)}
-.fw-answer.on{border-color:#37dd7d;background:#14271b;color:var(--ink)}
-.fw-answer .dot{width:8px;height:8px;border-radius:50%;border:1px solid var(--muted)}
-.fw-answer.on .dot{background:#37dd7d;border-color:#37dd7d}
-.fw-answer:disabled{opacity:.5;cursor:default}
-.fw-current{margin:10px 0 0;font-size:11px;color:var(--muted)}
-.fw-evidence{margin-top:12px;display:flex;flex-direction:column;gap:8px}
-.fw-claim{border:1px solid #2dd4bf3a;background:#0f201d;border-radius:9px;padding:10px 11px}
-.fw-claim p{margin:0;font-size:11.5px;line-height:1.45;color:var(--ink-dim)}
-.fw-claim .src{margin-top:6px;font-size:9.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
-.fw-claim .src a{margin-left:auto;color:#2dd4bf;text-decoration:none}
-.fw-dec{border:1px solid var(--line);background:#ffffff05;border-radius:12px;padding:14px 15px;margin-bottom:11px}
-.fw-dec .q{font-weight:600;font-size:13px;margin-bottom:10px;color:var(--ink);line-height:1.4}
-.fw-dec .opt{display:flex;gap:9px;font-size:12px;color:var(--ink-dim);padding:6px 0;border-top:1px solid var(--line-soft);line-height:1.45}
-.fw-dec .opt:first-of-type{border-top:none}
-.fw-dec .opt .k{color:var(--muted2);flex-shrink:0;margin-top:1px}
-.fw-dec .opt b{color:var(--ink);font-weight:600}
-.fw-plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
-.fw-plist li{padding-left:26px;position:relative;color:var(--ink-dim);font-size:12.5px;line-height:1.5}
-.fw-plist li::before{content:"✓";position:absolute;left:0;top:0;color:#37dd7d;font-weight:800;background:#37dd7d18;width:18px;height:18px;border-radius:6px;display:grid;place-items:center;font-size:10px}
-.fw-generate{margin-left:14px;background:linear-gradient(180deg,#37dd7d,#22c55e);color:#08131a;border:none;border-radius:9px;padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
-.fw-generate:hover{filter:brightness(1.08);box-shadow:0 0 22px -6px #37dd7d}
-.fw-generate:disabled{opacity:.6;cursor:default}
-.fw-modal-scrim{position:fixed;inset:0;background:#060a0fcc;backdrop-filter:blur(3px);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;overflow:auto}
-.fw-modal{width:100%;max-width:760px;background:linear-gradient(180deg,#141a24,#0f141c);border:1px solid #2a3446;border-radius:16px;box-shadow:0 40px 90px -30px #000;overflow:hidden}
-.fw-modal-hd{display:flex;align-items:flex-start;justify-content:space-between;padding:22px 26px 18px;border-bottom:1px solid #1c2531}
-.fw-modal-kicker{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.11em;color:#37dd7d}
-.fw-modal-hd h2{margin:8px 0 0;font-size:20px;font-weight:680;letter-spacing:-.3px}
-.fw-modal-x{background:#ffffff08;border:1px solid #2a3446;color:#a7b2c2;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:13px}
-.fw-modal-body{padding:22px 26px 28px}
-.fw-err{color:#fb7185;font-size:13px}
-.fw-verdict{border-radius:10px;padding:12px 14px;font-size:12.5px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.fw-verdict.ok{background:#12251c;border:1px solid #37dd7d55;color:#c7f0da}
-.fw-verdict.veto{background:#241318;border:1px solid #fb718555;color:#f6c9d1}
-.fw-verdict-meta{margin-left:auto;font-size:10px;font-family:var(--font-mono);color:#7c8899}
-.fw-viol{margin:10px 0 0;padding-left:18px;font-size:12px;color:#f6c9d1}
-.fw-modal-h3{margin:24px 0 10px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8b98ab;font-weight:700;display:flex;align-items:center;gap:10px}
-.fw-ground{font-size:9px;font-weight:700;text-transform:none;letter-spacing:0;padding:2px 7px;border-radius:5px}
-.fw-ground.on{background:#2dd4bf22;color:#5eead4}
-.fw-ground.off{background:#f0a85022;color:#f0c088}
-.fw-stack{display:flex;flex-direction:column;gap:8px}
-.fw-stack-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:#ffffff05;border:1px solid #1c2531;border-radius:9px;padding:10px 13px}
-.fw-stack-box{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7c8899;min-width:100px}
-.fw-stack-chosen{font-size:13.5px;font-weight:650;color:#e6e9ef}
-.fw-stack-alts{font-size:11px;color:#6a7789;font-style:italic}
-.fw-casc{margin:0;padding-left:18px;font-size:12.5px;color:#a7b2c2;line-height:1.6}
-.fw-rationale{font-size:13px;line-height:1.7;color:#c3ccd8;white-space:pre-wrap}
-.fw-record-note{margin-top:22px;padding-top:16px;border-top:1px solid #1c2531;font-size:11px;color:#6a7789;line-height:1.6}
+.fw-root{--bg:#0e1116;--panel:#12161d;--line:#242e3b;--soft:#1c2531;--ink:#e6e9ef;--dim:#a7b2c2;--muted:#7c8899;--green:#37dd7d;--amber:#f0a850;--red:#fb7185;color:var(--ink);background:var(--bg);font:14px/1.5 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.fw-root *{box-sizing:border-box;letter-spacing:0}
+.fw-head{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--soft);flex:none;background:#0f131a}
+.fw-brand{display:flex;align-items:center;gap:11px;min-width:0}.fw-mark{width:30px;height:30px;border-radius:8px;background:conic-gradient(from 210deg,#37dd7d,#4cc4f5,#7d9bff,#b98cf0,#37dd7d);flex:none}.fw-brand h1{font-size:15px;margin:0}.fw-brand p{font-size:10.5px;color:var(--muted);margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:390px}
+.fw-segment{margin-left:auto;display:flex;padding:2px;border:1px solid var(--line);border-radius:7px;background:#090c11}.fw-segment button{border:0;background:transparent;color:var(--muted);padding:5px 10px;border-radius:5px;font:600 10px inherit;cursor:pointer}.fw-segment button.active{background:#26303e;color:var(--ink)}.fw-segment button:disabled{opacity:.4}
+.fw-connection{font-size:9px;text-transform:uppercase;color:var(--green)}.fw-connection.snapshot,.fw-connection.stale{color:var(--amber)}
+.fw-package-button{display:flex;align-items:center;gap:6px;border:0;border-radius:7px;background:var(--green);color:#07130c;padding:7px 11px;font:700 11px inherit;cursor:pointer}
+.fw-journey{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:0 20px;border-bottom:1px solid var(--soft);background:#0c1016;flex:none}.fw-step{display:flex;align-items:center;gap:8px;padding:7px 10px;color:#556072;min-width:0;border-right:1px solid var(--soft)}.fw-step:last-child{border:0}.fw-step-icon{width:20px;height:20px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;font-size:9px;flex:none}.fw-step>span:last-child{display:flex;flex-direction:column;min-width:0}.fw-step b{font-size:10px}.fw-step small{font-size:8.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fw-step.done{color:#64d998}.fw-step.current{color:var(--ink)}
+.fw-main{display:flex;flex:1;min-height:0}.fw-canvas-wrap{position:relative;flex:1;min-width:0}.fw-view-caption{position:absolute;z-index:4;left:14px;top:12px;display:flex;flex-direction:column;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:#0e1116dd;pointer-events:none}.fw-view-caption b{font-size:10px}.fw-view-caption span{font-size:8.5px;color:var(--muted)}
+.fw-aside{width:410px;flex:none;min-height:0;display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--soft)}.fw-aside-scroll{flex:1;min-height:0;overflow:auto}
+.fw-aside-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;border-bottom:1px solid var(--soft);background:#0d1118}.fw-aside-tabs button{display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:6px;background:transparent;color:var(--muted);padding:8px;font:650 10.5px inherit;cursor:pointer}.fw-aside-tabs button.active{background:#202936;color:var(--ink)}.fw-aside-tabs button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+.fw-discovery{padding:22px 22px 28px}.fw-discovery>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.fw-discovery>header div{display:flex;flex-direction:column}.fw-discovery>header b{font-size:13px}.fw-discovery>header span{font-size:9.5px;color:var(--muted)}.fw-discovery>header>span{padding-top:2px;color:var(--green)}
+.fw-discovery-progress{height:4px;margin:12px 0 27px;border-radius:2px;overflow:hidden;background:var(--line)}.fw-discovery-progress i{display:block;height:100%;background:var(--green)}
+.fw-next>span,.fw-proposal>span{font-size:8.5px;text-transform:uppercase;color:var(--muted);font-weight:750}.fw-next h2{font-size:18px;line-height:1.35;margin:8px 0}.fw-next>p{font-size:10.5px;color:var(--muted);margin:0 0 17px}.fw-answer-list{display:flex;flex-direction:column;gap:7px}.fw-answer-list>button{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;border:1px solid var(--line);border-radius:7px;background:#11161e;color:var(--ink);padding:10px 11px;cursor:pointer}.fw-answer-list>button:hover{border-color:#47576c;background:#151c26}.fw-answer-list>button.selected{border-color:var(--green);background:#102019}.fw-answer-list>button:disabled{opacity:.45}.fw-answer-list>button>i{width:17px;height:17px;display:grid;place-items:center;flex:none;margin-top:1px;border:1px solid #4b596d;border-radius:50%;color:#07130c;font-style:normal}.fw-answer-list>button.selected>i{border-color:var(--green);background:var(--green)}.fw-answer-list>button>span{display:flex;flex-direction:column}.fw-answer-list b{font-size:11.5px}.fw-answer-list small{font-size:9.5px;line-height:1.4;color:var(--muted);margin-top:2px}
+.fw-answer-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:16px;padding-top:13px;border-top:1px solid var(--soft)}.fw-answer-actions button{border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--dim);padding:7px 10px;font:650 10px inherit}.fw-answer-actions button.primary{border-color:var(--green);background:var(--green);color:#07130c}.fw-answer-actions button:disabled{opacity:.45}
+.fw-inspector-head{padding:20px;border-bottom:1px solid var(--soft);border-left:3px solid var(--section-color);background:linear-gradient(110deg,var(--section-tint),transparent)}.fw-inspector-head>span{font-size:8.5px;text-transform:uppercase;color:var(--section-color);font-weight:750}.fw-inspector-head h2{font-size:18px;margin:6px 0}.fw-inspector-head>p{font-size:11.5px;color:var(--dim);margin:0}.fw-service{display:flex;flex-direction:column;margin-top:12px;padding:9px;border:1px solid var(--line);border-radius:7px;background:#0e1116}.fw-service b{font-size:11.5px}.fw-service small{font-size:9px;color:var(--muted)}
+.fw-inspector-section{padding:17px 20px;border-bottom:1px solid var(--soft)}.fw-inspector-section h3,.fw-dialog-body section>h3{font-size:9px;text-transform:uppercase;color:var(--muted);margin:0 0 10px}.fw-muted{font-size:10.5px;color:var(--muted);margin:0}
+.fw-rationale-item{display:flex;gap:9px;margin-top:8px}.fw-rationale-item>span{font-size:8px;text-transform:uppercase;color:#aebeff;width:50px;flex:none}.fw-rationale-item p{font-size:10.5px;color:var(--dim);margin:0}.fw-requirement{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:7px 0;border-top:1px solid var(--soft)}.fw-requirement:first-of-type{border:0}.fw-requirement span{font-size:10.5px}.fw-requirement b{font-size:10px;color:#aebeff}.fw-requirement small{grid-column:1/-1;color:var(--muted);font-size:8px;text-transform:uppercase}
+.fw-practices{list-style:none;margin:0;padding:0}.fw-practices li{display:flex;flex-direction:column;padding:7px 0;border-top:1px solid var(--soft)}.fw-practices li:first-child{border:0}.fw-practices b{font-size:10.5px}.fw-practices span{font-size:10px;color:var(--dim)}.fw-control{display:flex;gap:8px;margin-top:8px}.fw-control>span{font-size:8px;text-transform:uppercase;color:var(--amber);width:45px}.fw-control>span.verified{color:var(--green)}.fw-control p{display:flex;flex-direction:column;margin:0}.fw-control b{font-size:10.5px}.fw-control small{font-size:9px;color:var(--muted)}.fw-claim{padding:8px;border-left:2px solid #2dd4bf;background:#0f201d;margin-top:7px}.fw-claim p{font-size:10px;margin:0;color:var(--dim)}.fw-claim small{font-size:8px;color:var(--muted)}
+.fw-chat{min-height:100%;display:flex;flex-direction:column;background:#0d1119}.fw-chat-intro{display:flex;flex-direction:column;padding:22px 20px 15px}.fw-chat-intro b{font-size:14px}.fw-chat-intro span{max-width:300px;margin-top:3px;color:var(--muted);font-size:10.5px}.fw-chat-log{flex:1;min-height:110px;overflow:auto;display:flex;flex-direction:column;gap:7px;padding:8px 14px}.fw-message{max-width:92%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#161d27;color:var(--dim);font-size:10.5px}.fw-message.user{align-self:flex-end;background:#173022;border-color:#37dd7d44}
+.fw-chat-input{display:flex;gap:6px;padding:10px 12px 12px;border-top:1px solid var(--soft)}.fw-chat-input input{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);padding:9px;font:11px inherit}.fw-chat-input button{width:36px;border:0;border-radius:7px;background:var(--green);color:#07130c;display:grid;place-items:center}.fw-chat-input button:disabled,.fw-proposal button:disabled{opacity:.4}
+.fw-proposal{margin:5px 12px 8px;padding:10px;border:1px solid #7d9bff55;border-radius:7px;background:#111a29}.fw-proposal label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:10px}.fw-proposal label>b{color:#aebeff}.fw-proposal input,.fw-proposal select{width:130px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);padding:4px;font-size:10px}.fw-proposal>div{display:flex;justify-content:flex-end;gap:5px;margin-top:9px}.fw-proposal button{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--dim);padding:5px 7px;font:600 9px inherit}.fw-proposal button.accept{color:#77e5a5;border-color:#37dd7d66;background:#37dd7d12}
+.fw-dialog-scrim{position:fixed;z-index:60;inset:0;display:grid;place-items:center;padding:24px;background:#060a0fdd;backdrop-filter:blur(3px)}.fw-dialog{display:flex;flex-direction:column;width:min(940px,100%);max-height:calc(100vh - 48px);border:1px solid #2a3446;border-radius:8px;background:#10151d;box-shadow:0 30px 80px #000;overflow:hidden}.fw-dialog>header{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 22px;border-bottom:1px solid var(--soft)}.fw-dialog>header span{font-size:9px;text-transform:uppercase;color:var(--green)}.fw-dialog>header h2{font-size:19px;margin:4px 0}.fw-dialog>header small{font-size:9px;color:var(--muted)}.fw-dialog>header button{width:30px;height:30px;border:1px solid var(--line);border-radius:6px;background:#ffffff08;color:var(--dim)}.fw-dialog-body{padding:18px 22px;overflow:auto}.fw-dialog-body section{margin-top:21px}.fw-dialog-copy{font-size:11.5px;color:var(--dim)}
+.fw-verdict{display:flex;gap:10px;padding:12px;border:1px solid var(--amber);border-radius:7px;background:#19170f}.fw-verdict.publishable{border-color:var(--green);background:#102018}.fw-verdict p{display:flex;flex-direction:column;margin:0}.fw-verdict b{font-size:12px}.fw-verdict span{font-size:10px;color:var(--dim)}.fw-gates{padding-left:18px;color:#f6c9d1;font-size:10.5px}
+.fw-stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.fw-stack>div{display:grid;grid-template-columns:110px 1fr;gap:2px 8px;padding:8px;border:1px solid var(--soft);border-radius:6px;background:#ffffff04}.fw-stack span{font-size:8px;text-transform:uppercase;color:var(--muted)}.fw-stack b{font-size:10px}.fw-stack small{grid-column:2;font-size:8px;color:var(--muted)}
+.fw-alternatives{border:1px solid var(--soft);border-radius:7px;overflow:hidden}.fw-alternatives details{border-top:1px solid var(--soft)}.fw-alternatives details:first-child{border:0}.fw-alternatives summary{display:grid;grid-template-columns:1fr 50px auto;gap:9px;align-items:center;padding:9px 11px;cursor:pointer}.fw-alternatives summary>span:first-child{display:flex;flex-direction:column}.fw-alternatives summary b{font-size:10.5px}.fw-alternatives summary small{font-size:8px;text-transform:uppercase;color:var(--muted)}.fw-alternatives summary i{font-size:8px;font-style:normal;color:#5eead4;background:#2dd4bf18;padding:2px 5px;border-radius:4px}.fw-score{font:700 10px monospace;color:var(--green)}.fw-alternatives details>div{padding:0 11px 8px}.fw-alternatives details p{display:flex;gap:8px;margin:5px 0;font-size:9.5px;color:var(--dim)}.fw-alternatives details p b{width:65px;text-transform:uppercase;font-size:8px;color:#aebeff}.fw-alternatives details p.finding b{color:var(--red)}
+.fw-feasibility{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}.fw-feasibility>div{display:flex;gap:8px;padding:8px;border-left:2px solid var(--muted);background:#ffffff04}.fw-feasibility>div.feasible{border-color:var(--green)}.fw-feasibility>div.rejected{border-color:var(--red)}.fw-feasibility>div>span{width:45px;font-size:7.5px;text-transform:uppercase;color:var(--muted)}.fw-feasibility p{display:flex;flex-direction:column;margin:0}.fw-feasibility b{font-size:9.5px}.fw-feasibility small{font-size:8px;color:var(--muted)}
+.fw-sensitivity{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.fw-sensitivity>div{display:flex;flex-direction:column;padding:8px;border:1px solid var(--soft);border-radius:6px}.fw-sensitivity b{font-size:9.5px;text-transform:capitalize}.fw-sensitivity span{font-size:8.5px;color:var(--muted)}
+.fw-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.fw-metrics>div{display:flex;flex-direction:column;padding:9px;border:1px solid var(--soft);border-radius:6px}.fw-metrics span{font-size:8px;text-transform:uppercase;color:var(--muted)}.fw-metrics b{font-size:11px}.fw-warning{padding:7px 9px;border-left:2px solid var(--amber);font-size:9px;color:var(--dim)}.fw-outcomes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.fw-outcomes>div{display:flex;flex-direction:column}.fw-outcomes b{font-size:9.5px}.fw-outcomes span{font-size:8.5px;color:var(--muted)}
+.fw-roadmap{display:flex;flex-direction:column;gap:5px}.fw-roadmap>div{display:flex;gap:9px;padding:8px;border:1px solid var(--soft);border-radius:6px}.fw-roadmap>div>span{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:#37dd7d18;color:var(--green);font-size:9px}.fw-roadmap p{display:flex;flex-direction:column;margin:0}.fw-roadmap b{font-size:10px}.fw-roadmap small{font-size:8.5px;color:var(--muted)}
+.fw-trace{display:flex;flex-direction:column;gap:5px}.fw-trace>div{display:grid;grid-template-columns:55px 1fr 55px;gap:8px;padding:7px 8px;border-left:2px solid #7d9bff;background:#ffffff04}.fw-trace>div>span{font-size:7.5px;text-transform:uppercase;color:#aebeff}.fw-trace p{display:flex;flex-direction:column;margin:0;font-size:9px;color:var(--dim)}.fw-trace p b{font-size:8.5px;text-transform:capitalize;color:var(--ink)}.fw-trace small{font-size:8px;color:var(--muted);text-align:right}
+.fw-dialog>footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--soft);background:#0c1016}.fw-dialog>footer p{display:flex;align-items:center;gap:7px;flex:1;min-width:240px;margin:0;font-size:8.5px;color:var(--muted)}.fw-dialog>footer button{display:flex;align-items:center;gap:6px;border:0;border-radius:6px;background:var(--green);color:#07130c;padding:7px 10px;font:700 9.5px inherit}.fw-dialog>footer button.secondary{border:1px solid var(--line);background:transparent;color:var(--dim)}.fw-dialog>footer button:disabled{opacity:.4}.fw-dialog>footer>span{width:100%;font-size:9px;color:var(--red);text-align:right}.fw-dialog>footer>span.success{color:var(--green);font-family:monospace;overflow-wrap:anywhere}
+@media(max-width:980px){.fw-brand p{max-width:230px}.fw-aside{width:360px}.fw-connection{display:none}.fw-stack{grid-template-columns:1fr}.fw-metrics{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.fw-head{padding:9px 10px;flex-wrap:wrap}.fw-brand{width:calc(100% - 120px)}.fw-brand p{max-width:220px}.fw-segment{order:3;margin-left:0}.fw-package-button{margin-left:auto}.fw-journey{padding:0 5px}.fw-step{padding:6px 4px}.fw-step small{display:none}.fw-main{flex-direction:column}.fw-canvas-wrap{height:43%;flex:none}.fw-aside{width:100%;flex:1;border-left:0;border-top:1px solid var(--soft)}.fw-dialog-scrim{padding:8px}.fw-dialog{max-height:calc(100vh - 16px)}.fw-dialog-body{padding:14px}.fw-feasibility,.fw-sensitivity,.fw-outcomes{grid-template-columns:1fr}}
     `}</style>
   );
 }

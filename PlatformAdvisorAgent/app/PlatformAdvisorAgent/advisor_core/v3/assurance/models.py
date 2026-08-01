@@ -128,9 +128,25 @@ class BundleImplementation(FrozenModel):
 class ControlEvidence(FrozenModel):
     control_id: StableId
     evidence_id: StableId
+    verification_id: StableId
+    test_execution_id: StableId
+    verifier: str = Field(min_length=1)
+    artifact_uri: str = Field(min_length=1)
+    artifact_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     status: Literal["pass", "fail"]
     observed_at: datetime
     expires_on: date | None = None
+
+    @model_validator(mode="after")
+    def immutable_artifact_is_addressable(self) -> "ControlEvidence":
+        if "://" not in self.artifact_uri:
+            raise ValueError("control evidence artifact_uri must be absolute")
+        if (
+            self.expires_on is not None
+            and self.expires_on < self.observed_at.date()
+        ):
+            raise ValueError("control evidence expires before it was observed")
+        return self
 
 
 class UnitCostOverride(FrozenModel):
@@ -156,6 +172,16 @@ class SelectedBundleContext(FrozenModel):
         if len(component_ids) != len(set(component_ids)):
             raise ValueError("bundle may select one implementation per component")
         return tuple(sorted(values, key=lambda item: item.component_id))
+
+    @model_validator(mode="after")
+    def evidence_and_cost_inputs_are_unique(self) -> "SelectedBundleContext":
+        evidence_ids = [item.evidence_id for item in self.control_evidence]
+        if len(evidence_ids) != len(set(evidence_ids)):
+            raise ValueError("control evidence IDs must be unique")
+        cost_ids = [item.cost_id for item in self.unit_cost_overrides]
+        if len(cost_ids) != len(set(cost_ids)):
+            raise ValueError("unit-cost overrides must be unique")
+        return self
 
 
 class ControlPlanItem(FrozenModel):
@@ -299,6 +325,87 @@ class OutcomeObservabilityPlan(FrozenModel):
     gitlab_ci_mapping: dict[str, str]
 
 
+class EvidenceReadinessSignal(FrozenModel):
+    status: Literal["complete", "incomplete", "unverified"]
+    verified_claim_ids: tuple[StableId, ...] = ()
+    unverified_claim_ids: tuple[StableId, ...] = ()
+    unevidenced_input_ids: tuple[StableId, ...] = ()
+
+    _sort_verified = field_validator("verified_claim_ids")(
+        lambda values: tuple(sorted(set(values)))
+    )
+    _sort_unverified = field_validator("unverified_claim_ids")(
+        lambda values: tuple(sorted(set(values)))
+    )
+    _sort_unevidenced = field_validator("unevidenced_input_ids")(
+        lambda values: tuple(sorted(set(values)))
+    )
+
+
+class FreshnessReadinessSignal(FrozenModel):
+    status: Literal["current", "stale", "unknown"]
+    evaluated_as_of: date
+    stale_claim_ids: tuple[StableId, ...] = ()
+
+    _sort_stale = field_validator("stale_claim_ids")(
+        lambda values: tuple(sorted(set(values)))
+    )
+
+
+class StabilityReadinessSignal(FrozenModel):
+    status: Literal["stable", "sensitive", "unknown"]
+    selected_candidate_id: StableId | None = None
+    winner_change_dimension_ids: tuple[StableId, ...] = ()
+    score_margin: float | None = Field(default=None, ge=0)
+
+    _sort_dimensions = field_validator("winner_change_dimension_ids")(
+        lambda values: tuple(sorted(set(values)))
+    )
+
+
+class ExpertReviewReadinessSignal(FrozenModel):
+    required: bool
+    reason_codes: tuple[str, ...] = ()
+
+    @field_validator("reason_codes")
+    @classmethod
+    def unique_sorted_reasons(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        return tuple(sorted(set(values)))
+
+    @model_validator(mode="after")
+    def reasons_match_requirement(self) -> "ExpertReviewReadinessSignal":
+        if self.required != bool(self.reason_codes):
+            raise ValueError("expert-review reasons must match required state")
+        return self
+
+
+class DecisionReadiness(FrozenModel):
+    state: Literal[
+        "decision_ready",
+        "conditional",
+        "needs_information",
+        "expert_review",
+    ]
+    evidence: EvidenceReadinessSignal
+    freshness: FreshnessReadinessSignal
+    stability: StabilityReadinessSignal
+    expert_review: ExpertReviewReadinessSignal
+    blocking_reason_codes: tuple[str, ...] = ()
+
+    @field_validator("blocking_reason_codes")
+    @classmethod
+    def unique_sorted_blockers(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        return tuple(sorted(set(values)))
+
+    @model_validator(mode="after")
+    def ready_has_no_blockers(self) -> "DecisionReadiness":
+        if self.state == "decision_ready" and (
+            self.blocking_reason_codes or self.expert_review.required
+        ):
+            raise ValueError("decision_ready cannot contain blockers")
+        return self
+
+
 class AssuranceOutputs(FrozenModel):
     schema_version: Literal["3.0"] = "3.0"
     workspace_id: StableId
@@ -316,6 +423,7 @@ class AssuranceOutputs(FrozenModel):
     roadmap: ImplementationRoadmap
     economics: EconomicsPlan
     outcomes: OutcomeObservabilityPlan
+    readiness: DecisionReadiness
     packet_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
 
     @model_validator(mode="after")

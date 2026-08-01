@@ -17,6 +17,7 @@ DEV_MODE = os.environ.get("DEV_MODE", "false").lower() == "true"
 COGNITO_REGION = os.environ.get("COGNITO_REGION", "us-east-1")
 COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "")
 COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID", "")
+COGNITO_REQUIRED_SCOPE = os.environ.get("COGNITO_REQUIRED_SCOPE", "").strip()
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -50,20 +51,68 @@ def _decode_dev_token(token: str) -> dict:
 
 
 def _decode_cognito_token(token: str) -> dict:
+    if not COGNITO_USER_POOL_ID or not COGNITO_CLIENT_ID:
+        raise JWTError("Cognito authentication is not configured")
+
     jwks = _get_jwks()
     if not jwks:
         raise JWTError("No JWKS available")
+    keys = jwks.get("keys")
+    if not isinstance(keys, list):
+        raise JWTError("Invalid JWKS")
     header = jwt.get_unverified_header(token)
     kid = header.get("kid")
-    key = next((k for k in jwks.get("keys", []) if k["kid"] == kid), None)
+    key = next(
+        (
+            candidate
+            for candidate in keys
+            if isinstance(candidate, dict) and candidate.get("kid") == kid
+        ),
+        None,
+    )
     if not key:
         raise JWTError("Key not found in JWKS")
-    return jwt.decode(
+
+    issuer = (
+        f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/"
+        f"{COGNITO_USER_POOL_ID}"
+    )
+    payload = jwt.decode(
         token,
         key,
         algorithms=["RS256"],
-        audience=COGNITO_CLIENT_ID or None,
+        issuer=issuer,
+        options={
+            # Cognito access tokens identify the app client with client_id,
+            # not the ID-token aud claim.
+            "verify_aud": False,
+            "require_exp": True,
+            "require_iss": True,
+            "require_sub": True,
+        },
     )
+    if payload.get("token_use") != "access":
+        raise JWTError("Access token required")
+    if payload.get("client_id") != COGNITO_CLIENT_ID:
+        raise JWTError("Token client_id does not match configured Cognito client")
+    return payload
+
+
+def _require_configured_scope(payload: dict) -> None:
+    if not COGNITO_REQUIRED_SCOPE:
+        return
+
+    scope_claim = payload.get("scope")
+    granted_scopes = (
+        set(scope_claim.split())
+        if isinstance(scope_claim, str)
+        else set()
+    )
+    if COGNITO_REQUIRED_SCOPE not in granted_scopes:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Missing required scope: {COGNITO_REQUIRED_SCOPE}",
+        )
 
 
 async def get_current_user(
@@ -83,13 +132,15 @@ async def get_current_user(
             payload = _decode_dev_token(token)
         else:
             payload = _decode_cognito_token(token)
-    except (JWTError, ValueError, Exception) as exc:
+    except (JWTError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid token: {exc}",
-        )
+        ) from exc
 
     get_user_id(payload)
+    if not DEV_MODE:
+        _require_configured_scope(payload)
     return payload
 
 

@@ -24,6 +24,10 @@ const USER_POOL_ID = process.env.NEXT_PUBLIC_USER_POOL_ID ?? '';
 export const AGENTCORE_RUNTIME_ARN = process.env.NEXT_PUBLIC_AGENTCORE_RUNTIME_ARN ?? '';
 
 const AGENTCORE_HOST = `bedrock-agentcore.${REGION}.amazonaws.com`;
+const COGNITO_TOKEN_HEADER =
+  'x-amzn-bedrock-agentcore-runtime-custom-cognito-id-token';
+const RUNTIME_USER_HEADER =
+  'x-amzn-bedrock-agentcore-runtime-user-id';
 
 /** Returns true when all env vars needed for direct AgentCore calls are present. */
 export function isDirectModeEnabled(): boolean {
@@ -47,6 +51,24 @@ async function getCredentials(idToken: string) {
   })();
 }
 
+function tokenSubject(idToken: string): string {
+  try {
+    const encoded = idToken.split('.')[1];
+    const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(
+      normalized.length + ((4 - normalized.length % 4) % 4),
+      '=',
+    );
+    const claims = JSON.parse(atob(padded)) as { sub?: unknown };
+    if (typeof claims.sub === 'string' && claims.sub.trim()) {
+      return claims.sub.trim();
+    }
+  } catch {
+    // The caller receives one fail-closed identity error below.
+  }
+  throw new Error('Cognito ID token is missing a valid subject');
+}
+
 /**
  * Invoke AgentCore Runtime and return the raw SSE ReadableStream.
  * The caller is responsible for parsing and consuming the stream.
@@ -57,6 +79,7 @@ export async function invokeAgentCore(
   idToken: string,
   signal?: AbortSignal,
 ): Promise<ReadableStream<Uint8Array>> {
+  const runtimeUserId = tokenSubject(idToken);
   const credentials = await getCredentials(idToken);
   const path = `/runtimes/${encodeURIComponent(AGENTCORE_RUNTIME_ARN)}/invocations`;
   const body = JSON.stringify(payload);
@@ -78,6 +101,8 @@ export async function invokeAgentCore(
       'content-type': 'application/json',
       accept: 'text/event-stream',
       'x-amzn-bedrock-agentcore-runtime-session-id': runtimeSessionId,
+      [RUNTIME_USER_HEADER]: runtimeUserId,
+      [COGNITO_TOKEN_HEADER]: idToken,
     },
     body,
   });

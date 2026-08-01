@@ -11,9 +11,14 @@ Usage:
   python3 smoke_test.py --cf-only          # only check CloudFront pages
   python3 smoke_test.py --cleanup-only     # delete stale smoke-test data and exit
 
-Environment variables (all optional — defaults match .env.local / stack outputs):
-  TEST_EMAIL        Cognito user email  (default: admin@platform-advisor.com)
-  TEST_PASSWORD     Cognito password    (default: PlatformAdvisor2025!)
+Credential injection (required for API checks; never printed):
+  TEST_EMAIL        Cognito user email
+  TEST_PASSWORD     Cognito password
+  TEST_SECRET_ID    AWS Secrets Manager secret containing JSON keys
+                    "username" (or "email") and "password". When set, this
+                    takes precedence over TEST_EMAIL / TEST_PASSWORD.
+
+Other environment variables (optional; defaults match stack outputs):
   API_URL           API base URL
   CF_URL            CloudFront base URL
   S3_BUCKET         Static frontend bucket
@@ -25,6 +30,7 @@ Environment variables (all optional — defaults match .env.local / stack output
 from __future__ import annotations
 import argparse
 import base64
+import hashlib
 import json
 import os
 import sys
@@ -45,8 +51,6 @@ AGENTCORE_RUNTIME_ARN = os.environ.get(
     "arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/"
     "PlatformAdvisorAgent_PlatformAdvisorAgent-3U71dVBprI",
 )
-TEST_EMAIL   = os.environ.get("TEST_EMAIL",   "admin@platform-advisor.com")
-TEST_PASS    = os.environ.get("TEST_PASSWORD","PlatformAdvisor2025!")
 
 # Expected CloudFront pages → expected HTTP status and optional page-specific text.
 CF_PAGES = [
@@ -59,6 +63,7 @@ CF_PAGES = [
     ("/architecture/",            200, "Start a blueprint"),
 ]
 ARCHITECTURE_OBJECT_KEY = "architecture/index.html"
+FRONTEND_ENTRY_KEY = "index.html"
 
 INTAKE_ANSWERS = {
     "autonomy_model":   "hitl",
@@ -116,10 +121,47 @@ def fail(label: str, err: str) -> None:
 
 # ── Cognito auth ───────────────────────────────────────────────────────────────
 
+def load_test_credentials(secret_client=None) -> tuple[str, str]:
+    """Load smoke credentials from Secrets Manager or explicit environment."""
+    secret_id = os.environ.get("TEST_SECRET_ID", "").strip()
+    if secret_id:
+        if secret_client is None:
+            import boto3
+            secret_client = boto3.Session(profile_name=AWS_PROFILE).client(
+                "secretsmanager",
+                region_name=AWS_REGION,
+            )
+        response = secret_client.get_secret_value(SecretId=secret_id)
+        secret_string = response.get("SecretString")
+        if not secret_string:
+            raise RuntimeError(
+                "TEST_SECRET_ID must reference a JSON SecretString"
+            )
+        try:
+            secret = json.loads(secret_string)
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise RuntimeError(
+                "TEST_SECRET_ID must reference valid JSON"
+            ) from exc
+        email = str(secret.get("username") or secret.get("email") or "").strip()
+        password = str(secret.get("password") or "")
+    else:
+        email = os.environ.get("TEST_EMAIL", "").strip()
+        password = os.environ.get("TEST_PASSWORD", "")
+
+    if not email or not password:
+        raise RuntimeError(
+            "Smoke credentials are required: set TEST_SECRET_ID or both "
+            "TEST_EMAIL and TEST_PASSWORD"
+        )
+    return email, password
+
+
 def get_auth_tokens() -> tuple[str, str]:
     """Authenticate via Cognito and return the API access and runtime ID tokens."""
     try:
         import boto3
+        test_email, test_password = load_test_credentials()
         client = boto3.Session(profile_name=AWS_PROFILE).client(
             "cognito-idp",
             region_name=AWS_REGION,
@@ -127,7 +169,10 @@ def get_auth_tokens() -> tuple[str, str]:
         resp = client.initiate_auth(
             ClientId=CLIENT_ID,
             AuthFlow="USER_PASSWORD_AUTH",
-            AuthParameters={"USERNAME": TEST_EMAIL, "PASSWORD": TEST_PASS},
+            AuthParameters={
+                "USERNAME": test_email,
+                "PASSWORD": test_password,
+            },
         )
         # Handle forced password change
         if resp.get("ChallengeName") == "NEW_PASSWORD_REQUIRED":
@@ -135,13 +180,16 @@ def get_auth_tokens() -> tuple[str, str]:
                 ClientId=CLIENT_ID,
                 ChallengeName="NEW_PASSWORD_REQUIRED",
                 Session=resp["Session"],
-                ChallengeResponses={"USERNAME": TEST_EMAIL, "NEW_PASSWORD": TEST_PASS},
+                ChallengeResponses={
+                    "USERNAME": test_email,
+                    "NEW_PASSWORD": test_password,
+                },
             )
         result = resp.get("AuthenticationResult", {})
         access_token = result.get("AccessToken")
         id_token = result.get("IdToken")
         if not access_token or not id_token:
-            raise RuntimeError(f"Missing Cognito tokens in response: {resp}")
+            raise RuntimeError("Cognito response did not contain required tokens")
         return access_token, id_token
     except Exception as exc:
         raise RuntimeError(f"Cognito auth failed: {exc}") from exc
@@ -198,6 +246,33 @@ def require_architecture_object() -> str:
     size = response.get("ContentLength", 0)
     assert size > 0, f"s3://{S3_BUCKET}/{ARCHITECTURE_OBJECT_KEY} is empty"
     return f"{ARCHITECTURE_OBJECT_KEY}, {size} bytes"
+
+
+def require_frontend_deployment_controls(s3_client=None) -> str:
+    """Require rollback-capable storage and a hash-marked entry object."""
+    if s3_client is None:
+        import boto3
+
+        s3_client = boto3.Session(profile_name=AWS_PROFILE).client(
+            "s3",
+            region_name=AWS_REGION,
+        )
+
+    versioning = s3_client.get_bucket_versioning(Bucket=S3_BUCKET)
+    assert versioning.get("Status") == "Enabled", (
+        f"s3://{S3_BUCKET} versioning is not enabled"
+    )
+    response = s3_client.head_object(
+        Bucket=S3_BUCKET,
+        Key=FRONTEND_ENTRY_KEY,
+    )
+    version_id = response.get("VersionId")
+    deployment_sha = response.get("Metadata", {}).get("deployment-sha256", "")
+    assert version_id, f"s3://{S3_BUCKET}/{FRONTEND_ENTRY_KEY} has no version"
+    assert len(deployment_sha) == 64, (
+        f"s3://{S3_BUCKET}/{FRONTEND_ENTRY_KEY} has no deployment SHA-256"
+    )
+    return f"version {version_id}, sha256 {deployment_sha[:12]}"
 
 
 def token_actor_id(token: str) -> str:
@@ -261,6 +336,44 @@ def invoke_owned_agentcore_session(
 
 # ── Cleanup ────────────────────────────────────────────────────────────────────
 
+def architecture_workspace_exists(
+    id_token: str,
+    customer_id: str,
+    session_id: str,
+) -> bool:
+    """Check the scoped workspace without mutating it."""
+    import boto3
+
+    parts = id_token.split(".")
+    payload = parts[1] + "=" * (-len(parts[1]) % 4)
+    claims = json.loads(base64.urlsafe_b64decode(payload))
+    actor_id = claims["sub"]
+    tenant_id = (
+        claims.get("custom:tenant_id")
+        or claims.get("tenant_id")
+        or claims.get("custom:organization_id")
+        or claims.get("organization_id")
+        or actor_id
+    )
+    digest = hashlib.sha256(
+        f"{customer_id}\0{session_id}".encode()
+    ).hexdigest()[:24]
+    scope_id = f"customer-session-{digest}"
+    table_name = os.environ.get("DYNAMODB_TABLE", "platform-advisor-main")
+    table = boto3.Session(profile_name=AWS_PROFILE).resource(
+        "dynamodb",
+        region_name=AWS_REGION,
+    ).Table(table_name)
+    response = table.get_item(
+        Key={
+            "PK": f"TENANT#{tenant_id}#USER#{actor_id}",
+            "SK": f"ARCHITECTURE#CODING-PLATFORM#{scope_id}#HEAD",
+        },
+        ConsistentRead=True,
+    )
+    return "Item" in response
+
+
 def cleanup(token: str) -> None:
     section("Cleanup — removing SMOKE- test data")
     try:
@@ -273,9 +386,6 @@ def cleanup(token: str) -> None:
         if not c.get("name", "").startswith("SMOKE-"):
             continue
         try:
-            sessions = api("GET", f"/customers/{c['customer_id']}/sessions", token)
-            for s in sessions:
-                api("DELETE", f"/customers/{c['customer_id']}/sessions/{s['session_id']}", token)
             api("DELETE", f"/customers/{c['customer_id']}", token)
             ok(f"Deleted {c['name']}", c["customer_id"])
             deleted += 1
@@ -339,8 +449,56 @@ def run_api(token: str, id_token: str) -> tuple[int, int]:
     check("GET /health",
           lambda: urllib.request.urlopen(health_url, timeout=10).read().decode()[:30])
 
-    # 3. Architecture workspace
-    section("3. Architecture workspace")
+    # 3. Temporary customer and session
+    section("3. Temporary customer and session")
+    customer_id = None
+    session_id = None
+
+    def create_customer():
+        nonlocal customer_id
+        c = api(
+            "POST",
+            "/customers",
+            token,
+            {"name": "SMOKE-Corp", "industry": "Technology"},
+        )
+        assert c.get("customer_id", "").startswith("cust_"), f"Unexpected: {c}"
+        customer_id = c["customer_id"]
+        return customer_id
+
+    if not check("POST /customers", create_customer):
+        return passed, failed + 1
+
+    check("GET /customers/{id}",
+          lambda: api("GET", f"/customers/{customer_id}", token)["name"])
+    check("GET /customers (list)",
+          lambda: f"{len(api('GET', '/customers', token))} total")
+
+    def create_session():
+        nonlocal session_id
+        s = api(
+            "POST",
+            f"/customers/{customer_id}/sessions",
+            token,
+            {"title": "SMOKE-Session"},
+        )
+        assert s.get("session_id", "").startswith("sess_"), f"Unexpected: {s}"
+        session_id = s["session_id"]
+        return session_id
+
+    if not check("POST /sessions", create_session):
+        return passed, failed + 1
+
+    check("GET /sessions/{id}",
+          lambda: api("GET", f"/customers/{customer_id}/sessions/{session_id}", token)["status"])
+    check("GET /sessions (list)",
+          lambda: f"{len(api('GET', f'/customers/{customer_id}/sessions', token))} total")
+
+    # 4. Architecture workspace
+    section("4. Architecture workspace")
+    architecture_scope = (
+        f"?customer_id={customer_id}&session_id={session_id}"
+    )
 
     def check_architecture_requires_auth():
         req = urllib.request.Request(
@@ -361,7 +519,11 @@ def run_api(token: str, id_token: str) -> tuple[int, int]:
 
     def get_architecture_workspace():
         nonlocal baseline_projection
-        projection = api("GET", "/architecture/workspace", token)
+        projection = api(
+            "GET",
+            f"/architecture/workspace{architecture_scope}",
+            token,
+        )
         assert projection.get("schema_version") == "3.0", projection
         pattern = projection.get("architecture", {}).get("pattern", {})
         assert pattern.get("pattern_id") == "pattern:logical-reference", pattern
@@ -387,7 +549,7 @@ def run_api(token: str, id_token: str) -> tuple[int, int]:
         workspace = baseline_projection.get("workspace", {})
         refined = api(
             "POST",
-            "/architecture/workspace/evaluate",
+            f"/architecture/workspace/evaluate{architecture_scope}",
             token,
             {
                 "answers": {
@@ -415,7 +577,11 @@ def run_api(token: str, id_token: str) -> tuple[int, int]:
             "component:persistent-workspace" in component_ids
         ) is answer, component_ids
         assert refined.get("projection_hash") != baseline_projection.get("projection_hash")
-        reloaded = api("GET", "/architecture/workspace", token)
+        reloaded = api(
+            "GET",
+            f"/architecture/workspace{architecture_scope}",
+            token,
+        )
         assert reloaded.get("projection_hash") == refined.get("projection_hash")
         return f"persistent workspace {'added' if answer else 'removed'}"
 
@@ -426,7 +592,7 @@ def run_api(token: str, id_token: str) -> tuple[int, int]:
         try:
             api(
                 "POST",
-                "/architecture/workspace/evaluate",
+                f"/architecture/workspace/evaluate{architecture_scope}",
                 token,
                 {"answers": {"requirement:not-in-catalog": True}},
             )
@@ -440,46 +606,8 @@ def run_api(token: str, id_token: str) -> tuple[int, int]:
     check("POST /architecture/workspace/evaluate rejects unknown input",
           reject_unknown_architecture_requirement)
 
-    # 4. Customer CRUD
-    section("4. Customer CRUD")
-    customer_id = None
-
-    def create_customer():
-        nonlocal customer_id
-        c = api("POST", "/customers", token, {"name": "SMOKE-Corp", "industry": "Technology"})
-        assert c.get("customer_id", "").startswith("cust_"), f"Unexpected: {c}"
-        customer_id = c["customer_id"]
-        return customer_id
-
-    if not check("POST /customers", create_customer):
-        return passed, failed + 1
-
-    check("GET /customers/{id}",
-          lambda: api("GET", f"/customers/{customer_id}", token)["name"])
-    check("GET /customers (list)",
-          lambda: f"{len(api('GET', '/customers', token))} total")
-
-    # 5. Session CRUD
-    section("5. Session CRUD")
-    session_id = None
-
-    def create_session():
-        nonlocal session_id
-        s = api("POST", f"/customers/{customer_id}/sessions", token, {"title": "SMOKE-Session"})
-        assert s.get("session_id", "").startswith("sess_"), f"Unexpected: {s}"
-        session_id = s["session_id"]
-        return session_id
-
-    if not check("POST /sessions", create_session):
-        return passed, failed + 1
-
-    check("GET /sessions/{id}",
-          lambda: api("GET", f"/customers/{customer_id}/sessions/{session_id}", token)["status"])
-    check("GET /sessions (list)",
-          lambda: f"{len(api('GET', f'/customers/{customer_id}/sessions', token))} total")
-
-    # 6. Intake answers round-trip
-    section("6. Intake answers round-trip")
+    # 5. Intake answers round-trip
+    section("5. Intake answers round-trip")
 
     def put_intake():
         api("PUT", f"/customers/{customer_id}/sessions/{session_id}/inputs", token,
@@ -526,28 +654,18 @@ def run_api(token: str, id_token: str) -> tuple[int, int]:
         lambda: invoke_owned_agentcore_session(id_token, customer_id, session_id),
     )
 
-    # 10. Admin metrics (403 expected for non-admin test user — counted as pass)
+    # 10. Admin metrics. The rollout identity must be an enrolled administrator.
     section("10. Admin metrics")
     def check_admin_metrics():
-        try:
-            m = api("GET", "/admin/metrics", token)
-            return f"{m['total_customers']} customers, {m['total_sessions']} sessions"
-        except RuntimeError as e:
-            if "403" in str(e):
-                return "skipped (non-admin user — expected)"
-            raise
+        m = api("GET", "/admin/metrics", token)
+        return f"{m['total_customers']} customers, {m['total_sessions']} sessions"
     check("GET /admin/metrics", check_admin_metrics)
 
     # 11. Admin engine manifest
     section("11. Admin engine manifest")
 
     def check_admin_engine():
-        try:
-            manifest = api("GET", "/admin/engine", token)
-        except RuntimeError as exc:
-            if "403" in str(exc):
-                return "skipped (non-admin user - expected)"
-            raise
+        manifest = api("GET", "/admin/engine", token)
         version = manifest.get("engine", {}).get("version")
         branches = manifest.get("questionnaire", {}).get("branches", [])
         assert version, f"Missing engine version: {manifest}"
@@ -591,8 +709,29 @@ def run_api(token: str, id_token: str) -> tuple[int, int]:
 
     # 13. Cleanup
     section("13. Cleanup")
+
+    def verify_workspace_persisted():
+        assert architecture_workspace_exists(
+            id_token,
+            customer_id,
+            session_id,
+        ), "Architecture workspace was not persisted"
+        return "persisted"
+
+    check("Verify scoped architecture workspace exists before cascade",
+          verify_workspace_persisted)
     check("DELETE /customers/{id} (cascade)",
           lambda: api("DELETE", f"/customers/{customer_id}", token) or "deleted")
+
+    def verify_workspace_deleted():
+        assert not architecture_workspace_exists(
+            id_token,
+            customer_id,
+            session_id,
+        ), "Architecture workspace survived customer cascade"
+        return "confirmed deleted"
+
+    check("Verify architecture workspace cascade", verify_workspace_deleted)
 
     def verify_customer_gone():
         try:
@@ -646,6 +785,14 @@ def run_cf() -> tuple[int, int]:
         fail("S3 architecture object exists", str(exc))
         failed += 1
 
+    try:
+        detail = require_frontend_deployment_controls()
+        ok("S3 frontend deployment is rollback-capable", detail)
+        passed += 1
+    except Exception as exc:
+        fail("S3 frontend deployment is rollback-capable", str(exc))
+        failed += 1
+
     for path, expected, marker in CF_PAGES:
         status, body = cf_get(path)
         label = f"GET {path} → {expected}"
@@ -674,7 +821,6 @@ def main():
     print(f"\n\033[1mPlatform Advisor — Smoke Test\033[0m")
     print(f"API:   {API_URL}")
     print(f"CF:    {CF_URL}")
-    print(f"User:  {TEST_EMAIL}")
 
     # Always need a token unless cf-only
     token = id_token = None
@@ -682,7 +828,7 @@ def main():
         section("0. Cognito authentication")
         try:
             token, id_token = get_auth_tokens()
-            ok("admin_initiate_auth → AccessToken", token[:20] + "…")
+            ok("Cognito authentication", "tokens received")
         except Exception as e:
             fail("Cognito auth", str(e))
             print("\n\033[31mCannot continue without a valid token.\033[0m\n")

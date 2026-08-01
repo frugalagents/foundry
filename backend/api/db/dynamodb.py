@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 import boto3
+from boto3.dynamodb.types import TypeSerializer
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,22 @@ def _is_conditional_failure(exc: ClientError) -> bool:
     return exc.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException"
 
 
+def _is_transaction_conflict(exc: ClientError) -> bool:
+    code = exc.response.get("Error", {}).get("Code")
+    if code == "ConditionalCheckFailedException":
+        return True
+    if code != "TransactionCanceledException":
+        return False
+    reasons = exc.response.get("CancellationReasons", ())
+    return not reasons or any(
+        reason.get("Code") in {
+            "ConditionalCheckFailed",
+            "TransactionConflict",
+        }
+        for reason in reasons
+    )
+
+
 class ArchitectureWorkspaceConflict(Exception):
     """The architecture workspace changed after the caller read it."""
 
@@ -51,24 +68,103 @@ class ArchitectureWorkspaceConflict(Exception):
 # ── Architecture workspace ───────────────────────────────────────────────────
 
 _ARCHITECTURE_WORKSPACE_SK = "ARCHITECTURE#CODING-PLATFORM#HEAD"
+_ARCHITECTURE_REVISION_WIDTH = 12
 
 
-def _architecture_workspace_key(tenant_id: str, owner_id: str) -> dict[str, str]:
+def _architecture_workspace_key(
+    tenant_id: str,
+    owner_id: str,
+    scope_id: str = "standalone",
+) -> dict[str, str]:
     # Both values come from authenticated claims, never request parameters.
+    sort_key = (
+        _ARCHITECTURE_WORKSPACE_SK
+        if scope_id == "standalone"
+        else f"ARCHITECTURE#CODING-PLATFORM#{scope_id}#HEAD"
+    )
     return {
         "PK": f"TENANT#{tenant_id}#USER#{owner_id}",
-        "SK": _ARCHITECTURE_WORKSPACE_SK,
+        "SK": sort_key,
     }
+
+
+def _architecture_revision_prefix(scope_id: str = "standalone") -> str:
+    scope_prefix = (
+        "ARCHITECTURE#CODING-PLATFORM"
+        if scope_id == "standalone"
+        else f"ARCHITECTURE#CODING-PLATFORM#{scope_id}"
+    )
+    return f"{scope_prefix}#REVISION#"
+
+
+def _architecture_revision_key(
+    tenant_id: str,
+    owner_id: str,
+    revision_number: int,
+    scope_id: str = "standalone",
+) -> dict[str, str]:
+    return {
+        "PK": f"TENANT#{tenant_id}#USER#{owner_id}",
+        "SK": (
+            f"{_architecture_revision_prefix(scope_id)}"
+            f"{revision_number:0{_ARCHITECTURE_REVISION_WIDTH}d}"
+        ),
+    }
+
+
+def _architecture_revision_item(
+    *,
+    tenant_id: str,
+    owner_id: str,
+    scope_id: str,
+    workspace_id: str,
+    revision_number: int,
+    previous_state_hash: str | None,
+    answers: dict[str, Any],
+    state_hash: str,
+    as_of: str,
+    operation: str,
+    created_at: str,
+) -> dict:
+    return {
+        **_architecture_revision_key(
+            tenant_id,
+            owner_id,
+            revision_number,
+            scope_id,
+        ),
+        "item_type": "architecture_workspace_revision",
+        "workspace_id": workspace_id,
+        "tenant_id": tenant_id,
+        "created_by": owner_id,
+        "scope_id": scope_id,
+        "revision_number": revision_number,
+        "parent_revision_number": (
+            revision_number - 1 if revision_number > 1 else None
+        ),
+        "previous_state_hash": previous_state_hash,
+        "answers": dict(answers),
+        "state_hash": state_hash,
+        "as_of": as_of,
+        "operation": operation,
+        "created_at": created_at,
+    }
+
+
+def _serialize_dynamodb_map(value: dict[str, Any]) -> dict[str, Any]:
+    serializer = TypeSerializer()
+    return {key: serializer.serialize(item) for key, item in value.items()}
 
 
 def get_architecture_workspace_state(
     tenant_id: str,
     owner_id: str,
+    scope_id: str = "standalone",
 ) -> Optional[dict]:
     """Read one actor's workspace head within its authenticated tenant."""
 
     response = _get_table().get_item(
-        Key=_architecture_workspace_key(tenant_id, owner_id),
+        Key=_architecture_workspace_key(tenant_id, owner_id, scope_id),
         ConsistentRead=True,
     )
     item = response.get("Item")
@@ -76,6 +172,10 @@ def get_architecture_workspace_state(
         not item
         or item.get("tenant_id") != tenant_id
         or item.get("created_by") != owner_id
+        or (
+            scope_id != "standalone"
+            and item.get("scope_id") != scope_id
+        )
     ):
         return None
     return item
@@ -89,17 +189,19 @@ def initialize_architecture_workspace_state(
     answers: dict[str, Any],
     state_hash: str,
     as_of: str,
+    scope_id: str = "standalone",
 ) -> dict:
     """Create a deterministic workspace head, returning a concurrent winner."""
 
     table = _get_table()
     now = _now()
     item = {
-        **_architecture_workspace_key(tenant_id, owner_id),
+        **_architecture_workspace_key(tenant_id, owner_id, scope_id),
         "item_type": "architecture_workspace",
         "workspace_id": workspace_id,
         "tenant_id": tenant_id,
         "created_by": owner_id,
+        "scope_id": scope_id,
         "answers": dict(answers),
         "persistence_revision": 1,
         "state_hash": state_hash,
@@ -114,17 +216,121 @@ def initialize_architecture_workspace_state(
                 "attribute_not_exists(PK) AND attribute_not_exists(SK)"
             ),
         )
-        return item
     except ClientError as exc:
         if not _is_conditional_failure(exc):
             raise
-
-    existing = get_architecture_workspace_state(tenant_id, owner_id)
-    if existing is None:
-        raise ArchitectureWorkspaceConflict(
-            "workspace initialization raced but no workspace head is readable"
+        existing = get_architecture_workspace_state(
+            tenant_id,
+            owner_id,
+            scope_id,
         )
-    return existing
+        if existing is None:
+            raise ArchitectureWorkspaceConflict(
+                "workspace initialization raced but no workspace head is readable"
+            )
+        item = existing
+
+    if int(item["persistence_revision"]) == 1:
+        revision = _architecture_revision_item(
+            tenant_id=tenant_id,
+            owner_id=owner_id,
+            scope_id=scope_id,
+            workspace_id=item["workspace_id"],
+            revision_number=1,
+            previous_state_hash=None,
+            answers=item["answers"],
+            state_hash=item["state_hash"],
+            as_of=item["as_of"],
+            operation="initialize",
+            created_at=item.get("created_at", now),
+        )
+        try:
+            table.put_item(
+                Item=revision,
+                ConditionExpression=(
+                    "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+                ),
+            )
+        except ClientError as exc:
+            if not _is_conditional_failure(exc):
+                raise
+    return item
+
+
+def get_architecture_workspace_revision(
+    tenant_id: str,
+    owner_id: str,
+    revision_number: int,
+    scope_id: str = "standalone",
+) -> Optional[dict]:
+    """Read one immutable revision within an authenticated workspace scope."""
+
+    response = _get_table().get_item(
+        Key=_architecture_revision_key(
+            tenant_id,
+            owner_id,
+            revision_number,
+            scope_id,
+        ),
+        ConsistentRead=True,
+    )
+    item = response.get("Item")
+    if (
+        not item
+        or item.get("item_type") != "architecture_workspace_revision"
+        or item.get("tenant_id") != tenant_id
+        or item.get("created_by") != owner_id
+        or item.get("scope_id") != scope_id
+        or int(item.get("revision_number", 0)) != revision_number
+    ):
+        return None
+    return item
+
+
+def list_architecture_workspace_revisions(
+    tenant_id: str,
+    owner_id: str,
+    scope_id: str = "standalone",
+    *,
+    limit: int = 100,
+) -> list[dict]:
+    """List immutable revisions in ascending revision order."""
+
+    table = _get_table()
+    items: list[dict] = []
+    query_args: dict[str, Any] = {
+        "KeyConditionExpression": (
+            "#pk = :pk AND begins_with(#sk, :revision_prefix)"
+        ),
+        "ExpressionAttributeNames": {
+            "#pk": "PK",
+            "#sk": "SK",
+        },
+        "ExpressionAttributeValues": {
+            ":pk": f"TENANT#{tenant_id}#USER#{owner_id}",
+            ":revision_prefix": _architecture_revision_prefix(scope_id),
+        },
+        "ConsistentRead": True,
+        "ScanIndexForward": True,
+        "Limit": limit,
+    }
+    while len(items) < limit:
+        response = table.query(**query_args)
+        for item in response.get("Items", []):
+            if (
+                item.get("item_type") == "architecture_workspace_revision"
+                and item.get("tenant_id") == tenant_id
+                and item.get("created_by") == owner_id
+                and item.get("scope_id") == scope_id
+            ):
+                items.append(item)
+                if len(items) == limit:
+                    break
+        last_key = response.get("LastEvaluatedKey")
+        if not last_key or len(items) == limit:
+            break
+        query_args["ExclusiveStartKey"] = last_key
+    return items
 
 
 def update_architecture_workspace_state(
@@ -135,51 +341,119 @@ def update_architecture_workspace_state(
     expected_state_hash: str,
     answers: dict[str, Any],
     state_hash: str,
+    scope_id: str = "standalone",
+    operation: str = "evaluate",
 ) -> dict:
-    """Conditionally replace the owned workspace head and return the new state."""
+    """Atomically append a revision and conditionally advance workspace HEAD."""
 
+    table = _get_table()
+    current = table.get_item(
+        Key=_architecture_workspace_key(tenant_id, owner_id, scope_id),
+        ConsistentRead=True,
+    ).get("Item")
+    if (
+        current is None
+        or current.get("tenant_id") != tenant_id
+        or current.get("created_by") != owner_id
+        or (
+            current.get("scope_id") != scope_id
+            and not (
+                scope_id == "standalone"
+                and current.get("scope_id") is None
+            )
+        )
+        or int(current["persistence_revision"]) != expected_revision
+        or current["state_hash"] != expected_state_hash
+    ):
+        raise ArchitectureWorkspaceConflict(
+            "architecture workspace revision is stale"
+        )
+    now = _now()
+    revision = _architecture_revision_item(
+        tenant_id=tenant_id,
+        owner_id=owner_id,
+        scope_id=scope_id,
+        workspace_id=current["workspace_id"],
+        revision_number=expected_revision + 1,
+        previous_state_hash=expected_state_hash,
+        answers=answers,
+        state_hash=state_hash,
+        as_of=current["as_of"],
+        operation=operation,
+        created_at=now,
+    )
     try:
-        response = _get_table().update_item(
-            Key=_architecture_workspace_key(tenant_id, owner_id),
-            UpdateExpression=(
-                "SET #answers = :answers, #revision = :new_revision, "
-                "#state_hash = :new_state_hash, #updated_at = :updated_at"
-            ),
-            ExpressionAttributeNames={
-                "#answers": "answers",
-                "#revision": "persistence_revision",
-                "#state_hash": "state_hash",
-                "#updated_at": "updated_at",
-                "#tenant_id": "tenant_id",
-                "#created_by": "created_by",
-                "#pk": "PK",
-            },
-            ExpressionAttributeValues={
-                ":answers": dict(answers),
-                ":expected_revision": expected_revision,
-                ":new_revision": expected_revision + 1,
-                ":expected_state_hash": expected_state_hash,
-                ":new_state_hash": state_hash,
-                ":updated_at": _now(),
-                ":tenant_id": tenant_id,
-                ":owner_id": owner_id,
-            },
-            ConditionExpression=(
-                "attribute_exists(#pk) "
-                "AND #tenant_id = :tenant_id "
-                "AND #created_by = :owner_id "
-                "AND #revision = :expected_revision "
-                "AND #state_hash = :expected_state_hash"
-            ),
-            ReturnValues="ALL_NEW",
+        table.meta.client.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "TableName": table.name,
+                        "Key": _serialize_dynamodb_map(
+                            _architecture_workspace_key(
+                                tenant_id,
+                                owner_id,
+                                scope_id,
+                            )
+                        ),
+                        "UpdateExpression": (
+                            "SET #answers = :answers, "
+                            "#revision = :new_revision, "
+                            "#state_hash = :new_state_hash, "
+                            "#updated_at = :updated_at"
+                        ),
+                        "ExpressionAttributeNames": {
+                            "#answers": "answers",
+                            "#revision": "persistence_revision",
+                            "#state_hash": "state_hash",
+                            "#updated_at": "updated_at",
+                            "#tenant_id": "tenant_id",
+                            "#created_by": "created_by",
+                            "#pk": "PK",
+                        },
+                        "ExpressionAttributeValues": _serialize_dynamodb_map({
+                            ":answers": dict(answers),
+                            ":expected_revision": expected_revision,
+                            ":new_revision": expected_revision + 1,
+                            ":expected_state_hash": expected_state_hash,
+                            ":new_state_hash": state_hash,
+                            ":updated_at": now,
+                            ":tenant_id": tenant_id,
+                            ":owner_id": owner_id,
+                        }),
+                        "ConditionExpression": (
+                            "attribute_exists(#pk) "
+                            "AND #tenant_id = :tenant_id "
+                            "AND #created_by = :owner_id "
+                            "AND #revision = :expected_revision "
+                            "AND #state_hash = :expected_state_hash"
+                        ),
+                    }
+                },
+                {
+                    "Put": {
+                        "TableName": table.name,
+                        "Item": _serialize_dynamodb_map(revision),
+                        "ConditionExpression": (
+                            "attribute_not_exists(PK) "
+                            "AND attribute_not_exists(SK)"
+                        ),
+                    }
+                },
+            ]
         )
     except ClientError as exc:
-        if _is_conditional_failure(exc):
+        if _is_transaction_conflict(exc):
             raise ArchitectureWorkspaceConflict(
                 "architecture workspace revision is stale"
             ) from exc
         raise
-    return response["Attributes"]
+    saved = table.get_item(
+        Key=_architecture_workspace_key(tenant_id, owner_id, scope_id),
+        ConsistentRead=True,
+    ).get("Item")
+    if saved is None:
+        raise RuntimeError("architecture workspace HEAD disappeared after commit")
+    return saved
 
 
 def save_architecture_decision_record(
@@ -187,6 +461,7 @@ def save_architecture_decision_record(
     tenant_id: str,
     owner_id: str,
     record: dict[str, Any],
+    scope_id: str = "standalone",
 ) -> dict:
     """Persist the latest Decision Record on the owned workspace head.
 
@@ -195,7 +470,7 @@ def save_architecture_decision_record(
     Stored as latest-wins; history could later move to child items.
     """
     response = _get_table().update_item(
-        Key=_architecture_workspace_key(tenant_id, owner_id),
+        Key=_architecture_workspace_key(tenant_id, owner_id, scope_id),
         UpdateExpression="SET #rec = :rec, #updated_at = :updated_at",
         ExpressionAttributeNames={
             "#rec": "decision_record",
@@ -224,16 +499,15 @@ def save_architecture_engine_answers(
     tenant_id: str,
     owner_id: str,
     answers: dict[str, Any],
+    scope_id: str = "standalone",
 ) -> dict:
-    """Merge-persist the engine answer set on the owned workspace head.
+    """Replace engine answers on an owned workspace head.
 
-    Used by the chat path (and box clicks that target engine-only requirements)
-    so conversational and click input accumulate into one answer set. Distinct
-    from update_architecture_workspace_state, which runs the v3 projection and
-    only accepts v3 requirement keys.
+    Kept for callers that explicitly commit validated engine answers. Chat only
+    proposes answers and does not call this persistence helper.
     """
     response = _get_table().update_item(
-        Key=_architecture_workspace_key(tenant_id, owner_id),
+        Key=_architecture_workspace_key(tenant_id, owner_id, scope_id),
         UpdateExpression="SET #answers = :answers, #updated_at = :updated_at",
         ExpressionAttributeNames={
             "#answers": "answers",

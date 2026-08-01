@@ -38,11 +38,18 @@ from strands.models import BedrockModel
 
 from advisor_core import AssessmentInput, DecisionEngine, build_questionnaire
 from advisor_core.models import OverrideRecord
+from architecture_v3_runtime import (
+    ACTION as ARCHITECTURE_V3_ACTION,
+    ArchitectureV3Conflict,
+    ArchitectureV3RuntimeAdapter,
+    conflict_payload,
+)
 from pipeline_skills.base import (
     PipelineContext,
     make_error,
     make_complete,
     make_chat_stream,
+    make_event,
 )
 from pipeline_skills.v2_assessment_skill import run_v2_assessment
 from memory.context_store import (
@@ -177,6 +184,19 @@ def _cognito_jwk_client() -> PyJWKClient:
 
 def _runtime_actor_id(context) -> str | None:
     """Verify the forwarded Cognito ID token and return its immutable subject."""
+    claims = _runtime_identity_claims(context)
+    if claims is None:
+        return None
+    actor_id = claims.get("sub")
+    return (
+        actor_id.strip()
+        if isinstance(actor_id, str) and actor_id.strip()
+        else None
+    )
+
+
+def _runtime_identity_claims(context) -> dict | None:
+    """Verify the forwarded Cognito ID token and return trusted claims."""
     token = _request_header(context, _COGNITO_TOKEN_HEADER)
     if not token or not _COGNITO_USER_POOL_ID or not _COGNITO_CLIENT_ID:
         return None
@@ -195,8 +215,20 @@ def _runtime_actor_id(context) -> str | None:
         return None
     if claims.get("token_use") != "id":
         return None
-    actor_id = claims.get("sub")
-    return actor_id.strip() if isinstance(actor_id, str) and actor_id.strip() else None
+    return claims
+
+
+def _runtime_tenant_id(claims: dict, actor_id: str) -> str:
+    for claim in (
+        "custom:tenant_id",
+        "tenant_id",
+        "custom:organization_id",
+        "organization_id",
+    ):
+        value = claims.get(claim)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return actor_id
 
 
 # ── System prompt ─────────────────────────────────────────────────────────────
@@ -343,7 +375,12 @@ async def invoke(payload: dict, context):
     user_message = payload.get("user_message") or "Start the advisory session."
 
     agentcore_session_id = getattr(context, "session_id", None) or session_id
-    actor_id             = _runtime_actor_id(context)
+    identity_claims = _runtime_identity_claims(context)
+    actor_id = None
+    if identity_claims is not None:
+        subject = identity_claims.get("sub")
+        if isinstance(subject, str) and subject.strip():
+            actor_id = subject.strip()
 
     log.info(
         "invoke: session=%s customer=%s action=%s msg=%.120s",
@@ -384,6 +421,45 @@ async def invoke(payload: dict, context):
         return
     if not _session_is_owned(customer_id, session_id, actor_id):
         yield make_error(0, "Session not found.", recoverable=False)
+        return
+
+    if action == ARCHITECTURE_V3_ACTION:
+        try:
+            request = payload.get("architecture_v3")
+            if not isinstance(request, dict):
+                raise ValueError("architecture_v3 object is required")
+            tenant_id = _runtime_tenant_id(identity_claims, actor_id)
+            adapter = ArchitectureV3RuntimeAdapter(
+                _get_ddb().Table(_TABLE),
+                tenant_id=tenant_id,
+                owner_id=actor_id,
+                customer_id=customer_id,
+                session_id=session_id,
+            )
+            result = adapter.execute(request)
+            yield make_event("architecture_v3_complete", result)
+        except ArchitectureV3Conflict as exc:
+            yield make_event("architecture_v3_error", conflict_payload(exc))
+        except ValueError as exc:
+            log.warning(
+                "Architecture v3 request rejected: %s",
+                exc,
+            )
+            yield make_event("architecture_v3_error", {
+                "contract_version": "3.0",
+                "action": ARCHITECTURE_V3_ACTION,
+                "code": "invalid_request",
+                "message": str(exc),
+            })
+        except Exception:
+            log.exception("Architecture v3 workspace operation failed")
+            yield make_event("architecture_v3_error", {
+                "contract_version": "3.0",
+                "action": ARCHITECTURE_V3_ACTION,
+                "code": "service_error",
+                "message": "Architecture v3 workspace operation failed.",
+            })
+        yield make_complete(session_id)
         return
 
     if action == "whatif":

@@ -3,7 +3,18 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from ..models import CatalogRelease, RequirementConstraint, WorkspaceRevision, content_hash
+from ..engine import (
+    evaluate_revision_deployment_families,
+    validate_workspace_revision,
+)
+from ..models import (
+    CatalogRelease,
+    DeploymentFamilyEvaluation,
+    FeasibilityStatus,
+    RequirementConstraint,
+    WorkspaceRevision,
+    content_hash,
+)
 from .catalog import compile_deployable_catalog
 from .models import (
     BundleSelection,
@@ -31,20 +42,7 @@ def _validate_revision_pin(
     revision: WorkspaceRevision,
     catalog: CatalogRelease,
 ) -> None:
-    if (
-        revision.catalog_release_id != catalog.id
-        or revision.catalog_release_version != catalog.version
-        or revision.catalog_content_hash != catalog.content_hash
-    ):
-        raise ValueError("workspace catalog pin does not match supplied catalog")
-    component_ids = {component.id for component in catalog.components}
-    unknown = {
-        node.component_id for node in revision.architecture.nodes
-    } - component_ids
-    if unknown:
-        raise ValueError(
-            f"workspace architecture references unknown components: {sorted(unknown)}"
-        )
+    validate_workspace_revision(revision, catalog)
 
 
 def _provider_class_for_component(
@@ -66,10 +64,10 @@ def _provider_class_for_component(
 
 
 def _select_services(
-    revision: WorkspaceRevision,
     logical_catalog: CatalogRelease,
     deployable_catalog: DeployableCatalogRelease,
     template: BundleTemplate,
+    component_ids: tuple[str, ...],
 ) -> tuple[BundleSelection, ...]:
     component_by_id = {
         component.id: component for component in logical_catalog.components
@@ -78,18 +76,19 @@ def _select_services(
         (variant.component_id, variant.provider_class): variant
         for variant in deployable_catalog.service_variants
     }
-    active_component_ids = sorted({
-        node.component_id for node in revision.architecture.nodes
-    })
     selections: list[BundleSelection] = []
-    for component_id in active_component_ids:
-        component = component_by_id[component_id]
+    for component_id in component_ids:
+        component = component_by_id.get(component_id)
+        if component is None:
+            continue
         provider_class = _provider_class_for_component(
             template,
             component_id,
             component.plane,
         )
-        variant = variant_by_key[(component_id, provider_class)]
+        variant = variant_by_key.get((component_id, provider_class))
+        if variant is None:
+            continue
         selections.append(BundleSelection(
             component_id=component_id,
             service_variant_id=variant.id,
@@ -98,6 +97,205 @@ def _select_services(
             delivery_model=variant.delivery_model,
         ))
     return tuple(selections)
+
+
+def _family_findings(
+    template: BundleTemplate,
+    revision: WorkspaceRevision,
+    evaluation: DeploymentFamilyEvaluation,
+) -> tuple[CompatibilityFinding, ...]:
+    if evaluation.status is FeasibilityStatus.FEASIBLE:
+        return ()
+    family_slug = evaluation.pattern_id.split(":", 1)[1]
+    if evaluation.status is FeasibilityStatus.REJECTED:
+        return (_finding(
+            template=template,
+            revision=revision,
+            suffix=f"family-{family_slug}-rejected",
+            status=CompatibilityStatus.INCOMPATIBLE,
+            severity=FindingSeverity.ERROR,
+            code="deployment_family_rejected",
+            message=(
+                f"{evaluation.pattern_id} is rejected by "
+                f"{list(evaluation.rejection_rule_ids)!r}."
+            ),
+        ),)
+    return (_finding(
+        template=template,
+        revision=revision,
+        suffix=f"family-{family_slug}-unresolved",
+        status=CompatibilityStatus.CONDITIONAL,
+        severity=FindingSeverity.WARNING,
+        code="deployment_family_unresolved",
+        message=(
+            f"{evaluation.pattern_id} cannot be considered eligible until "
+            f"{list(evaluation.blocking_requirement_ids)!r} are resolved."
+        ),
+    ),)
+
+
+def _selection_findings(
+    template: BundleTemplate,
+    revision: WorkspaceRevision,
+    logical_catalog: CatalogRelease,
+    deployable_catalog: DeployableCatalogRelease,
+    expected_component_ids: tuple[str, ...],
+    selections: tuple[BundleSelection, ...],
+) -> tuple[CompatibilityFinding, ...]:
+    expected = set(expected_component_ids)
+    selected = {selection.component_id for selection in selections}
+    component_by_id = {
+        component.id: component for component in logical_catalog.components
+    }
+    variant_by_id = {
+        variant.id: variant for variant in deployable_catalog.service_variants
+    }
+    provider_ids = {
+        provider.id for provider in deployable_catalog.providers
+    }
+    binding_by_component = {
+        binding.component_id: binding
+        for binding in deployable_catalog.component_bindings
+    }
+    findings: list[CompatibilityFinding] = []
+
+    for component_id in sorted(expected - selected):
+        component_slug = component_id.split(":", 1)[1]
+        findings.append(_finding(
+            template=template,
+            revision=revision,
+            suffix=f"variant-{component_slug}-missing",
+            status=CompatibilityStatus.INCOMPATIBLE,
+            severity=FindingSeverity.ERROR,
+            code="missing_service_variant",
+            message=(
+                f"No service variant satisfies the provider selection for "
+                f"{component_id}."
+            ),
+            component_ids=(component_id,),
+        ))
+
+    for selection in selections:
+        variant = variant_by_id.get(selection.service_variant_id)
+        compatible_identity = (
+            variant is not None
+            and variant.component_id == selection.component_id
+            and variant.provider_class == selection.provider_class
+            and variant.delivery_model == selection.delivery_model
+            and variant.provider_id in provider_ids
+        )
+        if not compatible_identity:
+            component_slug = selection.component_id.split(":", 1)[1]
+            findings.append(_finding(
+                template=template,
+                revision=revision,
+                suffix=f"variant-{component_slug}-incompatible",
+                status=CompatibilityStatus.INCOMPATIBLE,
+                severity=FindingSeverity.ERROR,
+                code="incompatible_service_variant",
+                message=(
+                    f"{selection.service_variant_id} does not match the selected "
+                    f"component, provider class, and delivery model."
+                ),
+                component_ids=(selection.component_id,),
+            ))
+            continue
+        assert variant is not None
+        component = component_by_id[selection.component_id]
+        component_slug = selection.component_id.split(":", 1)[1]
+        if set(variant.dependency_component_ids) != set(
+            component.dependency_ids
+        ):
+            findings.append(_finding(
+                template=template,
+                revision=revision,
+                suffix=f"variant-{component_slug}-dependencies",
+                status=CompatibilityStatus.INCOMPATIBLE,
+                severity=FindingSeverity.ERROR,
+                code="incompatible_variant_dependencies",
+                message=(
+                    f"{variant.id} dependency contract does not match "
+                    f"{selection.component_id}."
+                ),
+                component_ids=(selection.component_id,),
+            ))
+        missing_dependencies = sorted(
+            set(variant.dependency_component_ids) - selected
+        )
+        if missing_dependencies:
+            findings.append(_finding(
+                template=template,
+                revision=revision,
+                suffix=f"dependency-{component_slug}-missing",
+                status=CompatibilityStatus.INCOMPATIBLE,
+                severity=FindingSeverity.ERROR,
+                code="missing_variant_dependency",
+                message=(
+                    f"{variant.id} is selected without required components "
+                    f"{missing_dependencies!r}."
+                ),
+                component_ids=tuple(
+                    (selection.component_id, *missing_dependencies)
+                ),
+            ))
+
+        binding = binding_by_component.get(selection.component_id)
+        if binding is None:
+            findings.append(_finding(
+                template=template,
+                revision=revision,
+                suffix=f"interface-binding-{component_slug}-missing",
+                status=CompatibilityStatus.INCOMPATIBLE,
+                severity=FindingSeverity.ERROR,
+                code="missing_interface_binding",
+                message=(
+                    f"{selection.component_id} has no interface contract "
+                    "binding."
+                ),
+                component_ids=(selection.component_id,),
+            ))
+        elif (
+            variant.provides_interface_ids
+            != binding.provides_interface_ids
+            or variant.requires_interface_ids
+            != binding.requires_interface_ids
+        ):
+            findings.append(_finding(
+                template=template,
+                revision=revision,
+                suffix=f"variant-{component_slug}-interfaces",
+                status=CompatibilityStatus.INCOMPATIBLE,
+                severity=FindingSeverity.ERROR,
+                code="incompatible_variant_interfaces",
+                message=(
+                    f"{variant.id} interface contract does not match "
+                    f"{selection.component_id}."
+                ),
+                component_ids=(selection.component_id,),
+            ))
+
+    for component_id in sorted(expected):
+        component = component_by_id.get(component_id)
+        if component is None:
+            continue
+        missing_dependencies = sorted(set(component.dependency_ids) - expected)
+        if not missing_dependencies:
+            continue
+        component_slug = component_id.split(":", 1)[1]
+        findings.append(_finding(
+            template=template,
+            revision=revision,
+            suffix=f"dependency-{component_slug}-missing",
+            status=CompatibilityStatus.INCOMPATIBLE,
+            severity=FindingSeverity.ERROR,
+            code="missing_variant_dependency",
+            message=(
+                f"{component_id} is selected without required components "
+                f"{missing_dependencies!r}."
+            ),
+            component_ids=tuple((component_id, *missing_dependencies)),
+        ))
+    return tuple(findings)
 
 
 def _finding(
@@ -178,26 +376,27 @@ def _interface_findings(
     deployable_catalog: DeployableCatalogRelease,
     selections: tuple[BundleSelection, ...],
 ) -> tuple[CompatibilityFinding, ...]:
-    active_ids = {selection.component_id for selection in selections}
-    binding_by_component = {
-        binding.component_id: binding
-        for binding in deployable_catalog.component_bindings
+    variant_by_id = {
+        variant.id: variant for variant in deployable_catalog.service_variants
     }
     providers: dict[str, set[str]] = defaultdict(set)
-    for component_id in active_ids:
-        for interface_id in binding_by_component[
-            component_id
-        ].provides_interface_ids:
-            providers[interface_id].add(component_id)
+    for selection in selections:
+        variant = variant_by_id.get(selection.service_variant_id)
+        if variant is None:
+            continue
+        for interface_id in variant.provides_interface_ids:
+            providers[interface_id].add(selection.component_id)
 
     findings: list[CompatibilityFinding] = []
-    for component_id in sorted(active_ids):
-        binding = binding_by_component[component_id]
-        for interface_id in binding.requires_interface_ids:
+    for selection in selections:
+        variant = variant_by_id.get(selection.service_variant_id)
+        if variant is None:
+            continue
+        for interface_id in variant.requires_interface_ids:
             if providers.get(interface_id):
                 continue
             interface_slug = interface_id.split(":", 1)[1]
-            component_slug = component_id.split(":", 1)[1]
+            component_slug = selection.component_id.split(":", 1)[1]
             findings.append(_finding(
                 template=template,
                 revision=revision,
@@ -206,10 +405,10 @@ def _interface_findings(
                 severity=FindingSeverity.ERROR,
                 code="missing_interface_provider",
                 message=(
-                    f"{component_id} requires {interface_id}, but no selected "
-                    "active component provides that contract."
+                    f"{variant.id} requires {interface_id}, but no selected "
+                    "service variant provides that contract."
                 ),
-                component_ids=(component_id,),
+                component_ids=(selection.component_id,),
                 interface_id=interface_id,
             ))
     return tuple(findings)
@@ -284,7 +483,25 @@ def _capability_findings(
             if selection is None:
                 continue
             variant = variant_by_id[selection.service_variant_id]
-            provider = provider_by_id[variant.provider_id]
+            provider = provider_by_id.get(variant.provider_id)
+            if provider is None:
+                component_slug = component_id.split(":", 1)[1]
+                rule_slug = rule.id.split(":", 1)[1]
+                findings.append(_finding(
+                    template=template,
+                    revision=revision,
+                    suffix=f"provider-{rule_slug}-{component_slug}",
+                    status=CompatibilityStatus.INCOMPATIBLE,
+                    severity=FindingSeverity.ERROR,
+                    code="missing_variant_provider",
+                    message=(
+                        f"{variant.id} references unavailable provider "
+                        f"{variant.provider_id}."
+                    ),
+                    component_ids=(component_id,),
+                    requirement_id=rule.requirement_id,
+                ))
+                continue
             state = _capability_state(
                 variant,
                 provider,
@@ -353,8 +570,12 @@ def _dimension_scores(
         for dimension in deployable_catalog.score_dimensions
     }
     for selection in selections:
-        variant = variant_by_id[selection.service_variant_id]
-        provider = provider_by_id[variant.provider_id]
+        variant = variant_by_id.get(selection.service_variant_id)
+        if variant is None:
+            continue
+        provider = provider_by_id.get(variant.provider_id)
+        if provider is None:
+            continue
         provider_scores = {
             item.dimension_id: item.value
             for item in provider.dimension_scores
@@ -505,14 +726,24 @@ def _eligible_candidates(
     compatible = tuple(
         candidate
         for candidate in candidates
-        if candidate.compatibility_status is CompatibilityStatus.COMPATIBLE
+        if (
+            candidate.family_feasibility_status
+            is FeasibilityStatus.FEASIBLE
+            and candidate.compatibility_status
+            is CompatibilityStatus.COMPATIBLE
+        )
     )
     if compatible:
         return compatible
     return tuple(
         candidate
         for candidate in candidates
-        if candidate.compatibility_status is CompatibilityStatus.CONDITIONAL
+        if (
+            candidate.family_feasibility_status
+            is FeasibilityStatus.FEASIBLE
+            and candidate.compatibility_status
+            is CompatibilityStatus.CONDITIONAL
+        )
     )
 
 
@@ -534,13 +765,19 @@ def _pareto_ids(
     ))
 
 
-def _ranking_key(candidate: CandidateBundle) -> tuple[int, float, str]:
+def _ranking_key(candidate: CandidateBundle) -> tuple[int, int, float, str]:
+    feasibility_rank = {
+        FeasibilityStatus.FEASIBLE: 0,
+        FeasibilityStatus.UNKNOWN: 1,
+        FeasibilityStatus.REJECTED: 2,
+    }
     status_rank = {
         CompatibilityStatus.COMPATIBLE: 0,
         CompatibilityStatus.CONDITIONAL: 1,
         CompatibilityStatus.INCOMPATIBLE: 2,
     }
     return (
+        feasibility_rank[candidate.family_feasibility_status],
         status_rank[candidate.compatibility_status],
         -candidate.weighted_score,
         candidate.bundle_id,
@@ -663,18 +900,45 @@ def build_deployable_solution(
             "deployable catalog does not target the supplied logical catalog"
         )
     profile = catalog.score_profiles[0]
+    family_evaluations = {
+        evaluation.pattern_id: evaluation
+        for evaluation in evaluate_revision_deployment_families(
+            revision,
+            logical_catalog,
+        )
+    }
 
     drafts: list[CandidateBundle] = []
+    baseline_component_ids = {
+        node.component_id for node in revision.architecture.nodes
+    }
     for template in catalog.bundle_templates:
+        evaluation = family_evaluations[template.deployment_family_id]
+        component_ids = tuple(sorted(
+            baseline_component_ids
+            | {
+                node.component_id
+                for node in evaluation.architecture.nodes
+            }
+        ))
         selections = _select_services(
-            revision,
             logical_catalog,
             catalog,
             template,
+            component_ids,
         )
         findings = tuple(sorted(
             (
+                *_family_findings(template, revision, evaluation),
                 *_requirement_findings(template, revision),
+                *_selection_findings(
+                    template,
+                    revision,
+                    logical_catalog,
+                    catalog,
+                    component_ids,
+                    selections,
+                ),
                 *_interface_findings(
                     template,
                     revision,
@@ -700,6 +964,7 @@ def build_deployable_solution(
             template_id=template.id,
             name=template.name,
             deployment_family_id=template.deployment_family_id,
+            family_feasibility_status=evaluation.status,
             compatibility_status=status,
             selections=selections,
             findings=findings,
@@ -747,16 +1012,18 @@ def build_deployable_solution(
             rationale=(
                 f"{winner.name} ranks first at "
                 f"{winner.weighted_score:.3f}/100, satisfies the highest "
-                "available compatibility tier, and is evaluated against "
-                f"{len(winner.selections)} active architecture components."
+                "available compatibility tier, uses a feasible deployment "
+                "family, and is evaluated against "
+                f"{len(winner.selections)} family-closure components."
             ),
         )
     else:
         recommendation = Recommendation(
             state=RecommendationState.NO_VIABLE_CANDIDATE,
             rationale=(
-                "Every generated bundle violates a hard requirement or "
-                "interface contract; no recommendation is safe."
+                "No generated bundle combines a feasible deployment family "
+                "with a complete, compatible variant and interface closure; "
+                "no recommendation is safe."
             ),
         )
 

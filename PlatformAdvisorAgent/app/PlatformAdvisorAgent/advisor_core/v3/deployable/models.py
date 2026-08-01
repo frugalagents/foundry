@@ -9,6 +9,7 @@ from pydantic import Field, field_validator, model_validator
 
 from ..models import (
     ArchitecturePlane,
+    FeasibilityStatus,
     FrozenModel,
     RequirementValue,
     SemanticVersion,
@@ -133,6 +134,15 @@ class ServiceVariant(VersionedRecord):
     supported_capabilities: tuple[str, ...] = ()
     unsupported_capabilities: tuple[str, ...] = ()
     score_adjustments: tuple[DimensionValue, ...] = ()
+    dependency_component_ids: tuple[StableId, ...] = ()
+    provides_interface_ids: tuple[StableId, ...] = ()
+    requires_interface_ids: tuple[StableId, ...] = ()
+
+    _sort_dependencies = field_validator("dependency_component_ids")(
+        _sorted_unique
+    )
+    _sort_provides = field_validator("provides_interface_ids")(_sorted_unique)
+    _sort_requires = field_validator("requires_interface_ids")(_sorted_unique)
 
     @field_validator("supported_capabilities", "unsupported_capabilities")
     @classmethod
@@ -317,6 +327,7 @@ class CandidateBundle(FrozenModel):
     template_id: StableId
     name: str = Field(min_length=1)
     deployment_family_id: StableId
+    family_feasibility_status: FeasibilityStatus
     compatibility_status: CompatibilityStatus
     selections: tuple[BundleSelection, ...]
     findings: tuple[CompatibilityFinding, ...]

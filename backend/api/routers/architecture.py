@@ -6,13 +6,14 @@ from datetime import date
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, ConfigDict, Field
 
 from advisor_core.v3.demo import build_demo_workspace
 from advisor_core.v3.models import content_hash
 from advisor_core.v3.projection import build_frontend_projection
 from api.db import dynamodb as db
-from api.middleware.auth import get_current_user, get_user_id
+from api.middleware.auth import authorize_owned_resource, get_current_user, get_user_id
 
 
 router = APIRouter(prefix="/architecture", tags=["architecture"])
@@ -47,6 +48,18 @@ class ArchitectureExplainRequest(BaseModel):
     top_k: int = Field(default=4, ge=1, le=8)
 
 
+class ArchitectureExportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    revision_number: int | None = Field(default=None, ge=1)
+
+
+class ArchitectureReopenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    package: dict[str, Any]
+
+
 def _tenant_id(user: dict) -> str:
     for claim in (
         "custom:tenant_id",
@@ -62,8 +75,8 @@ def _tenant_id(user: dict) -> str:
     return get_user_id(user)
 
 
-def _workspace_id(tenant_id: str, owner_id: str) -> str:
-    scope = f"{tenant_id}\0{owner_id}\0coding-platform".encode()
+def _workspace_id(tenant_id: str, owner_id: str, scope_id: str) -> str:
+    scope = f"{tenant_id}\0{owner_id}\0{scope_id}\0coding-platform".encode()
     digest = hashlib.sha256(scope).hexdigest()[:24]
     return f"workspace:coding-platform-{digest}"
 
@@ -103,10 +116,49 @@ def _projection(
     return projection
 
 
-def _load_or_initialize(user: dict) -> dict:
+def _authorized_scope(
+    user: dict,
+    customer_id: str | None,
+    session_id: str | None,
+) -> str:
+    if customer_id is None and session_id is None:
+        return "standalone"
+    if not customer_id or not session_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="customer_id and session_id must be supplied together",
+        )
+
+    customer = db.get_customer(customer_id)
+    if not customer or customer.get("demo_data") is not True:
+        customer = authorize_owned_resource(
+            user,
+            customer,
+            resource_name="Customer",
+            write=True,
+        )
+
+    session = db.get_session(customer_id, session_id)
+    if not session or session.get("demo_data") is not True:
+        session = authorize_owned_resource(
+            user,
+            session,
+            resource_name="Session",
+            write=True,
+        )
+    if session.get("customer_id") != customer.get("customer_id"):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        )
+    digest = hashlib.sha256(f"{customer_id}\0{session_id}".encode()).hexdigest()[:24]
+    return f"customer-session-{digest}"
+
+
+def _load_or_initialize(user: dict, scope_id: str = "standalone") -> dict:
     owner_id = get_user_id(user)
     tenant_id = _tenant_id(user)
-    state = db.get_architecture_workspace_state(tenant_id, owner_id)
+    state = db.get_architecture_workspace_state(tenant_id, owner_id, scope_id)
     if state is not None:
         return state
 
@@ -115,10 +167,11 @@ def _load_or_initialize(user: dict) -> dict:
     return db.initialize_architecture_workspace_state(
         tenant_id=tenant_id,
         owner_id=owner_id,
-        workspace_id=_workspace_id(tenant_id, owner_id),
+        workspace_id=_workspace_id(tenant_id, owner_id, scope_id),
         answers=answers,
         state_hash=_persistence_hash(answers, as_of),
         as_of=as_of,
+        scope_id=scope_id,
     )
 
 
@@ -142,6 +195,114 @@ def _state_projection(state: dict) -> dict[str, object]:
         workspace_id=state["workspace_id"],
         persistence_revision=int(state["persistence_revision"]),
         persistence_hash=state["state_hash"],
+    )
+
+
+def _public_revision(revision: dict) -> dict[str, object]:
+    return {
+        "workspace_id": revision["workspace_id"],
+        "revision_number": int(revision["revision_number"]),
+        "parent_revision_number": (
+            int(revision["parent_revision_number"])
+            if revision.get("parent_revision_number") is not None
+            else None
+        ),
+        "previous_state_hash": revision.get("previous_state_hash"),
+        "state_hash": revision["state_hash"],
+        "answers": jsonable_encoder(revision["answers"]),
+        "as_of": revision["as_of"],
+        "operation": revision["operation"],
+        "created_at": revision["created_at"],
+    }
+
+
+def _get_scoped_revision(
+    user: dict,
+    scope_id: str,
+    revision_number: int,
+) -> dict:
+    tenant_id = _tenant_id(user)
+    owner_id = get_user_id(user)
+    revision = db.get_architecture_workspace_revision(
+        tenant_id,
+        owner_id,
+        revision_number,
+        scope_id,
+    )
+    if revision is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Architecture workspace revision not found",
+        )
+    return revision
+
+
+def _customer_package(
+    revision: dict,
+    *,
+    customer_id: str | None,
+    session_id: str | None,
+) -> dict[str, object]:
+    answers = jsonable_encoder(revision["answers"])
+    as_of = revision["as_of"]
+    if _persistence_hash(answers, as_of) != revision["state_hash"]:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Persisted architecture revision failed integrity verification",
+        )
+    projection = _projection(
+        answers=answers,
+        as_of=date.fromisoformat(as_of),
+        workspace_id=revision["workspace_id"],
+        persistence_revision=int(revision["revision_number"]),
+        persistence_hash=revision["state_hash"],
+    )
+    package: dict[str, object] = {
+        "schema_version": "1.0.0",
+        "package_type": "platform-advisor.customer-architecture",
+        "workspace": {
+            "workspace_id": revision["workspace_id"],
+            "scope": {
+                "type": (
+                    "customer_session"
+                    if customer_id is not None
+                    else "standalone"
+                ),
+                "customer_id": customer_id,
+                "session_id": session_id,
+            },
+        },
+        "revision": _public_revision(revision),
+        "pinned_versions": {
+            "package_contract_version": "1.0.0",
+            "projection_schema_version": projection["schema_version"],
+            "catalog_release_id": projection["catalog"]["catalog_release_id"],
+            "catalog_release_version": projection["catalog"]["version"],
+            "catalog_content_hash": projection["catalog"]["content_hash"],
+            "catalog_validated_as_of": projection["catalog"][
+                "validated_as_of"
+            ],
+            "engine_revision_id": projection["revision"]["revision_id"],
+            "engine_revision_number": projection["revision"][
+                "revision_number"
+            ],
+            "engine_state_hash": projection["revision"]["state_hash"],
+            "projection_hash": projection["projection_hash"],
+        },
+        "inputs": {
+            "answers": answers,
+            "as_of": as_of,
+        },
+        "solution": projection,
+    }
+    package["package_hash"] = content_hash(package)
+    return package
+
+
+def _invalid_package(detail: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail=detail,
     )
 
 
@@ -177,8 +338,9 @@ def _apply(
     reset: bool,
     base_revision_number: int | None,
     base_state_hash: str | None,
+    scope_id: str = "standalone",
 ) -> dict[str, object]:
-    state = _load_or_initialize(user)
+    state = _load_or_initialize(user, scope_id)
     _reject_stale_base(
         state,
         base_revision_number=base_revision_number,
@@ -213,11 +375,14 @@ def _apply(
             expected_state_hash=state["state_hash"],
             answers=merged_answers,
             state_hash=new_hash,
+            scope_id=scope_id,
+            operation="reset" if reset else "evaluate",
         )
     except db.ArchitectureWorkspaceConflict as exc:
         latest = db.get_architecture_workspace_state(
             state["tenant_id"],
             state["created_by"],
+            scope_id,
         )
         detail: dict[str, object] = {
             "message": "Architecture workspace changed; reload before retrying"
@@ -247,21 +412,28 @@ def _apply(
 @router.get("/workspace")
 async def get_architecture_workspace(
     current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
 ) -> dict[str, object]:
-    return _state_projection(_load_or_initialize(current_user))
+    scope_id = _authorized_scope(current_user, customer_id, session_id)
+    return _state_projection(_load_or_initialize(current_user, scope_id))
 
 
 @router.post("/workspace/evaluate")
 async def evaluate_architecture_workspace(
     payload: ArchitectureEvaluationRequest,
     current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
 ) -> dict[str, object]:
+    scope_id = _authorized_scope(current_user, customer_id, session_id)
     return _apply(
         current_user,
         answers=payload.answers,
         reset=False,
         base_revision_number=payload.base_revision_number,
         base_state_hash=payload.base_state_hash,
+        scope_id=scope_id,
     )
 
 
@@ -269,20 +441,170 @@ async def evaluate_architecture_workspace(
 async def reset_architecture_workspace(
     payload: ArchitectureResetRequest,
     current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
 ) -> dict[str, object]:
+    scope_id = _authorized_scope(current_user, customer_id, session_id)
     return _apply(
         current_user,
         answers={},
         reset=True,
         base_revision_number=payload.base_revision_number,
         base_state_hash=payload.base_state_hash,
+        scope_id=scope_id,
     )
+
+
+@router.get("/workspace/revisions")
+async def list_architecture_workspace_revisions(
+    current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
+    limit: int = 100,
+) -> dict[str, object]:
+    if limit < 1 or limit > 100:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="limit must be between 1 and 100",
+        )
+    scope_id = _authorized_scope(current_user, customer_id, session_id)
+    head = _load_or_initialize(current_user, scope_id)
+    revisions = db.list_architecture_workspace_revisions(
+        _tenant_id(current_user),
+        get_user_id(current_user),
+        scope_id,
+        limit=limit,
+    )
+    return {
+        "workspace_id": head["workspace_id"],
+        "current_revision_number": int(head["persistence_revision"]),
+        "revisions": [_public_revision(revision) for revision in revisions],
+    }
+
+
+@router.get("/workspace/revisions/{revision_number}")
+async def get_architecture_workspace_revision(
+    revision_number: int,
+    current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
+) -> dict[str, object]:
+    if revision_number < 1:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="revision_number must be at least 1",
+        )
+    scope_id = _authorized_scope(current_user, customer_id, session_id)
+    _load_or_initialize(current_user, scope_id)
+    return _public_revision(
+        _get_scoped_revision(current_user, scope_id, revision_number)
+    )
+
+
+@router.post("/workspace/exports")
+async def export_architecture_customer_package(
+    payload: ArchitectureExportRequest,
+    current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
+) -> dict[str, object]:
+    scope_id = _authorized_scope(current_user, customer_id, session_id)
+    head = _load_or_initialize(current_user, scope_id)
+    revision_number = (
+        payload.revision_number
+        if payload.revision_number is not None
+        else int(head["persistence_revision"])
+    )
+    revision = _get_scoped_revision(
+        current_user,
+        scope_id,
+        revision_number,
+    )
+    return _customer_package(
+        revision,
+        customer_id=customer_id,
+        session_id=session_id,
+    )
+
+
+@router.post("/workspace/reopen")
+async def reopen_architecture_customer_package(
+    payload: ArchitectureReopenRequest,
+    current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
+) -> dict[str, object]:
+    scope_id = _authorized_scope(current_user, customer_id, session_id)
+    package = payload.package
+    supplied_hash = package.get("package_hash")
+    if not isinstance(supplied_hash, str):
+        raise _invalid_package("Customer package hash is missing")
+    hash_input = dict(package)
+    hash_input.pop("package_hash", None)
+    try:
+        calculated_hash = content_hash(hash_input)
+    except (TypeError, ValueError):
+        raise _invalid_package("Customer package is not canonical JSON") from None
+    if calculated_hash != supplied_hash:
+        raise _invalid_package("Customer package hash verification failed")
+    if (
+        package.get("schema_version") != "1.0.0"
+        or package.get("package_type")
+        != "platform-advisor.customer-architecture"
+    ):
+        raise _invalid_package("Customer package contract is unsupported")
+
+    workspace = package.get("workspace")
+    revision_data = package.get("revision")
+    if not isinstance(workspace, dict) or not isinstance(revision_data, dict):
+        raise _invalid_package("Customer package identity is invalid")
+    expected_workspace_id = _workspace_id(
+        _tenant_id(current_user),
+        get_user_id(current_user),
+        scope_id,
+    )
+    if workspace.get("workspace_id") != expected_workspace_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Customer package not found",
+        )
+    try:
+        revision_number = int(revision_data["revision_number"])
+    except (KeyError, TypeError, ValueError):
+        raise _invalid_package("Customer package revision is invalid") from None
+    if revision_number < 1:
+        raise _invalid_package("Customer package revision is invalid")
+
+    revision = _get_scoped_revision(
+        current_user,
+        scope_id,
+        revision_number,
+    )
+    expected_package = _customer_package(
+        revision,
+        customer_id=customer_id,
+        session_id=session_id,
+    )
+    if package != expected_package:
+        raise _invalid_package(
+            "Customer package does not match its immutable revision"
+        )
+    return {
+        "verified": True,
+        "replay_verified": True,
+        "workspace_id": expected_workspace_id,
+        "revision_number": revision_number,
+        "package_hash": supplied_hash,
+        "projection": expected_package["solution"],
+    }
 
 
 @router.post("/explain")
 async def explain_architecture_decision(
     payload: ArchitectureExplainRequest,
     current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
 ) -> dict[str, object]:
     """Retrieve supporting passages for a decision from the knowledge base.
 
@@ -294,6 +616,7 @@ async def explain_architecture_decision(
     already made. Retrieved passages are clearly labeled as reference, not
     authority, and the endpoint degrades to an empty list when no KB is wired.
     """
+    _authorized_scope(current_user, customer_id, session_id)
     # Imported lazily so the API starts even when the agent package or KB is
     # unavailable (e.g. local dev without KNOWLEDGE_BASE_ID configured).
     try:
@@ -320,16 +643,17 @@ class ChatRequest(BaseModel):
 async def chat_architecture(
     payload: ChatRequest,
     current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
 ) -> dict[str, object]:
-    """Interpret a free-text message into typed engine answers and merge them.
+    """Interpret free text into a typed requirement proposal for user review.
 
-    The conversational path into the SAME engine the canvas clicks feed: the
-    LLM extracts answers (box choices + constraints), we merge them into the
-    stored answer set (chat and clicks accumulate together), and return a short
-    reply plus the merged answers so the UI can reflect them. Extraction only —
-    the engine still decides.
+    The model can extract candidate requirements, but this endpoint never
+    mutates the workspace. The UI must submit an accepted proposal through the
+    deterministic evaluate endpoint, which validates and commits the revision.
     """
-    state = _load_or_initialize(current_user)
+    scope_id = _authorized_scope(current_user, customer_id, session_id)
+    state = _load_or_initialize(current_user, scope_id)
     answers = state.get("answers")
     if not isinstance(answers, dict):
         raise HTTPException(
@@ -344,80 +668,16 @@ async def chat_architecture(
             detail="Architecture engine is unavailable",
         ) from exc
 
-    result = engine_agents.interpret(payload.message, answers)
-    merged = {**answers, **result["answers"]}
-    if result["answers"]:
-        try:
-            db.save_architecture_engine_answers(
-                tenant_id=state["tenant_id"],
-                owner_id=state["created_by"],
-                answers=merged,
-            )
-        except Exception:  # noqa: BLE001
-            pass
+    catalog, _ = build_demo_workspace(
+        date.fromisoformat(state["as_of"]),
+        requirement_values=answers,
+    )
+    result = engine_agents.interpret_requirements(
+        payload.message,
+        catalog.requirements,
+    )
     return {
         "reply": result["reply"],
-        "applied_answers": result["answers"],
-        "answers": merged,
+        "proposed_answers": result["answers"],
         "source": result["source"],
     }
-
-
-class GenerateRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    # boxes to decide now; defaults to the domains authored in the engine
-    boxes: list[str] = Field(default_factory=lambda: ["model-gateway", "harness"])
-
-
-@router.post("/generate")
-async def generate_architecture_endpoint(
-    payload: GenerateRequest,
-    current_user: CurrentUser,
-) -> dict[str, object]:
-    """Run the agentic engine (propose → guard → generate → critic) over the
-    stored answers and return the purpose-built architecture: solution stack,
-    grounded rationale, cascades, guard verdict, and a persisted Decision Record.
-
-    Available at any point — gaps fall back to constraint-compliant defaults, so
-    the output is always defensible even from partial input.
-    """
-    from datetime import datetime, timezone
-
-    state = _load_or_initialize(current_user)
-    answers = state.get("answers")
-    if not isinstance(answers, dict):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Persisted architecture workspace answers are invalid",
-        )
-
-    try:
-        from api.engine import generate_architecture
-    except ImportError as exc:  # engine package missing → cannot generate
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Architecture engine is unavailable",
-        ) from exc
-
-    result = generate_architecture(
-        workspace_id=state["workspace_id"],
-        answers=answers,
-        boxes=payload.boxes,
-        created_at=datetime.now(timezone.utc).isoformat(),
-    )
-
-    # Persist the Decision Record (best-effort; generation still returns on
-    # a persistence hiccup so the user isn't blocked).
-    try:
-        db.save_architecture_decision_record(
-            tenant_id=state["tenant_id"],
-            owner_id=state["created_by"],
-            record=result["decision_record"],
-        )
-    except Exception:  # noqa: BLE001
-        result["persisted"] = False
-    else:
-        result["persisted"] = True
-
-    return result

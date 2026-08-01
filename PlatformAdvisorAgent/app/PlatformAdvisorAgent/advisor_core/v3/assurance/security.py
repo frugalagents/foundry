@@ -27,10 +27,12 @@ def _rating(score: float) -> str:
 def _accepted_evidence(
     evidence: ControlEvidence,
     *,
+    verification_id: str,
     as_of: date,
 ) -> bool:
     return (
         evidence.status == "pass"
+        and evidence.verification_id == verification_id
         and evidence.observed_at.date() <= as_of
         and (evidence.expires_on is None or evidence.expires_on >= as_of)
     )
@@ -66,18 +68,36 @@ def build_security_plan(
     control_items: list[ControlPlanItem] = []
     verified_control_ids: set[str] = set()
     for control in applicable_controls:
-        evidence = sorted(
-            evidence_by_control.get(control.id, ()),
+        observed_evidence = sorted(
+            (
+                item
+                for item in evidence_by_control.get(control.id, ())
+                if item.observed_at.date() <= as_of
+            ),
             key=lambda item: (item.observed_at, item.evidence_id),
         )
-        accepted = tuple(
-            item for item in evidence if _accepted_evidence(item, as_of=as_of)
+        latest_observed_at = (
+            observed_evidence[-1].observed_at if observed_evidence else None
         )
-        if accepted:
+        evidence = tuple(
+            item
+            for item in observed_evidence
+            if item.observed_at == latest_observed_at
+        )
+        accepted = tuple(
+            item
+            for item in evidence
+            if _accepted_evidence(
+                item,
+                verification_id=control.verification.id,
+                as_of=as_of,
+            )
+        )
+        if any(item.status == "fail" for item in evidence):
+            status = "failed"
+        elif accepted:
             status = "verified"
             verified_control_ids.add(control.id)
-        elif any(item.status == "fail" for item in evidence):
-            status = "failed"
         else:
             status = "planned"
         control_items.append(

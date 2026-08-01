@@ -27,6 +27,8 @@ export interface RequirementAssumption {
 export interface ArchitectureRequirement {
   id: string;
   name: string;
+  description?: string;
+  required?: boolean;
   value: RequirementValue;
   status: RequirementStatus;
   source?: string;
@@ -65,6 +67,8 @@ export interface ArchitectureProjection {
 export interface DeploymentFeasibility {
   pattern_id: string;
   name: string;
+  description?: string;
+  reason?: string;
   status: FeasibilityStatus;
   rejection_rule_ids: string[];
   blocking_requirement_ids: string[];
@@ -128,6 +132,15 @@ export interface DeployableCandidate {
   deployment_family_id: string;
   compatibility_status: 'compatible' | 'conditional' | 'incompatible';
   selections: DeployableSelection[];
+  findings?: {
+    finding_id: string;
+    status: string;
+    severity: string;
+    code: string;
+    message: string;
+    component_ids: string[];
+    requirement_id?: string;
+  }[];
   dimension_scores: { dimension_id: string; score: number }[];
   weighted_score: number;
   tradeoffs: {
@@ -153,8 +166,10 @@ export interface DeployableDecisionMatrix {
     dimension_id: string;
     baseline_candidate_id: string;
     challenger_candidate_id?: string;
+    baseline_weight?: number;
     switch_weight?: number;
     winner_changes: boolean;
+    score_margin_at_baseline?: number;
   }[];
   result_hash: string;
 }
@@ -170,11 +185,14 @@ export interface AssurancePacket {
       residual_score: number;
       residual_rating: 'low' | 'moderate' | 'high' | 'critical';
       required_control_ids: string[];
+      applicable_component_ids?: string[];
     }[];
     controls: {
       control_id: string;
       title: string;
       status: 'planned' | 'verified' | 'failed';
+      evidence_ids?: string[];
+      applicable_component_ids?: string[];
       verification: {
         method: string;
         evidence_type: string;
@@ -188,12 +206,32 @@ export interface AssurancePacket {
       status: 'planned' | 'verified';
       rationale: string;
       implementation: string;
+      applicable_component_ids?: string[];
+      control_ids?: string[];
     }[];
     residual_risk_total: number;
     high_or_critical_residual_count: number;
     verified_control_count: number;
   };
   economics: {
+    assumptions: {
+      assumption_id: string;
+      name: string;
+      unit: string;
+      value_range: NumericRange;
+      rationale: string;
+      source: 'catalog_default' | 'workspace_requirement';
+    }[];
+    unit_costs: {
+      cost_id: string;
+      name: string;
+      unit: string;
+      currency: 'USD';
+      value_range: NumericRange;
+      effective_on: string;
+      status: 'placeholder' | 'evidence_backed' | 'unverified_override';
+      source: string;
+    }[];
     totals: {
       cost_per_requested_task: NumericRange;
       cost_per_successful_task: NumericRange;
@@ -273,6 +311,138 @@ export interface ArchitectureWorkspaceProjection {
       };
     }[];
     history_hash: string;
+  };
+}
+
+export type WorkspaceReadinessState = 'needs-information' | 'conditional' | 'publishable';
+
+export interface WorkspaceGuidance {
+  totalRequirements: number;
+  confirmedRequirements: number;
+  assumedRequirements: number;
+  openRequirements: ArchitectureRequirement[];
+  requiredOpenRequirements: ArchitectureRequirement[];
+  coveredPercent: number;
+  feasibleAlternatives: number;
+  publicationBlockers: string[];
+  criticalControlBlockers: number;
+  highRiskCount: number;
+  unapprovedCostInputs: number;
+  missingEvidenceCount: number;
+  readiness: WorkspaceReadinessState;
+  readinessLabel: string;
+  readinessDetail: string;
+}
+
+export function deriveWorkspaceGuidance(
+  projection: ArchitectureWorkspaceProjection,
+): WorkspaceGuidance {
+  const openRequirements = projection.requirements.filter(
+    (requirement) => requirement.status === 'unanswered' || requirement.status === 'unknown',
+  );
+  const requiredOpenRequirements = openRequirements.filter((requirement) => requirement.required);
+  const confirmedRequirements = projection.requirements.filter(
+    (requirement) => requirement.status === 'answered',
+  ).length;
+  const assumedRequirements = projection.requirements.filter(
+    (requirement) => requirement.status === 'assumed',
+  ).length;
+  const coveredRequirements = projection.requirements.length - openRequirements.length;
+  const feasibleAlternatives = projection.feasibility.filter(
+    (alternative) => alternative.status === 'feasible',
+  ).length;
+  const hasRecommendation =
+    projection.deployable_solution?.recommendation.state === 'recommended';
+  const assurance = projection.assurance;
+  // The assurance contract does not classify control criticality separately,
+  // so every required control is publication-critical and must be verified.
+  const criticalControlBlockers = (assurance?.security.controls ?? []).filter(
+    (control) => control.status !== 'verified',
+  ).length;
+  const highRiskCount = assurance?.security.high_or_critical_residual_count ?? 0;
+  const unapprovedCostInputs = (assurance?.economics.unit_costs ?? []).filter(
+    (cost) => cost.status !== 'evidence_backed',
+  ).length;
+  const evidenceById = new Map(
+    (projection.evidence ?? []).map((claim) => [claim.claim_id, claim]),
+  );
+  const missingEvidenceIds = new Set<string>();
+  if (projection.decision_trace.length === 0) missingEvidenceIds.add('trace:missing');
+  for (const trace of projection.decision_trace) {
+    if (!trace.evidence_claim_ids?.length) {
+      missingEvidenceIds.add(`trace:${trace.evaluation_id}`);
+      continue;
+    }
+    for (const claimId of trace.evidence_claim_ids) {
+      const claim = evidenceById.get(claimId);
+      if (!claim || claim.review_status !== 'approved') missingEvidenceIds.add(claimId);
+    }
+  }
+  for (const control of assurance?.security.controls ?? []) {
+    if (control.status === 'verified' && !control.evidence_ids?.length) {
+      missingEvidenceIds.add(`control:${control.control_id}`);
+    }
+  }
+  const missingEvidenceCount = missingEvidenceIds.size;
+  const publicationBlockers: string[] = [];
+  if (feasibleAlternatives === 0) publicationBlockers.push('no confirmed feasible deployment family');
+  if (!hasRecommendation) publicationBlockers.push('no recommended deployable solution');
+  if (!assurance) publicationBlockers.push('assurance package missing');
+  if (openRequirements.length > 0) {
+    publicationBlockers.push(`${openRequirements.length} open requirement${openRequirements.length === 1 ? '' : 's'}`);
+  }
+  if (assumedRequirements > 0) {
+    publicationBlockers.push(`${assumedRequirements} unconfirmed assumption${assumedRequirements === 1 ? '' : 's'}`);
+  }
+  if (criticalControlBlockers > 0) {
+    publicationBlockers.push(`${criticalControlBlockers} critical control${criticalControlBlockers === 1 ? '' : 's'} not verified`);
+  }
+  if (highRiskCount > 0) {
+    publicationBlockers.push(`${highRiskCount} high or critical residual risk${highRiskCount === 1 ? '' : 's'}`);
+  }
+  if (unapprovedCostInputs > 0) {
+    publicationBlockers.push(`${unapprovedCostInputs} economics input${unapprovedCostInputs === 1 ? '' : 's'} not evidence-backed`);
+  }
+  if (missingEvidenceCount > 0) {
+    publicationBlockers.push(`${missingEvidenceCount} decision evidence gap${missingEvidenceCount === 1 ? '' : 's'}`);
+  }
+
+  let readiness: WorkspaceReadinessState = 'publishable';
+  let readinessLabel = 'Ready to publish';
+  let readinessDetail = 'Requirements, controls, risks, economics, and decision evidence satisfy the publication gate.';
+
+  if (requiredOpenRequirements.length > 0 || feasibleAlternatives === 0 || !hasRecommendation) {
+    readiness = 'needs-information';
+    readinessLabel = 'Needs customer input';
+    readinessDetail = requiredOpenRequirements.length > 0
+      ? `${requiredOpenRequirements.length} required decision${requiredOpenRequirements.length === 1 ? '' : 's'} must be resolved before publication.`
+      : 'No deployment family is confirmed feasible yet. Resolve the next decision to narrow the architecture.';
+  } else if (!assurance || publicationBlockers.length > 0) {
+    readiness = 'conditional';
+    readinessLabel = 'Reviewable, not publishable';
+    readinessDetail = !assurance
+      ? 'The deterministic solution is available, but its assurance package is incomplete.'
+      : `Resolve ${publicationBlockers[0]} before publishing this architecture package.`;
+  }
+
+  return {
+    totalRequirements: projection.requirements.length,
+    confirmedRequirements,
+    assumedRequirements,
+    openRequirements,
+    requiredOpenRequirements,
+    coveredPercent: projection.requirements.length === 0
+      ? 0
+      : Math.round((coveredRequirements / projection.requirements.length) * 100),
+    feasibleAlternatives,
+    publicationBlockers,
+    criticalControlBlockers,
+    highRiskCount,
+    unapprovedCostInputs,
+    missingEvidenceCount,
+    readiness,
+    readinessLabel,
+    readinessDetail,
   };
 }
 

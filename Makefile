@@ -1,7 +1,8 @@
 .PHONY: help install-frontend install-backend install dev-up dev-down dev-backend dev-frontend \
         setup-db test-backend lint-frontend check-frontend-production-env build-frontend \
-        check-deploy-config deploy deploy-frontend smoke-test prepare-lambda \
-        check-agentcore-cli deploy-agentcore wire-agentcore seed-demo clean
+        check-deploy-config check-admin-migration check-frontend-bucket deploy deploy-frontend \
+        deploy-admin-migration-phase1 deploy-admin-migration-phase2 smoke-test prepare-lambda \
+        configure-log-retention check-agentcore-cli deploy-agentcore wire-agentcore seed-demo clean
 
 BACKEND_DIR    := backend
 FRONTEND_DIR   := frontend
@@ -11,10 +12,19 @@ AGENT_APP_DIR  := $(AGENTCORE_DIR)/app/PlatformAdvisorAgent
 LAMBDA_STAGE   := $(INFRA_DIR)/.lambda-src
 STACK_NAME     := platform-advisor
 ENV            ?= dev
-ADMIN_ALIASES  ?= aigopala,thandavm
+ADMIN_ALIASES  ?=
+ADMIN_GROUP_NAME ?= admin
+ADMIN_ALIAS_MIGRATION_ENABLED ?= false
+ADMIN_ALIAS_MIGRATION_ACK ?=
+ALLOW_NON_DEV_DEPLOY ?= false
+LOG_RETENTION_DAYS ?= 30
+MIDWAY_CLIENT_ID ?= platform-advisor-dev
+MIDWAY_CLIENT_SECRET ?=
+KNOWLEDGE_BASE_ID ?= EDDM8YZDNJ
 AWS_PROFILE    ?= platform-advisor
 AWS_REGION     ?= us-east-1
 AGENTCORE_UV_CACHE_DIR ?= /tmp/platform-advisor-uv-cache
+AGENTCORE_NETWORK_MODE ?= PUBLIC
 
 # Browser-facing deployment configuration. Every NEXT_PUBLIC value used by the
 # frontend is injected explicitly so Next.js cannot publish .env.local values.
@@ -26,6 +36,8 @@ COGNITO_DOMAIN                ?= platform-advisor-dev-616627284001.auth.us-east-
 COGNITO_IDENTITY_POOL_ID      ?= us-east-1:7494c292-da32-4ddf-b573-a4729ad4aeaf
 AGENTCORE_RUNTIME_ARN         ?= arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/PlatformAdvisorAgent_PlatformAdvisorAgent-3U71dVBprI
 FRONTEND_DEV_MODE             ?= false
+
+export MIDWAY_CLIENT_SECRET
 
 # @aws/agentcore and the obsolete Python starter toolkit install the same
 # command name. Prefer Homebrew's Node CLI, then fall back to PATH.
@@ -53,7 +65,10 @@ help:
 	@echo "  lint-frontend         Run ESLint + TypeScript check"
 	@echo "  build-frontend        Build Next.js with explicit production browser config"
 	@echo ""
-	@echo "  deploy ENV=prod       SAM deploy Lambda + API GW + DynamoDB"
+	@echo "  deploy                Validate and review a SAM change set before execution"
+	@echo "  deploy-admin-migration-phase1  Create admin group with guarded dev fallback"
+	@echo "  deploy-admin-migration-phase2  Disable fallback after group enrollment"
+	@echo "  configure-log-retention  Apply and verify bounded Lambda log retention"
 	@echo "  deploy-frontend       Build, sync to S3, invalidate CF, run smoke test"
 	@echo "  smoke-test            Run post-deploy smoke test (real Cognito auth)"
 	@echo "  deploy-agentcore      Deploy Strands agent to AgentCore Runtime (CodeZip)"
@@ -162,10 +177,24 @@ check-frontend-production-env:
 	if [ "$(FRONTEND_DEV_MODE)" != "false" ]; then \
 		echo "ERROR: NEXT_PUBLIC_DEV_MODE must be false for a production frontend build."; \
 		exit 1; \
+	fi; \
+	if [ "$(ENV)" != "dev" ] && { \
+		[ "$(FRONTEND_API_URL)" = "https://5kr7vlzkfj.execute-api.us-east-1.amazonaws.com/api/v1" ] || \
+		[ "$(FRONTEND_APP_URL)" = "https://d1wa5bvm23hhld.cloudfront.net" ] || \
+		[ "$(COGNITO_USER_POOL_ID)" = "us-east-1_oSEwvKdfd" ] || \
+		[ "$(COGNITO_CLIENT_ID)" = "6gbe6mt1il74sdqlq8boc60ld4" ] || \
+		[ "$(COGNITO_IDENTITY_POOL_ID)" = "us-east-1:7494c292-da32-4ddf-b573-a4729ad4aeaf" ] || \
+		[ "$(AGENTCORE_RUNTIME_ARN)" = "arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/PlatformAdvisorAgent_PlatformAdvisorAgent-3U71dVBprI" ] || \
+		[ "$(S3_BUCKET)" = "platform-advisor-frontend-dev-616627284001" ] || \
+		[ "$(CF_DIST_ID)" = "E33AR847I77OZS" ]; \
+	}; then \
+		echo "ERROR: ENV=$(ENV) frontend publish still points at the fixed dev estate."; \
+		exit 1; \
 	fi
 
 build-frontend: check-frontend-production-env
 	cd $(FRONTEND_DIR) && \
+	rm -rf .next out && \
 	NEXT_PUBLIC_API_URL="$(FRONTEND_API_URL)" \
 	NEXT_PUBLIC_APP_URL="$(FRONTEND_APP_URL)" \
 	NEXT_PUBLIC_COGNITO_USER_POOL_ID="$(COGNITO_USER_POOL_ID)" \
@@ -184,20 +213,77 @@ build-frontend: check-frontend-production-env
 
 # ── Deploy ────────────────────────────────────────────────────────────────────
 
-S3_BUCKET    := platform-advisor-frontend-dev-616627284001
-CF_DIST_ID   := E33AR847I77OZS
+S3_BUCKET    ?= platform-advisor-frontend-dev-616627284001
+CF_DIST_ID   ?= E33AR847I77OZS
+FRONTEND_DEPLOYMENT_PREFIX ?= _deployments
 
-deploy-frontend: build-frontend
+check-frontend-bucket:
+	@status="$$(aws s3api get-bucket-versioning \
+		--bucket "$(S3_BUCKET)" \
+		--profile "$(AWS_PROFILE)" \
+		--region "$(AWS_REGION)" \
+		--query Status --output text)"; \
+	if [ "$$status" != "Enabled" ]; then \
+		echo "ERROR: s3://$(S3_BUCKET) must have versioning enabled before frontend deployment."; \
+		echo "Deploy the reviewed SAM change set first."; \
+		exit 1; \
+	fi
+
+deploy-frontend: build-frontend check-frontend-bucket
 	@test -f $(FRONTEND_DIR)/out/architecture/index.html || \
 		(echo "ERROR: architecture/index.html is missing from the frontend export."; exit 1)
-	@echo "Syncing to S3..."
-	aws s3 sync $(FRONTEND_DIR)/out/ s3://$(S3_BUCKET)/ --delete --quiet --profile $(AWS_PROFILE)
-	@echo "Invalidating CloudFront..."
-	aws cloudfront create-invalidation --distribution-id $(CF_DIST_ID) --paths "/*" \
-	  --profile $(AWS_PROFILE) --query 'Invalidation.Id' --output text
-	@echo "Waiting 15s for propagation..."
-	@sleep 15
-	@echo "Running smoke test..."
+	@set -eu; \
+	deployment_id="$$(date -u +%Y%m%dT%H%M%SZ)"; \
+	before_manifest="$$(mktemp)"; \
+	head_response="$$(mktemp)"; \
+	trap 'rm -f "$$before_manifest" "$$head_response"' EXIT; \
+	aws s3api list-object-versions \
+		--bucket "$(S3_BUCKET)" \
+		--profile "$(AWS_PROFILE)" \
+		--region "$(AWS_REGION)" \
+		--query 'Versions[?IsLatest==`true`].[Key,VersionId]' \
+		--output json > "$$before_manifest"; \
+	echo "Syncing frontend deployment $$deployment_id to versioned S3..."; \
+	aws s3 sync $(FRONTEND_DIR)/out/ s3://$(S3_BUCKET)/ \
+		--delete \
+		--exclude "$(FRONTEND_DEPLOYMENT_PREFIX)/*" \
+		--quiet \
+		--profile "$(AWS_PROFILE)" \
+		--region "$(AWS_REGION)"; \
+	entry_sha="$$(shasum -a 256 $(FRONTEND_DIR)/out/index.html | awk '{print $$1}')"; \
+	aws s3 cp $(FRONTEND_DIR)/out/index.html s3://$(S3_BUCKET)/index.html \
+		--metadata "deployment-sha256=$$entry_sha,deployment-id=$$deployment_id" \
+		--content-type "text/html" \
+		--cache-control "no-cache" \
+		--quiet \
+		--profile "$(AWS_PROFILE)" \
+		--region "$(AWS_REGION)"; \
+	aws s3api head-object \
+		--bucket "$(S3_BUCKET)" \
+		--key index.html \
+		--profile "$(AWS_PROFILE)" \
+		--region "$(AWS_REGION)" \
+		--output json > "$$head_response"; \
+	python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); expected=sys.argv[2]; assert d.get("VersionId") not in (None, "", "null"), "index.html has no S3 version"; assert d.get("Metadata", {}).get("deployment-sha256") == expected, "deployed index hash metadata does not match local build"; print("Verified index.html version " + d["VersionId"])' "$$head_response" "$$entry_sha"; \
+	manifest_key="$(FRONTEND_DEPLOYMENT_PREFIX)/$$deployment_id-before.json"; \
+	aws s3 cp "$$before_manifest" "s3://$(S3_BUCKET)/$$manifest_key" \
+		--content-type "application/json" \
+		--metadata "deployment-id=$$deployment_id,manifest-type=pre-deploy-current-versions" \
+		--quiet \
+		--profile "$(AWS_PROFILE)" \
+		--region "$(AWS_REGION)"; \
+	echo "Rollback manifest: s3://$(S3_BUCKET)/$$manifest_key"; \
+	invalidation_id="$$(aws cloudfront create-invalidation \
+		--distribution-id $(CF_DIST_ID) \
+		--paths "/*" \
+		--profile "$(AWS_PROFILE)" \
+		--query 'Invalidation.Id' \
+		--output text)"; \
+	echo "Waiting for CloudFront invalidation $$invalidation_id..."; \
+	aws cloudfront wait invalidation-completed \
+		--distribution-id $(CF_DIST_ID) \
+		--id "$$invalidation_id" \
+		--profile "$(AWS_PROFILE)"; \
 	$(MAKE) smoke-test \
 		AWS_PROFILE="$(AWS_PROFILE)" \
 		AWS_REGION="$(AWS_REGION)" \
@@ -231,6 +317,57 @@ prepare-lambda:
 	done
 
 check-deploy-config:
+	@if [ "$(ENV)" != "dev" ] && [ "$(ALLOW_NON_DEV_DEPLOY)" != "true" ]; then \
+		echo "ERROR: this rollout path defaults to dev. Set ALLOW_NON_DEV_DEPLOY=true only after a separate environment review."; \
+		exit 1; \
+	fi
+	@if [ "$(FRONTEND_DEV_MODE)" != "false" ]; then \
+		echo "ERROR: AWS rollout requires FRONTEND_DEV_MODE=false."; \
+		exit 1; \
+	fi
+	@set -eu; \
+	case "$${MIDWAY_CLIENT_SECRET:-}" in \
+		\** ) \
+			echo "ERROR: MIDWAY_CLIENT_SECRET is a masked placeholder, not a deployable secret."; \
+			exit 1 ;; \
+		"" ) \
+			if ! aws cloudformation describe-stacks \
+				--stack-name "$(STACK_NAME)-$(ENV)" \
+				--profile "$(AWS_PROFILE)" \
+				--region "$(AWS_REGION)" \
+				--query "Stacks[0].Parameters[?ParameterKey=='MidwayClientSecret'].ParameterKey | [0]" \
+				--output text | rg -qx 'MidwayClientSecret'; then \
+				echo "ERROR: MIDWAY_CLIENT_SECRET is required for a new stack; no existing stack parameter can be preserved."; \
+				exit 1; \
+			fi; \
+			echo "Preserving the existing NoEcho Midway client secret." ;; \
+		* ) echo "Using the explicitly injected Midway client secret." ;; \
+	esac
+	@if [ -z "$(strip $(ADMIN_ALIASES))" ]; then \
+		echo "ERROR: ADMIN_ALIASES must identify every existing administrator for migration verification."; \
+		exit 1; \
+	fi
+	@if [ "$(ADMIN_ALIAS_MIGRATION_ENABLED)" != "true" ] && \
+	    [ "$(ADMIN_ALIAS_MIGRATION_ENABLED)" != "false" ]; then \
+		echo "ERROR: ADMIN_ALIAS_MIGRATION_ENABLED must be true or false."; \
+		exit 1; \
+	fi
+	@if [ "$(ENV)" != "dev" ]; then \
+		if [ "$(FRONTEND_API_URL)" = "https://5kr7vlzkfj.execute-api.us-east-1.amazonaws.com/api/v1" ] || \
+		   [ "$(FRONTEND_APP_URL)" = "https://d1wa5bvm23hhld.cloudfront.net" ] || \
+		   [ "$(COGNITO_USER_POOL_ID)" = "us-east-1_oSEwvKdfd" ] || \
+		   [ "$(COGNITO_CLIENT_ID)" = "6gbe6mt1il74sdqlq8boc60ld4" ] || \
+		   [ "$(COGNITO_DOMAIN)" = "platform-advisor-dev-616627284001.auth.us-east-1.amazoncognito.com" ] || \
+		   [ "$(COGNITO_IDENTITY_POOL_ID)" = "us-east-1:7494c292-da32-4ddf-b573-a4729ad4aeaf" ] || \
+		   [ "$(MIDWAY_CLIENT_ID)" = "platform-advisor-dev" ] || \
+		   [ "$(KNOWLEDGE_BASE_ID)" = "EDDM8YZDNJ" ] || \
+		   [ "$(AGENTCORE_RUNTIME_ARN)" = "arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/PlatformAdvisorAgent_PlatformAdvisorAgent-3U71dVBprI" ] || \
+		   [ "$(S3_BUCKET)" = "platform-advisor-frontend-dev-616627284001" ] || \
+		   [ "$(CF_DIST_ID)" = "E33AR847I77OZS" ]; then \
+			echo "ERROR: ENV=$(ENV) still points at the fixed dev estate; provide environment-specific values."; \
+			exit 1; \
+		fi; \
+	fi
 	@case "$(AGENTCORE_RUNTIME_ARN)" in \
 		"" ) \
 			if [ "$(ENV)" = "prod" ]; then \
@@ -243,24 +380,139 @@ check-deploy-config:
 			exit 1 ;; \
 	esac
 
-deploy: check-deploy-config prepare-lambda
-	cd $(INFRA_DIR) && sam build --skip-pull-image && sam deploy \
+check-admin-migration:
+	@set -eu; \
+	stack_name="$(STACK_NAME)-$(ENV)"; \
+	live_pool="$$(aws cloudformation describe-stacks \
+		--stack-name "$$stack_name" \
+		--profile "$(AWS_PROFILE)" \
+		--region "$(AWS_REGION)" \
+		--query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue | [0]" \
+		--output text)"; \
+	if [ -z "$$live_pool" ] || [ "$$live_pool" = "None" ]; then \
+		echo "ERROR: could not resolve UserPoolId from $$stack_name."; \
+		exit 1; \
+	fi; \
+	if [ "$$live_pool" != "$(COGNITO_USER_POOL_ID)" ]; then \
+		echo "ERROR: configured Cognito pool $(COGNITO_USER_POOL_ID) does not match $$stack_name output $$live_pool."; \
+		exit 1; \
+	fi; \
+	admin_snapshot="$$(mktemp)"; \
+	trap 'rm -f "$$admin_snapshot"' EXIT; \
+	if [ "$(ADMIN_ALIAS_MIGRATION_ENABLED)" = "true" ]; then \
+		if [ "$(ENV)" != "dev" ] || [ "$(ADMIN_ALIAS_MIGRATION_ACK)" != "dev-temporary-alias-fallback" ]; then \
+			echo "ERROR: alias fallback is dev-only and requires ADMIN_ALIAS_MIGRATION_ACK=dev-temporary-alias-fallback."; \
+			exit 1; \
+		fi; \
+		echo "WARNING: validating temporary dev alias fallback against enabled Cognito users."; \
+		aws cognito-idp list-users \
+			--user-pool-id "$$live_pool" \
+			--profile "$(AWS_PROFILE)" \
+			--region "$(AWS_REGION)" \
+			--output json > "$$admin_snapshot"; \
+		scope="enabled Cognito users"; \
+	else \
+		if ! aws cognito-idp list-users-in-group \
+			--user-pool-id "$$live_pool" \
+			--group-name "$(ADMIN_GROUP_NAME)" \
+			--profile "$(AWS_PROFILE)" \
+			--region "$(AWS_REGION)" \
+			--output json > "$$admin_snapshot"; then \
+			echo "ERROR: admin group is not available. First deploy once with the guarded dev migration fallback, enroll admins, then disable it."; \
+			exit 1; \
+		fi; \
+		scope="the administrator-managed $(ADMIN_GROUP_NAME) group"; \
+	fi; \
+	ADMIN_ALIASES="$(ADMIN_ALIASES)" ADMIN_SCOPE="$$scope" python3 -c 'import json,os,sys; data=json.load(open(sys.argv[1])); expected={v.strip().lower() for v in os.environ["ADMIN_ALIASES"].split(",") if v.strip()}; users=data.get("Users", []); records=[(u, {str(u.get("Username", "")).lower()} | {str(a.get("Value", "")).lower() for a in u.get("Attributes", []) if a.get("Name") == "custom:amazon_alias"}) for u in users]; missing=sorted(a for a in expected if not any(a in identities for _,identities in records)); matched=[u for u,identities in records if identities & expected]; disabled=sorted(str(u.get("Username")) for u in matched if not u.get("Enabled", False)); unverified=sorted(str(u.get("Username")) for u in matched if u.get("UserStatus") not in ("CONFIRMED", "EXTERNAL_PROVIDER")); assert expected, "no admin identities were supplied"; assert not missing, "admins not verified in %s: %s" % (os.environ["ADMIN_SCOPE"], ", ".join(missing)); assert not disabled, "disabled admin users: %s" % ", ".join(disabled); assert not unverified, "unverified admin users: %s" % ", ".join(unverified); print("Verified %d administrator identity/identities in %s." % (len(expected), os.environ["ADMIN_SCOPE"]))' "$$admin_snapshot"
+
+deploy-admin-migration-phase1:
+	@$(MAKE) deploy \
+		ENV=dev \
+		ADMIN_ALIAS_MIGRATION_ENABLED=true \
+		ADMIN_ALIAS_MIGRATION_ACK=dev-temporary-alias-fallback
+
+deploy-admin-migration-phase2:
+	@$(MAKE) deploy \
+		ENV=dev \
+		ADMIN_ALIAS_MIGRATION_ENABLED=false \
+		ADMIN_ALIAS_MIGRATION_ACK=
+
+configure-log-retention:
+	@set -eu; \
+	for log_group in \
+		"/aws/lambda/platform-advisor-api-$(ENV)" \
+		"/aws/lambda/platform-advisor-pre-token-$(ENV)"; do \
+		existing="$$(aws logs describe-log-groups \
+			--log-group-name-prefix "$$log_group" \
+			--profile "$(AWS_PROFILE)" \
+			--region "$(AWS_REGION)" \
+			--query "logGroups[?logGroupName=='$$log_group'].logGroupName | [0]" \
+			--output text)"; \
+		if [ "$$existing" != "$$log_group" ]; then \
+			aws logs create-log-group \
+				--log-group-name "$$log_group" \
+				--profile "$(AWS_PROFILE)" \
+				--region "$(AWS_REGION)"; \
+		fi; \
+		aws logs put-retention-policy \
+			--log-group-name "$$log_group" \
+			--retention-in-days "$(LOG_RETENTION_DAYS)" \
+			--profile "$(AWS_PROFILE)" \
+			--region "$(AWS_REGION)"; \
+		actual="$$(aws logs describe-log-groups \
+			--log-group-name-prefix "$$log_group" \
+			--profile "$(AWS_PROFILE)" \
+			--region "$(AWS_REGION)" \
+			--query "logGroups[?logGroupName=='$$log_group'].retentionInDays | [0]" \
+			--output text)"; \
+		if [ "$$actual" != "$(LOG_RETENTION_DAYS)" ]; then \
+			echo "ERROR: $$log_group retention is $$actual, expected $(LOG_RETENTION_DAYS)."; \
+			exit 1; \
+		fi; \
+		echo "Verified $$log_group retention: $$actual days."; \
+	done
+
+deploy: check-deploy-config check-admin-migration prepare-lambda
+	@cd $(INFRA_DIR) && sam build --skip-pull-image && \
+		sam validate --lint --template-file .aws-sam/build/template.yaml
+	@set -eu; \
+	midway_override=""; \
+	if [ -n "$${MIDWAY_CLIENT_SECRET:-}" ]; then \
+		midway_override="MidwayClientSecret=$${MIDWAY_CLIENT_SECRET}"; \
+	fi; \
+	cd $(INFRA_DIR) && \
+		sam deploy \
 		--stack-name $(STACK_NAME)-$(ENV) \
 		--parameter-overrides \
 			Env="$(ENV)" \
 			AllowedOrigins="$(FRONTEND_APP_URL)" \
 			DevMode="$(FRONTEND_DEV_MODE)" \
 			AdminAlias="$(ADMIN_ALIASES)" \
+			AdminGroupName="$(ADMIN_GROUP_NAME)" \
+			AdminAliasMigrationEnabled="$(ADMIN_ALIAS_MIGRATION_ENABLED)" \
+			MidwayClientId="$(MIDWAY_CLIENT_ID)" \
+			$$midway_override \
+			KnowledgeBaseId="$(KNOWLEDGE_BASE_ID)" \
 			AgentCoreRuntimeArn="$(AGENTCORE_RUNTIME_ARN)" \
 		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
 		--resolve-s3 \
 		--profile $(AWS_PROFILE) \
 		--region $(AWS_REGION) \
-		--no-fail-on-empty-changeset
+		--confirm-changeset \
+		--no-fail-on-empty-changeset && \
+		$(MAKE) -C .. configure-log-retention \
+			ENV="$(ENV)" \
+			AWS_PROFILE="$(AWS_PROFILE)" \
+			AWS_REGION="$(AWS_REGION)" \
+			LOG_RETENTION_DAYS="$(LOG_RETENTION_DAYS)"
 
 # Deploy the Strands agent pipeline to Amazon Bedrock AgentCore Runtime.
 # Uses CodeZip (no Docker required).  Reads account/region from agentcore/aws-targets.json.
 check-agentcore-cli:
+	@if [ "$(ENV)" != "dev" ]; then \
+		echo "ERROR: agentcore/aws-targets.json currently defines only the dev account/region; refusing ENV=$(ENV)."; \
+		exit 1; \
+	fi
 	@if [ -z "$(AGENTCORE_CLI)" ] || [ ! -x "$(AGENTCORE_CLI)" ]; then \
 		echo "ERROR: @aws/agentcore CLI not found. Install it with: npm install -g @aws/agentcore"; \
 		exit 1; \
@@ -294,22 +546,33 @@ deploy-agentcore: check-agentcore-cli
 
 # After deploy-agentcore, retrieve the Runtime ARN and update the Lambda stack.
 wire-agentcore: check-agentcore-cli
-	@echo "Fetching AgentCore Runtime ARN..."
-	$(eval AGENT_ARN := $(shell cd $(AGENTCORE_DIR) && AWS_PROFILE=$(AWS_PROFILE) "$(AGENTCORE_CLI)" status --json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(next((r.get('identifier','') for r in d.get('resources',[]) if r.get('resourceType') == 'agent'), ''))" 2>/dev/null))
-	@if [ -z "$(AGENT_ARN)" ]; then \
-		echo "ERROR: could not retrieve AgentCore Runtime ARN. Run 'make deploy-agentcore' first."; \
+	@set -eu; \
+	state_file="$(AGENTCORE_DIR)/agentcore/.cli/deployed-state.json"; \
+	if [ ! -f "$$state_file" ]; then \
+		echo "ERROR: $$state_file is missing. Run make deploy-agentcore first."; \
 		exit 1; \
-	fi
-	@echo "AgentCore Runtime ARN: $(AGENT_ARN)"
-	cd $(INFRA_DIR) && sam deploy \
-		--stack-name $(STACK_NAME)-$(ENV) \
-		--parameter-overrides Env=$(ENV) AgentCoreRuntimeArn="$(AGENT_ARN)" \
-		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
-		--resolve-s3 \
-		--profile $(AWS_PROFILE) \
-		--region $(AWS_REGION) \
-		--no-fail-on-empty-changeset
-	@echo "Lambda stack updated with AgentCore Runtime ARN."
+	fi; \
+	agent_arn="$$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("targets", {}).get("default", {}).get("resources", {}).get("runtimes", {}).get("PlatformAdvisorAgent", {}).get("runtimeArn", ""))' "$$state_file")"; \
+	case "$$agent_arn" in \
+		arn:*:bedrock-agentcore:*:*:runtime/*) ;; \
+		*) echo "ERROR: deployed state does not contain a valid AgentCore Runtime ARN."; exit 1 ;; \
+	esac; \
+	runtime_id="$${agent_arn##*/}"; \
+	live_runtime="$$(mktemp)"; \
+	trap 'rm -f "$$live_runtime"' EXIT; \
+	aws bedrock-agentcore-control get-agent-runtime \
+		--agent-runtime-id "$$runtime_id" \
+		--profile "$(AWS_PROFILE)" \
+		--region "$(AWS_REGION)" \
+		--output json > "$$live_runtime"; \
+	python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); expected_arn=sys.argv[2]; expected_mode=sys.argv[3]; assert d.get("agentRuntimeArn") == expected_arn, "live AgentCore ARN does not match deployed state"; assert d.get("status") == "READY", "AgentCore runtime is not READY: %s" % d.get("status"); actual_mode=d.get("networkConfiguration", {}).get("networkMode"); assert actual_mode == expected_mode, "AgentCore network mode changed: %s" % actual_mode; print("Verified live READY runtime %s with %s network mode." % (expected_arn, actual_mode))' "$$live_runtime" "$$agent_arn" "$(AGENTCORE_NETWORK_MODE)"; \
+	$(MAKE) deploy \
+		AGENTCORE_RUNTIME_ARN="$$agent_arn" \
+		ADMIN_ALIASES="$(ADMIN_ALIASES)" \
+		ADMIN_GROUP_NAME="$(ADMIN_GROUP_NAME)" \
+		ADMIN_ALIAS_MIGRATION_ENABLED="$(ADMIN_ALIAS_MIGRATION_ENABLED)" \
+		ADMIN_ALIAS_MIGRATION_ACK="$(ADMIN_ALIAS_MIGRATION_ACK)"; \
+	echo "Reviewed Lambda stack update completed with the live AgentCore Runtime ARN."
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
 
