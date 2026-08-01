@@ -310,6 +310,59 @@ async def explain_architecture_decision(
     }
 
 
+class ChatRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message: str = Field(min_length=1, max_length=2000)
+
+
+@router.post("/chat")
+async def chat_architecture(
+    payload: ChatRequest,
+    current_user: CurrentUser,
+) -> dict[str, object]:
+    """Interpret a free-text message into typed engine answers and merge them.
+
+    The conversational path into the SAME engine the canvas clicks feed: the
+    LLM extracts answers (box choices + constraints), we merge them into the
+    stored answer set (chat and clicks accumulate together), and return a short
+    reply plus the merged answers so the UI can reflect them. Extraction only —
+    the engine still decides.
+    """
+    state = _load_or_initialize(current_user)
+    answers = state.get("answers")
+    if not isinstance(answers, dict):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Persisted architecture workspace answers are invalid",
+        )
+    try:
+        from api.engine import agents as engine_agents
+    except ImportError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Architecture engine is unavailable",
+        ) from exc
+
+    result = engine_agents.interpret(payload.message, answers)
+    merged = {**answers, **result["answers"]}
+    if result["answers"]:
+        try:
+            db.save_architecture_engine_answers(
+                tenant_id=state["tenant_id"],
+                owner_id=state["created_by"],
+                answers=merged,
+            )
+        except Exception:  # noqa: BLE001
+            pass
+    return {
+        "reply": result["reply"],
+        "applied_answers": result["answers"],
+        "answers": merged,
+        "source": result["source"],
+    }
+
+
 class GenerateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

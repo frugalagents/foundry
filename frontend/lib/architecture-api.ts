@@ -191,6 +191,22 @@ export interface ArchitectureExplanation {
   passages: ExplainPassage[];
 }
 
+export interface ChatResult {
+  reply: string;
+  applied_answers: Record<string, unknown>;
+  answers: Record<string, unknown>;
+  source: string;
+}
+
+// Conversational path into the SAME engine the canvas clicks feed. The message
+// is interpreted into typed answers, merged, and reflected in the next generate.
+export async function chatArchitecture(message: string): Promise<ChatResult> {
+  return await request('/architecture/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  }) as ChatResult;
+}
+
 export interface GeneratedArchitecture {
   stack: { box_id: string; component_id: string; chosen: string; alternatives: string[] }[];
   rationale: string;

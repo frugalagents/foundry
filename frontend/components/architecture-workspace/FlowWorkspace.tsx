@@ -13,7 +13,7 @@ import type {
 } from '@/lib/architecture-workspace';
 import { FlowCanvas, type FlowBlock, type FlowWire } from './FlowCanvas';
 import { BLOCKS, WIRES, PHASE, GROUP_COLOR, ACTIVE_MAP, LAYOUT, GROUP_LAYOUT, type BlockDef } from './architecture-model';
-import { generateArchitecture, type GeneratedArchitecture } from '@/lib/architecture-api';
+import { generateArchitecture, chatArchitecture, type GeneratedArchitecture } from '@/lib/architecture-api';
 
 interface BlueprintContext { name: string; description: string; type: string }
 const TYPE_LABEL: Record<string, string> = {
@@ -33,6 +33,29 @@ export function FlowWorkspace({ projection, blueprint, onAnswer, applying }: Pro
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState<GeneratedArchitecture | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
+  const [chatLog, setChatLog] = useState<{ role: 'user' | 'agent'; text: string }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
+
+  async function sendChat() {
+    const msg = chatInput.trim();
+    if (!msg || chatBusy) return;
+    setChatInput('');
+    setChatLog((l) => [...l, { role: 'user', text: msg }]);
+    setChatBusy(true);
+    try {
+      const res = await chatArchitecture(msg);
+      const applied = Object.keys(res.applied_answers).length;
+      setChatLog((l) => [...l, {
+        role: 'agent',
+        text: applied ? res.reply : (res.reply || 'I couldn’t map that to a decision — try naming a specific choice.'),
+      }]);
+    } catch {
+      setChatLog((l) => [...l, { role: 'agent', text: 'Something went wrong — try again.' }]);
+    } finally {
+      setChatBusy(false);
+    }
+  }
 
   async function runGenerate() {
     setGenerating(true);
@@ -142,6 +165,7 @@ export function FlowWorkspace({ projection, blueprint, onAnswer, applying }: Pro
         </div>
 
         <aside className="fw-aside">
+          <div className="fw-aside-scroll">
           {!sel ? (
             <div>
               {blueprint && (
@@ -216,6 +240,30 @@ export function FlowWorkspace({ projection, blueprint, onAnswer, applying }: Pro
               </div>
             </div>
           )}
+          </div>
+
+          <div className="fw-chat">
+            <div className="fw-chat-hd">◇ Discovery chat<span>describe the customer — it fills the blueprint</span></div>
+            <div className="fw-chat-log">
+              {chatLog.length === 0 && (
+                <p className="fw-chat-hint">e.g. “Regulated bank, ~3-person platform team, no self-hosting, standardise on Bedrock.”</p>
+              )}
+              {chatLog.map((m, i) => (
+                <div key={i} className={`fw-msg ${m.role}`}>{m.text}</div>
+              ))}
+              {chatBusy && <div className="fw-msg agent">…</div>}
+            </div>
+            <div className="fw-chat-input">
+              <input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') sendChat(); }}
+                placeholder="Describe the customer or a decision…"
+                disabled={chatBusy}
+              />
+              <button onClick={sendChat} disabled={chatBusy || !chatInput.trim()}>Send</button>
+            </div>
+          </div>
         </aside>
       </div>
 
@@ -314,7 +362,21 @@ function FwStyles() {
 .fw-legend .ln.gov{border-top:2px dashed #7d9bff}
 .fw-main{flex:1;display:flex;min-height:0}
 .fw-canvas-wrap{flex:1;position:relative;min-width:0}
-.fw-aside{width:412px;border-left:1px solid var(--line-soft);background:var(--bg-soft);overflow:auto;flex-shrink:0}
+.fw-aside{width:412px;border-left:1px solid var(--line-soft);background:var(--bg-soft);flex-shrink:0;display:flex;flex-direction:column;min-height:0}
+.fw-aside-scroll{flex:1;overflow:auto;min-height:0}
+.fw-chat{border-top:1px solid var(--line-soft);background:#0d1119;display:flex;flex-direction:column;max-height:44%}
+.fw-chat-hd{padding:10px 16px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#37dd7d;display:flex;flex-direction:column;gap:2px}
+.fw-chat-hd span{font-size:9.5px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)}
+.fw-chat-log{flex:1;overflow:auto;padding:6px 16px;display:flex;flex-direction:column;gap:7px;min-height:70px}
+.fw-chat-hint{margin:0;font-size:11px;color:var(--muted2);font-style:italic;line-height:1.5}
+.fw-msg{font-size:12px;line-height:1.45;padding:7px 10px;border-radius:9px;max-width:90%}
+.fw-msg.user{align-self:flex-end;background:#1d3a2b;color:#d6f0e2;border:1px solid #37dd7d44}
+.fw-msg.agent{align-self:flex-start;background:#161d27;color:var(--ink-dim);border:1px solid var(--line)}
+.fw-chat-input{display:flex;gap:8px;padding:10px 14px 12px;border-top:1px solid var(--line-soft)}
+.fw-chat-input input{flex:1;background:#0e1116;border:1px solid var(--line);border-radius:8px;padding:9px 11px;color:var(--ink);font-size:12.5px;font-family:inherit}
+.fw-chat-input input:focus{outline:none;border-color:#37dd7d}
+.fw-chat-input button{background:#37dd7d;color:#08131a;border:none;border-radius:8px;padding:0 15px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.fw-chat-input button:disabled{opacity:.5;cursor:default}
 .fw-bp{padding:22px 26px 4px;border-bottom:1px solid var(--line-soft)}
 .fw-bp-kicker{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.11em;color:#37dd7d}
 .fw-bp h2{margin:8px 0 0;font-size:19px;font-weight:680;letter-spacing:-.3px}

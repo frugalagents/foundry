@@ -275,6 +275,64 @@ def _deterministic_rationale(proposal: Proposal) -> str:
     return "\n\n".join(lines)
 
 
+INTERPRET_SYSTEM = (
+    "You are the intake interpreter for an enterprise coding-agent platform "
+    "advisor. Convert the user's free-text message into structured answers the "
+    "decision engine understands. Choose option values ONLY from the provided "
+    "menus; infer constraint answers (operational-posture, allow-self-hosting) "
+    "when the user implies them (e.g. 'no self-hosting', 'fully managed', "
+    "'regulated bank'). Reply JSON only: "
+    "{\"answers\":{<key>:<value>,...},\"reply\":\"<one short confirmation sentence>\"}. "
+    "Only include answers you are confident about; omit the rest."
+)
+
+
+def interpret(message: str, answers: dict) -> dict:
+    """Turn a free-text chat message into typed engine answers + a short reply.
+
+    Returns {answers: {...}, reply: str, source: 'agent'|'none'}. When Bedrock
+    is unavailable it returns no answers and a graceful reply so the caller can
+    fall back to click-driven input.
+    """
+    menu = {
+        b.requirement_id: {
+            "box": b.box_id,
+            "question": b.question,
+            "options": [{"value": o.value, "label": o.label} for o in b.options],
+        }
+        for b in domain.BOXES.values()
+    }
+    constraint_keys = {
+        "operational-posture": "set to 'managed-only' if the user forbids "
+                               "customer-operated infrastructure",
+        "allow-self-hosting": "set to false if the user forbids self-hosting",
+    }
+    user = (
+        f"User message: {message}\n\n"
+        f"Known answers so far: {json.dumps(answers)}\n\n"
+        f"Decision menus (use these requirement_id keys + option values): {json.dumps(menu)}\n\n"
+        f"Constraint keys you may also set: {json.dumps(constraint_keys)}\n\n"
+        "Return JSON only."
+    )
+    out = converse_json(INTERPRET_SYSTEM, user, max_tokens=600)
+    if not out or not isinstance(out.get("answers"), dict):
+        return {"answers": {}, "reply": "I couldn't interpret that — try picking "
+                "an option on a block, or rephrase.", "source": "none"}
+    # keep only recognised keys; coerce booleans
+    valid_req = {b.requirement_id for b in domain.BOXES.values()}
+    clean: dict = {}
+    for k, v in out["answers"].items():
+        if k in valid_req or k in constraint_keys:
+            if v in ("true", "false"):
+                v = v == "true"
+            clean[k] = v
+    return {
+        "answers": clean,
+        "reply": str(out.get("reply", "Got it.")),
+        "source": "agent",
+    }
+
+
 CRITIC_SYSTEM = (
     "You are a review critic. Given a rationale and anti-pattern reference "
     "notes, list any claims that contradict the anti-patterns or overreach the "

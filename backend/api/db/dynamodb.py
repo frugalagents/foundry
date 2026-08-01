@@ -219,6 +219,44 @@ def save_architecture_decision_record(
     return response["Attributes"]
 
 
+def save_architecture_engine_answers(
+    *,
+    tenant_id: str,
+    owner_id: str,
+    answers: dict[str, Any],
+) -> dict:
+    """Merge-persist the engine answer set on the owned workspace head.
+
+    Used by the chat path (and box clicks that target engine-only requirements)
+    so conversational and click input accumulate into one answer set. Distinct
+    from update_architecture_workspace_state, which runs the v3 projection and
+    only accepts v3 requirement keys.
+    """
+    response = _get_table().update_item(
+        Key=_architecture_workspace_key(tenant_id, owner_id),
+        UpdateExpression="SET #answers = :answers, #updated_at = :updated_at",
+        ExpressionAttributeNames={
+            "#answers": "answers",
+            "#updated_at": "updated_at",
+            "#tenant_id": "tenant_id",
+            "#created_by": "created_by",
+            "#pk": "PK",
+        },
+        ExpressionAttributeValues={
+            ":answers": dict(answers),
+            ":updated_at": _now(),
+            ":tenant_id": tenant_id,
+            ":owner_id": owner_id,
+        },
+        ConditionExpression=(
+            "attribute_exists(#pk) AND #tenant_id = :tenant_id "
+            "AND #created_by = :owner_id"
+        ),
+        ReturnValues="ALL_NEW",
+    )
+    return response["Attributes"]
+
+
 # ── Customers ─────────────────────────────────────────────────────────────────
 
 def create_customer(name: str, industry: str, contact_email: str,
