@@ -844,12 +844,22 @@ def rank_next_questions(
 ) -> tuple[QuestionCandidate, ...]:
     current = workspace.revisions[-1]
     validate_workspace_revision(current, catalog)
-    answered = {
-        requirement.requirement_id for requirement in current.requirements
-    }
     requirement_by_id = {
         requirement.id: requirement for requirement in catalog.requirements
     }
+    # A required requirement answered with null must be re-asked — the engine
+    # must not treat it as resolved.  Optional requirements with null are
+    # already answered (the user explicitly chose "not sure / skip").
+    answered = set()
+    for _constraint in current.requirements:
+        _definition = requirement_by_id.get(_constraint.requirement_id)
+        if (
+            _constraint.value is None
+            and _definition is not None
+            and _definition.required
+        ):
+            continue
+        answered.add(_constraint.requirement_id)
     hard_risk: dict[str, bool] = {}
     for rule in catalog.rules:
         for predicate in rule.when:
@@ -1017,10 +1027,13 @@ def _candidate_answers(
     definition: RequirementDefinition,
     catalog: CatalogRelease,
 ) -> tuple[RequirementValue, ...]:
+    # Required requirements must always be given a real answer — do not offer
+    # null ("not sure / skip") as a valid candidate.
+    maybe_null: tuple[RequirementValue, ...] = () if definition.required else (None,)
     if definition.allowed_values:
-        return tuple(definition.allowed_values) + (None,)
+        return tuple(definition.allowed_values) + maybe_null
     if definition.value_type is RequirementValueType.BOOLEAN:
-        return (True, False, None)
+        return (True, False) + maybe_null
 
     predicate_values = [
         predicate.value
@@ -1038,9 +1051,9 @@ def _candidate_answers(
             if isinstance(value, (int, float)) and not isinstance(value, bool)
             for candidate in (max(0, value - 1), value)
         }
-        return tuple(sorted(numeric_values)) + (None,)
+        return tuple(sorted(numeric_values)) + maybe_null
 
     unique_values = {
         content_hash({"value": value}): value for value in predicate_values
     }
-    return tuple(unique_values[key] for key in sorted(unique_values)) + (None,)
+    return tuple(unique_values[key] for key in sorted(unique_values)) + maybe_null
