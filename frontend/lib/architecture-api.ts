@@ -126,19 +126,19 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
         prompt: String(question.prompt),
         why_now: String(question.why_now),
         candidate_answers: question.candidate_answers as RequirementValue[],
-        answer_impacts: (question.answer_impacts as JsonObject[]).map((impact) => {
-          const components = object(impact.components);
-          const edges = object(impact.edges);
-          const rules = object(impact.rules);
-          const families = object(impact.deployment_families);
+        answer_impacts: ((question.answer_impacts as JsonObject[]) ?? []).map((impact) => {
+          const components = impact.components ? object(impact.components) : {} as JsonObject;
+          const edges = impact.edges ? object(impact.edges) : {} as JsonObject;
+          const rules = impact.rules ? object(impact.rules) : {} as JsonObject;
+          const families = impact.deployment_families ? object(impact.deployment_families) : {} as JsonObject;
           return {
             answer: impact.answer as RequirementValue,
             added_component_ids: refs(components.added, 'component_id'),
             removed_component_ids: refs(components.removed, 'component_id'),
-            added_edge_ids: edges.added_edge_ids as string[],
-            removed_edge_ids: edges.removed_edge_ids as string[],
-            activated_rule_ids: rules.activated_rule_ids as string[],
-            deactivated_rule_ids: rules.deactivated_rule_ids as string[],
+            added_edge_ids: (edges.added_edge_ids as string[]) ?? [],
+            removed_edge_ids: (edges.removed_edge_ids as string[]) ?? [],
+            activated_rule_ids: (rules.activated_rule_ids as string[]) ?? [],
+            deactivated_rule_ids: (rules.deactivated_rule_ids as string[]) ?? [],
             feasible_pattern_ids: refs(families.feasible, 'pattern_id'),
             rejected_pattern_ids: refs(families.rejected, 'pattern_id'),
             unknown_pattern_ids: refs(families.unknown, 'pattern_id'),

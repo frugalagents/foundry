@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Activity,
   AlertCircle,
   Check,
   CheckCircle2,
@@ -108,7 +109,7 @@ export function FlowWorkspace({
 }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ArchitectureViewMode>('logical');
-  const [asideView, setAsideView] = useState<'questions' | 'chat'>('questions');
+  const [asideView, setAsideView] = useState<'questions' | 'chat' | 'trace'>('questions');
   const [reviewOpen, setReviewOpen] = useState(false);
   const [chatLog, setChatLog] = useState<{ role: 'user' | 'agent'; text: string }[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -393,7 +394,7 @@ export function FlowWorkspace({
             <span>{canvas.blocks.length} {viewMode === 'logical' ? 'capabilities' : 'services'} | {canvas.wires.length} relationships</span>
           </div>
           <FlowCanvas
-            key={viewMode}
+            key={`${viewMode}-${projection.meta.revision_number}`}
             blocks={canvas.blocks}
             wires={canvas.wires}
             groups={canvas.groups}
@@ -406,7 +407,7 @@ export function FlowWorkspace({
         </section>
 
         <aside className="fw-aside" aria-label="Architecture inspector and discovery">
-          <div className="fw-aside-tabs" role="tablist" aria-label="Advisor panel">
+          <div className="fw-aside-tabs fw-aside-tabs-3" role="tablist" aria-label="Advisor panel">
             <button
               type="button"
               role="tab"
@@ -428,9 +429,22 @@ export function FlowWorkspace({
             >
               <MessageSquare size={14} /> Ask advisor
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={asideView === 'trace'}
+              className={asideView === 'trace' ? 'active' : ''}
+              onClick={() => setAsideView('trace')}
+            >
+              <Activity size={14} /> Trace
+            </button>
           </div>
           <div className="fw-aside-scroll">
-            {asideView === 'chat' ? (
+            {asideView === 'trace' ? (
+              <DecisionTracePanel
+                projection={projection}
+              />
+            ) : asideView === 'chat' ? (
               <div className="fw-chat">
                 <div className="fw-chat-intro">
                   <b>Ask about an exception</b>
@@ -719,6 +733,66 @@ export function FlowWorkspace({
   );
 }
 
+function DecisionTracePanel({
+  projection,
+}: {
+  projection: ArchitectureWorkspaceProjection;
+}) {
+  const history = projection.decision_history;
+  return (
+    <div className="fw-trace-panel">
+      <div className="fw-trace-panel-header">
+        <b>Engine decision trace</b>
+        <span>Revision {projection.meta.revision_number} · {projection.decision_trace.length} rules evaluated</span>
+      </div>
+      {history && history.transitions.length > 0 && (
+        <div className="fw-trace-history">
+          <div className="fw-trace-history-label">Answer history</div>
+          {[...history.transitions].reverse().map((t) => (
+            <div key={t.transition_id} className="fw-trace-history-item">
+              <div className="fw-trace-history-changes">
+                {t.requirement_changes.map((rc) => (
+                  <span key={rc.requirement_id} className={`fw-trace-change ${rc.change_type}`}>{rc.name}</span>
+                ))}
+              </div>
+              <div className="fw-trace-history-delta">
+                {t.architecture_delta.components.added.length > 0 && (
+                  <span className="added">+{t.architecture_delta.components.added.length} added</span>
+                )}
+                {t.architecture_delta.components.removed.length > 0 && (
+                  <span className="removed">−{t.architecture_delta.components.removed.length} removed</span>
+                )}
+                {t.architecture_delta.components.added.length === 0
+                  && t.architecture_delta.components.removed.length === 0 && (
+                  <span className="unchanged">no change</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="fw-trace-rules">
+        <div className="fw-trace-history-label">Active rules</div>
+        <div className="fw-trace">
+          {projection.decision_trace.map((entry) => (
+            <div key={entry.evaluation_id}>
+              <span>{entry.effect}</span>
+              <p>
+                <b>{entry.rule_id.replace(/^[^:]+:/, '').replace(/-/g, ' ')}</b>
+                {entry.rationale}
+              </p>
+              <small>{entry.target_component_ids.length} components</small>
+            </div>
+          ))}
+          {projection.decision_trace.length === 0 && (
+            <p className="fw-muted fw-trace-empty">No rules have fired yet. Answer the guided questions to see engine decisions here.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WorkspaceSummary({
   projection,
   guidance,
@@ -880,7 +954,7 @@ function WorkspaceStyles() {
 .fw-journey{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:0 20px;border-bottom:1px solid var(--soft);background:#0c1016;flex:none}.fw-step{display:flex;align-items:center;gap:8px;padding:7px 10px;color:#556072;min-width:0;border-right:1px solid var(--soft)}.fw-step:last-child{border:0}.fw-step-icon{width:20px;height:20px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;font-size:9px;flex:none}.fw-step>span:last-child{display:flex;flex-direction:column;min-width:0}.fw-step b{font-size:10px}.fw-step small{font-size:8.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fw-step.done{color:#64d998}.fw-step.current{color:var(--ink)}
 .fw-main{display:flex;flex:1;min-height:0}.fw-canvas-wrap{position:relative;flex:1;min-width:0}.fw-view-caption{position:absolute;z-index:4;left:14px;top:12px;display:flex;flex-direction:column;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:#0e1116dd;pointer-events:none}.fw-view-caption b{font-size:10px}.fw-view-caption span{font-size:8.5px;color:var(--muted)}
 .fw-aside{width:410px;flex:none;min-height:0;display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--soft)}.fw-aside-scroll{flex:1;min-height:0;overflow:auto}
-.fw-aside-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;border-bottom:1px solid var(--soft);background:#0d1118}.fw-aside-tabs button{display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:6px;background:transparent;color:var(--muted);padding:8px;font:650 10.5px inherit;cursor:pointer}.fw-aside-tabs button.active{background:#202936;color:var(--ink)}.fw-aside-tabs button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+.fw-aside-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;border-bottom:1px solid var(--soft);background:#0d1118}.fw-aside-tabs-3{grid-template-columns:1fr 1fr 1fr}.fw-aside-tabs button{display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:6px;background:transparent;color:var(--muted);padding:8px;font:650 10.5px inherit;cursor:pointer}.fw-aside-tabs button.active{background:#202936;color:var(--ink)}.fw-aside-tabs button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
 .fw-discovery{padding:22px 22px 28px}.fw-discovery>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.fw-discovery>header div{display:flex;flex-direction:column}.fw-discovery>header b{font-size:13px}.fw-discovery>header span{font-size:9.5px;color:var(--muted)}.fw-discovery>header>span{padding-top:2px;color:var(--green)}
 .fw-discovery-progress{height:4px;margin:12px 0 27px;border-radius:2px;overflow:hidden;background:var(--line)}.fw-discovery-progress i{display:block;height:100%;background:var(--green)}
 .fw-next>span,.fw-proposal>span{font-size:8.5px;text-transform:uppercase;color:var(--muted);font-weight:750}.fw-next h2{font-size:18px;line-height:1.35;margin:8px 0}.fw-next>p{font-size:10.5px;color:var(--muted);margin:0 0 17px}.fw-answer-list{display:flex;flex-direction:column;gap:7px}.fw-answer-list>button{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;border:1px solid var(--line);border-radius:7px;background:#11161e;color:var(--ink);padding:10px 11px;cursor:pointer}.fw-answer-list>button:hover{border-color:#47576c;background:#151c26}.fw-answer-list>button.selected{border-color:var(--green);background:#102019}.fw-answer-list>button:disabled{opacity:.45}.fw-answer-list>button>i{width:17px;height:17px;display:grid;place-items:center;flex:none;margin-top:1px;border:1px solid #4b596d;border-radius:50%;color:#07130c;font-style:normal}.fw-answer-list>button.selected>i{border-color:var(--green);background:var(--green)}.fw-answer-list>button>span{display:flex;flex-direction:column}.fw-answer-list b{font-size:11.5px}.fw-answer-list small{font-size:9.5px;line-height:1.4;color:var(--muted);margin-top:2px}
@@ -900,6 +974,10 @@ function WorkspaceStyles() {
 .fw-sensitivity{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.fw-sensitivity>div{display:flex;flex-direction:column;padding:8px;border:1px solid var(--soft);border-radius:6px}.fw-sensitivity b{font-size:9.5px;text-transform:capitalize}.fw-sensitivity span{font-size:8.5px;color:var(--muted)}
 .fw-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.fw-metrics>div{display:flex;flex-direction:column;padding:9px;border:1px solid var(--soft);border-radius:6px}.fw-metrics span{font-size:8px;text-transform:uppercase;color:var(--muted)}.fw-metrics b{font-size:11px}.fw-warning{padding:7px 9px;border-left:2px solid var(--amber);font-size:9px;color:var(--dim)}.fw-outcomes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.fw-outcomes>div{display:flex;flex-direction:column}.fw-outcomes b{font-size:9.5px}.fw-outcomes span{font-size:8.5px;color:var(--muted)}
 .fw-roadmap{display:flex;flex-direction:column;gap:5px}.fw-roadmap>div{display:flex;gap:9px;padding:8px;border:1px solid var(--soft);border-radius:6px}.fw-roadmap>div>span{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:#37dd7d18;color:var(--green);font-size:9px}.fw-roadmap p{display:flex;flex-direction:column;margin:0}.fw-roadmap b{font-size:10px}.fw-roadmap small{font-size:8.5px;color:var(--muted)}
+.fw-trace-panel{display:flex;flex-direction:column;gap:0}.fw-trace-panel-header{padding:16px 18px 10px;border-bottom:1px solid var(--soft)}.fw-trace-panel-header b{display:block;font-size:12px;margin-bottom:2px}.fw-trace-panel-header span{font-size:9px;color:var(--muted)}
+.fw-trace-history-label{padding:10px 18px 6px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.fw-trace-history{border-bottom:1px solid var(--soft)}.fw-trace-history-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 18px;border-bottom:1px solid #ffffff08}.fw-trace-history-changes{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}.fw-trace-change{font-size:9px;padding:2px 6px;border-radius:4px;background:#ffffff0a;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}.fw-trace-history-delta{display:flex;gap:4px;flex-shrink:0}.fw-trace-history-delta .added{font-size:9px;color:var(--green)}.fw-trace-history-delta .removed{font-size:9px;color:var(--red)}.fw-trace-history-delta .unchanged{font-size:9px;color:var(--muted)}
+.fw-trace-rules{padding:0 0 18px}.fw-trace-rules .fw-trace{padding:0 18px;gap:5px}.fw-trace-empty{padding:4px 0}
 .fw-trace{display:flex;flex-direction:column;gap:5px}.fw-trace>div{display:grid;grid-template-columns:55px 1fr 55px;gap:8px;padding:7px 8px;border-left:2px solid #7d9bff;background:#ffffff04}.fw-trace>div>span{font-size:7.5px;text-transform:uppercase;color:#aebeff}.fw-trace p{display:flex;flex-direction:column;margin:0;font-size:9px;color:var(--dim)}.fw-trace p b{font-size:8.5px;text-transform:capitalize;color:var(--ink)}.fw-trace small{font-size:8px;color:var(--muted);text-align:right}
 .fw-dialog>footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--soft);background:#0c1016}.fw-dialog>footer p{display:flex;align-items:center;gap:7px;flex:1;min-width:240px;margin:0;font-size:8.5px;color:var(--muted)}.fw-dialog>footer button{display:flex;align-items:center;gap:6px;border:0;border-radius:6px;background:var(--green);color:#07130c;padding:7px 10px;font:700 9.5px inherit}.fw-dialog>footer button.secondary{border:1px solid var(--line);background:transparent;color:var(--dim)}.fw-dialog>footer button:disabled{opacity:.4}.fw-dialog>footer>span{width:100%;font-size:9px;color:var(--red);text-align:right}.fw-dialog>footer>span.success{color:var(--green);font-family:monospace;overflow-wrap:anywhere}
 @media(max-width:980px){.fw-brand p{max-width:230px}.fw-aside{width:360px}.fw-connection{display:none}.fw-stack{grid-template-columns:1fr}.fw-metrics{grid-template-columns:repeat(2,1fr)}}
