@@ -818,7 +818,12 @@ function WorkspaceSummary({
     && Object.prototype.hasOwnProperty.call(pendingPatch, nextQuestion.requirement_id)
     ? pendingPatch[nextQuestion.requirement_id]
     : undefined;
-  const engineDone = !nextQuestion;
+  // The engine only stops generating questions when all remaining open
+  // requirements produce identical outcomes — but if required requirements
+  // are still unanswered the engine will always surface them first.
+  // Only treat the workspace as "done" when the engine has no question AND
+  // all required requirements are answered.
+  const engineDone = !nextQuestion && guidance.requiredOpenRequirements.length === 0;
   const allAnswered = guidance.openRequirements.length === 0;
   return (
     <div className="fw-discovery">
@@ -870,7 +875,7 @@ function WorkspaceSummary({
             </div>
           )}
         </div>
-      ) : (
+      ) : engineDone ? (
         <div className="fw-engine-done">
           <div className="fw-engine-done-icon">
             <CheckCircle2 size={22} />
@@ -885,6 +890,19 @@ function WorkspaceSummary({
             <li>Click any capability block on the canvas to see its decision rationale and requirements.</li>
             <li>Switch to the <b>Trace</b> tab to review all engine decisions.</li>
             <li>When ready, use <b>Review package</b> to check the publication gate and export.</li>
+          </ul>
+        </div>
+      ) : (
+        <div className="fw-engine-done fw-engine-blocked">
+          <div className="fw-engine-done-icon">
+            <AlertCircle size={22} />
+          </div>
+          <b>{guidance.requiredOpenRequirements.length} required decision{guidance.requiredOpenRequirements.length === 1 ? '' : 's'} still open</b>
+          <p>The engine cannot surface the next question right now. The required requirement{guidance.requiredOpenRequirements.length === 1 ? '' : 's'} below must be answered before the architecture can be published.</p>
+          <ul>
+            {guidance.requiredOpenRequirements.map((req) => (
+              <li key={req.id}><b>{req.name}</b> — use the <b>Ask advisor</b> tab to answer this.</li>
+            ))}
           </ul>
         </div>
       )}
@@ -979,7 +997,7 @@ function WorkspaceStyles() {
 .fw-aside{width:410px;flex:none;min-height:0;display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--soft)}.fw-aside-scroll{flex:1;min-height:0;overflow:auto}
 .fw-aside-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;border-bottom:1px solid var(--soft);background:#0d1118}.fw-aside-tabs-3{grid-template-columns:1fr 1fr 1fr}.fw-aside-tabs button{display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:6px;background:transparent;color:var(--muted);padding:8px;font:650 10.5px inherit;cursor:pointer}.fw-aside-tabs button.active{background:#202936;color:var(--ink)}.fw-aside-tabs button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
 .fw-discovery{padding:22px 22px 28px}.fw-discovery>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.fw-discovery>header div{display:flex;flex-direction:column}.fw-discovery>header b{font-size:13px}.fw-discovery>header span{font-size:9.5px;color:var(--muted)}.fw-discovery>header>span{padding-top:2px;color:var(--green)}
-.fw-engine-done{margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:10px;background:#ffffff04;display:flex;flex-direction:column;gap:8px}.fw-engine-done-icon{color:var(--green)}.fw-engine-done b{font-size:12px}.fw-engine-done p{font-size:10.5px;color:var(--dim);margin:0;line-height:1.5}.fw-engine-done ul{margin:4px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:5px}.fw-engine-done li{font-size:10px;color:var(--muted);line-height:1.5}.fw-engine-done li b{color:var(--ink)}
+.fw-engine-done{margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:10px;background:#ffffff04;display:flex;flex-direction:column;gap:8px}.fw-engine-done-icon{color:var(--green)}.fw-engine-blocked .fw-engine-done-icon{color:var(--amber)}.fw-engine-done b{font-size:12px}.fw-engine-done p{font-size:10.5px;color:var(--dim);margin:0;line-height:1.5}.fw-engine-done ul{margin:4px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:5px}.fw-engine-done li{font-size:10px;color:var(--muted);line-height:1.5}.fw-engine-done li b{color:var(--ink)}
 .fw-discovery-progress{height:4px;margin:12px 0 27px;border-radius:2px;overflow:hidden;background:var(--line)}.fw-discovery-progress i{display:block;height:100%;background:var(--green)}
 .fw-next>span,.fw-proposal>span{font-size:8.5px;text-transform:uppercase;color:var(--muted);font-weight:750}.fw-next h2{font-size:18px;line-height:1.35;margin:8px 0}.fw-next>p{font-size:10.5px;color:var(--muted);margin:0 0 17px}.fw-answer-list{display:flex;flex-direction:column;gap:7px}.fw-answer-list>button{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;border:1px solid var(--line);border-radius:7px;background:#11161e;color:var(--ink);padding:10px 11px;cursor:pointer}.fw-answer-list>button:hover{border-color:#47576c;background:#151c26}.fw-answer-list>button.selected{border-color:var(--green);background:#102019}.fw-answer-list>button:disabled{opacity:.45}.fw-answer-list>button>i{width:17px;height:17px;display:grid;place-items:center;flex:none;margin-top:1px;border:1px solid #4b596d;border-radius:50%;color:#07130c;font-style:normal}.fw-answer-list>button.selected>i{border-color:var(--green);background:var(--green)}.fw-answer-list>button>span{display:flex;flex-direction:column}.fw-answer-list b{font-size:11.5px}.fw-answer-list small{font-size:9.5px;line-height:1.4;color:var(--muted);margin-top:2px}
 .fw-answer-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:16px;padding-top:13px;border-top:1px solid var(--soft)}.fw-answer-actions button{border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--dim);padding:7px 10px;font:650 10px inherit}.fw-answer-actions button.primary{border-color:var(--green);background:var(--green);color:#07130c}.fw-answer-actions button:disabled{opacity:.45}
