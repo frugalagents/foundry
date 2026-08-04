@@ -16,6 +16,7 @@ TABLE_NAME = os.environ.get("DYNAMODB_TABLE", "platform-advisor-main")
 DYNAMODB_ENDPOINT = os.environ.get("DYNAMODB_ENDPOINT")  # for local dev
 
 _dynamodb = None
+_dynamodb_client = None
 
 
 def _get_table():
@@ -27,6 +28,25 @@ def _get_table():
         resource = boto3.resource("dynamodb", **kwargs)
         _dynamodb = resource.Table(TABLE_NAME)
     return _dynamodb
+
+
+def _get_client():
+    """Return a plain low-level DynamoDB client for operations that require
+    DynamoDB wire format (e.g. transact_write_items).
+
+    The boto3 resource table wraps a client that has a TypeSerializer injected
+    into its pipeline; calling client-API methods (like transact_write_items)
+    through table.meta.client therefore double-serializes already-typed values
+    and produces a ValidationError.  This function returns a separate client
+    that receives DynamoDB wire format exactly as supplied.
+    """
+    global _dynamodb_client
+    if _dynamodb_client is None:
+        kwargs: dict = {"region_name": os.environ.get("AWS_REGION", "us-east-1")}
+        if DYNAMODB_ENDPOINT:
+            kwargs["endpoint_url"] = DYNAMODB_ENDPOINT
+        _dynamodb_client = boto3.client("dynamodb", **kwargs)
+    return _dynamodb_client
 
 
 def _now() -> str:
@@ -383,7 +403,7 @@ def update_architecture_workspace_state(
         created_at=now,
     )
     try:
-        table.meta.client.transact_write_items(
+        _get_client().transact_write_items(
             TransactItems=[
                 {
                     "Update": {
