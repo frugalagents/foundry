@@ -365,17 +365,23 @@ export function FlowWorkspace({
         <span className={`fw-connection ${connectionState}`}>
           {connectionState === 'live' ? 'Live revision' : connectionState === 'stale' ? 'Stale revision' : 'Read-only snapshot'}
         </span>
-        <button className="fw-package-button" type="button" onClick={() => setReviewOpen(true)}>
-          <Sparkles size={14} /> Review package
+        <button
+          className="fw-package-button"
+          type="button"
+          onClick={() => setReviewOpen(true)}
+          title={nextQuestion ? 'Complete guided discovery before reviewing the package' : undefined}
+        >
+          <Sparkles size={14} />
+          {nextQuestion ? `Review package (${guidance.openRequirements.length} left)` : 'Review package'}
         </button>
       </header>
 
       <div className="fw-journey" aria-label="Architecture workflow">
         {[
-          ['Baseline', 'Engine projection loaded'],
-          ['Decisions', `${guidance.openRequirements.length} open, ${guidance.assumedRequirements} assumed`],
-          ['Solution', selectedCandidate ? 'Deployable comparison available' : 'Awaiting viable stack'],
-          ['Package', guidance.readiness === 'publishable' ? 'Ready to export' : `${guidance.publicationBlockers.length} gates open`],
+          ['Baseline', 'Engine loaded'],
+          ['Discovery', nextQuestion ? `${guidance.openRequirements.length} decisions left` : 'Complete'],
+          ['Feasibility', guidance.feasibleAlternatives > 0 ? `${guidance.feasibleAlternatives} families confirmed` : 'Pending answers'],
+          ['Package', guidance.readiness === 'publishable' ? 'Ready to export' : guidance.feasibleAlternatives > 0 ? 'Reviewable' : 'Awaiting feasibility'],
         ].map(([label, detail], index) => {
           const step = index + 1;
           return (
@@ -501,6 +507,7 @@ export function FlowWorkspace({
                 }}
                 onChangeAnswer={clearGuidedAnswer}
                 onApplyAnswer={acceptPatch}
+                onOpenReview={() => setReviewOpen(true)}
               />
             ) : (
               <div>
@@ -593,16 +600,45 @@ export function FlowWorkspace({
               </button>
             </header>
             <div className="fw-dialog-body">
-              <div className={`fw-verdict ${guidance.readiness}`}>
-                {guidance.readiness === 'publishable' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                <p><b>{guidance.readinessLabel}</b><span>{guidance.readinessDetail}</span></p>
-              </div>
-              {guidance.publicationBlockers.length > 0 && (
-                <section>
-                  <h3>Publication gates</h3>
-                  <ul className="fw-gates">{guidance.publicationBlockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul>
-                </section>
+              {nextQuestion ? (
+                <div className="fw-verdict needs-information">
+                  <AlertCircle size={18} />
+                  <p>
+                    <b>Guided discovery in progress</b>
+                    <span>
+                      {guidance.openRequirements.length} decision{guidance.openRequirements.length === 1 ? '' : 's'} remaining.
+                      Complete guided discovery to confirm deployment families before reviewing the publication gate.
+                    </span>
+                  </p>
+                </div>
+              ) : (
+                <div className={`fw-verdict ${guidance.readiness}`}>
+                  {guidance.readiness === 'publishable' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                  <p><b>{guidance.readinessLabel}</b><span>{guidance.readinessDetail}</span></p>
+                </div>
               )}
+              {!nextQuestion && guidance.publicationBlockers.length > 0 && (() => {
+                const resolvableBlockers = guidance.publicationBlockers.filter((b) =>
+                  b.includes('open requirement') || b.includes('deployment family') || b.includes('deployable solution'),
+                );
+                const actionBlockers = guidance.publicationBlockers.filter((b) => !resolvableBlockers.includes(b));
+                return (
+                  <>
+                    {resolvableBlockers.length > 0 && (
+                      <section>
+                        <h3>Architecture gates</h3>
+                        <ul className="fw-gates">{resolvableBlockers.map((b) => <li key={b}>{b}</li>)}</ul>
+                      </section>
+                    )}
+                    {actionBlockers.length > 0 && (
+                      <section>
+                        <h3>Publication gates requiring action</h3>
+                        <ul className="fw-gates">{actionBlockers.map((b) => <li key={b}>{b}</li>)}</ul>
+                      </section>
+                    )}
+                  </>
+                );
+              })()}
 
               <section>
                 <h3>Recommended deployable solution</h3>
@@ -802,6 +838,7 @@ function WorkspaceSummary({
   onPropose,
   onChangeAnswer,
   onApplyAnswer,
+  onOpenReview,
 }: {
   projection: ArchitectureWorkspaceProjection;
   guidance: ReturnType<typeof deriveWorkspaceGuidance>;
@@ -811,6 +848,7 @@ function WorkspaceSummary({
   onPropose: (requirementId: string, answer: RequirementValue) => void;
   onChangeAnswer: () => void;
   onApplyAnswer: () => void;
+  onOpenReview: () => void;
 }) {
   const questionNumber = guidance.confirmedRequirements + guidance.assumedRequirements + 1;
   const questionCount = projection.requirements.length;
@@ -818,13 +856,9 @@ function WorkspaceSummary({
     && Object.prototype.hasOwnProperty.call(pendingPatch, nextQuestion.requirement_id)
     ? pendingPatch[nextQuestion.requirement_id]
     : undefined;
-  // The engine only stops generating questions when all remaining open
-  // requirements produce identical outcomes — but if required requirements
-  // are still unanswered the engine will always surface them first.
-  // Only treat the workspace as "done" when the engine has no question AND
-  // all required requirements are answered.
   const engineDone = !nextQuestion && guidance.requiredOpenRequirements.length === 0;
   const allAnswered = guidance.openRequirements.length === 0;
+  const feasibleCount = guidance.feasibleAlternatives;
   return (
     <div className="fw-discovery">
       <header>
@@ -836,7 +870,9 @@ function WorkspaceSummary({
               : `${guidance.openRequirements.length} decisions remaining`}
           </span>
         </div>
-        <span>{guidance.coveredPercent}% complete</span>
+        <span className={feasibleCount > 0 ? 'fw-feasibility-badge confirmed' : 'fw-feasibility-badge'}>
+          {feasibleCount > 0 ? `${feasibleCount} famil${feasibleCount === 1 ? 'y' : 'ies'} confirmed` : 'Feasibility pending'}
+        </span>
       </header>
       <div className="fw-discovery-progress" aria-label={`${guidance.coveredPercent}% complete`}>
         <i style={{ width: `${guidance.coveredPercent}%` }} />
@@ -884,13 +920,19 @@ function WorkspaceSummary({
           <p>
             {allAnswered
               ? 'All requirements are confirmed. The engine has all the information it needs.'
-              : 'The remaining open requirements do not affect your current architecture — the engine has enough information to proceed.'}
+              : 'The remaining open requirements do not affect the current architecture — the engine has enough information to proceed.'}
           </p>
-          <ul>
-            <li>Click any capability block on the canvas to see its decision rationale and requirements.</li>
-            <li>Switch to the <b>Trace</b> tab to review all engine decisions.</li>
-            <li>When ready, use <b>Review package</b> to check the publication gate and export.</li>
-          </ul>
+          {feasibleCount > 0 ? (
+            <p className="fw-engine-done-next">
+              <b>{feasibleCount} deployment famil{feasibleCount === 1 ? 'y' : 'ies'} confirmed.</b>{' '}
+              Review the full architecture package and publication gate.
+            </p>
+          ) : (
+            <p className="fw-engine-done-next">No deployment family is confirmed yet — check your answers above or use the Trace tab.</p>
+          )}
+          <button type="button" className="fw-review-cta" onClick={onOpenReview}>
+            <Sparkles size={14} /> Review package
+          </button>
         </div>
       ) : (
         <div className="fw-engine-done fw-engine-blocked">
@@ -898,12 +940,13 @@ function WorkspaceSummary({
             <AlertCircle size={22} />
           </div>
           <b>{guidance.requiredOpenRequirements.length} required decision{guidance.requiredOpenRequirements.length === 1 ? '' : 's'} still open</b>
-          <p>The engine cannot surface the next question right now. The required requirement{guidance.requiredOpenRequirements.length === 1 ? '' : 's'} below must be answered before the architecture can be published.</p>
+          <p>The engine is waiting for a required answer before it can surface the next question.</p>
           <ul>
             {guidance.requiredOpenRequirements.map((req) => (
-              <li key={req.id}><b>{req.name}</b> — use the <b>Ask advisor</b> tab to answer this.</li>
+              <li key={req.id}><b>{req.name}</b></li>
             ))}
           </ul>
+          <p className="fw-engine-blocked-hint">Use the <b>Ask advisor</b> tab to answer the requirement above, then reload.</p>
         </div>
       )}
     </div>
@@ -996,8 +1039,8 @@ function WorkspaceStyles() {
 .fw-main{display:flex;flex:1;min-height:0}.fw-canvas-wrap{position:relative;flex:1;min-width:0}.fw-view-caption{position:absolute;z-index:4;left:14px;top:12px;display:flex;flex-direction:column;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:#0e1116dd;pointer-events:none}.fw-view-caption b{font-size:10px}.fw-view-caption span{font-size:8.5px;color:var(--muted)}
 .fw-aside{width:410px;flex:none;min-height:0;display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--soft)}.fw-aside-scroll{flex:1;min-height:0;overflow:auto}
 .fw-aside-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;border-bottom:1px solid var(--soft);background:#0d1118}.fw-aside-tabs-3{grid-template-columns:1fr 1fr 1fr}.fw-aside-tabs button{display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:6px;background:transparent;color:var(--muted);padding:8px;font:650 10.5px inherit;cursor:pointer}.fw-aside-tabs button.active{background:#202936;color:var(--ink)}.fw-aside-tabs button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
-.fw-discovery{padding:22px 22px 28px}.fw-discovery>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.fw-discovery>header div{display:flex;flex-direction:column}.fw-discovery>header b{font-size:13px}.fw-discovery>header span{font-size:9.5px;color:var(--muted)}.fw-discovery>header>span{padding-top:2px;color:var(--green)}
-.fw-engine-done{margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:10px;background:#ffffff04;display:flex;flex-direction:column;gap:8px}.fw-engine-done-icon{color:var(--green)}.fw-engine-blocked .fw-engine-done-icon{color:var(--amber)}.fw-engine-done b{font-size:12px}.fw-engine-done p{font-size:10.5px;color:var(--dim);margin:0;line-height:1.5}.fw-engine-done ul{margin:4px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:5px}.fw-engine-done li{font-size:10px;color:var(--muted);line-height:1.5}.fw-engine-done li b{color:var(--ink)}
+.fw-discovery{padding:22px 22px 28px}.fw-discovery>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.fw-discovery>header div{display:flex;flex-direction:column}.fw-discovery>header b{font-size:13px}.fw-discovery>header>div>span{font-size:9.5px;color:var(--muted)}.fw-feasibility-badge{font-size:8.5px;color:var(--muted);padding:2px 7px;border-radius:10px;border:1px solid var(--line);white-space:nowrap;margin-top:2px}.fw-feasibility-badge.confirmed{color:#5eead4;border-color:#2dd4bf44;background:#2dd4bf12}
+.fw-engine-done{margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:10px;background:#ffffff04;display:flex;flex-direction:column;gap:8px}.fw-engine-done-icon{color:var(--green)}.fw-engine-blocked .fw-engine-done-icon{color:var(--amber)}.fw-engine-done b{font-size:12px}.fw-engine-done p{font-size:10.5px;color:var(--dim);margin:0;line-height:1.5}.fw-engine-done-next{color:var(--muted) !important;font-size:10px !important}.fw-engine-blocked-hint{color:var(--muted) !important;font-size:9.5px !important;font-style:italic}.fw-engine-done ul{margin:4px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:5px}.fw-engine-done li{font-size:10px;color:var(--muted);line-height:1.5}.fw-engine-done li b{color:var(--ink)}.fw-review-cta{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;padding:10px;border:1px solid var(--green);border-radius:7px;background:#37dd7d18;color:var(--green);font:650 11px inherit;cursor:pointer}.fw-review-cta:hover{background:#37dd7d28}
 .fw-discovery-progress{height:4px;margin:12px 0 27px;border-radius:2px;overflow:hidden;background:var(--line)}.fw-discovery-progress i{display:block;height:100%;background:var(--green)}
 .fw-next>span,.fw-proposal>span{font-size:8.5px;text-transform:uppercase;color:var(--muted);font-weight:750}.fw-next h2{font-size:18px;line-height:1.35;margin:8px 0}.fw-next>p{font-size:10.5px;color:var(--muted);margin:0 0 17px}.fw-answer-list{display:flex;flex-direction:column;gap:7px}.fw-answer-list>button{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;border:1px solid var(--line);border-radius:7px;background:#11161e;color:var(--ink);padding:10px 11px;cursor:pointer}.fw-answer-list>button:hover{border-color:#47576c;background:#151c26}.fw-answer-list>button.selected{border-color:var(--green);background:#102019}.fw-answer-list>button:disabled{opacity:.45}.fw-answer-list>button>i{width:17px;height:17px;display:grid;place-items:center;flex:none;margin-top:1px;border:1px solid #4b596d;border-radius:50%;color:#07130c;font-style:normal}.fw-answer-list>button.selected>i{border-color:var(--green);background:var(--green)}.fw-answer-list>button>span{display:flex;flex-direction:column}.fw-answer-list b{font-size:11.5px}.fw-answer-list small{font-size:9.5px;line-height:1.4;color:var(--muted);margin-top:2px}
 .fw-answer-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:16px;padding-top:13px;border-top:1px solid var(--soft)}.fw-answer-actions button{border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--dim);padding:7px 10px;font:650 10px inherit}.fw-answer-actions button.primary{border-color:var(--green);background:var(--green);color:#07130c}.fw-answer-actions button:disabled{opacity:.45}
