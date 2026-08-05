@@ -11,6 +11,7 @@ from .assurance import SelectedBundleContext, build_assurance_outputs
 from .assurance.models import BundleImplementation
 from .deployable import build_deployable_solution
 from .engine import evaluate_deployment_feasibility, rank_next_questions
+from .question_enrichment import get_answer_label, get_enrichment
 from .models import (
     AnswerImpact,
     ArchitectureEdge,
@@ -223,12 +224,19 @@ def _question_projection(
     if question is None:
         return None
     definition = requirements[question.requirement_id]
+    enrichment = get_enrichment(question.requirement_id)
     return {
         "question_id": question.question_id,
         "requirement_id": question.requirement_id,
         "requirement_name": definition.name,
         "prompt": question.prompt,
+        "customer_question": enrichment.get("customer_question") or question.prompt,
+        "why_it_matters": enrichment.get("why_it_matters"),
         "candidate_answers": list(question.candidate_answers),
+        "answer_enrichments": [
+            get_answer_label(question.requirement_id, answer)
+            for answer in question.candidate_answers
+        ],
         "hard_constraint_risk": question.hard_constraint_risk,
         "information_gain": question.information_gain,
         "candidate_elimination_count": question.candidate_elimination_count,
@@ -644,6 +652,8 @@ def build_frontend_projection(
             "requirement_id": requirement_id,
             "name": definition.name,
             "description": definition.description,
+            "customer_question": get_enrichment(requirement_id).get("customer_question"),
+            "why_it_matters": get_enrichment(requirement_id).get("why_it_matters"),
             "value_type": definition.value_type.value,
             "required": definition.required,
             "status": (

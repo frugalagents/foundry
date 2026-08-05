@@ -65,7 +65,7 @@ const TYPE_LABEL: Record<string, string> = {
   marketplace: 'Marketplace',
 };
 
-const answerLabel = (answer: RequirementValue) => {
+const answerLabel = (answer: RequirementValue): string => {
   if (answer === true) return 'Yes';
   if (answer === false) return 'No';
   if (answer == null) return 'Not sure yet';
@@ -90,6 +90,19 @@ function answerDescription(requirementId: string, answer: RequirementValue) {
   };
   return descriptions[String(answer)] ?? '';
 }
+
+const REQUIREMENT_OPTIONS: Record<string, RequirementValue[]> = {
+  'requirement:execution-placement': ['customer-managed', 'vendor-managed', 'hybrid', 'local'],
+  'requirement:private-connectivity': [true, false],
+  'requirement:runtime-isolation': ['microvm', 'container', 'dedicated-tenant', 'developer-endpoint'],
+  'requirement:provider-hosting': ['managed', 'self-hosted', 'multi-provider'],
+  'requirement:long-running-workspaces': [true, false],
+  'requirement:model-routing-mode': ['static', 'dynamic'],
+  'requirement:model-fallback': [true, false],
+  'requirement:approved-regions': ['fixed-regions', 'any-approved'],
+  'requirement:economic-priority': ['balanced', 'quality', 'cost', 'latency'],
+  'requirement:orchestration-mode': ['independent', 'sequential', 'parallel-review'],
+};
 
 const shortId = (value: string) => value.replace(/^[^:]+:/, '').replace(/-/g, ' ');
 
@@ -260,11 +273,12 @@ export function FlowWorkspace({
     }
   }
 
-  async function acceptPatch() {
-    if (!pendingPatch || !canMutate) return;
-    const committed = await onApplyPatch?.(pendingPatch);
+  async function acceptPatch(explicitPatch?: Record<string, RequirementValue>) {
+    const thePatch = explicitPatch ?? pendingPatch;
+    if (!thePatch || !canMutate) return;
+    const committed = await onApplyPatch?.(thePatch);
     if (committed === true) {
-      const count = Object.keys(pendingPatch).length;
+      const count = Object.keys(thePatch).length;
       setPendingPatch(null);
       setProposalEditing(false);
       setChatLog((log) => [...log, {
@@ -847,9 +861,10 @@ function WorkspaceSummary({
   pendingPatch: Record<string, RequirementValue> | null;
   onPropose: (requirementId: string, answer: RequirementValue) => void;
   onChangeAnswer: () => void;
-  onApplyAnswer: () => void;
+  onApplyAnswer: (patch?: Record<string, RequirementValue>) => void;
   onOpenReview: () => void;
 }) {
+  const [conflictPatch, setConflictPatch] = useState<Record<string, RequirementValue>>({});
   const questionNumber = guidance.confirmedRequirements + guidance.assumedRequirements + 1;
   const questionCount = projection.requirements.length;
   const pendingAnswer = nextQuestion && pendingPatch
@@ -859,6 +874,40 @@ function WorkspaceSummary({
   const engineDone = !nextQuestion && guidance.requiredOpenRequirements.length === 0;
   const allAnswered = guidance.openRequirements.length === 0;
   const feasibleCount = guidance.feasibleAlternatives;
+  const conflict = engineDone && feasibleCount === 0 && guidance.allFamiliesRejected;
+
+  // Derive which requirements are causing family rejections
+  const conflictItems = useMemo(() => {
+    if (!conflict) return [];
+    const rejectionRuleIds = new Set(
+      projection.feasibility
+        .filter((f) => f.status === 'rejected')
+        .flatMap((f) => f.rejection_rule_ids ?? []),
+    );
+    const conflictTraces = projection.decision_trace.filter((e) => rejectionRuleIds.has(e.rule_id));
+    const seen = new Set<string>();
+    const items: Array<{
+      req: ArchitectureRequirement;
+      rationale: string;
+      options: RequirementValue[];
+      isAssumption: boolean;
+    }> = [];
+    for (const trace of conflictTraces) {
+      for (const reqId of trace.requirement_ids) {
+        if (seen.has(reqId)) continue;
+        seen.add(reqId);
+        const req = projection.requirements.find((r) => r.id === reqId);
+        if (!req) continue;
+        items.push({
+          req,
+          rationale: trace.rationale,
+          options: REQUIREMENT_OPTIONS[reqId] ?? [],
+          isAssumption: req.source === 'assumption',
+        });
+      }
+    }
+    return items;
+  }, [conflict, projection.feasibility, projection.decision_trace, projection.requirements]);
   return (
     <div className="fw-discovery">
       <header>
@@ -870,8 +919,8 @@ function WorkspaceSummary({
               : `${guidance.openRequirements.length} decisions remaining`}
           </span>
         </div>
-        <span className={feasibleCount > 0 ? 'fw-feasibility-badge confirmed' : 'fw-feasibility-badge'}>
-          {feasibleCount > 0 ? `${feasibleCount} famil${feasibleCount === 1 ? 'y' : 'ies'} confirmed` : 'Feasibility pending'}
+        <span className={feasibleCount > 0 ? 'fw-feasibility-badge confirmed' : conflict ? 'fw-feasibility-badge conflict' : 'fw-feasibility-badge'}>
+          {feasibleCount > 0 ? `${feasibleCount} famil${feasibleCount === 1 ? 'y' : 'ies'} confirmed` : conflict ? 'All families rejected' : 'Feasibility pending'}
         </span>
       </header>
       <div className="fw-discovery-progress" aria-label={`${guidance.coveredPercent}% complete`}>
@@ -880,12 +929,17 @@ function WorkspaceSummary({
       {nextQuestion ? (
         <div className="fw-next">
           <span>Question {Math.min(questionNumber, questionCount)} of {questionCount}</span>
-          <h2>{nextQuestion.prompt}</h2>
-          <p>Select the closest customer requirement. You can revise it later.</p>
-          <div className="fw-answer-list" role="radiogroup" aria-label={nextQuestion.prompt}>
-            {nextQuestion.candidate_answers.map((answer) => {
+          <h2>{nextQuestion.customer_question}</h2>
+          {nextQuestion.why_it_matters && (
+            <p className="fw-why-it-matters">{nextQuestion.why_it_matters}</p>
+          )}
+          <div className="fw-answer-list" role="radiogroup" aria-label={nextQuestion.customer_question}>
+            {nextQuestion.candidate_answers.map((answer, idx) => {
               const selectedAnswer = pendingAnswer === answer;
-              const description = answerDescription(nextQuestion.requirement_id, answer);
+              const enrichment = nextQuestion.answer_enrichments?.[idx];
+              const label = enrichment?.label ?? answerLabel(answer);
+              const description = enrichment?.description ?? answerDescription(nextQuestion.requirement_id, answer);
+              const watchOut = enrichment?.watch_out;
               return (
                 <button
                   type="button"
@@ -897,7 +951,11 @@ function WorkspaceSummary({
                   onClick={() => onPropose(nextQuestion.requirement_id, answer)}
                 >
                   <i>{selectedAnswer && <Check size={12} />}</i>
-                  <span><b>{answerLabel(answer)}</b>{description && <small>{description}</small>}</span>
+                  <span>
+                    <b>{label}</b>
+                    {description && <small>{description}</small>}
+                    {selectedAnswer && watchOut && <small className="fw-watch-out">Watch out: {watchOut}</small>}
+                  </span>
                 </button>
               );
             })}
@@ -905,35 +963,107 @@ function WorkspaceSummary({
           {pendingAnswer !== undefined && (
             <div className="fw-answer-actions">
               <button type="button" onClick={onChangeAnswer} disabled={applying}>Change</button>
-              <button type="button" className="primary" onClick={onApplyAnswer} disabled={applying}>
+              <button type="button" className="primary" onClick={() => onApplyAnswer()} disabled={applying}>
                 {applying ? 'Applying...' : 'Apply answer'}
               </button>
             </div>
           )}
         </div>
       ) : engineDone ? (
-        <div className="fw-engine-done">
-          <div className="fw-engine-done-icon">
-            <CheckCircle2 size={22} />
+        conflict ? (
+          <div className="fw-engine-done fw-engine-conflict">
+            <div className="fw-engine-done-icon"><AlertCircle size={22} /></div>
+            <b>Requirements conflict — no deployment family confirmed</b>
+            <p>Your current choices collectively reject every deployment family. Review what&apos;s causing the conflict below and select alternative values to resolve it.</p>
+            {conflictItems.length > 0 && (
+              <div className="fw-conflict-list">
+                {conflictItems.map(({ req, rationale, options, isAssumption }) => {
+                  const alternatives = options.filter((opt) => opt !== req.value);
+                  return (
+                    <div key={req.id} className="fw-conflict-item">
+                      <div className="fw-conflict-item-header">
+                        <span className="fw-conflict-req-name">{req.customer_question ?? req.name}</span>
+                        <span className="fw-conflict-current">{answerLabel(req.value)}{isAssumption && <i> (assumed)</i>}</span>
+                      </div>
+                      <p className="fw-conflict-rationale">{rationale}</p>
+                      {alternatives.length > 0 && (
+                        <div className="fw-conflict-options">
+                          <small>Try instead:</small>
+                          <div className="fw-conflict-choices">
+                            {alternatives.map((opt) => {
+                              const selected = conflictPatch[req.id] === opt;
+                              return (
+                                <button
+                                  key={String(opt)}
+                                  type="button"
+                                  className={selected ? 'selected' : ''}
+                                  disabled={applying || isAssumption}
+                                  onClick={() => {
+                                    if (selected) {
+                                      const next = { ...conflictPatch };
+                                      delete next[req.id];
+                                      setConflictPatch(next);
+                                    } else {
+                                      setConflictPatch({ ...conflictPatch, [req.id]: opt });
+                                    }
+                                  }}
+                                >
+                                  {selected && <Check size={10} />}
+                                  {answerLabel(opt)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {isAssumption && (
+                        <small className="fw-conflict-assumption-note">Set by assumption — use Ask advisor to override.</small>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {conflictItems.length === 0 && (
+              <p className="fw-engine-done-next">Open the <b>Trace tab</b> to inspect which rules are firing, then use Ask advisor to change the conflicting answers.</p>
+            )}
+            {Object.keys(conflictPatch).length > 0 ? (
+              <div className="fw-answer-actions">
+                <button type="button" onClick={() => setConflictPatch({})} disabled={applying}>Reset</button>
+                <button type="button" className="primary" onClick={() => onApplyAnswer(conflictPatch)} disabled={applying}>
+                  {applying ? 'Applying…' : `Apply ${Object.keys(conflictPatch).length} fix${Object.keys(conflictPatch).length === 1 ? '' : 'es'}`}
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="fw-review-cta" onClick={onOpenReview}>
+                <AlertCircle size={14} /> View full trace
+              </button>
+            )}
           </div>
-          <b>Architecture is fully specified</b>
-          <p>
-            {allAnswered
-              ? 'All requirements are confirmed. The engine has all the information it needs.'
-              : 'The remaining open requirements do not affect the current architecture — the engine has enough information to proceed.'}
-          </p>
-          {feasibleCount > 0 ? (
-            <p className="fw-engine-done-next">
-              <b>{feasibleCount} deployment famil{feasibleCount === 1 ? 'y' : 'ies'} confirmed.</b>{' '}
-              Review the full architecture package and publication gate.
+        ) : (
+          <div className="fw-engine-done">
+            <div className="fw-engine-done-icon">
+              <CheckCircle2 size={22} />
+            </div>
+            <b>Architecture is fully specified</b>
+            <p>
+              {allAnswered
+                ? 'All requirements are confirmed. The engine has all the information it needs.'
+                : 'The remaining open requirements do not affect the current architecture — the engine has enough information to proceed.'}
             </p>
-          ) : (
-            <p className="fw-engine-done-next">No deployment family is confirmed yet — check your answers above or use the Trace tab.</p>
-          )}
-          <button type="button" className="fw-review-cta" onClick={onOpenReview}>
-            <Sparkles size={14} /> Review package
-          </button>
-        </div>
+            {feasibleCount > 0 ? (
+              <p className="fw-engine-done-next">
+                <b>{feasibleCount} deployment famil{feasibleCount === 1 ? 'y' : 'ies'} confirmed.</b>{' '}
+                Review the full architecture package and publication gate.
+              </p>
+            ) : (
+              <p className="fw-engine-done-next">No deployment family is confirmed yet — check your answers above or use the Trace tab.</p>
+            )}
+            <button type="button" className="fw-review-cta" onClick={onOpenReview}>
+              <Sparkles size={14} /> Review package
+            </button>
+          </div>
+        )
       ) : (
         <div className="fw-engine-done fw-engine-blocked">
           <div className="fw-engine-done-icon">
@@ -1039,10 +1169,11 @@ function WorkspaceStyles() {
 .fw-main{display:flex;flex:1;min-height:0}.fw-canvas-wrap{position:relative;flex:1;min-width:0}.fw-view-caption{position:absolute;z-index:4;left:14px;top:12px;display:flex;flex-direction:column;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:#0e1116dd;pointer-events:none}.fw-view-caption b{font-size:10px}.fw-view-caption span{font-size:8.5px;color:var(--muted)}
 .fw-aside{width:410px;flex:none;min-height:0;display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--soft)}.fw-aside-scroll{flex:1;min-height:0;overflow:auto}
 .fw-aside-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;border-bottom:1px solid var(--soft);background:#0d1118}.fw-aside-tabs-3{grid-template-columns:1fr 1fr 1fr}.fw-aside-tabs button{display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:6px;background:transparent;color:var(--muted);padding:8px;font:650 10.5px inherit;cursor:pointer}.fw-aside-tabs button.active{background:#202936;color:var(--ink)}.fw-aside-tabs button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
-.fw-discovery{padding:22px 22px 28px}.fw-discovery>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.fw-discovery>header div{display:flex;flex-direction:column}.fw-discovery>header b{font-size:13px}.fw-discovery>header>div>span{font-size:9.5px;color:var(--muted)}.fw-feasibility-badge{font-size:8.5px;color:var(--muted);padding:2px 7px;border-radius:10px;border:1px solid var(--line);white-space:nowrap;margin-top:2px}.fw-feasibility-badge.confirmed{color:#5eead4;border-color:#2dd4bf44;background:#2dd4bf12}
-.fw-engine-done{margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:10px;background:#ffffff04;display:flex;flex-direction:column;gap:8px}.fw-engine-done-icon{color:var(--green)}.fw-engine-blocked .fw-engine-done-icon{color:var(--amber)}.fw-engine-done b{font-size:12px}.fw-engine-done p{font-size:10.5px;color:var(--dim);margin:0;line-height:1.5}.fw-engine-done-next{color:var(--muted) !important;font-size:10px !important}.fw-engine-blocked-hint{color:var(--muted) !important;font-size:9.5px !important;font-style:italic}.fw-engine-done ul{margin:4px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:5px}.fw-engine-done li{font-size:10px;color:var(--muted);line-height:1.5}.fw-engine-done li b{color:var(--ink)}.fw-review-cta{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;padding:10px;border:1px solid var(--green);border-radius:7px;background:#37dd7d18;color:var(--green);font:650 11px inherit;cursor:pointer}.fw-review-cta:hover{background:#37dd7d28}
+.fw-discovery{padding:22px 22px 28px}.fw-discovery>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.fw-discovery>header div{display:flex;flex-direction:column}.fw-discovery>header b{font-size:13px}.fw-discovery>header>div>span{font-size:9.5px;color:var(--muted)}.fw-feasibility-badge{font-size:8.5px;color:var(--muted);padding:2px 7px;border-radius:10px;border:1px solid var(--line);white-space:nowrap;margin-top:2px}.fw-feasibility-badge.confirmed{color:#5eead4;border-color:#2dd4bf44;background:#2dd4bf12}.fw-feasibility-badge.conflict{color:#f87171;border-color:#f8717144;background:#f8717112}
+.fw-engine-done{margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:10px;background:#ffffff04;display:flex;flex-direction:column;gap:8px}.fw-engine-done-icon{color:var(--green)}.fw-engine-blocked .fw-engine-done-icon{color:var(--amber)}.fw-engine-conflict .fw-engine-done-icon{color:var(--red)}.fw-engine-conflict{border-color:#f8717133 !important;background:#1f0f1012 !important}.fw-engine-conflict .fw-review-cta{border-color:var(--red);background:#fb718512;color:var(--red)}.fw-engine-conflict .fw-review-cta:hover{background:#fb718522}.fw-engine-done b{font-size:12px}.fw-engine-done p{font-size:10.5px;color:var(--dim);margin:0;line-height:1.5}.fw-engine-done-next{color:var(--muted) !important;font-size:10px !important}.fw-engine-blocked-hint{color:var(--muted) !important;font-size:9.5px !important;font-style:italic}.fw-engine-done ul{margin:4px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:5px}.fw-engine-done li{font-size:10px;color:var(--muted);line-height:1.5}.fw-engine-done li b{color:var(--ink)}.fw-review-cta{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;padding:10px;border:1px solid var(--green);border-radius:7px;background:#37dd7d18;color:var(--green);font:650 11px inherit;cursor:pointer}.fw-review-cta:hover{background:#37dd7d28}
+.fw-conflict-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}.fw-conflict-item{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid #f8717122;border-radius:7px;background:#1a0d0f}.fw-conflict-item-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.fw-conflict-req-name{font-size:10.5px;font-weight:600;line-height:1.4;color:var(--ink)}.fw-conflict-current{font-size:9px;color:var(--red);white-space:nowrap;flex-shrink:0;margin-top:2px}.fw-conflict-current i{font-style:normal;color:var(--amber)}.fw-conflict-rationale{font-size:9px;color:var(--muted);margin:0;font-style:italic;border-left:2px solid #f8717144;padding-left:6px;line-height:1.45}.fw-conflict-options{display:flex;flex-direction:column;gap:5px}.fw-conflict-options>small{font-size:8.5px;text-transform:uppercase;font-weight:700;color:var(--muted)}.fw-conflict-choices{display:flex;flex-wrap:wrap;gap:5px}.fw-conflict-choices>button{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--dim);padding:4px 8px;font:600 9.5px inherit;cursor:pointer}.fw-conflict-choices>button:hover:not(:disabled){border-color:#47576c;background:#151c26}.fw-conflict-choices>button.selected{border-color:var(--green);background:#102019;color:var(--green)}.fw-conflict-choices>button:disabled{opacity:.4;cursor:default}.fw-conflict-assumption-note{font-size:8.5px;color:var(--amber);font-style:italic}
 .fw-discovery-progress{height:4px;margin:12px 0 27px;border-radius:2px;overflow:hidden;background:var(--line)}.fw-discovery-progress i{display:block;height:100%;background:var(--green)}
-.fw-next>span,.fw-proposal>span{font-size:8.5px;text-transform:uppercase;color:var(--muted);font-weight:750}.fw-next h2{font-size:18px;line-height:1.35;margin:8px 0}.fw-next>p{font-size:10.5px;color:var(--muted);margin:0 0 17px}.fw-answer-list{display:flex;flex-direction:column;gap:7px}.fw-answer-list>button{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;border:1px solid var(--line);border-radius:7px;background:#11161e;color:var(--ink);padding:10px 11px;cursor:pointer}.fw-answer-list>button:hover{border-color:#47576c;background:#151c26}.fw-answer-list>button.selected{border-color:var(--green);background:#102019}.fw-answer-list>button:disabled{opacity:.45}.fw-answer-list>button>i{width:17px;height:17px;display:grid;place-items:center;flex:none;margin-top:1px;border:1px solid #4b596d;border-radius:50%;color:#07130c;font-style:normal}.fw-answer-list>button.selected>i{border-color:var(--green);background:var(--green)}.fw-answer-list>button>span{display:flex;flex-direction:column}.fw-answer-list b{font-size:11.5px}.fw-answer-list small{font-size:9.5px;line-height:1.4;color:var(--muted);margin-top:2px}
+.fw-next>span,.fw-proposal>span{font-size:8.5px;text-transform:uppercase;color:var(--muted);font-weight:750}.fw-next h2{font-size:18px;line-height:1.35;margin:8px 0}.fw-next>p{font-size:10.5px;color:var(--muted);margin:0 0 17px}.fw-why-it-matters{font-size:10.5px;color:var(--dim);margin:0 0 17px;padding:9px 10px;border-left:2px solid var(--green);background:#37dd7d0a}.fw-answer-list small+small.fw-watch-out{color:var(--amber);margin-top:4px;font-style:italic}.fw-answer-list{display:flex;flex-direction:column;gap:7px}.fw-answer-list>button{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;border:1px solid var(--line);border-radius:7px;background:#11161e;color:var(--ink);padding:10px 11px;cursor:pointer}.fw-answer-list>button:hover{border-color:#47576c;background:#151c26}.fw-answer-list>button.selected{border-color:var(--green);background:#102019}.fw-answer-list>button:disabled{opacity:.45}.fw-answer-list>button>i{width:17px;height:17px;display:grid;place-items:center;flex:none;margin-top:1px;border:1px solid #4b596d;border-radius:50%;color:#07130c;font-style:normal}.fw-answer-list>button.selected>i{border-color:var(--green);background:var(--green)}.fw-answer-list>button>span{display:flex;flex-direction:column}.fw-answer-list b{font-size:11.5px}.fw-answer-list small{font-size:9.5px;line-height:1.4;color:var(--muted);margin-top:2px}
 .fw-answer-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:16px;padding-top:13px;border-top:1px solid var(--soft)}.fw-answer-actions button{border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--dim);padding:7px 10px;font:650 10px inherit}.fw-answer-actions button.primary{border-color:var(--green);background:var(--green);color:#07130c}.fw-answer-actions button:disabled{opacity:.45}
 .fw-inspector-head{padding:20px;border-bottom:1px solid var(--soft);border-left:3px solid var(--section-color);background:linear-gradient(110deg,var(--section-tint),transparent)}.fw-inspector-head>span{font-size:8.5px;text-transform:uppercase;color:var(--section-color);font-weight:750}.fw-inspector-head h2{font-size:18px;margin:6px 0}.fw-inspector-head>p{font-size:11.5px;color:var(--dim);margin:0}.fw-service{display:flex;flex-direction:column;margin-top:12px;padding:9px;border:1px solid var(--line);border-radius:7px;background:#0e1116}.fw-service b{font-size:11.5px}.fw-service small{font-size:9px;color:var(--muted)}
 .fw-inspector-section{padding:17px 20px;border-bottom:1px solid var(--soft)}.fw-inspector-section h3,.fw-dialog-body section>h3{font-size:9px;text-transform:uppercase;color:var(--muted);margin:0 0 10px}.fw-muted{font-size:10.5px;color:var(--muted);margin:0}

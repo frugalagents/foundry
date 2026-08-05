@@ -1,5 +1,6 @@
 import { getAccessToken, refreshIdToken } from './auth';
 import type {
+  AnswerEnrichment,
   ArchitectureWorkspaceProjection,
   RequirementStatus,
   RequirementValue,
@@ -72,6 +73,8 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
       id: String(item.requirement_id),
       name: String(item.name),
       description: item.description ? String(item.description) : undefined,
+      customer_question: item.customer_question ? String(item.customer_question) : undefined,
+      why_it_matters: item.why_it_matters ? String(item.why_it_matters) : undefined,
       required: Boolean(item.required),
       value: item.value as RequirementValue,
       status: requirementStatus(item.status),
@@ -124,8 +127,18 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
       return {
         requirement_id: String(question.requirement_id),
         prompt: String(question.prompt),
+        customer_question: question.customer_question ? String(question.customer_question) : String(question.prompt),
+        why_it_matters: question.why_it_matters ? String(question.why_it_matters) : undefined,
         why_now: String(question.why_now),
         candidate_answers: question.candidate_answers as RequirementValue[],
+        answer_enrichments: ((question.answer_enrichments as (JsonObject | null)[]) ?? []).map((e) =>
+          e ? {
+            label: String(e.label ?? ''),
+            description: String(e.description ?? ''),
+            best_for: e.best_for ? String(e.best_for) : undefined,
+            watch_out: e.watch_out ? String(e.watch_out) : undefined,
+          } as AnswerEnrichment : null,
+        ),
         answer_impacts: ((question.answer_impacts as JsonObject[]) ?? []).map((impact) => {
           const components = impact.components ? object(impact.components) : {} as JsonObject;
           const edges = impact.edges ? object(impact.edges) : {} as JsonObject;

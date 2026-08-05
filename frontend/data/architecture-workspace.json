@@ -1069,7 +1069,7 @@
     }
   ],
   "assurance": {
-    "architecture_catalog_content_hash": "sha256:450d5850e6b99075445bbb9650503d616d8db74ac2e1b5e8ac710b987a44d7e3",
+    "architecture_catalog_content_hash": "sha256:37bce222073ce8af0ec2b55fdeaaf338e51aab7131bb406b04e2c1c8c8ff432d",
     "architecture_catalog_id": "catalog:coding-platform",
     "architecture_catalog_version": "3.0.0",
     "assurance_catalog_content_hash": "sha256:fd9d2f469fd4d35d5ecaba2f01644a984651b17c24736be5cc57115472174367",
@@ -1366,7 +1366,7 @@
         }
       ]
     },
-    "generated_as_of": "2026-07-30",
+    "generated_as_of": "2026-08-04",
     "outcomes": {
       "event_contract": [
         {
@@ -1953,7 +1953,40 @@
         }
       ]
     },
-    "packet_hash": "sha256:e61fd8eed84907f07c12e82da69ea5bf808b5b736b10a5c6180541852ee44648",
+    "packet_hash": "sha256:6e2148f6a3f5abd123f12ea6f2532c228feb1169361e4ef7169b3498aaad12cc",
+    "readiness": {
+      "blocking_reason_codes": [
+        "bundle_selection_missing",
+        "economics_not_evidence_backed",
+        "evidence_freshness_unresolved",
+        "evidence_incomplete",
+        "recommendation_stability_unresolved"
+      ],
+      "evidence": {
+        "status": "incomplete",
+        "unevidenced_input_ids": [
+          "decision-input:bundle-selection"
+        ],
+        "unverified_claim_ids": [],
+        "verified_claim_ids": []
+      },
+      "expert_review": {
+        "reason_codes": [],
+        "required": false
+      },
+      "freshness": {
+        "evaluated_as_of": "2026-08-04",
+        "stale_claim_ids": [],
+        "status": "unknown"
+      },
+      "stability": {
+        "score_margin": null,
+        "selected_candidate_id": null,
+        "status": "unknown",
+        "winner_change_dimension_ids": []
+      },
+      "state": "needs_information"
+    },
     "roadmap": {
       "critical_path_package_ids": [
         "work-package:component-workforce-identity",
@@ -1988,10 +2021,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:architecture-knowledge-aws",
+              "offering_id": null,
               "owner": "Architecture Governance",
               "package_id": "work-package:component-architecture-knowledge",
-              "title": "Implement Architecture intelligence catalog with AWS Amazon OpenSearch Serverless architecture index"
+              "title": "Implement Architecture intelligence catalog"
             },
             {
               "component_id": "component:developer-clients",
@@ -2007,10 +2040,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:developer-clients-aws",
+              "offering_id": null,
               "owner": "Developer Experience",
               "package_id": "work-package:component-developer-clients",
-              "title": "Implement Coding agent clients with AWS Enterprise coding-agent clients with AWS governance"
+              "title": "Implement Coding agent clients"
             },
             {
               "component_id": "component:workforce-identity",
@@ -2026,10 +2059,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:workforce-identity-aws",
+              "offering_id": null,
               "owner": "Identity and Access",
               "package_id": "work-package:component-workforce-identity",
-              "title": "Implement Workforce identity with AWS AWS IAM Identity Center federation"
+              "title": "Implement Workforce identity"
             }
           ]
         },
@@ -2058,10 +2091,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:advisor-workspace-aws",
+              "offering_id": null,
               "owner": "Developer Experience",
               "package_id": "work-package:component-advisor-workspace",
-              "title": "Implement Architecture workspace with AWS AWS-hosted Platform Advisor workspace"
+              "title": "Implement Architecture workspace"
             },
             {
               "component_id": "component:audit-ledger",
@@ -2079,10 +2112,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:audit-ledger-aws",
+              "offering_id": null,
               "owner": "Security Engineering",
               "package_id": "work-package:component-audit-ledger",
-              "title": "Implement Decision and action ledger with AWS AWS CloudTrail and Amazon S3 Object Lock"
+              "title": "Implement Decision and action ledger"
             },
             {
               "component_id": "component:evidence-catalog",
@@ -2100,10 +2133,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:evidence-catalog-aws",
+              "offering_id": null,
               "owner": "Architecture Governance",
               "package_id": "work-package:component-evidence-catalog",
-              "title": "Implement Evidence claim catalog with AWS Amazon S3 and DynamoDB evidence catalog"
+              "title": "Implement Evidence claim catalog"
             },
             {
               "component_id": "component:team-workspaces",
@@ -2121,10 +2154,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:team-workspaces-aws",
+              "offering_id": null,
               "owner": "Identity and Access",
               "package_id": "work-package:component-team-workspaces",
-              "title": "Implement Team workspaces with AWS DynamoDB-backed team workspace registry"
+              "title": "Implement Team workspaces"
             },
             {
               "component_id": "component:workload-identity",
@@ -2142,10 +2175,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:workload-identity-aws",
+              "offering_id": null,
               "owner": "Identity and Access",
               "package_id": "work-package:component-workload-identity",
-              "title": "Implement Workload identity with AWS AWS IAM roles and STS"
+              "title": "Implement Workload identity"
             }
           ]
         },
@@ -2174,10 +2207,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:agent-registry-aws",
+              "offering_id": null,
               "owner": "Agent Platform",
               "package_id": "work-package:component-agent-registry",
-              "title": "Implement Agent registry with AWS Amazon ECR agent artifact registry"
+              "title": "Implement Agent registry"
             },
             {
               "component_id": "component:execution-broker",
@@ -2195,10 +2228,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:execution-broker-aws",
+              "offering_id": null,
               "owner": "Runtime Platform",
               "package_id": "work-package:component-execution-broker",
-              "title": "Implement Execution broker with AWS Amazon SQS and AWS Step Functions execution broker"
+              "title": "Implement Execution broker"
             },
             {
               "component_id": "component:model-gateway",
@@ -2216,10 +2249,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:model-gateway-aws",
+              "offering_id": null,
               "owner": "AI Platform",
               "package_id": "work-package:component-model-gateway",
-              "title": "Implement Model gateway with AWS Amazon Bedrock governed model gateway"
+              "title": "Implement Model gateway"
             },
             {
               "component_id": "component:policy-engine",
@@ -2237,10 +2270,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:policy-engine-aws",
+              "offering_id": null,
               "owner": "Security Engineering",
               "package_id": "work-package:component-policy-engine",
-              "title": "Implement Policy engine with AWS Amazon Verified Permissions and Cedar"
+              "title": "Implement Policy engine"
             },
             {
               "component_id": "component:quota-manager",
@@ -2258,10 +2291,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:quota-manager-aws",
+              "offering_id": null,
               "owner": "Security Engineering",
               "package_id": "work-package:component-quota-manager",
-              "title": "Implement Quota and budget manager with AWS AWS quota and budget control service"
+              "title": "Implement Quota and budget manager"
             },
             {
               "component_id": "component:telemetry-pipeline",
@@ -2279,10 +2312,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:telemetry-pipeline-aws",
+              "offering_id": null,
               "owner": "Platform Reliability",
               "package_id": "work-package:component-telemetry-pipeline",
-              "title": "Implement Agent telemetry pipeline with AWS AWS Distro for OpenTelemetry and Amazon CloudWatch"
+              "title": "Implement Agent telemetry pipeline"
             },
             {
               "component_id": "component:tool-gateway",
@@ -2300,10 +2333,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:tool-gateway-aws",
+              "offering_id": null,
               "owner": "Developer Tooling",
               "package_id": "work-package:component-tool-gateway",
-              "title": "Implement Tool and API gateway with AWS Amazon Bedrock AgentCore Gateway"
+              "title": "Implement Tool and API gateway"
             },
             {
               "component_id": null,
@@ -2355,10 +2388,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:connector-registry-aws",
+              "offering_id": null,
               "owner": "Developer Tooling",
               "package_id": "work-package:component-connector-registry",
-              "title": "Implement Connector registry with AWS AgentCore Gateway target catalog"
+              "title": "Implement Connector registry"
             },
             {
               "component_id": "component:economics-ledger",
@@ -2376,10 +2409,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:economics-ledger-aws",
+              "offering_id": null,
               "owner": "Platform Reliability",
               "package_id": "work-package:component-economics-ledger",
-              "title": "Implement Token and platform economics with AWS AWS cost and token economics ledger"
+              "title": "Implement Token and platform economics"
             },
             {
               "component_id": "component:ephemeral-runtime",
@@ -2397,10 +2430,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:ephemeral-runtime-aws",
+              "offering_id": null,
               "owner": "Runtime Platform",
               "package_id": "work-package:component-ephemeral-runtime",
-              "title": "Implement Ephemeral task runtime with AWS AWS isolated ephemeral task runtime"
+              "title": "Implement Ephemeral task runtime"
             },
             {
               "component_id": "component:evaluation-service",
@@ -2418,10 +2451,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:evaluation-service-aws",
+              "offering_id": null,
               "owner": "Platform Reliability",
               "package_id": "work-package:component-evaluation-service",
-              "title": "Implement Evaluation service with AWS Amazon Bedrock evaluation service"
+              "title": "Implement Evaluation service"
             },
             {
               "component_id": "component:human-approval",
@@ -2440,10 +2473,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:human-approval-aws",
+              "offering_id": null,
               "owner": "Security Engineering",
               "package_id": "work-package:component-human-approval",
-              "title": "Implement Risk-based human approval with AWS AWS Step Functions callback approval"
+              "title": "Implement Risk-based human approval"
             },
             {
               "component_id": "component:local-runtime",
@@ -2461,10 +2494,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:local-runtime-aws",
+              "offering_id": null,
               "owner": "Runtime Platform",
               "package_id": "work-package:component-local-runtime",
-              "title": "Implement Managed local runtime with AWS Enterprise-managed local runtime with AWS control"
+              "title": "Implement Managed local runtime"
             },
             {
               "component_id": "component:model-catalog",
@@ -2482,10 +2515,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:model-catalog-aws",
+              "offering_id": null,
               "owner": "AI Platform",
               "package_id": "work-package:component-model-catalog",
-              "title": "Implement Model catalog with AWS Amazon Bedrock model catalog"
+              "title": "Implement Model catalog"
             },
             {
               "component_id": "component:multi-region",
@@ -2503,10 +2536,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:multi-region-aws",
+              "offering_id": null,
               "owner": "Platform Reliability",
               "package_id": "work-package:component-multi-region",
-              "title": "Implement Multi-region resilience with AWS AWS multi-region service deployment"
+              "title": "Implement Multi-region resilience"
             },
             {
               "component_id": "component:package-access",
@@ -2524,10 +2557,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:package-access-aws",
+              "offering_id": null,
               "owner": "Developer Tooling",
               "package_id": "work-package:component-package-access",
-              "title": "Implement Approved package access with AWS AWS CodeArtifact"
+              "title": "Implement Approved package access"
             },
             {
               "component_id": "component:restricted-egress",
@@ -2546,10 +2579,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:restricted-egress-aws",
+              "offering_id": null,
               "owner": "Security Engineering",
               "package_id": "work-package:component-restricted-egress",
-              "title": "Implement Restricted runtime egress with AWS AWS Network Firewall and VPC endpoints"
+              "title": "Implement Restricted runtime egress"
             },
             {
               "component_id": "component:secrets-broker",
@@ -2567,10 +2600,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:secrets-broker-aws",
+              "offering_id": null,
               "owner": "Security Engineering",
               "package_id": "work-package:component-secrets-broker",
-              "title": "Implement Secrets broker with AWS AWS Secrets Manager"
+              "title": "Implement Secrets broker"
             },
             {
               "component_id": "component:source-control-integration",
@@ -2588,10 +2621,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:source-control-integration-aws",
+              "offering_id": null,
               "owner": "Developer Tooling",
               "package_id": "work-package:component-source-control-integration",
-              "title": "Implement Source control integration with AWS AWS event-driven GitLab integration"
+              "title": "Implement Source control integration"
             },
             {
               "component_id": "component:workflow-definitions",
@@ -2609,10 +2642,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:workflow-definitions-aws",
+              "offering_id": null,
               "owner": "Agent Platform",
               "package_id": "work-package:component-workflow-definitions",
-              "title": "Implement Workflow definitions with AWS Amazon S3 versioned workflow catalog"
+              "title": "Implement Workflow definitions"
             },
             {
               "component_id": null,
@@ -2664,10 +2697,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:model-router-aws",
+              "offering_id": null,
               "owner": "AI Platform",
               "package_id": "work-package:component-model-router",
-              "title": "Implement Model router with AWS AWS policy-based model router"
+              "title": "Implement Model router"
             },
             {
               "component_id": "component:orchestration-runtime",
@@ -2685,10 +2718,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:orchestration-runtime-aws",
+              "offering_id": null,
               "owner": "Agent Platform",
               "package_id": "work-package:component-orchestration-runtime",
-              "title": "Implement Agent orchestration runtime with AWS Amazon Bedrock AgentCore Runtime"
+              "title": "Implement Agent orchestration runtime"
             },
             {
               "component_id": "component:outcome-correlator",
@@ -2707,10 +2740,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:outcome-correlator-aws",
+              "offering_id": null,
               "owner": "Platform Reliability",
               "package_id": "work-package:component-outcome-correlator",
-              "title": "Implement Outcome correlator with AWS AWS event-driven outcome correlator"
+              "title": "Implement Outcome correlator"
             },
             {
               "component_id": "component:warm-runtime-pool",
@@ -2728,10 +2761,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:warm-runtime-pool-aws",
+              "offering_id": null,
               "owner": "Runtime Platform",
               "package_id": "work-package:component-warm-runtime-pool",
-              "title": "Implement Warm pools and resumable snapshots with AWS AWS warm isolated runtime pool"
+              "title": "Implement Warm pools and resumable snapshots"
             },
             {
               "component_id": null,
@@ -2896,10 +2929,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:multi-agent-supervisor-aws",
+              "offering_id": null,
               "owner": "Agent Platform",
               "package_id": "work-package:component-multi-agent-supervisor",
-              "title": "Implement Multi-agent supervisor with AWS AWS multi-agent supervisor runtime"
+              "title": "Implement Multi-agent supervisor"
             },
             {
               "component_id": null,
@@ -2974,10 +3007,10 @@
                 "Operational owner accepts runbook and support boundary."
               ],
               "kind": "component",
-              "offering_id": "service:parallel-reviewer-aws",
+              "offering_id": null,
               "owner": "Agent Platform",
               "package_id": "work-package:component-parallel-reviewer",
-              "title": "Implement Parallel candidates with independent review with AWS AWS parallel reviewer workflow"
+              "title": "Implement Parallel candidates with independent review"
             }
           ]
         }
@@ -3515,32 +3548,32 @@
       ],
       "verified_control_count": 0
     },
-    "selected_bundle_id": "bundle:aws-governed-r2",
+    "selected_bundle_id": null,
     "workspace_id": "workspace:coding-platform-demo",
-    "workspace_revision_id": "revision:r-4e3b9e4f9a84a5fc920c",
-    "workspace_state_hash": "sha256:9ab480cf14da66212e06e2b3c32bdc7e25aa0c7f237121e9aa15017a4550c777"
+    "workspace_revision_id": "revision:r-0cd120eef96d25fd4676",
+    "workspace_state_hash": "sha256:504e54bb2b5bead04ca9c65bfc48e67be0c41d27fc4be4b8abc01bed1ec0e70c"
   },
   "catalog": {
     "catalog_release_id": "catalog:coding-platform",
-    "content_hash": "sha256:450d5850e6b99075445bbb9650503d616d8db74ac2e1b5e8ac710b987a44d7e3",
-    "validated_as_of": "2026-07-30",
+    "content_hash": "sha256:37bce222073ce8af0ec2b55fdeaaf338e51aab7131bb406b04e2c1c8c8ff432d",
+    "validated_as_of": "2026-08-04",
     "version": "3.0.0"
   },
   "decision_history": {
     "current_revision": {
-      "created_at": "2026-07-30T12:00:00+00:00",
-      "parent_revision_id": "revision:r-ae286308fdde98b7ad72",
-      "revision_id": "revision:r-4e3b9e4f9a84a5fc920c",
+      "created_at": "2026-08-04T12:00:00+00:00",
+      "parent_revision_id": "revision:r-f65a4226052bc384cadf",
+      "revision_id": "revision:r-0cd120eef96d25fd4676",
       "revision_number": 2,
-      "state_hash": "sha256:9ab480cf14da66212e06e2b3c32bdc7e25aa0c7f237121e9aa15017a4550c777"
+      "state_hash": "sha256:504e54bb2b5bead04ca9c65bfc48e67be0c41d27fc4be4b8abc01bed1ec0e70c"
     },
-    "history_hash": "sha256:9dc327cc296d5c074761597d7cf5a2267e29a1ad3c078e86307e19bf399fb1be",
+    "history_hash": "sha256:1a293e0e3958a6da11e4a6576a60e8747c31d212ea3dbb902b0ff8287f15970d",
     "initial_revision": {
-      "created_at": "2026-07-30T12:00:00+00:00",
+      "created_at": "2026-08-04T12:00:00+00:00",
       "parent_revision_id": null,
-      "revision_id": "revision:r-ae286308fdde98b7ad72",
+      "revision_id": "revision:r-f65a4226052bc384cadf",
       "revision_number": 1,
-      "state_hash": "sha256:385a349ae640886b41ba81d9dc68d64ddc4c722bf48c592306f824c4971e6563"
+      "state_hash": "sha256:671f04970694cdf85c17f124e85c2b084945ceda97f7d703f92b23e09c017788"
     },
     "transitions": [
       {
@@ -3778,18 +3811,18 @@
           }
         },
         "current_revision": {
-          "created_at": "2026-07-30T12:00:00+00:00",
-          "parent_revision_id": "revision:r-ae286308fdde98b7ad72",
-          "revision_id": "revision:r-4e3b9e4f9a84a5fc920c",
+          "created_at": "2026-08-04T12:00:00+00:00",
+          "parent_revision_id": "revision:r-f65a4226052bc384cadf",
+          "revision_id": "revision:r-0cd120eef96d25fd4676",
           "revision_number": 2,
-          "state_hash": "sha256:9ab480cf14da66212e06e2b3c32bdc7e25aa0c7f237121e9aa15017a4550c777"
+          "state_hash": "sha256:504e54bb2b5bead04ca9c65bfc48e67be0c41d27fc4be4b8abc01bed1ec0e70c"
         },
         "prior_revision": {
-          "created_at": "2026-07-30T12:00:00+00:00",
+          "created_at": "2026-08-04T12:00:00+00:00",
           "parent_revision_id": null,
-          "revision_id": "revision:r-ae286308fdde98b7ad72",
+          "revision_id": "revision:r-f65a4226052bc384cadf",
           "revision_number": 1,
-          "state_hash": "sha256:385a349ae640886b41ba81d9dc68d64ddc4c722bf48c592306f824c4971e6563"
+          "state_hash": "sha256:671f04970694cdf85c17f124e85c2b084945ceda97f7d703f92b23e09c017788"
         },
         "requirement_changes": [
           {
@@ -3801,7 +3834,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -3818,7 +3851,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -3835,7 +3868,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": "any-approved"
             },
@@ -3852,7 +3885,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -3869,7 +3902,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": 1000
             },
@@ -3886,7 +3919,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": 5000
             },
@@ -3903,7 +3936,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": "entra"
             },
@@ -3920,7 +3953,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": "hybrid"
             },
@@ -3937,7 +3970,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -3954,7 +3987,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -3971,7 +4004,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": "parallel-review"
             },
@@ -3988,7 +4021,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -4005,7 +4038,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -4022,7 +4055,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": "gitlab-saas"
             },
@@ -4039,7 +4072,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -4056,7 +4089,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-07-30T12:00:00+00:00",
+              "recorded_at": "2026-08-04T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -4621,7 +4654,7 @@
           ],
           "deactivated": []
         },
-        "transition_hash": "sha256:8cff8ea9870898b532ec22483e931ca448c26dd1c9fe17eb8bbe6ee68be474a4",
+        "transition_hash": "sha256:f13ed3173d9347ff8fd107accc9c6a846766e91941a717927ba3e21d5037a1c2",
         "transition_id": "trace:r-1-to-r-2"
       }
     ]
@@ -5182,591 +5215,6 @@
   "deployable_solution": {
     "candidates": [
       {
-        "bundle_id": "bundle:aws-governed-r2",
-        "compatibility_status": "compatible",
-        "deployment_family_id": "pattern:managed-customer-execution",
-        "dimension_scores": [
-          {
-            "dimension_id": "dimension:delivery-speed",
-            "score": 83.0
-          },
-          {
-            "dimension_id": "dimension:economics",
-            "score": 72.0
-          },
-          {
-            "dimension_id": "dimension:operability",
-            "score": 89.0
-          },
-          {
-            "dimension_id": "dimension:portability",
-            "score": 62.0
-          },
-          {
-            "dimension_id": "dimension:security",
-            "score": 94.0
-          }
-        ],
-        "findings": [],
-        "name": "AWS governed managed stack",
-        "pareto_optimal": true,
-        "rank": 1,
-        "selections": [
-          {
-            "component_id": "component:advisor-workspace",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS-hosted Platform Advisor workspace",
-            "service_variant_id": "service:advisor-workspace-aws"
-          },
-          {
-            "component_id": "component:agent-registry",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon ECR agent artifact registry",
-            "service_variant_id": "service:agent-registry-aws"
-          },
-          {
-            "component_id": "component:architecture-knowledge",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon OpenSearch Serverless architecture index",
-            "service_variant_id": "service:architecture-knowledge-aws"
-          },
-          {
-            "component_id": "component:audit-ledger",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS CloudTrail and Amazon S3 Object Lock",
-            "service_variant_id": "service:audit-ledger-aws"
-          },
-          {
-            "component_id": "component:connector-registry",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AgentCore Gateway target catalog",
-            "service_variant_id": "service:connector-registry-aws"
-          },
-          {
-            "component_id": "component:developer-clients",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Enterprise coding-agent clients with AWS governance",
-            "service_variant_id": "service:developer-clients-aws"
-          },
-          {
-            "component_id": "component:economics-ledger",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS cost and token economics ledger",
-            "service_variant_id": "service:economics-ledger-aws"
-          },
-          {
-            "component_id": "component:ephemeral-runtime",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS isolated ephemeral task runtime",
-            "service_variant_id": "service:ephemeral-runtime-aws"
-          },
-          {
-            "component_id": "component:evaluation-service",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon Bedrock evaluation service",
-            "service_variant_id": "service:evaluation-service-aws"
-          },
-          {
-            "component_id": "component:evidence-catalog",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon S3 and DynamoDB evidence catalog",
-            "service_variant_id": "service:evidence-catalog-aws"
-          },
-          {
-            "component_id": "component:execution-broker",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon SQS and AWS Step Functions execution broker",
-            "service_variant_id": "service:execution-broker-aws"
-          },
-          {
-            "component_id": "component:human-approval",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS Step Functions callback approval",
-            "service_variant_id": "service:human-approval-aws"
-          },
-          {
-            "component_id": "component:local-runtime",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Enterprise-managed local runtime with AWS control",
-            "service_variant_id": "service:local-runtime-aws"
-          },
-          {
-            "component_id": "component:model-catalog",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon Bedrock model catalog",
-            "service_variant_id": "service:model-catalog-aws"
-          },
-          {
-            "component_id": "component:model-gateway",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon Bedrock governed model gateway",
-            "service_variant_id": "service:model-gateway-aws"
-          },
-          {
-            "component_id": "component:model-router",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS policy-based model router",
-            "service_variant_id": "service:model-router-aws"
-          },
-          {
-            "component_id": "component:multi-agent-supervisor",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS multi-agent supervisor runtime",
-            "service_variant_id": "service:multi-agent-supervisor-aws"
-          },
-          {
-            "component_id": "component:multi-region",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS multi-region service deployment",
-            "service_variant_id": "service:multi-region-aws"
-          },
-          {
-            "component_id": "component:orchestration-runtime",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon Bedrock AgentCore Runtime",
-            "service_variant_id": "service:orchestration-runtime-aws"
-          },
-          {
-            "component_id": "component:outcome-correlator",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS event-driven outcome correlator",
-            "service_variant_id": "service:outcome-correlator-aws"
-          },
-          {
-            "component_id": "component:package-access",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS CodeArtifact",
-            "service_variant_id": "service:package-access-aws"
-          },
-          {
-            "component_id": "component:parallel-reviewer",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS parallel reviewer workflow",
-            "service_variant_id": "service:parallel-reviewer-aws"
-          },
-          {
-            "component_id": "component:policy-engine",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon Verified Permissions and Cedar",
-            "service_variant_id": "service:policy-engine-aws"
-          },
-          {
-            "component_id": "component:quota-manager",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS quota and budget control service",
-            "service_variant_id": "service:quota-manager-aws"
-          },
-          {
-            "component_id": "component:restricted-egress",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS Network Firewall and VPC endpoints",
-            "service_variant_id": "service:restricted-egress-aws"
-          },
-          {
-            "component_id": "component:secrets-broker",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS Secrets Manager",
-            "service_variant_id": "service:secrets-broker-aws"
-          },
-          {
-            "component_id": "component:source-control-integration",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS event-driven GitLab integration",
-            "service_variant_id": "service:source-control-integration-aws"
-          },
-          {
-            "component_id": "component:team-workspaces",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "DynamoDB-backed team workspace registry",
-            "service_variant_id": "service:team-workspaces-aws"
-          },
-          {
-            "component_id": "component:telemetry-pipeline",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS Distro for OpenTelemetry and Amazon CloudWatch",
-            "service_variant_id": "service:telemetry-pipeline-aws"
-          },
-          {
-            "component_id": "component:tool-gateway",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon Bedrock AgentCore Gateway",
-            "service_variant_id": "service:tool-gateway-aws"
-          },
-          {
-            "component_id": "component:warm-runtime-pool",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS warm isolated runtime pool",
-            "service_variant_id": "service:warm-runtime-pool-aws"
-          },
-          {
-            "component_id": "component:workflow-definitions",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon S3 versioned workflow catalog",
-            "service_variant_id": "service:workflow-definitions-aws"
-          },
-          {
-            "component_id": "component:workforce-identity",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS IAM Identity Center federation",
-            "service_variant_id": "service:workforce-identity-aws"
-          },
-          {
-            "component_id": "component:workload-identity",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS IAM roles and STS",
-            "service_variant_id": "service:workload-identity-aws"
-          }
-        ],
-        "template_id": "bundle-template:aws-governed",
-        "tradeoffs": [
-          {
-            "dimension_id": "dimension:security",
-            "impact": 94.0,
-            "kind": "advantage",
-            "statement": "Strongest dimension is dimension:security at 94.0/100.",
-            "tradeoff_id": "tradeoff:aws-governed-advantage"
-          },
-          {
-            "dimension_id": "dimension:portability",
-            "impact": 62.0,
-            "kind": "compromise",
-            "statement": "Primary compromise is dimension:portability at 62.0/100.",
-            "tradeoff_id": "tradeoff:aws-governed-compromise"
-          }
-        ],
-        "weighted_score": 81.65
-      },
-      {
-        "bundle_id": "bundle:hybrid-governed-r2",
-        "compatibility_status": "compatible",
-        "deployment_family_id": "pattern:managed-customer-execution",
-        "dimension_scores": [
-          {
-            "dimension_id": "dimension:delivery-speed",
-            "score": 88.235
-          },
-          {
-            "dimension_id": "dimension:economics",
-            "score": 71.294
-          },
-          {
-            "dimension_id": "dimension:operability",
-            "score": 89.118
-          },
-          {
-            "dimension_id": "dimension:portability",
-            "score": 61.471
-          },
-          {
-            "dimension_id": "dimension:security",
-            "score": 88.765
-          }
-        ],
-        "findings": [],
-        "name": "Hybrid governed stack",
-        "pareto_optimal": true,
-        "rank": 2,
-        "selections": [
-          {
-            "component_id": "component:advisor-workspace",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed Platform Advisor workspace",
-            "service_variant_id": "service:advisor-workspace-saas"
-          },
-          {
-            "component_id": "component:agent-registry",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed agent registry",
-            "service_variant_id": "service:agent-registry-saas"
-          },
-          {
-            "component_id": "component:architecture-knowledge",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon OpenSearch Serverless architecture index",
-            "service_variant_id": "service:architecture-knowledge-aws"
-          },
-          {
-            "component_id": "component:audit-ledger",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS CloudTrail and Amazon S3 Object Lock",
-            "service_variant_id": "service:audit-ledger-aws"
-          },
-          {
-            "component_id": "component:connector-registry",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed connector registry",
-            "service_variant_id": "service:connector-registry-saas"
-          },
-          {
-            "component_id": "component:developer-clients",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed Claude Code and Codex clients",
-            "service_variant_id": "service:developer-clients-saas"
-          },
-          {
-            "component_id": "component:economics-ledger",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS cost and token economics ledger",
-            "service_variant_id": "service:economics-ledger-aws"
-          },
-          {
-            "component_id": "component:ephemeral-runtime",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS isolated ephemeral task runtime",
-            "service_variant_id": "service:ephemeral-runtime-aws"
-          },
-          {
-            "component_id": "component:evaluation-service",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon Bedrock evaluation service",
-            "service_variant_id": "service:evaluation-service-aws"
-          },
-          {
-            "component_id": "component:evidence-catalog",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon S3 and DynamoDB evidence catalog",
-            "service_variant_id": "service:evidence-catalog-aws"
-          },
-          {
-            "component_id": "component:execution-broker",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon SQS and AWS Step Functions execution broker",
-            "service_variant_id": "service:execution-broker-aws"
-          },
-          {
-            "component_id": "component:human-approval",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS Step Functions callback approval",
-            "service_variant_id": "service:human-approval-aws"
-          },
-          {
-            "component_id": "component:local-runtime",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Enterprise-managed local runtime with AWS control",
-            "service_variant_id": "service:local-runtime-aws"
-          },
-          {
-            "component_id": "component:model-catalog",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed model catalog",
-            "service_variant_id": "service:model-catalog-saas"
-          },
-          {
-            "component_id": "component:model-gateway",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon Bedrock governed model gateway",
-            "service_variant_id": "service:model-gateway-aws"
-          },
-          {
-            "component_id": "component:model-router",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed AI gateway router",
-            "service_variant_id": "service:model-router-saas"
-          },
-          {
-            "component_id": "component:multi-agent-supervisor",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed multi-agent supervisor",
-            "service_variant_id": "service:multi-agent-supervisor-saas"
-          },
-          {
-            "component_id": "component:multi-region",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS multi-region service deployment",
-            "service_variant_id": "service:multi-region-aws"
-          },
-          {
-            "component_id": "component:orchestration-runtime",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed agent orchestration service",
-            "service_variant_id": "service:orchestration-runtime-saas"
-          },
-          {
-            "component_id": "component:outcome-correlator",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS event-driven outcome correlator",
-            "service_variant_id": "service:outcome-correlator-aws"
-          },
-          {
-            "component_id": "component:package-access",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "GitLab SaaS package registry",
-            "service_variant_id": "service:package-access-saas"
-          },
-          {
-            "component_id": "component:parallel-reviewer",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed parallel reviewer",
-            "service_variant_id": "service:parallel-reviewer-saas"
-          },
-          {
-            "component_id": "component:policy-engine",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon Verified Permissions and Cedar",
-            "service_variant_id": "service:policy-engine-aws"
-          },
-          {
-            "component_id": "component:quota-manager",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS quota and budget control service",
-            "service_variant_id": "service:quota-manager-aws"
-          },
-          {
-            "component_id": "component:restricted-egress",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS Network Firewall and VPC endpoints",
-            "service_variant_id": "service:restricted-egress-aws"
-          },
-          {
-            "component_id": "component:secrets-broker",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS Secrets Manager",
-            "service_variant_id": "service:secrets-broker-aws"
-          },
-          {
-            "component_id": "component:source-control-integration",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed GitLab SaaS connector",
-            "service_variant_id": "service:source-control-integration-saas"
-          },
-          {
-            "component_id": "component:team-workspaces",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "DynamoDB-backed team workspace registry",
-            "service_variant_id": "service:team-workspaces-aws"
-          },
-          {
-            "component_id": "component:telemetry-pipeline",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS Distro for OpenTelemetry and Amazon CloudWatch",
-            "service_variant_id": "service:telemetry-pipeline-aws"
-          },
-          {
-            "component_id": "component:tool-gateway",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "Amazon Bedrock AgentCore Gateway",
-            "service_variant_id": "service:tool-gateway-aws"
-          },
-          {
-            "component_id": "component:warm-runtime-pool",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS warm isolated runtime pool",
-            "service_variant_id": "service:warm-runtime-pool-aws"
-          },
-          {
-            "component_id": "component:workflow-definitions",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed workflow definition service",
-            "service_variant_id": "service:workflow-definitions-saas"
-          },
-          {
-            "component_id": "component:workforce-identity",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS IAM Identity Center federation",
-            "service_variant_id": "service:workforce-identity-aws"
-          },
-          {
-            "component_id": "component:workload-identity",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS IAM roles and STS",
-            "service_variant_id": "service:workload-identity-aws"
-          }
-        ],
-        "template_id": "bundle-template:hybrid-governed",
-        "tradeoffs": [
-          {
-            "dimension_id": "dimension:operability",
-            "impact": 89.118,
-            "kind": "advantage",
-            "statement": "Strongest dimension is dimension:operability at 89.1/100.",
-            "tradeoff_id": "tradeoff:hybrid-governed-advantage"
-          },
-          {
-            "dimension_id": "dimension:portability",
-            "impact": 61.471,
-            "kind": "compromise",
-            "statement": "Primary compromise is dimension:portability at 61.5/100.",
-            "tradeoff_id": "tradeoff:hybrid-governed-compromise"
-          },
-          {
-            "dimension_id": null,
-            "impact": 3.0,
-            "kind": "integration",
-            "statement": "Cross-provider integration spans aws, saas and applies a 3.0-point score penalty.",
-            "tradeoff_id": "tradeoff:hybrid-governed-integration"
-          }
-        ],
-        "weighted_score": 78.988
-      },
-      {
         "bundle_id": "bundle:byop-portable-r2",
         "compatibility_status": "conditional",
         "deployment_family_id": "pattern:persistent-remote-workspace",
@@ -5792,6 +5240,7 @@
             "score": 65.0
           }
         ],
+        "family_feasibility_status": "unknown",
         "findings": [
           {
             "code": "required_capability_unverified",
@@ -5928,12 +5377,34 @@
           {
             "code": "required_capability_unverified",
             "component_ids": [
+              "component:persistent-workspace"
+            ],
+            "finding_id": "finding:byop-portable-r2-capability-restricted-egress-persistent-workspace",
+            "interface_id": null,
+            "message": "Customer persistent workspace adapter has not verified restricted_egress: Selected execution and tool services must enforce explicit outbound destinations.",
+            "requirement_id": "requirement:restricted-egress",
+            "severity": "warning",
+            "status": "conditional"
+          },
+          {
+            "code": "required_capability_unverified",
+            "component_ids": [
               "component:tool-gateway"
             ],
             "finding_id": "finding:byop-portable-r2-capability-restricted-egress-tool-gateway",
             "interface_id": null,
             "message": "Customer tool gateway adapter has not verified restricted_egress: Selected execution and tool services must enforce explicit outbound destinations.",
             "requirement_id": "requirement:restricted-egress",
+            "severity": "warning",
+            "status": "conditional"
+          },
+          {
+            "code": "deployment_family_unresolved",
+            "component_ids": [],
+            "finding_id": "finding:byop-portable-r2-family-persistent-remote-workspace-unresolved",
+            "interface_id": null,
+            "message": "pattern:persistent-remote-workspace cannot be considered eligible until ['requirement:long-running-workspaces', 'requirement:private-connectivity', 'requirement:runtime-isolation'] are resolved.",
+            "requirement_id": null,
             "severity": "warning",
             "status": "conditional"
           },
@@ -5950,7 +5421,7 @@
         ],
         "name": "BYOP portable stack",
         "pareto_optimal": false,
-        "rank": 3,
+        "rank": 1,
         "selections": [
           {
             "component_id": "component:advisor-workspace",
@@ -6107,6 +5578,13 @@
             "service_variant_id": "service:parallel-reviewer-byop"
           },
           {
+            "component_id": "component:persistent-workspace",
+            "delivery_model": "customer_selected",
+            "provider_class": "byop",
+            "service_name": "Customer persistent workspace adapter",
+            "service_variant_id": "service:persistent-workspace-byop"
+          },
+          {
             "component_id": "component:policy-engine",
             "delivery_model": "customer_selected",
             "provider_class": "byop",
@@ -6209,320 +5687,13 @@
           },
           {
             "dimension_id": null,
-            "impact": 13.0,
+            "impact": 15.0,
             "kind": "constraint",
-            "statement": "13 requirement or compatibility constraint(s) require resolution.",
+            "statement": "15 requirement or compatibility constraint(s) require resolution.",
             "tradeoff_id": "tradeoff:byop-portable-constraints"
           }
         ],
         "weighted_score": 50.45
-      },
-      {
-        "bundle_id": "bundle:oss-sovereign-r2",
-        "compatibility_status": "incompatible",
-        "deployment_family_id": "pattern:self-hosted-kubernetes",
-        "dimension_scores": [
-          {
-            "dimension_id": "dimension:delivery-speed",
-            "score": 58.0
-          },
-          {
-            "dimension_id": "dimension:economics",
-            "score": 88.0
-          },
-          {
-            "dimension_id": "dimension:operability",
-            "score": 60.0
-          },
-          {
-            "dimension_id": "dimension:portability",
-            "score": 97.0
-          },
-          {
-            "dimension_id": "dimension:security",
-            "score": 78.0
-          }
-        ],
-        "findings": [
-          {
-            "code": "deployment_family_mismatch",
-            "component_ids": [],
-            "finding_id": "finding:oss-sovereign-r2-requirement-execution-placement-rejected",
-            "interface_id": null,
-            "message": "Open-source sovereign stack accepts ['customer-managed'] for requirement:execution-placement, not 'hybrid'.",
-            "requirement_id": "requirement:execution-placement",
-            "severity": "error",
-            "status": "incompatible"
-          }
-        ],
-        "name": "Open-source sovereign stack",
-        "pareto_optimal": false,
-        "rank": 4,
-        "selections": [
-          {
-            "component_id": "component:advisor-workspace",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Backstage-based architecture workspace",
-            "service_variant_id": "service:advisor-workspace-oss"
-          },
-          {
-            "component_id": "component:agent-registry",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "OCI agent artifact registry",
-            "service_variant_id": "service:agent-registry-oss"
-          },
-          {
-            "component_id": "component:architecture-knowledge",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "OpenSearch architecture knowledge index",
-            "service_variant_id": "service:architecture-knowledge-oss"
-          },
-          {
-            "component_id": "component:audit-ledger",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Append-only PostgreSQL audit ledger",
-            "service_variant_id": "service:audit-ledger-oss"
-          },
-          {
-            "component_id": "component:connector-registry",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Backstage connector catalog",
-            "service_variant_id": "service:connector-registry-oss"
-          },
-          {
-            "component_id": "component:developer-clients",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Open-source IDE and CLI agent clients",
-            "service_variant_id": "service:developer-clients-oss"
-          },
-          {
-            "component_id": "component:economics-ledger",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "OpenCost and token usage ledger",
-            "service_variant_id": "service:economics-ledger-oss"
-          },
-          {
-            "component_id": "component:ephemeral-runtime",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Firecracker ephemeral worker",
-            "service_variant_id": "service:ephemeral-runtime-oss"
-          },
-          {
-            "component_id": "component:evaluation-service",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Open-source agent evaluation harness",
-            "service_variant_id": "service:evaluation-service-oss"
-          },
-          {
-            "component_id": "component:evidence-catalog",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Git-backed evidence catalog",
-            "service_variant_id": "service:evidence-catalog-oss"
-          },
-          {
-            "component_id": "component:execution-broker",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Temporal task broker",
-            "service_variant_id": "service:execution-broker-oss"
-          },
-          {
-            "component_id": "component:human-approval",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Temporal signal-based approval",
-            "service_variant_id": "service:human-approval-oss"
-          },
-          {
-            "component_id": "component:local-runtime",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Dev Container local runtime",
-            "service_variant_id": "service:local-runtime-oss"
-          },
-          {
-            "component_id": "component:model-catalog",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Open model metadata catalog",
-            "service_variant_id": "service:model-catalog-oss"
-          },
-          {
-            "component_id": "component:model-gateway",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "LiteLLM model gateway",
-            "service_variant_id": "service:model-gateway-oss"
-          },
-          {
-            "component_id": "component:model-router",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "LiteLLM policy router",
-            "service_variant_id": "service:model-router-oss"
-          },
-          {
-            "component_id": "component:multi-agent-supervisor",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "LangGraph multi-agent supervisor",
-            "service_variant_id": "service:multi-agent-supervisor-oss"
-          },
-          {
-            "component_id": "component:multi-region",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Multi-cluster Kubernetes deployment",
-            "service_variant_id": "service:multi-region-oss"
-          },
-          {
-            "component_id": "component:orchestration-runtime",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "LangGraph and Temporal orchestration",
-            "service_variant_id": "service:orchestration-runtime-oss"
-          },
-          {
-            "component_id": "component:outcome-correlator",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "OpenTelemetry and GitLab outcome correlator",
-            "service_variant_id": "service:outcome-correlator-oss"
-          },
-          {
-            "component_id": "component:package-access",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Sonatype Nexus Repository",
-            "service_variant_id": "service:package-access-oss"
-          },
-          {
-            "component_id": "component:parallel-reviewer",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Temporal parallel reviewer workflow",
-            "service_variant_id": "service:parallel-reviewer-oss"
-          },
-          {
-            "component_id": "component:policy-engine",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Open Policy Agent",
-            "service_variant_id": "service:policy-engine-oss"
-          },
-          {
-            "component_id": "component:quota-manager",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Envoy rate-limit service",
-            "service_variant_id": "service:quota-manager-oss"
-          },
-          {
-            "component_id": "component:restricted-egress",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Cilium egress policy",
-            "service_variant_id": "service:restricted-egress-oss"
-          },
-          {
-            "component_id": "component:secrets-broker",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "HashiCorp Vault",
-            "service_variant_id": "service:secrets-broker-oss"
-          },
-          {
-            "component_id": "component:source-control-integration",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "GitLab webhook and API integration",
-            "service_variant_id": "service:source-control-integration-oss"
-          },
-          {
-            "component_id": "component:team-workspaces",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Backstage team workspace catalog",
-            "service_variant_id": "service:team-workspaces-oss"
-          },
-          {
-            "component_id": "component:telemetry-pipeline",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "OpenTelemetry Collector pipeline",
-            "service_variant_id": "service:telemetry-pipeline-oss"
-          },
-          {
-            "component_id": "component:tool-gateway",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Open-source MCP gateway",
-            "service_variant_id": "service:tool-gateway-oss"
-          },
-          {
-            "component_id": "component:warm-runtime-pool",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Kubernetes warm worker pool",
-            "service_variant_id": "service:warm-runtime-pool-oss"
-          },
-          {
-            "component_id": "component:workflow-definitions",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Git-backed workflow definitions",
-            "service_variant_id": "service:workflow-definitions-oss"
-          },
-          {
-            "component_id": "component:workforce-identity",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Keycloak workforce identity",
-            "service_variant_id": "service:workforce-identity-oss"
-          },
-          {
-            "component_id": "component:workload-identity",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "SPIFFE and SPIRE workload identity",
-            "service_variant_id": "service:workload-identity-oss"
-          }
-        ],
-        "template_id": "bundle-template:oss-sovereign",
-        "tradeoffs": [
-          {
-            "dimension_id": "dimension:portability",
-            "impact": 97.0,
-            "kind": "advantage",
-            "statement": "Strongest dimension is dimension:portability at 97.0/100.",
-            "tradeoff_id": "tradeoff:oss-sovereign-advantage"
-          },
-          {
-            "dimension_id": "dimension:delivery-speed",
-            "impact": 58.0,
-            "kind": "compromise",
-            "statement": "Primary compromise is dimension:delivery-speed at 58.0/100.",
-            "tradeoff_id": "tradeoff:oss-sovereign-compromise"
-          },
-          {
-            "dimension_id": null,
-            "impact": 1.0,
-            "kind": "constraint",
-            "statement": "1 requirement or compatibility constraint(s) require resolution.",
-            "tradeoff_id": "tradeoff:oss-sovereign-constraints"
-          }
-        ],
-        "weighted_score": 0.0
       },
       {
         "bundle_id": "bundle:saas-composable-r2",
@@ -6550,6 +5721,7 @@
             "score": 80.0
           }
         ],
+        "family_feasibility_status": "unknown",
         "findings": [
           {
             "code": "required_capability_unsupported",
@@ -6598,11 +5770,21 @@
             "requirement_id": "requirement:restricted-egress",
             "severity": "error",
             "status": "incompatible"
+          },
+          {
+            "code": "deployment_family_unresolved",
+            "component_ids": [],
+            "finding_id": "finding:saas-composable-r2-family-vendor-ephemeral-unresolved",
+            "interface_id": null,
+            "message": "pattern:vendor-ephemeral cannot be considered eligible until ['requirement:private-connectivity', 'requirement:runtime-isolation'] are resolved.",
+            "requirement_id": null,
+            "severity": "warning",
+            "status": "conditional"
           }
         ],
         "name": "Composable SaaS stack",
         "pareto_optimal": false,
-        "rank": 5,
+        "rank": 2,
         "selections": [
           {
             "component_id": "component:advisor-workspace",
@@ -6861,83 +6043,1003 @@
           },
           {
             "dimension_id": null,
-            "impact": 4.0,
+            "impact": 5.0,
             "kind": "constraint",
-            "statement": "4 requirement or compatibility constraint(s) require resolution.",
+            "statement": "5 requirement or compatibility constraint(s) require resolution.",
             "tradeoff_id": "tradeoff:saas-composable-constraints"
+          }
+        ],
+        "weighted_score": 0.0
+      },
+      {
+        "bundle_id": "bundle:aws-governed-r2",
+        "compatibility_status": "incompatible",
+        "deployment_family_id": "pattern:managed-customer-execution",
+        "dimension_scores": [
+          {
+            "dimension_id": "dimension:delivery-speed",
+            "score": 83.0
+          },
+          {
+            "dimension_id": "dimension:economics",
+            "score": 72.0
+          },
+          {
+            "dimension_id": "dimension:operability",
+            "score": 89.0
+          },
+          {
+            "dimension_id": "dimension:portability",
+            "score": 62.0
+          },
+          {
+            "dimension_id": "dimension:security",
+            "score": 94.0
+          }
+        ],
+        "family_feasibility_status": "rejected",
+        "findings": [
+          {
+            "code": "deployment_family_rejected",
+            "component_ids": [],
+            "finding_id": "finding:aws-governed-r2-family-managed-customer-execution-rejected",
+            "interface_id": null,
+            "message": "pattern:managed-customer-execution is rejected by ['rule:reject-managed-customer-placement'].",
+            "requirement_id": null,
+            "severity": "error",
+            "status": "incompatible"
+          }
+        ],
+        "name": "AWS governed managed stack",
+        "pareto_optimal": false,
+        "rank": 3,
+        "selections": [
+          {
+            "component_id": "component:advisor-workspace",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS-hosted Platform Advisor workspace",
+            "service_variant_id": "service:advisor-workspace-aws"
+          },
+          {
+            "component_id": "component:agent-registry",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon ECR agent artifact registry",
+            "service_variant_id": "service:agent-registry-aws"
+          },
+          {
+            "component_id": "component:architecture-knowledge",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon OpenSearch Serverless architecture index",
+            "service_variant_id": "service:architecture-knowledge-aws"
+          },
+          {
+            "component_id": "component:audit-ledger",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS CloudTrail and Amazon S3 Object Lock",
+            "service_variant_id": "service:audit-ledger-aws"
+          },
+          {
+            "component_id": "component:connector-registry",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AgentCore Gateway target catalog",
+            "service_variant_id": "service:connector-registry-aws"
+          },
+          {
+            "component_id": "component:container-runtime",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon ECS on AWS Fargate",
+            "service_variant_id": "service:container-runtime-aws"
+          },
+          {
+            "component_id": "component:developer-clients",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Enterprise coding-agent clients with AWS governance",
+            "service_variant_id": "service:developer-clients-aws"
+          },
+          {
+            "component_id": "component:economics-ledger",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS cost and token economics ledger",
+            "service_variant_id": "service:economics-ledger-aws"
+          },
+          {
+            "component_id": "component:ephemeral-runtime",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS isolated ephemeral task runtime",
+            "service_variant_id": "service:ephemeral-runtime-aws"
+          },
+          {
+            "component_id": "component:evaluation-service",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon Bedrock evaluation service",
+            "service_variant_id": "service:evaluation-service-aws"
+          },
+          {
+            "component_id": "component:evidence-catalog",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon S3 and DynamoDB evidence catalog",
+            "service_variant_id": "service:evidence-catalog-aws"
+          },
+          {
+            "component_id": "component:execution-broker",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon SQS and AWS Step Functions execution broker",
+            "service_variant_id": "service:execution-broker-aws"
+          },
+          {
+            "component_id": "component:human-approval",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS Step Functions callback approval",
+            "service_variant_id": "service:human-approval-aws"
+          },
+          {
+            "component_id": "component:local-runtime",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Enterprise-managed local runtime with AWS control",
+            "service_variant_id": "service:local-runtime-aws"
+          },
+          {
+            "component_id": "component:model-catalog",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon Bedrock model catalog",
+            "service_variant_id": "service:model-catalog-aws"
+          },
+          {
+            "component_id": "component:model-gateway",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon Bedrock governed model gateway",
+            "service_variant_id": "service:model-gateway-aws"
+          },
+          {
+            "component_id": "component:model-router",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS policy-based model router",
+            "service_variant_id": "service:model-router-aws"
+          },
+          {
+            "component_id": "component:multi-agent-supervisor",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS multi-agent supervisor runtime",
+            "service_variant_id": "service:multi-agent-supervisor-aws"
+          },
+          {
+            "component_id": "component:multi-region",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS multi-region service deployment",
+            "service_variant_id": "service:multi-region-aws"
+          },
+          {
+            "component_id": "component:orchestration-runtime",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon Bedrock AgentCore Runtime",
+            "service_variant_id": "service:orchestration-runtime-aws"
+          },
+          {
+            "component_id": "component:outcome-correlator",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS event-driven outcome correlator",
+            "service_variant_id": "service:outcome-correlator-aws"
+          },
+          {
+            "component_id": "component:package-access",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS CodeArtifact",
+            "service_variant_id": "service:package-access-aws"
+          },
+          {
+            "component_id": "component:parallel-reviewer",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS parallel reviewer workflow",
+            "service_variant_id": "service:parallel-reviewer-aws"
+          },
+          {
+            "component_id": "component:policy-engine",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon Verified Permissions and Cedar",
+            "service_variant_id": "service:policy-engine-aws"
+          },
+          {
+            "component_id": "component:quota-manager",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS quota and budget control service",
+            "service_variant_id": "service:quota-manager-aws"
+          },
+          {
+            "component_id": "component:restricted-egress",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS Network Firewall and VPC endpoints",
+            "service_variant_id": "service:restricted-egress-aws"
+          },
+          {
+            "component_id": "component:secrets-broker",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS Secrets Manager",
+            "service_variant_id": "service:secrets-broker-aws"
+          },
+          {
+            "component_id": "component:source-control-integration",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS event-driven GitLab integration",
+            "service_variant_id": "service:source-control-integration-aws"
+          },
+          {
+            "component_id": "component:team-workspaces",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "DynamoDB-backed team workspace registry",
+            "service_variant_id": "service:team-workspaces-aws"
+          },
+          {
+            "component_id": "component:telemetry-pipeline",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS Distro for OpenTelemetry and Amazon CloudWatch",
+            "service_variant_id": "service:telemetry-pipeline-aws"
+          },
+          {
+            "component_id": "component:tool-gateway",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon Bedrock AgentCore Gateway",
+            "service_variant_id": "service:tool-gateway-aws"
+          },
+          {
+            "component_id": "component:warm-runtime-pool",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS warm isolated runtime pool",
+            "service_variant_id": "service:warm-runtime-pool-aws"
+          },
+          {
+            "component_id": "component:workflow-definitions",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon S3 versioned workflow catalog",
+            "service_variant_id": "service:workflow-definitions-aws"
+          },
+          {
+            "component_id": "component:workforce-identity",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS IAM Identity Center federation",
+            "service_variant_id": "service:workforce-identity-aws"
+          },
+          {
+            "component_id": "component:workload-identity",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS IAM roles and STS",
+            "service_variant_id": "service:workload-identity-aws"
+          }
+        ],
+        "template_id": "bundle-template:aws-governed",
+        "tradeoffs": [
+          {
+            "dimension_id": "dimension:security",
+            "impact": 94.0,
+            "kind": "advantage",
+            "statement": "Strongest dimension is dimension:security at 94.0/100.",
+            "tradeoff_id": "tradeoff:aws-governed-advantage"
+          },
+          {
+            "dimension_id": "dimension:portability",
+            "impact": 62.0,
+            "kind": "compromise",
+            "statement": "Primary compromise is dimension:portability at 62.0/100.",
+            "tradeoff_id": "tradeoff:aws-governed-compromise"
+          },
+          {
+            "dimension_id": null,
+            "impact": 1.0,
+            "kind": "constraint",
+            "statement": "1 requirement or compatibility constraint(s) require resolution.",
+            "tradeoff_id": "tradeoff:aws-governed-constraints"
+          }
+        ],
+        "weighted_score": 0.0
+      },
+      {
+        "bundle_id": "bundle:hybrid-governed-r2",
+        "compatibility_status": "incompatible",
+        "deployment_family_id": "pattern:managed-customer-execution",
+        "dimension_scores": [
+          {
+            "dimension_id": "dimension:delivery-speed",
+            "score": 88.114
+          },
+          {
+            "dimension_id": "dimension:economics",
+            "score": 71.314
+          },
+          {
+            "dimension_id": "dimension:operability",
+            "score": 89.057
+          },
+          {
+            "dimension_id": "dimension:portability",
+            "score": 61.571
+          },
+          {
+            "dimension_id": "dimension:security",
+            "score": 88.886
+          }
+        ],
+        "family_feasibility_status": "rejected",
+        "findings": [
+          {
+            "code": "deployment_family_rejected",
+            "component_ids": [],
+            "finding_id": "finding:hybrid-governed-r2-family-managed-customer-execution-rejected",
+            "interface_id": null,
+            "message": "pattern:managed-customer-execution is rejected by ['rule:reject-managed-customer-placement'].",
+            "requirement_id": null,
+            "severity": "error",
+            "status": "incompatible"
+          }
+        ],
+        "name": "Hybrid governed stack",
+        "pareto_optimal": false,
+        "rank": 4,
+        "selections": [
+          {
+            "component_id": "component:advisor-workspace",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed Platform Advisor workspace",
+            "service_variant_id": "service:advisor-workspace-saas"
+          },
+          {
+            "component_id": "component:agent-registry",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed agent registry",
+            "service_variant_id": "service:agent-registry-saas"
+          },
+          {
+            "component_id": "component:architecture-knowledge",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon OpenSearch Serverless architecture index",
+            "service_variant_id": "service:architecture-knowledge-aws"
+          },
+          {
+            "component_id": "component:audit-ledger",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS CloudTrail and Amazon S3 Object Lock",
+            "service_variant_id": "service:audit-ledger-aws"
+          },
+          {
+            "component_id": "component:connector-registry",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed connector registry",
+            "service_variant_id": "service:connector-registry-saas"
+          },
+          {
+            "component_id": "component:container-runtime",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon ECS on AWS Fargate",
+            "service_variant_id": "service:container-runtime-aws"
+          },
+          {
+            "component_id": "component:developer-clients",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed Claude Code and Codex clients",
+            "service_variant_id": "service:developer-clients-saas"
+          },
+          {
+            "component_id": "component:economics-ledger",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS cost and token economics ledger",
+            "service_variant_id": "service:economics-ledger-aws"
+          },
+          {
+            "component_id": "component:ephemeral-runtime",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS isolated ephemeral task runtime",
+            "service_variant_id": "service:ephemeral-runtime-aws"
+          },
+          {
+            "component_id": "component:evaluation-service",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon Bedrock evaluation service",
+            "service_variant_id": "service:evaluation-service-aws"
+          },
+          {
+            "component_id": "component:evidence-catalog",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon S3 and DynamoDB evidence catalog",
+            "service_variant_id": "service:evidence-catalog-aws"
+          },
+          {
+            "component_id": "component:execution-broker",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon SQS and AWS Step Functions execution broker",
+            "service_variant_id": "service:execution-broker-aws"
+          },
+          {
+            "component_id": "component:human-approval",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS Step Functions callback approval",
+            "service_variant_id": "service:human-approval-aws"
+          },
+          {
+            "component_id": "component:local-runtime",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Enterprise-managed local runtime with AWS control",
+            "service_variant_id": "service:local-runtime-aws"
+          },
+          {
+            "component_id": "component:model-catalog",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed model catalog",
+            "service_variant_id": "service:model-catalog-saas"
+          },
+          {
+            "component_id": "component:model-gateway",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon Bedrock governed model gateway",
+            "service_variant_id": "service:model-gateway-aws"
+          },
+          {
+            "component_id": "component:model-router",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed AI gateway router",
+            "service_variant_id": "service:model-router-saas"
+          },
+          {
+            "component_id": "component:multi-agent-supervisor",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed multi-agent supervisor",
+            "service_variant_id": "service:multi-agent-supervisor-saas"
+          },
+          {
+            "component_id": "component:multi-region",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS multi-region service deployment",
+            "service_variant_id": "service:multi-region-aws"
+          },
+          {
+            "component_id": "component:orchestration-runtime",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed agent orchestration service",
+            "service_variant_id": "service:orchestration-runtime-saas"
+          },
+          {
+            "component_id": "component:outcome-correlator",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS event-driven outcome correlator",
+            "service_variant_id": "service:outcome-correlator-aws"
+          },
+          {
+            "component_id": "component:package-access",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "GitLab SaaS package registry",
+            "service_variant_id": "service:package-access-saas"
+          },
+          {
+            "component_id": "component:parallel-reviewer",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed parallel reviewer",
+            "service_variant_id": "service:parallel-reviewer-saas"
+          },
+          {
+            "component_id": "component:policy-engine",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon Verified Permissions and Cedar",
+            "service_variant_id": "service:policy-engine-aws"
+          },
+          {
+            "component_id": "component:quota-manager",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS quota and budget control service",
+            "service_variant_id": "service:quota-manager-aws"
+          },
+          {
+            "component_id": "component:restricted-egress",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS Network Firewall and VPC endpoints",
+            "service_variant_id": "service:restricted-egress-aws"
+          },
+          {
+            "component_id": "component:secrets-broker",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS Secrets Manager",
+            "service_variant_id": "service:secrets-broker-aws"
+          },
+          {
+            "component_id": "component:source-control-integration",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed GitLab SaaS connector",
+            "service_variant_id": "service:source-control-integration-saas"
+          },
+          {
+            "component_id": "component:team-workspaces",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "DynamoDB-backed team workspace registry",
+            "service_variant_id": "service:team-workspaces-aws"
+          },
+          {
+            "component_id": "component:telemetry-pipeline",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS Distro for OpenTelemetry and Amazon CloudWatch",
+            "service_variant_id": "service:telemetry-pipeline-aws"
+          },
+          {
+            "component_id": "component:tool-gateway",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "Amazon Bedrock AgentCore Gateway",
+            "service_variant_id": "service:tool-gateway-aws"
+          },
+          {
+            "component_id": "component:warm-runtime-pool",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS warm isolated runtime pool",
+            "service_variant_id": "service:warm-runtime-pool-aws"
+          },
+          {
+            "component_id": "component:workflow-definitions",
+            "delivery_model": "managed",
+            "provider_class": "saas",
+            "service_name": "Managed workflow definition service",
+            "service_variant_id": "service:workflow-definitions-saas"
+          },
+          {
+            "component_id": "component:workforce-identity",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS IAM Identity Center federation",
+            "service_variant_id": "service:workforce-identity-aws"
+          },
+          {
+            "component_id": "component:workload-identity",
+            "delivery_model": "managed",
+            "provider_class": "aws",
+            "service_name": "AWS IAM roles and STS",
+            "service_variant_id": "service:workload-identity-aws"
+          }
+        ],
+        "template_id": "bundle-template:hybrid-governed",
+        "tradeoffs": [
+          {
+            "dimension_id": "dimension:operability",
+            "impact": 89.057,
+            "kind": "advantage",
+            "statement": "Strongest dimension is dimension:operability at 89.1/100.",
+            "tradeoff_id": "tradeoff:hybrid-governed-advantage"
+          },
+          {
+            "dimension_id": "dimension:portability",
+            "impact": 61.571,
+            "kind": "compromise",
+            "statement": "Primary compromise is dimension:portability at 61.6/100.",
+            "tradeoff_id": "tradeoff:hybrid-governed-compromise"
+          },
+          {
+            "dimension_id": null,
+            "impact": 3.0,
+            "kind": "integration",
+            "statement": "Cross-provider integration spans aws, saas and applies a 3.0-point score penalty.",
+            "tradeoff_id": "tradeoff:hybrid-governed-integration"
+          },
+          {
+            "dimension_id": null,
+            "impact": 1.0,
+            "kind": "constraint",
+            "statement": "1 requirement or compatibility constraint(s) require resolution.",
+            "tradeoff_id": "tradeoff:hybrid-governed-constraints"
+          }
+        ],
+        "weighted_score": 0.0
+      },
+      {
+        "bundle_id": "bundle:oss-sovereign-r2",
+        "compatibility_status": "incompatible",
+        "deployment_family_id": "pattern:self-hosted-kubernetes",
+        "dimension_scores": [
+          {
+            "dimension_id": "dimension:delivery-speed",
+            "score": 58.0
+          },
+          {
+            "dimension_id": "dimension:economics",
+            "score": 88.0
+          },
+          {
+            "dimension_id": "dimension:operability",
+            "score": 60.0
+          },
+          {
+            "dimension_id": "dimension:portability",
+            "score": 97.0
+          },
+          {
+            "dimension_id": "dimension:security",
+            "score": 78.0
+          }
+        ],
+        "family_feasibility_status": "rejected",
+        "findings": [
+          {
+            "code": "deployment_family_rejected",
+            "component_ids": [],
+            "finding_id": "finding:oss-sovereign-r2-family-self-hosted-kubernetes-rejected",
+            "interface_id": null,
+            "message": "pattern:self-hosted-kubernetes is rejected by ['rule:reject-self-hosted-kubernetes-placement'].",
+            "requirement_id": null,
+            "severity": "error",
+            "status": "incompatible"
+          },
+          {
+            "code": "deployment_family_mismatch",
+            "component_ids": [],
+            "finding_id": "finding:oss-sovereign-r2-requirement-execution-placement-rejected",
+            "interface_id": null,
+            "message": "Open-source sovereign stack accepts ['customer-managed'] for requirement:execution-placement, not 'hybrid'.",
+            "requirement_id": "requirement:execution-placement",
+            "severity": "error",
+            "status": "incompatible"
+          }
+        ],
+        "name": "Open-source sovereign stack",
+        "pareto_optimal": false,
+        "rank": 5,
+        "selections": [
+          {
+            "component_id": "component:advisor-workspace",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Backstage-based architecture workspace",
+            "service_variant_id": "service:advisor-workspace-oss"
+          },
+          {
+            "component_id": "component:agent-registry",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "OCI agent artifact registry",
+            "service_variant_id": "service:agent-registry-oss"
+          },
+          {
+            "component_id": "component:architecture-knowledge",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "OpenSearch architecture knowledge index",
+            "service_variant_id": "service:architecture-knowledge-oss"
+          },
+          {
+            "component_id": "component:audit-ledger",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Append-only PostgreSQL audit ledger",
+            "service_variant_id": "service:audit-ledger-oss"
+          },
+          {
+            "component_id": "component:connector-registry",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Backstage connector catalog",
+            "service_variant_id": "service:connector-registry-oss"
+          },
+          {
+            "component_id": "component:container-runtime",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "HashiCorp Nomad container runtime",
+            "service_variant_id": "service:container-runtime-oss"
+          },
+          {
+            "component_id": "component:developer-clients",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Open-source IDE and CLI agent clients",
+            "service_variant_id": "service:developer-clients-oss"
+          },
+          {
+            "component_id": "component:economics-ledger",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "OpenCost and token usage ledger",
+            "service_variant_id": "service:economics-ledger-oss"
+          },
+          {
+            "component_id": "component:ephemeral-runtime",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Firecracker ephemeral worker",
+            "service_variant_id": "service:ephemeral-runtime-oss"
+          },
+          {
+            "component_id": "component:evaluation-service",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Open-source agent evaluation harness",
+            "service_variant_id": "service:evaluation-service-oss"
+          },
+          {
+            "component_id": "component:evidence-catalog",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Git-backed evidence catalog",
+            "service_variant_id": "service:evidence-catalog-oss"
+          },
+          {
+            "component_id": "component:execution-broker",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Temporal task broker",
+            "service_variant_id": "service:execution-broker-oss"
+          },
+          {
+            "component_id": "component:human-approval",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Temporal signal-based approval",
+            "service_variant_id": "service:human-approval-oss"
+          },
+          {
+            "component_id": "component:kubernetes-runtime",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Upstream Kubernetes",
+            "service_variant_id": "service:kubernetes-runtime-oss"
+          },
+          {
+            "component_id": "component:local-runtime",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Dev Container local runtime",
+            "service_variant_id": "service:local-runtime-oss"
+          },
+          {
+            "component_id": "component:model-catalog",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Open model metadata catalog",
+            "service_variant_id": "service:model-catalog-oss"
+          },
+          {
+            "component_id": "component:model-gateway",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "LiteLLM model gateway",
+            "service_variant_id": "service:model-gateway-oss"
+          },
+          {
+            "component_id": "component:model-router",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "LiteLLM policy router",
+            "service_variant_id": "service:model-router-oss"
+          },
+          {
+            "component_id": "component:multi-agent-supervisor",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "LangGraph multi-agent supervisor",
+            "service_variant_id": "service:multi-agent-supervisor-oss"
+          },
+          {
+            "component_id": "component:multi-region",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Multi-cluster Kubernetes deployment",
+            "service_variant_id": "service:multi-region-oss"
+          },
+          {
+            "component_id": "component:orchestration-runtime",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "LangGraph and Temporal orchestration",
+            "service_variant_id": "service:orchestration-runtime-oss"
+          },
+          {
+            "component_id": "component:outcome-correlator",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "OpenTelemetry and GitLab outcome correlator",
+            "service_variant_id": "service:outcome-correlator-oss"
+          },
+          {
+            "component_id": "component:package-access",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Sonatype Nexus Repository",
+            "service_variant_id": "service:package-access-oss"
+          },
+          {
+            "component_id": "component:parallel-reviewer",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Temporal parallel reviewer workflow",
+            "service_variant_id": "service:parallel-reviewer-oss"
+          },
+          {
+            "component_id": "component:policy-engine",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Open Policy Agent",
+            "service_variant_id": "service:policy-engine-oss"
+          },
+          {
+            "component_id": "component:quota-manager",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Envoy rate-limit service",
+            "service_variant_id": "service:quota-manager-oss"
+          },
+          {
+            "component_id": "component:restricted-egress",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Cilium egress policy",
+            "service_variant_id": "service:restricted-egress-oss"
+          },
+          {
+            "component_id": "component:secrets-broker",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "HashiCorp Vault",
+            "service_variant_id": "service:secrets-broker-oss"
+          },
+          {
+            "component_id": "component:source-control-integration",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "GitLab webhook and API integration",
+            "service_variant_id": "service:source-control-integration-oss"
+          },
+          {
+            "component_id": "component:team-workspaces",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Backstage team workspace catalog",
+            "service_variant_id": "service:team-workspaces-oss"
+          },
+          {
+            "component_id": "component:telemetry-pipeline",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "OpenTelemetry Collector pipeline",
+            "service_variant_id": "service:telemetry-pipeline-oss"
+          },
+          {
+            "component_id": "component:tool-gateway",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Open-source MCP gateway",
+            "service_variant_id": "service:tool-gateway-oss"
+          },
+          {
+            "component_id": "component:warm-runtime-pool",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Kubernetes warm worker pool",
+            "service_variant_id": "service:warm-runtime-pool-oss"
+          },
+          {
+            "component_id": "component:workflow-definitions",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Git-backed workflow definitions",
+            "service_variant_id": "service:workflow-definitions-oss"
+          },
+          {
+            "component_id": "component:workforce-identity",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "Keycloak workforce identity",
+            "service_variant_id": "service:workforce-identity-oss"
+          },
+          {
+            "component_id": "component:workload-identity",
+            "delivery_model": "self_managed",
+            "provider_class": "oss",
+            "service_name": "SPIFFE and SPIRE workload identity",
+            "service_variant_id": "service:workload-identity-oss"
+          }
+        ],
+        "template_id": "bundle-template:oss-sovereign",
+        "tradeoffs": [
+          {
+            "dimension_id": "dimension:portability",
+            "impact": 97.0,
+            "kind": "advantage",
+            "statement": "Strongest dimension is dimension:portability at 97.0/100.",
+            "tradeoff_id": "tradeoff:oss-sovereign-advantage"
+          },
+          {
+            "dimension_id": "dimension:delivery-speed",
+            "impact": 58.0,
+            "kind": "compromise",
+            "statement": "Primary compromise is dimension:delivery-speed at 58.0/100.",
+            "tradeoff_id": "tradeoff:oss-sovereign-compromise"
+          },
+          {
+            "dimension_id": null,
+            "impact": 2.0,
+            "kind": "constraint",
+            "statement": "2 requirement or compatibility constraint(s) require resolution.",
+            "tradeoff_id": "tradeoff:oss-sovereign-constraints"
           }
         ],
         "weighted_score": 0.0
       }
     ],
-    "deployable_catalog_hash": "sha256:9c37a9b23944111f27487f977c48fcf1716307adf56d5e1b05396a7f4d4e773a",
+    "deployable_catalog_hash": "sha256:6e5591a15d18c2cab99cefd361ba021b438429db374f35c42ef74e39521892a5",
     "deployable_catalog_id": "deployable-catalog:coding-platform",
     "deployable_catalog_version": "0.2.0",
-    "logical_catalog_hash": "sha256:450d5850e6b99075445bbb9650503d616d8db74ac2e1b5e8ac710b987a44d7e3",
+    "logical_catalog_hash": "sha256:37bce222073ce8af0ec2b55fdeaaf338e51aab7131bb406b04e2c1c8c8ff432d",
     "logical_catalog_id": "catalog:coding-platform",
     "logical_catalog_version": "3.0.0",
-    "pareto_candidate_ids": [
-      "bundle:aws-governed-r2",
-      "bundle:hybrid-governed-r2"
-    ],
+    "pareto_candidate_ids": [],
     "recommendation": {
-      "candidate_id": "bundle:aws-governed-r2",
-      "rationale": "AWS governed managed stack ranks first at 81.650/100, satisfies the highest available compatibility tier, and is evaluated against 34 active architecture components.",
-      "state": "recommended"
+      "candidate_id": null,
+      "rationale": "No generated bundle combines a feasible deployment family with a complete, compatible variant and interface closure; no recommendation is safe.",
+      "state": "no_viable_candidate"
     },
-    "result_hash": "sha256:21cf8129af6a954b9390a9e9188296524ad74a6211875b0b03ff368ed490f131",
+    "result_hash": "sha256:adea726e9c9d736ef9044f4bf381f0aa2008e2a1c466c4e747f9d1e956f8601b",
     "schema_version": "3.0-r0.2",
     "score_profile_id": "score-profile:balanced-enterprise",
-    "sensitivity": [
-      {
-        "baseline_candidate_id": "bundle:aws-governed-r2",
-        "baseline_weight": 0.25,
-        "challenger_candidate_id": "bundle:hybrid-governed-r2",
-        "dimension_id": "dimension:delivery-speed",
-        "score_margin_at_baseline": 2.662,
-        "switch_weight": 0.65,
-        "winner_changes": true
-      },
-      {
-        "baseline_candidate_id": "bundle:aws-governed-r2",
-        "baseline_weight": 0.15,
-        "challenger_candidate_id": null,
-        "dimension_id": "dimension:economics",
-        "score_margin_at_baseline": 2.662,
-        "switch_weight": null,
-        "winner_changes": false
-      },
-      {
-        "baseline_candidate_id": "bundle:aws-governed-r2",
-        "baseline_weight": 0.2,
-        "challenger_candidate_id": null,
-        "dimension_id": "dimension:operability",
-        "score_margin_at_baseline": 2.662,
-        "switch_weight": null,
-        "winner_changes": false
-      },
-      {
-        "baseline_candidate_id": "bundle:aws-governed-r2",
-        "baseline_weight": 0.15,
-        "challenger_candidate_id": null,
-        "dimension_id": "dimension:portability",
-        "score_margin_at_baseline": 2.662,
-        "switch_weight": null,
-        "winner_changes": false
-      },
-      {
-        "baseline_candidate_id": "bundle:aws-governed-r2",
-        "baseline_weight": 0.25,
-        "challenger_candidate_id": null,
-        "dimension_id": "dimension:security",
-        "score_margin_at_baseline": 2.662,
-        "switch_weight": null,
-        "winner_changes": false
-      }
-    ],
-    "workspace_revision_id": "revision:r-4e3b9e4f9a84a5fc920c",
+    "sensitivity": [],
+    "workspace_revision_id": "revision:r-0cd120eef96d25fd4676",
     "workspace_revision_number": 2,
-    "workspace_state_hash": "sha256:9ab480cf14da66212e06e2b3c32bdc7e25aa0c7f237121e9aa15017a4550c777"
+    "workspace_state_hash": "sha256:504e54bb2b5bead04ca9c65bfc48e67be0c41d27fc4be4b8abc01bed1ec0e70c"
   },
   "deployment_families": [
     {
@@ -7316,8 +7418,47 @@
       "status": "unknown"
     }
   ],
+  "evidence": [
+    {
+      "claim_id": "claim:architecture-first-authority",
+      "effective_on": "2026-07-30",
+      "review_status": "approved",
+      "source_id": "source:platform-advisor-vision",
+      "source_locator": "Vision and Product Principles",
+      "source_publisher": "Platform Advisor",
+      "source_title": "Platform Advisor Product Vision",
+      "source_uri": "repo:docs/platform-advisor-product-vision.md",
+      "statement": "Provider-neutral architecture and deterministic constraints precede named service selection."
+    }
+  ],
   "next_question": {
     "affected_components": [],
+    "answer_enrichments": [
+      {
+        "best_for": "Fully local deployments where agents never share compute with other users.",
+        "description": "Each developer's agent runs on their own machine \u2014 there is no shared infrastructure requiring tenant separation.",
+        "label": "No cross-user isolation needed (runs on developer's own device)",
+        "watch_out": "Not appropriate if agents run on any shared cloud infrastructure \u2014 this option assumes no multi-tenancy."
+      },
+      {
+        "best_for": "Most enterprise coding platforms \u2014 cost-effective, widely supported, and sufficient for typical enterprise compliance requirements.",
+        "description": "Each agent session runs in a separate container. Standard isolation for most enterprise workloads.",
+        "label": "Container-level isolation (Docker / OCI)",
+        "watch_out": "Containers share an OS kernel \u2014 not appropriate for workloads where kernel-level separation is a compliance requirement."
+      },
+      {
+        "best_for": "Highly regulated environments (financial services, healthcare, government) or workloads executing externally-generated or untrusted code.",
+        "description": "Each agent session runs in a hardware-virtualized microVM \u2014 stronger isolation than containers with sub-second startup times.",
+        "label": "VM-level isolation (microVM / hardware virtualization)",
+        "watch_out": "Higher cost and operational complexity than containers \u2014 typically only needed when compliance explicitly mandates kernel-level separation."
+      },
+      {
+        "best_for": "SaaS platforms reselling agent capacity to external customers, or enterprises with strict contractual tenant-separation requirements.",
+        "description": "Each major team or customer gets fully dedicated compute \u2014 no shared infrastructure whatsoever.",
+        "label": "Dedicated infrastructure per team or customer",
+        "watch_out": "Highest cost and operational burden of any isolation option \u2014 typically only justified for external multi-tenant SaaS, not internal enterprise platforms."
+      }
+    ],
     "answer_impacts": [
       {
         "answer": "developer-endpoint",
@@ -7516,71 +7657,26 @@
           ],
           "deactivated_rule_ids": []
         }
-      },
-      {
-        "answer": null,
-        "components": {
-          "added": [],
-          "removed": []
-        },
-        "deployment_families": {
-          "feasible": [],
-          "rejected": [
-            {
-              "name": "Developer-hosted local runtime",
-              "pattern_id": "pattern:developer-local"
-            },
-            {
-              "name": "Managed control plane with customer execution",
-              "pattern_id": "pattern:managed-customer-execution"
-            },
-            {
-              "name": "Self-hosted VM or container platform",
-              "pattern_id": "pattern:self-hosted-container"
-            },
-            {
-              "name": "Self-hosted Kubernetes platform",
-              "pattern_id": "pattern:self-hosted-kubernetes"
-            }
-          ],
-          "unknown": [
-            {
-              "name": "Persistent remote developer workspace",
-              "pattern_id": "pattern:persistent-remote-workspace"
-            },
-            {
-              "name": "Vendor-managed ephemeral task",
-              "pattern_id": "pattern:vendor-ephemeral"
-            }
-          ]
-        },
-        "edges": {
-          "added_edge_ids": [],
-          "removed_edge_ids": []
-        },
-        "rules": {
-          "activated_rule_ids": [],
-          "deactivated_rule_ids": []
-        }
       }
     ],
     "candidate_answers": [
       "developer-endpoint",
       "container",
       "microvm",
-      "dedicated-tenant",
-      null
+      "dedicated-tenant"
     ],
     "candidate_elimination_count": 2,
+    "customer_question": "How strictly must each developer's agent session be isolated from other users?",
     "hard_constraint_risk": true,
-    "information_gain": 265.0,
+    "information_gain": 240.0,
     "prompt": "What minimum isolation boundary must separate coding-agent execution?",
     "question_id": "question:runtime-isolation",
     "requirement_id": "requirement:runtime-isolation",
     "requirement_name": "Runtime isolation",
-    "why_now": "This answer produces 5 distinct baseline outcomes across 0 components, can eliminate 2 deployment families, and can change a hard constraint."
+    "why_it_matters": "Isolation is your security boundary \u2014 it determines how far a misbehaving or compromised agent session can affect others on the same infrastructure.",
+    "why_now": "This answer produces 4 distinct baseline outcomes across 0 components, can eliminate 2 deployment families, and can change a hard constraint."
   },
-  "projection_hash": "sha256:943c924fadd96c35069b3c6afc01b08bf754ac6eff25a0e99874772e1e9997a5",
+  "projection_hash": "sha256:5267c5604e0332e7108ab59e3edcc155c630b5f1dad006c8f7010bbeb8182e11",
   "requirements": [
     {
       "assumption": {
@@ -7589,6 +7685,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Should agents require human approval before taking high-risk actions \u2014 like pushing commits, running migrations, or calling external APIs?",
       "description": "Must approval requirements vary by the risk of the action?",
       "name": "Action-dependent approval",
       "required": true,
@@ -7596,7 +7693,8 @@
       "source": "assumption",
       "status": "assumed",
       "value": true,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "Risk-based approval lets you give agents autonomy for low-risk operations while keeping humans in the loop for consequential ones, without blocking developer flow unnecessarily."
     },
     {
       "assumption": {
@@ -7605,6 +7703,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Are agents restricted to only installing packages from your organization's approved package registries?",
       "description": "May coding agents download packages only from approved registries?",
       "name": "Approved package registries",
       "required": true,
@@ -7612,7 +7711,8 @@
       "source": "assumption",
       "status": "assumed",
       "value": true,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "An agent that can install packages from the public internet introduces supply chain risk \u2014 a malicious or compromised package can compromise the agent's execution environment and the code it produces."
     },
     {
       "assumption": {
@@ -7621,6 +7721,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Can workloads run in any region your AWS account has approved, or only a specific fixed set of regions?",
       "description": "May workloads run in any approved region or only a fixed region set?",
       "name": "Approved regions",
       "required": false,
@@ -7628,7 +7729,8 @@
       "source": "assumption",
       "status": "assumed",
       "value": "any-approved",
-      "value_type": "string"
+      "value_type": "string",
+      "why_it_matters": "Data residency requirements, compliance mandates, and cost targets all depend on which regions your workloads are permitted to use."
     },
     {
       "assumption": {
@@ -7637,6 +7739,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Will developers submit work and come back later \u2014 rather than watching it happen live?",
       "description": "Must agents execute unattended issue-to-pull-request tasks?",
       "name": "Asynchronous tasks",
       "required": false,
@@ -7644,10 +7747,12 @@
       "source": "assumption",
       "status": "assumed",
       "value": true,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "Async tasks require durable execution infrastructure that can run for minutes to hours without developer supervision, including state persistence and failure recovery."
     },
     {
       "assumption": null,
+      "customer_question": "For how many days must the platform keep a complete, replayable record of every action an agent took?",
       "description": "How many days must agent decisions and actions remain replayable?",
       "name": "Audit retention",
       "required": false,
@@ -7655,7 +7760,8 @@
       "source": null,
       "status": "unanswered",
       "value": null,
-      "value_type": "integer"
+      "value_type": "integer",
+      "why_it_matters": "Retention requirements often come from your compliance frameworks \u2014 SOX requires 7 years (2555 days), HIPAA 6 years (2190 days). Longer retention means higher storage cost."
     },
     {
       "assumption": {
@@ -7664,6 +7770,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "At peak, how many coding-agent tasks will run simultaneously across all your developers?",
       "description": "How many concurrent coding-agent tasks must be supported?",
       "name": "Concurrent agent tasks",
       "required": true,
@@ -7671,7 +7778,8 @@
       "source": "assumption",
       "status": "assumed",
       "value": 1000,
-      "value_type": "integer"
+      "value_type": "integer",
+      "why_it_matters": "This determines the scale of your execution infrastructure \u2014 how many parallel agent processes must be ready at once. Under-provisioning causes developer wait time; over-provisioning wastes cost."
     },
     {
       "assumption": {
@@ -7680,6 +7788,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "How many developers will use the platform at peak?",
       "description": "How many developers must the platform support?",
       "name": "Developer population",
       "required": true,
@@ -7687,10 +7796,12 @@
       "source": "assumption",
       "status": "assumed",
       "value": 5000,
-      "value_type": "integer"
+      "value_type": "integer",
+      "why_it_matters": "Developer count drives capacity planning, licensing tier selection, and whether the infrastructure needs per-team quota enforcement and cost allocation."
     },
     {
       "assumption": null,
+      "customer_question": "When choosing which AI model to use for a task, what should the platform optimize for?",
       "description": "Should routing optimize cost, quality, latency, or a balanced outcome?",
       "name": "Economic priority",
       "required": false,
@@ -7698,7 +7809,8 @@
       "source": null,
       "status": "unanswered",
       "value": null,
-      "value_type": "string"
+      "value_type": "string",
+      "why_it_matters": "With multiple models available, the routing layer needs a default priority. This setting drives the default \u2014 individual task types can override it."
     },
     {
       "assumption": {
@@ -7707,6 +7819,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Which identity system controls who can log in and what permissions they have on the platform?",
       "description": "Which workforce identity provider and group source must authorize developers?",
       "name": "Enterprise identity",
       "required": true,
@@ -7714,7 +7827,8 @@
       "source": "assumption",
       "status": "assumed",
       "value": "entra",
-      "value_type": "string"
+      "value_type": "string",
+      "why_it_matters": "The platform connects to your existing identity provider to know who each developer is, which team they belong to, and what they are authorized to do \u2014 not a separate login system."
     },
     {
       "assumption": {
@@ -7723,6 +7837,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Where should your coding agents actually run?",
       "description": "Where must interactive and asynchronous coding-agent execution run?",
       "name": "Execution placement",
       "required": true,
@@ -7730,10 +7845,12 @@
       "source": "assumption",
       "status": "assumed",
       "value": "hybrid",
-      "value_type": "string"
+      "value_type": "string",
+      "why_it_matters": "This is the single biggest architectural decision \u2014 it sets your data boundary, compliance posture, and determines which deployment patterns are available to you."
     },
     {
       "assumption": null,
+      "customer_question": "Do developers need the agent to maintain full context and state across work that spans days or weeks?",
       "description": "Are persistent workspaces required for migrations or durable development environments?",
       "name": "Long-running workspaces",
       "required": false,
@@ -7741,10 +7858,12 @@
       "source": null,
       "status": "unanswered",
       "value": null,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "Standard agent sessions are ephemeral \u2014 the workspace is discarded when a task ends. Persistent workspaces let agents maintain a durable 'desk' for large, multi-session work."
     },
     {
       "assumption": null,
+      "customer_question": "Should the platform automatically switch to a backup model if the primary one is unavailable or too slow?",
       "description": "Is automatic provider or model fallback required?",
       "name": "Model fallback",
       "required": false,
@@ -7752,10 +7871,12 @@
       "source": null,
       "status": "unanswered",
       "value": null,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "If your primary model provider has an outage or latency spike, automatic fallback keeps developers working rather than seeing failures."
     },
     {
       "assumption": null,
+      "customer_question": "Must the platform enforce that certain data never crosses geographic or jurisdictional boundaries when calling AI models?",
       "description": "Must model routing enforce region or data-residency constraints?",
       "name": "Residency-aware routing",
       "required": false,
@@ -7763,10 +7884,12 @@
       "source": null,
       "status": "unanswered",
       "value": null,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "GDPR, sovereign cloud mandates, and contractual data residency commitments can require that data stays within specific regions \u2014 residency-aware routing enforces this automatically on every model call."
     },
     {
       "assumption": null,
+      "customer_question": "Should the platform use fixed model assignments, or pick the best model automatically for each request?",
       "description": "Should model assignments be static or selected dynamically by policy?",
       "name": "Model routing mode",
       "required": false,
@@ -7774,7 +7897,8 @@
       "source": null,
       "status": "unanswered",
       "value": null,
-      "value_type": "string"
+      "value_type": "string",
+      "why_it_matters": "Static routing is predictable and auditable. Dynamic routing optimizes for cost, quality, and latency at runtime but adds decision-making complexity."
     },
     {
       "assumption": {
@@ -7783,6 +7907,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Will multiple specialized agents collaborate together on a single coding task?",
       "description": "Must the platform coordinate multiple coding agents or specialist workers?",
       "name": "Multiple coding agents",
       "required": false,
@@ -7790,7 +7915,8 @@
       "source": "assumption",
       "status": "assumed",
       "value": true,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "Complex tasks \u2014 like delivering a full feature end-to-end \u2014 may need a planner, a coder, a test writer, and a security reviewer each contributing their own expertise."
     },
     {
       "assumption": {
@@ -7799,6 +7925,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Do you need to use more than one AI model provider simultaneously?",
       "description": "Must the platform route across more than one model provider?",
       "name": "Multiple model providers",
       "required": true,
@@ -7806,7 +7933,8 @@
       "source": "assumption",
       "status": "assumed",
       "value": true,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "A single provider is simpler. Multiple providers unlock cost optimization across providers, resilience when one is down, and routing different tasks to the best model for the job."
     },
     {
       "assumption": {
@@ -7815,6 +7943,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "When multiple agents work together on a task, how should they coordinate their work?",
       "description": "Should agents work independently, hand off sequentially, or produce parallel candidates for review?",
       "name": "Agent orchestration mode",
       "required": false,
@@ -7822,7 +7951,8 @@
       "source": "assumption",
       "status": "assumed",
       "value": "parallel-review",
-      "value_type": "string"
+      "value_type": "string",
+      "why_it_matters": "The coordination pattern determines latency, cost, quality, and failure modes. Choose the pattern that matches how your human teams actually collaborate today."
     },
     {
       "assumption": {
@@ -7831,6 +7961,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Do you need to trace what an agent did in code all the way back to your CI/CD pipeline and Git history?",
       "description": "Must agent traces correlate with Git and CI outcomes?",
       "name": "Outcome observability",
       "required": true,
@@ -7838,10 +7969,12 @@
       "source": "assumption",
       "status": "assumed",
       "value": true,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "Without outcome observability you have agent actions but no closed loop on results. With it you can measure: did the agent's PR get merged, did tests pass, did it introduce regressions?"
     },
     {
       "assumption": null,
+      "customer_question": "Must traffic to model providers and enterprise systems travel over a private network path \u2014 never the public internet?",
       "description": "Must model, tool, and enterprise API traffic use private connectivity?",
       "name": "Private connectivity",
       "required": false,
@@ -7849,7 +7982,21 @@
       "source": null,
       "status": "unanswered",
       "value": null,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "Even with restricted egress, traffic can still traverse the public internet. Private connectivity (VPC endpoints, PrivateLink, Direct Connect) keeps all traffic on private network paths."
+    },
+    {
+      "assumption": null,
+      "customer_question": "How will the AI models your agents use be hosted and accessed?",
+      "description": "How are model providers hosted and reached through the model gateway?",
+      "name": "Model provider hosting",
+      "required": true,
+      "requirement_id": "requirement:provider-hosting",
+      "source": null,
+      "status": "unanswered",
+      "value": null,
+      "value_type": "string",
+      "why_it_matters": "This determines your data sovereignty posture, network path for model traffic, and who is operationally responsible for model infrastructure."
     },
     {
       "assumption": {
@@ -7858,6 +8005,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Must agent runtimes be restricted to only contacting a pre-approved list of external services \u2014 not the open internet?",
       "description": "Must runtime network egress be restricted to approved destinations?",
       "name": "Restricted egress",
       "required": true,
@@ -7865,10 +8013,12 @@
       "source": "assumption",
       "status": "assumed",
       "value": true,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "Unrestricted egress means a misbehaving or compromised agent could exfiltrate data or call arbitrary external APIs. Restricted egress is a foundational security control for enterprise deployments."
     },
     {
       "assumption": null,
+      "customer_question": "How strictly must each developer's agent session be isolated from other users?",
       "description": "What minimum isolation boundary must separate coding-agent execution?",
       "name": "Runtime isolation",
       "required": true,
@@ -7876,7 +8026,8 @@
       "source": null,
       "status": "unanswered",
       "value": null,
-      "value_type": "string"
+      "value_type": "string",
+      "why_it_matters": "Isolation is your security boundary \u2014 it determines how far a misbehaving or compromised agent session can affect others on the same infrastructure."
     },
     {
       "assumption": {
@@ -7885,6 +8036,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Which Git platform do your developers use for code, branches, and pull requests?",
       "description": "Which source-control and pull-request system is authoritative?",
       "name": "Source control system",
       "required": true,
@@ -7892,7 +8044,8 @@
       "source": "assumption",
       "status": "assumed",
       "value": "gitlab-saas",
-      "value_type": "string"
+      "value_type": "string",
+      "why_it_matters": "The agent integrates directly with your source control system \u2014 it clones repos, creates branches, pushes commits, and opens pull requests. The specific integration affects authentication and available features."
     },
     {
       "assumption": {
@@ -7901,6 +8054,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Should each team or business unit have its own isolated workspace with separate policies, usage quotas, and audit logs?",
       "description": "Must teams receive separate policy, quota, and audit workspaces?",
       "name": "Team boundaries",
       "required": false,
@@ -7908,7 +8062,8 @@
       "source": "assumption",
       "status": "assumed",
       "value": true,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "Without team boundaries, one team's heavy usage can starve others, policy changes affect everyone at once, and there is no per-team cost accountability or compliance audit trail."
     },
     {
       "assumption": {
@@ -7917,6 +8072,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "customer_question": "Must agent tasks start almost instantly, or is a 30\u201360 second initialization wait acceptable?",
       "description": "Must the platform keep warm runtimes or resumable snapshots to meet startup SLOs?",
       "name": "Warm runtime capacity",
       "required": false,
@@ -7924,19 +8080,20 @@
       "source": "assumption",
       "status": "assumed",
       "value": true,
-      "value_type": "boolean"
+      "value_type": "boolean",
+      "why_it_matters": "Warm capacity keeps pre-initialized agent runtimes ready so tasks start in seconds rather than waiting for a cold container or VM to provision."
     }
   ],
   "revision": {
-    "created_at": "2026-07-30T12:00:00+00:00",
-    "parent_revision_id": "revision:r-ae286308fdde98b7ad72",
-    "revision_id": "revision:r-4e3b9e4f9a84a5fc920c",
+    "created_at": "2026-08-04T12:00:00+00:00",
+    "parent_revision_id": "revision:r-f65a4226052bc384cadf",
+    "revision_id": "revision:r-0cd120eef96d25fd4676",
     "revision_number": 2,
-    "state_hash": "sha256:9ab480cf14da66212e06e2b3c32bdc7e25aa0c7f237121e9aa15017a4550c777"
+    "state_hash": "sha256:504e54bb2b5bead04ca9c65bfc48e67be0c41d27fc4be4b8abc01bed1ec0e70c"
   },
   "schema_version": "3.0",
   "workspace": {
-    "current_revision_id": "revision:r-4e3b9e4f9a84a5fc920c",
+    "current_revision_id": "revision:r-0cd120eef96d25fd4676",
     "workspace_id": "workspace:coding-platform-demo"
   }
 }

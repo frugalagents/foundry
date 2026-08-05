@@ -28,11 +28,20 @@ export interface ArchitectureRequirement {
   id: string;
   name: string;
   description?: string;
+  customer_question?: string;
+  why_it_matters?: string;
   required?: boolean;
   value: RequirementValue;
   status: RequirementStatus;
   source?: string;
   assumption?: RequirementAssumption;
+}
+
+export interface AnswerEnrichment {
+  label: string;
+  description: string;
+  best_for?: string;
+  watch_out?: string;
 }
 
 export interface ArchitectureComponent {
@@ -90,8 +99,11 @@ export interface AnswerImpact {
 export interface NextArchitectureQuestion {
   requirement_id: string;
   prompt: string;
+  customer_question: string;
+  why_it_matters?: string;
   why_now: string;
   candidate_answers: RequirementValue[];
+  answer_enrichments: (AnswerEnrichment | null)[];
   answer_impacts: AnswerImpact[];
 }
 
@@ -324,6 +336,7 @@ export interface WorkspaceGuidance {
   requiredOpenRequirements: ArchitectureRequirement[];
   coveredPercent: number;
   feasibleAlternatives: number;
+  allFamiliesRejected: boolean;
   publicationBlockers: string[];
   criticalControlBlockers: number;
   highRiskCount: number;
@@ -351,6 +364,8 @@ export function deriveWorkspaceGuidance(
   const feasibleAlternatives = projection.feasibility.filter(
     (alternative) => alternative.status === 'feasible',
   ).length;
+  const allFamiliesRejected = projection.feasibility.length > 0
+    && projection.feasibility.every((f) => f.status === 'rejected');
   const hasRecommendation =
     projection.deployable_solution?.recommendation.state === 'recommended';
   const assurance = projection.assurance;
@@ -414,9 +429,15 @@ export function deriveWorkspaceGuidance(
   if (requiredOpenRequirements.length > 0 || feasibleAlternatives === 0 || !hasRecommendation) {
     readiness = 'needs-information';
     readinessLabel = 'Needs customer input';
-    readinessDetail = requiredOpenRequirements.length > 0
-      ? `${requiredOpenRequirements.length} required decision${requiredOpenRequirements.length === 1 ? '' : 's'} must be resolved before publication.`
-      : 'No deployment family is confirmed feasible yet. Resolve the next decision to narrow the architecture.';
+    if (requiredOpenRequirements.length > 0) {
+      readinessDetail = `${requiredOpenRequirements.length} required decision${requiredOpenRequirements.length === 1 ? '' : 's'} must be resolved before publication.`;
+    } else if (allFamiliesRejected && !projection.next_question) {
+      readinessDetail = 'Your current answers eliminate all deployment families. Review the Trace tab to identify the conflicting requirements, then change one or more answers.';
+    } else {
+      readinessDetail = projection.next_question
+        ? 'No deployment family is confirmed feasible yet. Resolve the next guided discovery decision to narrow the architecture.'
+        : 'No deployment family is confirmed feasible yet. Check the Trace tab to see which requirements are blocking deployment family confirmation.';
+    }
   } else if (!assurance || publicationBlockers.length > 0) {
     readiness = 'conditional';
     readinessLabel = 'Reviewable, not publishable';
@@ -431,6 +452,7 @@ export function deriveWorkspaceGuidance(
     assumedRequirements,
     openRequirements,
     requiredOpenRequirements,
+    allFamiliesRejected,
     coveredPercent: projection.requirements.length === 0
       ? 0
       : Math.round((coveredRequirements / projection.requirements.length) * 100),
@@ -634,8 +656,15 @@ export const architectureSampleProjection: ArchitectureWorkspaceProjection = {
   next_question: {
     requirement_id: 'requirement:long-running-workspaces',
     prompt: 'Are persistent workspaces required for migrations or durable development environments?',
+    customer_question: 'Do developers need the agent to maintain full context and state across work that spans days or weeks?',
+    why_it_matters: 'Standard agent sessions are ephemeral — the workspace is discarded when a task ends. Persistent workspaces let agents maintain a durable desk for large, multi-session work.',
     why_now: 'This answer changes the logical architecture and resolves the remaining unknown deployment family.',
     candidate_answers: [true, false, null],
+    answer_enrichments: [
+      { label: 'Yes — we need persistent agent workspaces', description: 'Agents maintain their workspace state across multiple sessions.', best_for: 'Large codebase migrations, multi-sprint refactors, or long-running dependency upgrades.', watch_out: 'Persistent workspaces consume storage and compute even when idle.' },
+      { label: 'No — each agent task starts fresh', description: 'Agents work on ephemeral, scoped checkouts. The workspace is discarded after each task.', best_for: 'Most task-oriented coding agent use cases — issue resolution, PR review, targeted refactoring.', watch_out: 'Not suitable for large migrations or multi-day tasks that require accumulated context.' },
+      null,
+    ],
     answer_impacts: [
       {
         answer: true,
