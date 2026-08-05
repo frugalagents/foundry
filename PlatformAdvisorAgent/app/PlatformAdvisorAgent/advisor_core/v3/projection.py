@@ -655,6 +655,13 @@ def build_frontend_projection(
             "customer_question": get_enrichment(requirement_id).get("customer_question"),
             "why_it_matters": get_enrichment(requirement_id).get("why_it_matters"),
             "value_type": definition.value_type.value,
+            "candidate_answers": (
+                list(definition.allowed_values)
+                if definition.allowed_values
+                else [True, False]
+                if definition.value_type.value == "boolean"
+                else None
+            ),
             "required": definition.required,
             "status": (
                 "unanswered"

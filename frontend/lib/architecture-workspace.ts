@@ -30,6 +30,7 @@ export interface ArchitectureRequirement {
   description?: string;
   customer_question?: string;
   why_it_matters?: string;
+  candidate_answers?: RequirementValue[];
   required?: boolean;
   value: RequirementValue;
   status: RequirementStatus;

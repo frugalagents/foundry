@@ -75,6 +75,7 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
       description: item.description ? String(item.description) : undefined,
       customer_question: item.customer_question ? String(item.customer_question) : undefined,
       why_it_matters: item.why_it_matters ? String(item.why_it_matters) : undefined,
+      candidate_answers: item.candidate_answers as RequirementValue[] | undefined,
       required: Boolean(item.required),
       value: item.value as RequirementValue,
       status: requirementStatus(item.status),
