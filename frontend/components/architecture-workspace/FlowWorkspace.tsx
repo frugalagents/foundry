@@ -1055,15 +1055,59 @@ function WorkspaceSummary({
             <b>{feasibleCount > 0 ? 'Architecture is fully specified' : 'Deployment families unresolved'}</b>
             {feasibleCount > 0 ? (
               <>
-                <p>
-                  {allAnswered
-                    ? 'All requirements are confirmed. The engine has all the information it needs.'
-                    : 'The remaining open requirements do not affect the current architecture — the engine has enough information to proceed.'}
-                </p>
                 <p className="fw-engine-done-next">
-                  <b>{feasibleCount} deployment famil{feasibleCount === 1 ? 'y' : 'ies'} confirmed.</b>{' '}
-                  Review the full architecture package and publication gate.
+                  <b>{feasibleCount} deployment famil{feasibleCount === 1 ? 'y' : 'ies'} confirmed.</b>
                 </p>
+                {guidance.openRequirements.length > 0 ? (
+                  <>
+                    <p>{guidance.openRequirements.length} additional answer{guidance.openRequirements.length === 1 ? '' : 's'} will complete the bundle recommendation and unlock publication.</p>
+                    {guidance.openRequirements.filter((req) => (req.candidate_answers?.length ?? 0) > 0).map((req) => {
+                      const chosen = openReqPatch[req.id];
+                      return (
+                        <div key={req.id} className="fw-open-req-item">
+                          <span className="fw-open-req-label">{req.customer_question ?? req.name}</span>
+                          <div className="fw-conflict-choices">
+                            {(req.candidate_answers ?? []).map((opt) => {
+                              const sel = chosen === opt;
+                              return (
+                                <button
+                                  key={String(opt)}
+                                  type="button"
+                                  className={sel ? 'selected' : ''}
+                                  disabled={applying}
+                                  onClick={() => {
+                                    if (sel) {
+                                      const next = { ...openReqPatch };
+                                      delete next[req.id];
+                                      setOpenReqPatch(next);
+                                    } else {
+                                      setOpenReqPatch({ ...openReqPatch, [req.id]: opt });
+                                    }
+                                  }}
+                                >
+                                  {sel && <Check size={10} />}{answerLabel(opt)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {guidance.openRequirements.some((req) => !req.candidate_answers?.length) && (
+                      <p className="fw-engine-done-next">Some values need free-form input — use <b>Ask advisor</b> for those.</p>
+                    )}
+                    {Object.keys(openReqPatch).length > 0 && (
+                      <div className="fw-answer-actions">
+                        <button type="button" onClick={() => setOpenReqPatch({})} disabled={applying}>Reset</button>
+                        <button type="button" className="primary" onClick={() => onApplyAnswer(openReqPatch)} disabled={applying}>
+                          {applying ? 'Applying…' : `Apply ${Object.keys(openReqPatch).length} answer${Object.keys(openReqPatch).length === 1 ? '' : 's'}`}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p>All requirements are confirmed. The engine has all the information it needs.</p>
+                )}
                 <button type="button" className="fw-review-cta" onClick={onOpenReview}>
                   <Sparkles size={14} /> Review package
                 </button>
