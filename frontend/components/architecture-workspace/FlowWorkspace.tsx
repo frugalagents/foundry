@@ -6,6 +6,7 @@ import {
   AlertCircle,
   Check,
   CheckCircle2,
+  ChevronDown,
   Download,
   FileCheck2,
   ListChecks,
@@ -872,6 +873,8 @@ function WorkspaceSummary({
 }) {
   const [conflictPatch, setConflictPatch] = useState<Record<string, RequirementValue>>({});
   const [openReqPatch, setOpenReqPatch] = useState<Record<string, RequirementValue>>({});
+  const [assumptionPatch, setAssumptionPatch] = useState<Record<string, RequirementValue>>({});
+  const [assumptionsOpen, setAssumptionsOpen] = useState(false);
   const questionNumber = guidance.confirmedRequirements + guidance.assumedRequirements + 1;
   const questionCount = projection.requirements.length;
   const pendingAnswer = nextQuestion && pendingPatch
@@ -882,6 +885,14 @@ function WorkspaceSummary({
   const allAnswered = guidance.openRequirements.length === 0;
   const feasibleCount = guidance.feasibleAlternatives;
   const conflict = engineDone && feasibleCount === 0 && guidance.allFamiliesRejected;
+
+  const assumedReqs = useMemo(
+    () => projection.requirements.filter((r) => r.status === 'assumed'),
+    [projection.requirements],
+  );
+  useEffect(() => {
+    if (engineDone && assumedReqs.length > 0) setAssumptionsOpen(true);
+  }, [engineDone, assumedReqs.length]);
 
   // Derive which requirements are causing family rejections
   const conflictItems = useMemo(() => {
@@ -1061,41 +1072,63 @@ function WorkspaceSummary({
                 {guidance.openRequirements.length > 0 ? (
                   <>
                     <p>{guidance.openRequirements.length} additional answer{guidance.openRequirements.length === 1 ? '' : 's'} will complete the bundle recommendation and unlock publication.</p>
-                    {guidance.openRequirements.filter((req) => (req.candidate_answers?.length ?? 0) > 0).map((req) => {
+                    {guidance.openRequirements.map((req) => {
                       const chosen = openReqPatch[req.id];
+                      if ((req.candidate_answers?.length ?? 0) > 0) {
+                        return (
+                          <div key={req.id} className="fw-open-req-item">
+                            <span className="fw-open-req-label">{req.customer_question ?? req.name}</span>
+                            <div className="fw-conflict-choices">
+                              {(req.candidate_answers ?? []).map((opt) => {
+                                const sel = chosen === opt;
+                                return (
+                                  <button
+                                    key={String(opt)}
+                                    type="button"
+                                    className={sel ? 'selected' : ''}
+                                    disabled={applying}
+                                    onClick={() => {
+                                      if (sel) {
+                                        const next = { ...openReqPatch };
+                                        delete next[req.id];
+                                        setOpenReqPatch(next);
+                                      } else {
+                                        setOpenReqPatch({ ...openReqPatch, [req.id]: opt });
+                                      }
+                                    }}
+                                  >
+                                    {sel && <Check size={10} />}{answerLabel(opt)}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
                       return (
                         <div key={req.id} className="fw-open-req-item">
-                          <span className="fw-open-req-label">{req.customer_question ?? req.name}</span>
-                          <div className="fw-conflict-choices">
-                            {(req.candidate_answers ?? []).map((opt) => {
-                              const sel = chosen === opt;
-                              return (
-                                <button
-                                  key={String(opt)}
-                                  type="button"
-                                  className={sel ? 'selected' : ''}
-                                  disabled={applying}
-                                  onClick={() => {
-                                    if (sel) {
-                                      const next = { ...openReqPatch };
-                                      delete next[req.id];
-                                      setOpenReqPatch(next);
-                                    } else {
-                                      setOpenReqPatch({ ...openReqPatch, [req.id]: opt });
-                                    }
-                                  }}
-                                >
-                                  {sel && <Check size={10} />}{answerLabel(opt)}
-                                </button>
-                              );
-                            })}
-                          </div>
+                          <span className="fw-open-req-label">{req.customer_question ?? req.description ?? req.name}</span>
+                          <input
+                            type="number"
+                            className="fw-open-req-number"
+                            min={1}
+                            placeholder="Enter a number…"
+                            value={chosen !== undefined ? String(chosen) : ''}
+                            disabled={applying}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? undefined : Number(e.target.value);
+                              if (val === undefined) {
+                                const next = { ...openReqPatch };
+                                delete next[req.id];
+                                setOpenReqPatch(next);
+                              } else {
+                                setOpenReqPatch({ ...openReqPatch, [req.id]: val });
+                              }
+                            }}
+                          />
                         </div>
                       );
                     })}
-                    {guidance.openRequirements.some((req) => !req.candidate_answers?.length) && (
-                      <p className="fw-engine-done-next">Some values need free-form input — use <b>Ask advisor</b> for those.</p>
-                    )}
                     {Object.keys(openReqPatch).length > 0 && (
                       <div className="fw-answer-actions">
                         <button type="button" onClick={() => setOpenReqPatch({})} disabled={applying}>Reset</button>
@@ -1115,42 +1148,64 @@ function WorkspaceSummary({
             ) : (
               <>
                 <p>{guidance.openRequirements.length} more answer{guidance.openRequirements.length === 1 ? '' : 's'} needed before the engine can confirm which deployment families are available to you.</p>
-                {guidance.openRequirements.filter((req) => (req.candidate_answers?.length ?? 0) > 0).map((req) => {
+                {guidance.openRequirements.map((req) => {
                   const chosen = openReqPatch[req.id];
+                  if ((req.candidate_answers?.length ?? 0) > 0) {
+                    return (
+                      <div key={req.id} className="fw-open-req-item">
+                        <span className="fw-open-req-label">{req.customer_question ?? req.name}</span>
+                        <div className="fw-conflict-choices">
+                          {(req.candidate_answers ?? []).map((opt) => {
+                            const sel = chosen === opt;
+                            return (
+                              <button
+                                key={String(opt)}
+                                type="button"
+                                className={sel ? 'selected' : ''}
+                                disabled={applying}
+                                onClick={() => {
+                                  if (sel) {
+                                    const next = { ...openReqPatch };
+                                    delete next[req.id];
+                                    setOpenReqPatch(next);
+                                  } else {
+                                    setOpenReqPatch({ ...openReqPatch, [req.id]: opt });
+                                  }
+                                }}
+                              >
+                                {sel && <Check size={10} />}
+                                {answerLabel(opt)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
                   return (
                     <div key={req.id} className="fw-open-req-item">
-                      <span className="fw-open-req-label">{req.customer_question ?? req.name}</span>
-                      <div className="fw-conflict-choices">
-                        {(req.candidate_answers ?? []).map((opt) => {
-                          const sel = chosen === opt;
-                          return (
-                            <button
-                              key={String(opt)}
-                              type="button"
-                              className={sel ? 'selected' : ''}
-                              disabled={applying}
-                              onClick={() => {
-                                if (sel) {
-                                  const next = { ...openReqPatch };
-                                  delete next[req.id];
-                                  setOpenReqPatch(next);
-                                } else {
-                                  setOpenReqPatch({ ...openReqPatch, [req.id]: opt });
-                                }
-                              }}
-                            >
-                              {sel && <Check size={10} />}
-                              {answerLabel(opt)}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <span className="fw-open-req-label">{req.customer_question ?? req.description ?? req.name}</span>
+                      <input
+                        type="number"
+                        className="fw-open-req-number"
+                        min={1}
+                        placeholder="Enter a number…"
+                        value={chosen !== undefined ? String(chosen) : ''}
+                        disabled={applying}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? undefined : Number(e.target.value);
+                          if (val === undefined) {
+                            const next = { ...openReqPatch };
+                            delete next[req.id];
+                            setOpenReqPatch(next);
+                          } else {
+                            setOpenReqPatch({ ...openReqPatch, [req.id]: val });
+                          }
+                        }}
+                      />
                     </div>
                   );
                 })}
-                {guidance.openRequirements.some((req) => !req.candidate_answers?.length) && (
-                  <p className="fw-engine-done-next">Some requirements need free-form values — use <b>Ask advisor</b> for those.</p>
-                )}
                 {Object.keys(openReqPatch).length > 0 && (
                   <div className="fw-answer-actions">
                     <button type="button" onClick={() => setOpenReqPatch({})} disabled={applying}>Reset</button>
@@ -1176,6 +1231,113 @@ function WorkspaceSummary({
             ))}
           </ul>
           <p className="fw-engine-blocked-hint">Use the <b>Ask advisor</b> tab to answer the requirement above, then reload.</p>
+        </div>
+      )}
+      {assumedReqs.length > 0 && (
+        <div className="fw-assumptions">
+          <button
+            type="button"
+            className="fw-assumptions-header"
+            onClick={() => setAssumptionsOpen((o) => !o)}
+          >
+            <span>
+              <b>{assumedReqs.length} working assumption{assumedReqs.length === 1 ? '' : 's'}</b>
+              <small>Engine-set defaults — confirm or change before publishing</small>
+            </span>
+            <ChevronDown size={12} className={assumptionsOpen ? 'fw-chevron-open' : undefined} />
+          </button>
+          {assumptionsOpen && (
+            <>
+              <div className="fw-assumptions-list">
+                {assumedReqs.map((req) => {
+                  const override = assumptionPatch[req.id];
+                  const effectiveVal = override !== undefined ? override : req.value;
+                  if ((req.candidate_answers?.length ?? 0) > 0) {
+                    return (
+                      <div key={req.id} className="fw-assumption-item">
+                        <span className="fw-open-req-label">{req.customer_question ?? req.name}</span>
+                        <div className="fw-conflict-choices">
+                          {(req.candidate_answers ?? []).map((opt) => {
+                            const sel = effectiveVal === opt;
+                            const isOriginal = override === undefined && req.value === opt;
+                            return (
+                              <button
+                                key={String(opt)}
+                                type="button"
+                                className={sel ? (isOriginal ? 'assumed' : 'selected') : ''}
+                                disabled={applying}
+                                onClick={() => {
+                                  if (opt === req.value) {
+                                    const next = { ...assumptionPatch };
+                                    delete next[req.id];
+                                    setAssumptionPatch(next);
+                                  } else {
+                                    setAssumptionPatch({ ...assumptionPatch, [req.id]: opt });
+                                  }
+                                }}
+                              >
+                                {sel && <Check size={10} />}
+                                {answerLabel(opt)}
+                                {isOriginal && <em>assumed</em>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={req.id} className="fw-assumption-item">
+                      <span className="fw-open-req-label">{req.customer_question ?? req.description ?? req.name}</span>
+                      <div className="fw-assumption-numeric">
+                        <input
+                          type="number"
+                          className="fw-open-req-number"
+                          min={1}
+                          value={effectiveVal !== undefined && effectiveVal !== null ? String(effectiveVal) : ''}
+                          disabled={applying}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? undefined : Number(e.target.value);
+                            if (val === undefined || val === req.value) {
+                              const next = { ...assumptionPatch };
+                              delete next[req.id];
+                              setAssumptionPatch(next);
+                            } else {
+                              setAssumptionPatch({ ...assumptionPatch, [req.id]: val });
+                            }
+                          }}
+                        />
+                        {override === undefined && <span className="fw-assumption-tag">assumed</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="fw-answer-actions">
+                {Object.keys(assumptionPatch).length > 0 && (
+                  <button type="button" onClick={() => setAssumptionPatch({})} disabled={applying}>Reset</button>
+                )}
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={applying}
+                  onClick={() => {
+                    const confirmPatch = {
+                      ...Object.fromEntries(assumedReqs.map((r) => [r.id, r.value])),
+                      ...assumptionPatch,
+                    };
+                    onApplyAnswer(confirmPatch);
+                  }}
+                >
+                  {applying
+                    ? 'Applying…'
+                    : Object.keys(assumptionPatch).length > 0
+                      ? `Apply ${Object.keys(assumptionPatch).length} change${Object.keys(assumptionPatch).length === 1 ? '' : 's'}`
+                      : `Confirm all ${assumedReqs.length} as-is`}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -1274,6 +1436,8 @@ function WorkspaceStyles() {
 .fw-discovery-progress{height:4px;margin:12px 0 27px;border-radius:2px;overflow:hidden;background:var(--line)}.fw-discovery-progress i{display:block;height:100%;background:var(--green)}
 .fw-next>span,.fw-proposal>span{font-size:8.5px;text-transform:uppercase;color:var(--muted);font-weight:750}.fw-next h2{font-size:18px;line-height:1.35;margin:8px 0}.fw-next>p{font-size:10.5px;color:var(--muted);margin:0 0 17px}.fw-why-it-matters{font-size:10.5px;color:var(--dim);margin:0 0 17px;padding:9px 10px;border-left:2px solid var(--green);background:#37dd7d0a}.fw-answer-list small+small.fw-watch-out{color:var(--amber);margin-top:4px;font-style:italic}.fw-answer-list{display:flex;flex-direction:column;gap:7px}.fw-answer-list>button{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;border:1px solid var(--line);border-radius:7px;background:#11161e;color:var(--ink);padding:10px 11px;cursor:pointer}.fw-answer-list>button:hover{border-color:#47576c;background:#151c26}.fw-answer-list>button.selected{border-color:var(--green);background:#102019}.fw-answer-list>button:disabled{opacity:.45}.fw-answer-list>button>i{width:17px;height:17px;display:grid;place-items:center;flex:none;margin-top:1px;border:1px solid #4b596d;border-radius:50%;color:#07130c;font-style:normal}.fw-answer-list>button.selected>i{border-color:var(--green);background:var(--green)}.fw-answer-list>button>span{display:flex;flex-direction:column}.fw-answer-list b{font-size:11.5px}.fw-answer-list small{font-size:9.5px;line-height:1.4;color:var(--muted);margin-top:2px}
 .fw-answer-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:16px;padding-top:13px;border-top:1px solid var(--soft)}.fw-answer-actions button{border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--dim);padding:7px 10px;font:650 10px inherit}.fw-answer-actions button.primary{border-color:var(--green);background:var(--green);color:#07130c}.fw-answer-actions button:disabled{opacity:.45}
+.fw-open-req-number{width:100%;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);padding:6px 8px;font:11px inherit}
+.fw-assumptions{margin-top:18px;border:1px solid #7d9bff33;border-radius:9px;overflow:hidden;background:#111827}.fw-assumptions-header{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;background:transparent;border:0;color:var(--ink);cursor:pointer;text-align:left}.fw-assumptions-header:hover{background:#ffffff06}.fw-assumptions-header>span{display:flex;flex-direction:column;gap:2px}.fw-assumptions-header b{font-size:11px}.fw-assumptions-header small{font-size:9px;color:var(--muted)}.fw-chevron-open{transform:rotate(180deg)}.fw-assumptions-list{display:flex;flex-direction:column;gap:6px;padding:0 12px 4px}.fw-assumption-item{display:flex;flex-direction:column;gap:6px;padding:9px 10px;border:1px solid #7d9bff22;border-radius:7px;background:#0f1520}.fw-assumption-numeric{display:flex;align-items:center;gap:8px}.fw-assumption-tag{font-size:8px;text-transform:uppercase;color:#aebeff;padding:2px 5px;border-radius:4px;background:#7d9bff18;white-space:nowrap}.fw-conflict-choices>button.assumed{border-color:#7d9bff66;background:#101a2e;color:#aebeff}.fw-assumptions .fw-answer-actions{margin:8px 12px 12px;padding-top:10px}
 .fw-inspector-head{padding:20px;border-bottom:1px solid var(--soft);border-left:3px solid var(--section-color);background:linear-gradient(110deg,var(--section-tint),transparent)}.fw-inspector-head>span{font-size:8.5px;text-transform:uppercase;color:var(--section-color);font-weight:750}.fw-inspector-head h2{font-size:18px;margin:6px 0}.fw-inspector-head>p{font-size:11.5px;color:var(--dim);margin:0}.fw-service{display:flex;flex-direction:column;margin-top:12px;padding:9px;border:1px solid var(--line);border-radius:7px;background:#0e1116}.fw-service b{font-size:11.5px}.fw-service small{font-size:9px;color:var(--muted)}
 .fw-inspector-section{padding:17px 20px;border-bottom:1px solid var(--soft)}.fw-inspector-section h3,.fw-dialog-body section>h3{font-size:9px;text-transform:uppercase;color:var(--muted);margin:0 0 10px}.fw-muted{font-size:10.5px;color:var(--muted);margin:0}
 .fw-rationale-item{display:flex;gap:9px;margin-top:8px}.fw-rationale-item>span{font-size:8px;text-transform:uppercase;color:#aebeff;width:50px;flex:none}.fw-rationale-item p{font-size:10.5px;color:var(--dim);margin:0}.fw-requirement{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:7px 0;border-top:1px solid var(--soft)}.fw-requirement:first-of-type{border:0}.fw-requirement span{font-size:10.5px}.fw-requirement b{font-size:10px;color:#aebeff}.fw-requirement small{grid-column:1/-1;color:var(--muted);font-size:8px;text-transform:uppercase}

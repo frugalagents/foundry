@@ -10,7 +10,7 @@
       "requirement_acceptance": [
         {
           "requirement_id": "requirement:execution-placement",
-          "accepted_values": ["customer-managed", "vendor-managed", "hybrid"]
+          "accepted_values": ["customer-managed", "hybrid"]
         }
       ],
       "score_adjustments": [

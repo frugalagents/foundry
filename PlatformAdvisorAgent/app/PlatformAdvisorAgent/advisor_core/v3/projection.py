@@ -9,7 +9,7 @@ from typing import Sequence
 
 from .assurance import SelectedBundleContext, build_assurance_outputs
 from .assurance.models import BundleImplementation
-from .deployable import build_deployable_solution
+from .deployable import build_deployable_solution, compile_deployable_catalog
 from .engine import evaluate_deployment_feasibility, rank_next_questions
 from .question_enrichment import get_answer_label, get_enrichment
 from .models import (
@@ -580,7 +580,15 @@ def build_frontend_projection(
     initial = workspace.revisions[0]
     current = workspace.revisions[-1]
     feasibility = evaluate_deployment_feasibility(workspace, catalog)
-    questions = rank_next_questions(workspace, catalog)
+    # Compile the deployable catalog once so capability-rule thresholds feed the
+    # discovery engine (e.g. audit-retention-days >= 90) without double I/O.
+    try:
+        deployable_catalog = compile_deployable_catalog(catalog)
+        capability_rules = deployable_catalog.capability_rules
+    except Exception:
+        deployable_catalog = None
+        capability_rules = ()
+    questions = rank_next_questions(workspace, catalog, extra_capability_rules=capability_rules)
 
     requirements = {
         requirement.id: requirement for requirement in catalog.requirements
@@ -596,7 +604,7 @@ def build_frontend_projection(
     rules = {rule.id: rule for rule in catalog.rules}
     claims = {claim.id: claim for claim in catalog.evidence_claims}
     sources = {source.id: source for source in catalog.evidence_sources}
-    deployable = build_deployable_solution(current, catalog)
+    deployable = build_deployable_solution(current, catalog, deployable_catalog)
     recommended_candidate = next(
         (
             candidate
@@ -660,7 +668,7 @@ def build_frontend_projection(
                 if definition.allowed_values
                 else [True, False]
                 if definition.value_type.value == "boolean"
-                else None
+                else []
             ),
             "required": definition.required,
             "status": (

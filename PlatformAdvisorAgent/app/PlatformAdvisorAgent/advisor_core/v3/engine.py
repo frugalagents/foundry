@@ -841,6 +841,7 @@ def apply_requirement_patch(
 def rank_next_questions(
     workspace: ArchitectureWorkspace,
     catalog: CatalogRelease,
+    extra_capability_rules: tuple[Any, ...] = (),
 ) -> tuple[QuestionCandidate, ...]:
     current = workspace.revisions[-1]
     validate_workspace_revision(current, catalog)
@@ -890,7 +891,7 @@ def rank_next_questions(
         ):
             continue
         risk = hard_risk.get(requirement_id, False)
-        candidate_answers = _candidate_answers(definition, catalog)
+        candidate_answers = _candidate_answers(definition, catalog, extra_capability_rules)
         answer_impacts = []
         affected_components: set[str] = set()
         distinct_outcomes: set[str] = set()
@@ -961,8 +962,6 @@ def rank_next_questions(
                 "rejected_patterns": impact.rejected_pattern_ids,
                 "unknown_patterns": impact.unknown_pattern_ids,
             }))
-        if len(distinct_outcomes) <= 1 and not definition.required:
-            continue
         impact_count = len(affected_components)
         outcome_count = len(distinct_outcomes)
         component_by_id = {
@@ -1002,15 +1001,21 @@ def rank_next_questions(
                 + (100 if risk else 0)
             ),
             why_now=(
-                f"This answer produces {outcome_count} distinct baseline "
-                f"outcomes across {impact_count} components, can eliminate "
-                f"{maximum_elimination_count} deployment families, and can "
-                "change a hard constraint."
-                if risk
+                "This answer does not change the baseline architecture diagram "
+                "but is required to complete the bundle recommendation and "
+                "pass the publication gate."
+                if impact_count == 0 and outcome_count == 0
                 else (
                     f"This answer produces {outcome_count} distinct baseline "
-                    f"outcomes across {impact_count} components and can "
-                    f"eliminate {maximum_elimination_count} deployment families."
+                    f"outcomes across {impact_count} components, can eliminate "
+                    f"{maximum_elimination_count} deployment families, and can "
+                    "change a hard constraint."
+                    if risk
+                    else (
+                        f"This answer produces {outcome_count} distinct baseline "
+                        f"outcomes across {impact_count} components and can "
+                        f"eliminate {maximum_elimination_count} deployment families."
+                    )
                 )
             ),
         ))
@@ -1026,6 +1031,7 @@ def rank_next_questions(
 def _candidate_answers(
     definition: RequirementDefinition,
     catalog: CatalogRelease,
+    extra_capability_rules: tuple[Any, ...] = (),
 ) -> tuple[RequirementValue, ...]:
     # Required requirements must always be given a real answer — do not offer
     # null ("not sure / skip") as a valid candidate.
@@ -1041,19 +1047,31 @@ def _candidate_answers(
         for predicate in rule.when
         if predicate.requirement_id == definition.id
     ]
+    # Also probe capability-rule thresholds so requirements that only appear in
+    # capability rules (e.g. audit-retention-days >= 90) get meaningful candidate
+    # values and are surfaced by the discovery engine with real information gain.
+    all_predicate_values = predicate_values + [
+        cap_rule.value
+        for cap_rule in extra_capability_rules
+        if cap_rule.requirement_id == definition.id
+    ]
     if definition.value_type in (
         RequirementValueType.INTEGER,
         RequirementValueType.NUMBER,
     ):
         numeric_values = {
             candidate
-            for value in predicate_values
+            for value in all_predicate_values
             if isinstance(value, (int, float)) and not isinstance(value, bool)
             for candidate in (max(0, value - 1), value)
         }
+        if not numeric_values:
+            # No rules reference this requirement — return empty so the frontend
+            # renders a free-form numeric input rather than a useless "skip" button.
+            return ()
         return tuple(sorted(numeric_values)) + maybe_null
 
     unique_values = {
-        content_hash({"value": value}): value for value in predicate_values
+        content_hash({"value": value}): value for value in all_predicate_values
     }
     return tuple(unique_values[key] for key in sorted(unique_values)) + maybe_null
