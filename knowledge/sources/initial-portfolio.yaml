@@ -1,0 +1,632 @@
+schema_version: "1.0"
+sources:
+  - id: source:aws-agentcore-overview
+    name: Amazon Bedrock AgentCore overview
+    publisher: Amazon Web Services
+    source_class: official_product_documentation
+    base_uri: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: &aws_terms
+      status: review_required
+      allows_automated_collection: false
+      allows_snapshot_retention: false
+      allows_derivative_claims: false
+      terms_uri: https://aws.amazon.com/terms/
+      review:
+        status: in_review
+        reviewer_ids: []
+    tags: [agentcore, ecosystem-aws, product-docs]
+
+  - id: source:aws-agentcore-developer-guide
+    name: Amazon Bedrock AgentCore developer guide
+    publisher: Amazon Web Services
+    source_class: official_product_documentation
+    base_uri: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *aws_terms
+    tags: [agentcore, ecosystem-aws, product-docs]
+
+  - id: source:aws-bedrock-user-guide
+    name: Amazon Bedrock user guide
+    publisher: Amazon Web Services
+    source_class: official_product_documentation
+    base_uri: https://docs.aws.amazon.com/bedrock/latest/userguide/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *aws_terms
+    tags: [bedrock, ecosystem-aws, product-docs]
+
+  - id: source:aws-bedrock-pricing
+    name: Amazon Bedrock pricing
+    publisher: Amazon Web Services
+    source_class: official_pricing
+    base_uri: https://aws.amazon.com/bedrock/pricing/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: daily
+    collector: http
+    parser: html
+    freshness_days: 3
+    enabled: false
+    terms: *aws_terms
+    tags: [bedrock, ecosystem-aws, pricing]
+
+  - id: source:aws-agentcore-pricing
+    name: Amazon Bedrock AgentCore pricing
+    publisher: Amazon Web Services
+    source_class: official_pricing
+    base_uri: https://aws.amazon.com/bedrock/agentcore/pricing/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: daily
+    collector: http
+    parser: html
+    freshness_days: 3
+    enabled: false
+    terms: *aws_terms
+    tags: [agentcore, ecosystem-aws, pricing]
+
+  - id: source:aws-amazon-q-developer-guide
+    name: Amazon Q Developer user guide
+    publisher: Amazon Web Services
+    source_class: official_product_documentation
+    base_uri: https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *aws_terms
+    tags: [coding-agent, ecosystem-aws, product-docs]
+
+  - id: source:aws-lambda-developer-guide
+    name: AWS Lambda developer guide
+    publisher: Amazon Web Services
+    source_class: official_product_documentation
+    base_uri: https://docs.aws.amazon.com/lambda/latest/dg/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *aws_terms
+    tags: [compute, ecosystem-aws, runtime]
+
+  - id: source:aws-eks-user-guide
+    name: Amazon EKS user guide
+    publisher: Amazon Web Services
+    source_class: official_product_documentation
+    base_uri: https://docs.aws.amazon.com/eks/latest/userguide/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *aws_terms
+    tags: [containers, ecosystem-aws, runtime]
+
+  - id: source:aws-iam-user-guide
+    name: AWS Identity and Access Management user guide
+    publisher: Amazon Web Services
+    source_class: official_product_documentation
+    base_uri: https://docs.aws.amazon.com/IAM/latest/UserGuide/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *aws_terms
+    tags: [ecosystem-aws, identity, security]
+
+  - id: source:aws-bedrock-regional-availability
+    name: Amazon Bedrock endpoints and quotas
+    publisher: Amazon Web Services
+    source_class: official_regional_availability
+    base_uri: https://docs.aws.amazon.com/general/latest/gr/bedrock.html
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: daily
+    collector: http
+    parser: html
+    freshness_days: 3
+    enabled: false
+    terms: *aws_terms
+    tags: [bedrock, ecosystem-aws, regions]
+
+  - id: source:github-copilot-documentation
+    name: GitHub Copilot documentation
+    publisher: GitHub
+    source_class: official_product_documentation
+    base_uri: https://docs.github.com/en/copilot
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: &github_terms
+      status: review_required
+      allows_automated_collection: false
+      allows_snapshot_retention: false
+      allows_derivative_claims: false
+      terms_uri: https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
+      review:
+        status: in_review
+        reviewer_ids: []
+    tags: [coding-agent, ecosystem-github, product-docs]
+
+  - id: source:github-copilot-coding-agent
+    name: GitHub Copilot coding agent documentation
+    publisher: GitHub
+    source_class: official_product_documentation
+    base_uri: https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-coding-agent
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *github_terms
+    tags: [coding-agent, ecosystem-github, product-docs]
+
+  - id: source:github-copilot-mcp
+    name: Extending GitHub Copilot Chat with MCP
+    publisher: GitHub
+    source_class: official_product_documentation
+    base_uri: https://docs.github.com/en/copilot/customizing-copilot/extending-copilot-chat-with-mcp
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *github_terms
+    tags: [ecosystem-github, mcp, tools]
+
+  - id: source:github-actions-documentation
+    name: GitHub Actions documentation
+    publisher: GitHub
+    source_class: official_product_documentation
+    base_uri: https://docs.github.com/en/actions
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *github_terms
+    tags: [cicd, ecosystem-github, runtime]
+
+  - id: source:github-rest-api
+    name: GitHub REST API documentation
+    publisher: GitHub
+    source_class: official_api_reference
+    base_uri: https://docs.github.com/en/rest
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *github_terms
+    tags: [api, ecosystem-github, tools]
+
+  - id: source:github-apps-documentation
+    name: GitHub Apps documentation
+    publisher: GitHub
+    source_class: official_product_documentation
+    base_uri: https://docs.github.com/en/apps
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *github_terms
+    tags: [ecosystem-github, identity, integrations]
+
+  - id: source:github-code-security-documentation
+    name: GitHub code security documentation
+    publisher: GitHub
+    source_class: official_security_documentation
+    base_uri: https://docs.github.com/en/code-security
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *github_terms
+    tags: [ecosystem-github, security, supply-chain]
+
+  - id: source:github-copilot-billing
+    name: GitHub Copilot billing documentation
+    publisher: GitHub
+    source_class: official_pricing
+    base_uri: https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-copilot
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: daily
+    collector: http
+    parser: html
+    freshness_days: 3
+    enabled: false
+    terms: *github_terms
+    tags: [ecosystem-github, pricing, product-docs]
+
+  - id: source:github-copilot-changelog
+    name: GitHub Copilot changelog
+    publisher: GitHub
+    source_class: official_release_notes
+    base_uri: https://github.blog/changelog/label/copilot/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: daily
+    collector: http
+    parser: html
+    freshness_days: 3
+    enabled: false
+    terms: *github_terms
+    tags: [changelog, coding-agent, ecosystem-github]
+
+  - id: source:github-mcp-server-releases
+    name: GitHub MCP Server releases
+    publisher: GitHub
+    source_class: maintainer_release_repository
+    base_uri: https://github.com/github/github-mcp-server/releases
+    owner_id: team:platform-advisor
+    authority_tier: tier_b_operational_guidance
+    cadence: on_release
+    collector: github_releases
+    parser: markdown
+    freshness_days: 7
+    enabled: false
+    terms: *github_terms
+    tags: [ecosystem-github, mcp, releases]
+
+  - id: source:gitlab-duo-agent-platform
+    name: GitLab Duo Agent Platform documentation
+    publisher: GitLab
+    source_class: official_product_documentation
+    base_uri: https://docs.gitlab.com/user/duo_agent_platform/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: &gitlab_terms
+      status: review_required
+      allows_automated_collection: false
+      allows_snapshot_retention: false
+      allows_derivative_claims: false
+      terms_uri: https://about.gitlab.com/terms/
+      review:
+        status: in_review
+        reviewer_ids: []
+    tags: [agent-platform, ecosystem-gitlab, product-docs]
+
+  - id: source:gitlab-duo-agents
+    name: GitLab Duo agents documentation
+    publisher: GitLab
+    source_class: official_product_documentation
+    base_uri: https://docs.gitlab.com/user/duo_agent_platform/agents/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *gitlab_terms
+    tags: [coding-agent, ecosystem-gitlab, product-docs]
+
+  - id: source:gitlab-duo-flows
+    name: GitLab Duo flows documentation
+    publisher: GitLab
+    source_class: official_product_documentation
+    base_uri: https://docs.gitlab.com/user/duo_agent_platform/flows/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *gitlab_terms
+    tags: [ecosystem-gitlab, orchestration, product-docs]
+
+  - id: source:gitlab-duo-documentation
+    name: GitLab Duo documentation
+    publisher: GitLab
+    source_class: official_product_documentation
+    base_uri: https://docs.gitlab.com/user/gitlab_duo/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *gitlab_terms
+    tags: [coding-agent, ecosystem-gitlab, product-docs]
+
+  - id: source:gitlab-cicd-documentation
+    name: GitLab CI/CD documentation
+    publisher: GitLab
+    source_class: official_product_documentation
+    base_uri: https://docs.gitlab.com/ci/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *gitlab_terms
+    tags: [cicd, ecosystem-gitlab, runtime]
+
+  - id: source:gitlab-runner-documentation
+    name: GitLab Runner documentation
+    publisher: GitLab
+    source_class: official_product_documentation
+    base_uri: https://docs.gitlab.com/runner/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *gitlab_terms
+    tags: [ecosystem-gitlab, execution, runtime]
+
+  - id: source:gitlab-rest-api
+    name: GitLab REST API documentation
+    publisher: GitLab
+    source_class: official_api_reference
+    base_uri: https://docs.gitlab.com/api/rest/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *gitlab_terms
+    tags: [api, ecosystem-gitlab, tools]
+
+  - id: source:gitlab-application-security
+    name: GitLab application security documentation
+    publisher: GitLab
+    source_class: official_security_documentation
+    base_uri: https://docs.gitlab.com/user/application_security/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: weekly
+    collector: http
+    parser: html
+    freshness_days: 14
+    enabled: false
+    terms: *gitlab_terms
+    tags: [ecosystem-gitlab, security, supply-chain]
+
+  - id: source:gitlab-duo-subscriptions
+    name: GitLab Duo subscription documentation
+    publisher: GitLab
+    source_class: official_pricing
+    base_uri: https://docs.gitlab.com/subscriptions/gitlab_duo/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: daily
+    collector: http
+    parser: html
+    freshness_days: 3
+    enabled: false
+    terms: *gitlab_terms
+    tags: [ecosystem-gitlab, pricing, product-docs]
+
+  - id: source:gitlab-release-posts
+    name: GitLab release posts
+    publisher: GitLab
+    source_class: official_release_notes
+    base_uri: https://about.gitlab.com/releases/categories/releases/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: daily
+    collector: http
+    parser: html
+    freshness_days: 3
+    enabled: false
+    terms: *gitlab_terms
+    tags: [ecosystem-gitlab, release-notes, releases]
+
+  - id: source:mcp-specification
+    name: Model Context Protocol specification
+    publisher: Model Context Protocol maintainers
+    source_class: protocol_specification
+    base_uri: https://modelcontextprotocol.io/specification/latest
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: on_release
+    collector: http
+    parser: html
+    freshness_days: 30
+    enabled: false
+    terms: &standards_terms
+      status: review_required
+      allows_automated_collection: false
+      allows_snapshot_retention: false
+      allows_derivative_claims: false
+      review:
+        status: in_review
+        reviewer_ids: []
+    tags: [mcp, protocol, shared-standard]
+
+  - id: source:mcp-specification-releases
+    name: Model Context Protocol specification releases
+    publisher: Model Context Protocol maintainers
+    source_class: maintainer_release_repository
+    base_uri: https://github.com/modelcontextprotocol/specification/releases
+    owner_id: team:platform-advisor
+    authority_tier: tier_b_operational_guidance
+    cadence: on_release
+    collector: github_releases
+    parser: markdown
+    freshness_days: 14
+    enabled: false
+    terms: *standards_terms
+    tags: [mcp, releases, shared-standard]
+
+  - id: source:a2a-specification
+    name: Agent2Agent protocol specification
+    publisher: A2A Project
+    source_class: protocol_specification
+    base_uri: https://a2a-protocol.org/latest/specification/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: on_release
+    collector: http
+    parser: html
+    freshness_days: 30
+    enabled: false
+    terms: *standards_terms
+    tags: [a2a, protocol, shared-standard]
+
+  - id: source:a2a-project-releases
+    name: A2A Project releases
+    publisher: A2A Project
+    source_class: maintainer_release_repository
+    base_uri: https://github.com/a2aproject/A2A/releases
+    owner_id: team:platform-advisor
+    authority_tier: tier_b_operational_guidance
+    cadence: on_release
+    collector: github_releases
+    parser: markdown
+    freshness_days: 14
+    enabled: false
+    terms: *standards_terms
+    tags: [a2a, releases, shared-standard]
+
+  - id: source:openapi-specification
+    name: OpenAPI specification
+    publisher: OpenAPI Initiative
+    source_class: protocol_specification
+    base_uri: https://spec.openapis.org/oas/latest.html
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: on_release
+    collector: http
+    parser: html
+    freshness_days: 30
+    enabled: false
+    terms: *standards_terms
+    tags: [openapi, protocol, shared-standard]
+
+  - id: source:opentelemetry-genai-semconv
+    name: OpenTelemetry generative AI semantic conventions
+    publisher: OpenTelemetry
+    source_class: observability_specification
+    base_uri: https://opentelemetry.io/docs/specs/semconv/gen-ai/
+    owner_id: team:platform-advisor
+    authority_tier: tier_b_operational_guidance
+    cadence: on_release
+    collector: http
+    parser: html
+    freshness_days: 30
+    enabled: false
+    terms: *standards_terms
+    tags: [observability, shared-standard, telemetry]
+
+  - id: source:nist-ai-risk-management-framework
+    name: NIST AI Risk Management Framework
+    publisher: National Institute of Standards and Technology
+    source_class: security_framework
+    base_uri: https://www.nist.gov/itl/ai-risk-management-framework
+    owner_id: team:platform-advisor
+    authority_tier: tier_b_operational_guidance
+    cadence: monthly
+    collector: http
+    parser: html
+    freshness_days: 60
+    enabled: false
+    terms: *standards_terms
+    tags: [governance, security, shared-standard]
+
+  - id: source:owasp-agentic-security-initiative
+    name: OWASP Agentic Security Initiative
+    publisher: OWASP Foundation
+    source_class: security_framework
+    base_uri: https://genai.owasp.org/initiatives/agentic-security-initiative/
+    owner_id: team:platform-advisor
+    authority_tier: tier_b_operational_guidance
+    cadence: monthly
+    collector: http
+    parser: html
+    freshness_days: 60
+    enabled: false
+    terms: *standards_terms
+    tags: [agent-security, security, shared-standard]
+
+  - id: source:slsa-specification
+    name: SLSA specification
+    publisher: Open Source Security Foundation
+    source_class: supply_chain_standard
+    base_uri: https://slsa.dev/spec/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: on_release
+    collector: http
+    parser: html
+    freshness_days: 60
+    enabled: false
+    terms: *standards_terms
+    tags: [shared-standard, supply-chain, verification]
+
+  - id: source:spdx-specification
+    name: SPDX specification
+    publisher: SPDX Project
+    source_class: supply_chain_standard
+    base_uri: https://spdx.github.io/spdx-spec/
+    owner_id: team:platform-advisor
+    authority_tier: tier_a_decision_authority
+    cadence: on_release
+    collector: http
+    parser: html
+    freshness_days: 60
+    enabled: false
+    terms: *standards_terms
+    tags: [sbom, shared-standard, supply-chain]

@@ -12,6 +12,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:model-router"]
     },
@@ -27,6 +28,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:model-fallback"]
     },
@@ -42,6 +44,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:multi-agent-supervisor"]
     },
@@ -57,6 +60,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:ephemeral-runtime"]
     },
@@ -72,6 +76,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:persistent-workspace"]
     },
@@ -87,6 +92,7 @@
           "value": "local"
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:local-runtime"]
     },
@@ -102,6 +108,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:restricted-egress"]
     },
@@ -117,6 +124,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:private-connectivity"]
     },
@@ -132,6 +140,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:package-access"]
     },
@@ -147,6 +156,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:human-approval"]
     },
@@ -162,6 +172,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:team-workspaces", "component:quota-manager"]
     },
@@ -177,6 +188,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:outcome-correlator", "component:economics-ledger"]
     },
@@ -192,6 +204,7 @@
           "value": 1000
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:quota-manager"]
     },
@@ -207,6 +220,7 @@
           "value": 500
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:ephemeral-runtime"]
     },
@@ -222,6 +236,7 @@
           "value": "any-approved"
         }
       ],
+      "authority": "preference",
       "effect": "recommend",
       "target_component_ids": ["component:multi-region"]
     },
@@ -237,6 +252,7 @@
           "value": "sequential"
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:sequential-handoff"]
     },
@@ -252,6 +268,7 @@
           "value": "parallel-review"
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:parallel-reviewer"]
     },
@@ -267,6 +284,7 @@
           "value": "static"
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:static-model-binding"]
     },
@@ -282,6 +300,7 @@
           "value": true
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:warm-runtime-pool"]
     },
@@ -297,6 +316,7 @@
           "value": "customer-managed"
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:container-runtime"]
     },
@@ -312,6 +332,7 @@
           "value": "vendor-managed"
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:ephemeral-runtime"]
     },
@@ -327,6 +348,7 @@
           "value": "hybrid"
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": [
         "component:ephemeral-runtime",
@@ -345,6 +367,7 @@
           "value": ["local", "hybrid"]
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:developer-local"]
     },
@@ -360,6 +383,7 @@
           "value": ["developer-endpoint"]
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:developer-local"]
     },
@@ -375,6 +399,7 @@
           "value": 500
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:developer-local"]
     },
@@ -390,6 +415,7 @@
           "value": ["vendor-managed", "hybrid"]
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:vendor-ephemeral"]
     },
@@ -405,6 +431,7 @@
           "value": ["container", "microvm"]
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:vendor-ephemeral"]
     },
@@ -425,6 +452,7 @@
           "value": true
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:vendor-ephemeral"]
     },
@@ -440,6 +468,7 @@
           "value": "customer-managed"
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:managed-customer-execution"]
     },
@@ -455,6 +484,7 @@
           "value": ["container", "microvm", "dedicated-tenant"]
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:managed-customer-execution"]
     },
@@ -470,6 +500,7 @@
           "value": "local"
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:persistent-remote-workspace"]
     },
@@ -485,6 +516,7 @@
           "value": true
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:persistent-remote-workspace"]
     },
@@ -500,6 +532,7 @@
           "value": ["container", "microvm", "dedicated-tenant"]
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:persistent-remote-workspace"]
     },
@@ -515,6 +548,7 @@
           "value": "customer-managed"
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:self-hosted-container"]
     },
@@ -530,6 +564,7 @@
           "value": ["container", "dedicated-tenant"]
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:self-hosted-container"]
     },
@@ -545,6 +580,7 @@
           "value": "customer-managed"
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:self-hosted-kubernetes"]
     },
@@ -560,6 +596,7 @@
           "value": ["container", "dedicated-tenant"]
         }
       ],
+      "authority": "compatibility",
       "effect": "exclude",
       "target_pattern_ids": ["pattern:self-hosted-kubernetes"]
     },
@@ -575,6 +612,7 @@
           "value": "managed"
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:managed-model-provider"],
       "evidence_claim_ids": ["claim:bedrock-managed-inference"]
@@ -591,6 +629,7 @@
           "value": "self-hosted"
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:self-hosted-inference"],
       "evidence_claim_ids": ["claim:self-hosted-residency"]
@@ -607,6 +646,7 @@
           "value": "multi-provider"
         }
       ],
+      "authority": "hard_constraint",
       "effect": "require",
       "target_component_ids": ["component:model-router", "component:model-fallback"],
       "evidence_claim_ids": ["claim:multi-provider-resilience"]

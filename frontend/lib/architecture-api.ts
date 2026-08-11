@@ -4,6 +4,8 @@ import type {
   ArchitectureWorkspaceProjection,
   RequirementStatus,
   RequirementValue,
+  RuleAuthority,
+  RuleEffect,
 } from './architecture-workspace';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
@@ -50,6 +52,7 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
   const catalog = object(raw.catalog);
   const revision = object(raw.revision);
   const architecture = object(raw.architecture);
+  const decisionAuthority = object(raw.decision_authority);
   const pattern = object(architecture.pattern);
   const summary = object(architecture.summary);
 
@@ -68,6 +71,18 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
       persistence_hash: workspace.persistence_hash
         ? String(workspace.persistence_hash)
         : undefined,
+    },
+    decision_authority: {
+      schema_version: String(decisionAuthority.schema_version),
+      authoritative_operations: (
+        decisionAuthority.authoritative_operations as string[]
+      ) ?? [],
+      advisory_outputs: (
+        decisionAuthority.advisory_outputs as string[]
+      ) ?? [],
+      automatic_bundle_selection: Boolean(
+        decisionAuthority.automatic_bundle_selection,
+      ),
     },
     requirements: (raw.requirements as JsonObject[]).map((item) => ({
       id: String(item.requirement_id),
@@ -163,7 +178,8 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
     decision_trace: (raw.decision_trace as JsonObject[]).map((entry) => ({
       evaluation_id: String(entry.evaluation_id),
       rule_id: String(entry.rule_id),
-      effect: String(entry.effect) as 'require' | 'recommend' | 'exclude',
+      authority: String(entry.authority) as RuleAuthority,
+      effect: String(entry.effect) as RuleEffect,
       requirement_ids: refs(entry.requirements, 'requirement_id'),
       target_component_ids: refs(entry.target_components, 'component_id'),
       target_pattern_ids: refs(entry.target_patterns, 'pattern_id'),

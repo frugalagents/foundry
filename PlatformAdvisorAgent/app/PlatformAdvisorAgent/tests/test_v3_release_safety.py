@@ -1,20 +1,30 @@
 from __future__ import annotations
 
+import json
 from datetime import date
+from pathlib import Path
 
 from advisor_core.v3.assurance import (
     SelectedBundleContext,
     build_assurance_outputs,
 )
+from advisor_core.v3.baseline import build_migration_baseline
 from advisor_core.v3.demo import build_demo_workspace
 from advisor_core.v3.deployable import (
     RecommendationState,
     build_deployable_solution,
 )
-from advisor_core.v3.models import FeasibilityStatus
+from advisor_core.v3.models import FeasibilityStatus, content_hash
 
 
 AS_OF = date(2026, 7, 30)
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+MIGRATION_BASELINE_PATH = (
+    REPOSITORY_ROOT
+    / "knowledge"
+    / "baselines"
+    / "coding-platform-v3.json"
+)
 
 
 def test_release_safety_blocks_rejected_and_unknown_families():
@@ -78,3 +88,15 @@ def test_readiness_serialization_is_deterministic():
 
     assert first.readiness == second.readiness
     assert first.packet_hash == second.packet_hash
+
+
+def test_checked_in_migration_baseline_matches_current_engine():
+    checked_in = json.loads(
+        MIGRATION_BASELINE_PATH.read_text(encoding="utf-8")
+    )
+
+    assert checked_in == build_migration_baseline(AS_OF)
+
+    payload = dict(checked_in)
+    baseline_hash = payload.pop("baseline_hash")
+    assert baseline_hash == content_hash(payload)

@@ -1,0 +1,216 @@
+{
+  "as_of": "2026-07-30",
+  "baseline_hash": "sha256:499194937f711d39b786f9766f0596ea6d2b3856cce35a3c5381f82d1141fe59",
+  "baseline_id": "baseline:coding-platform-v3",
+  "catalog": {
+    "catalog_release_id": "catalog:coding-platform",
+    "content_hash": "sha256:9e601e68bd4fa1e3e4e75c73283d59f29b1f92c8ca727951a088b903bd4c2f77",
+    "inventory": {
+      "components": 44,
+      "evidence_claims": 4,
+      "evidence_sources": 3,
+      "patterns": 7,
+      "requirements": 25,
+      "rules": 40
+    },
+    "rule_authority_counts": {
+      "compatibility": 15,
+      "hard_constraint": 24,
+      "preference": 1
+    },
+    "version": "3.0.0"
+  },
+  "representative_case": {
+    "assurance": {
+      "blocking_reason_codes": [
+        "bundle_selection_missing",
+        "economics_not_evidence_backed",
+        "evidence_freshness_unresolved",
+        "evidence_incomplete",
+        "recommendation_stability_unresolved"
+      ],
+      "packet_hash": "sha256:0b31c6ac2a7eb9fc380d966d5053298e216381fff71e7f39a12e97272b3abb69",
+      "readiness_state": "needs_information"
+    },
+    "case_id": "case:enterprise-coding-platform-demo",
+    "deployable_solution": {
+      "bundle_ids": [
+        "bundle:aws-governed-r2",
+        "bundle:byop-portable-r2",
+        "bundle:hybrid-governed-r2",
+        "bundle:oss-sovereign-r2",
+        "bundle:saas-composable-r2"
+      ],
+      "pareto_candidate_ids": [],
+      "recommendation": {
+        "candidate_id": null,
+        "rationale": "No generated bundle combines a feasible deployment family with a complete, compatible variant and interface closure; no recommendation is safe.",
+        "state": "no_viable_candidate"
+      },
+      "result_hash": "sha256:175cbc0f0dc98b81f3f6f86826ac1cd611074712ef729d5a20d35f27f7550dd8"
+    },
+    "deployment_families": [
+      {
+        "blocking_requirement_ids": [],
+        "pattern_id": "pattern:developer-local",
+        "rejection_rule_ids": [
+          "rule:reject-developer-local-concurrency"
+        ],
+        "status": "rejected"
+      },
+      {
+        "blocking_requirement_ids": [],
+        "pattern_id": "pattern:managed-customer-execution",
+        "rejection_rule_ids": [
+          "rule:reject-managed-customer-placement"
+        ],
+        "status": "rejected"
+      },
+      {
+        "blocking_requirement_ids": [
+          "requirement:long-running-workspaces",
+          "requirement:private-connectivity",
+          "requirement:runtime-isolation"
+        ],
+        "pattern_id": "pattern:persistent-remote-workspace",
+        "rejection_rule_ids": [],
+        "status": "unknown"
+      },
+      {
+        "blocking_requirement_ids": [],
+        "pattern_id": "pattern:self-hosted-container",
+        "rejection_rule_ids": [
+          "rule:reject-self-hosted-container-placement"
+        ],
+        "status": "rejected"
+      },
+      {
+        "blocking_requirement_ids": [],
+        "pattern_id": "pattern:self-hosted-kubernetes",
+        "rejection_rule_ids": [
+          "rule:reject-self-hosted-kubernetes-placement"
+        ],
+        "status": "rejected"
+      },
+      {
+        "blocking_requirement_ids": [
+          "requirement:private-connectivity",
+          "requirement:runtime-isolation"
+        ],
+        "pattern_id": "pattern:vendor-ephemeral",
+        "rejection_rule_ids": [],
+        "status": "unknown"
+      }
+    ],
+    "logical_architecture": {
+      "active_rule_ids": [
+        "rule:asynchronous-runtime",
+        "rule:high-concurrency-runtime",
+        "rule:hybrid-execution",
+        "rule:multi-provider-routing",
+        "rule:outcome-correlation",
+        "rule:package-governance",
+        "rule:restricted-egress",
+        "rule:risk-based-approval",
+        "rule:scale-quotas",
+        "rule:team-isolation",
+        "rule:warm-runtime-capacity"
+      ],
+      "component_ids": [
+        "component:advisor-workspace",
+        "component:agent-registry",
+        "component:architecture-knowledge",
+        "component:audit-ledger",
+        "component:connector-registry",
+        "component:developer-clients",
+        "component:economics-ledger",
+        "component:ephemeral-runtime",
+        "component:evaluation-service",
+        "component:evidence-catalog",
+        "component:execution-broker",
+        "component:human-approval",
+        "component:local-runtime",
+        "component:model-catalog",
+        "component:model-gateway",
+        "component:model-router",
+        "component:orchestration-runtime",
+        "component:outcome-correlator",
+        "component:package-access",
+        "component:policy-engine",
+        "component:quota-manager",
+        "component:restricted-egress",
+        "component:secrets-broker",
+        "component:source-control-integration",
+        "component:team-workspaces",
+        "component:telemetry-pipeline",
+        "component:tool-gateway",
+        "component:warm-runtime-pool",
+        "component:workflow-definitions",
+        "component:workforce-identity",
+        "component:workload-identity"
+      ],
+      "edge_ids": [
+        "edge:advisor-workspace--depends-on--workforce-identity",
+        "edge:agent-registry--depends-on--workload-identity",
+        "edge:audit-ledger--depends-on--workforce-identity",
+        "edge:connector-registry--depends-on--tool-gateway",
+        "edge:economics-ledger--depends-on--telemetry-pipeline",
+        "edge:ephemeral-runtime--depends-on--execution-broker",
+        "edge:evaluation-service--depends-on--telemetry-pipeline",
+        "edge:evidence-catalog--depends-on--architecture-knowledge",
+        "edge:execution-broker--depends-on--workload-identity",
+        "edge:human-approval--depends-on--audit-ledger",
+        "edge:human-approval--depends-on--policy-engine",
+        "edge:local-runtime--depends-on--execution-broker",
+        "edge:model-catalog--depends-on--model-gateway",
+        "edge:model-gateway--depends-on--workload-identity",
+        "edge:model-router--depends-on--model-catalog",
+        "edge:orchestration-runtime--depends-on--workflow-definitions",
+        "edge:outcome-correlator--depends-on--evaluation-service",
+        "edge:outcome-correlator--depends-on--source-control-integration",
+        "edge:package-access--depends-on--tool-gateway",
+        "edge:policy-engine--depends-on--workload-identity",
+        "edge:quota-manager--depends-on--team-workspaces",
+        "edge:restricted-egress--depends-on--execution-broker",
+        "edge:restricted-egress--depends-on--policy-engine",
+        "edge:secrets-broker--depends-on--policy-engine",
+        "edge:source-control-integration--depends-on--tool-gateway",
+        "edge:team-workspaces--depends-on--workforce-identity",
+        "edge:telemetry-pipeline--depends-on--workload-identity",
+        "edge:tool-gateway--depends-on--workload-identity",
+        "edge:warm-runtime-pool--depends-on--ephemeral-runtime",
+        "edge:workflow-definitions--depends-on--agent-registry",
+        "edge:workload-identity--depends-on--workforce-identity"
+      ],
+      "pattern_id": "pattern:logical-reference",
+      "state_hash": "sha256:15f50f102e2a156e17c7de5ea486a492b6b98418207e62924f3ea6b67cf54ea3",
+      "summary": {
+        "added_component_count": 6,
+        "added_edge_count": 8,
+        "baseline_component_count": 25,
+        "baseline_edge_count": 23,
+        "current_component_count": 31,
+        "current_edge_count": 31
+      }
+    },
+    "projection_hash": "sha256:84ca37f44d5e68246afc7ea305f6a014dbeb024d0dfa9a0f516976a8286e8a5f",
+    "requirements": {
+      "requirement:action-approval": true,
+      "requirement:approved-package-registries": true,
+      "requirement:approved-regions": "any-approved",
+      "requirement:asynchronous-tasks": true,
+      "requirement:concurrent-agent-tasks": 1000,
+      "requirement:developer-count": 5000,
+      "requirement:enterprise-identity": "entra",
+      "requirement:execution-placement": "hybrid",
+      "requirement:multi-agent": false,
+      "requirement:multi-model-provider": true,
+      "requirement:outcome-observability": true,
+      "requirement:restricted-egress": true,
+      "requirement:source-control": "gitlab-saas",
+      "requirement:team-boundaries": true,
+      "requirement:warm-runtime-capacity": true
+    }
+  },
+  "schema_version": "1.0"
+}

@@ -2254,6 +2254,7 @@ dependencies = [
     { name = "mcp" },
     { name = "pydantic" },
     { name = "pyjwt", extra = ["crypto"] },
+    { name = "pyyaml" },
     { name = "strands-agents" },
     { name = "strands-agents-tools" },
 ]
@@ -2267,6 +2268,7 @@ requires-dist = [
     { name = "mcp", specifier = ">=1.19.0" },
     { name = "pydantic", specifier = ">=2.10.0" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "strands-agents", specifier = ">=1.15.0" },
     { name = "strands-agents-tools", specifier = ">=0.1.0" },
 ]

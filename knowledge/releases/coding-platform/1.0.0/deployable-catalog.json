@@ -1,0 +1,4695 @@
+{
+  "bundle_templates": [
+    {
+      "component_selections": [],
+      "default_provider_class": "aws",
+      "deployment_family_id": "pattern:managed-customer-execution",
+      "description": "AWS-managed control, execution, governance, and observability services.",
+      "id": "bundle-template:aws-governed",
+      "integration_penalty": 0.5,
+      "name": "AWS governed managed stack",
+      "plane_selections": [],
+      "requirement_acceptance": [
+        {
+          "accepted_values": [
+            "customer-managed",
+            "hybrid"
+          ],
+          "requirement_id": "requirement:execution-placement"
+        }
+      ],
+      "score_adjustments": [
+        {
+          "dimension_id": "dimension:security",
+          "value": 2.0
+        },
+        {
+          "dimension_id": "dimension:operability",
+          "value": 1.0
+        },
+        {
+          "dimension_id": "dimension:delivery-speed",
+          "value": -1.0
+        }
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "component_selections": [],
+      "default_provider_class": "byop",
+      "deployment_family_id": "pattern:persistent-remote-workspace",
+      "description": "Contract-driven adapters around customer-selected platform services.",
+      "id": "bundle-template:byop-portable",
+      "integration_penalty": 2.0,
+      "name": "BYOP portable stack",
+      "plane_selections": [],
+      "requirement_acceptance": [
+        {
+          "accepted_values": [
+            "local",
+            "customer-managed",
+            "vendor-managed",
+            "hybrid"
+          ],
+          "requirement_id": "requirement:execution-placement"
+        },
+        {
+          "accepted_values": [
+            true
+          ],
+          "requirement_id": "requirement:long-running-workspaces"
+        }
+      ],
+      "score_adjustments": [
+        {
+          "dimension_id": "dimension:portability",
+          "value": 3.0
+        },
+        {
+          "dimension_id": "dimension:delivery-speed",
+          "value": -3.0
+        }
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "component_selections": [
+        {
+          "component_id": "component:model-gateway",
+          "provider_class": "aws"
+        },
+        {
+          "component_id": "component:tool-gateway",
+          "provider_class": "aws"
+        }
+      ],
+      "default_provider_class": "saas",
+      "deployment_family_id": "pattern:managed-customer-execution",
+      "description": "AWS governance and execution with portable SaaS experience and orchestration services.",
+      "id": "bundle-template:hybrid-governed",
+      "integration_penalty": 3.0,
+      "name": "Hybrid governed stack",
+      "plane_selections": [
+        {
+          "plane": "access",
+          "provider_class": "aws"
+        },
+        {
+          "plane": "execution",
+          "provider_class": "aws"
+        },
+        {
+          "plane": "governance",
+          "provider_class": "aws"
+        },
+        {
+          "plane": "knowledge",
+          "provider_class": "aws"
+        },
+        {
+          "plane": "observability",
+          "provider_class": "aws"
+        }
+      ],
+      "requirement_acceptance": [
+        {
+          "accepted_values": [
+            "customer-managed",
+            "hybrid"
+          ],
+          "requirement_id": "requirement:execution-placement"
+        }
+      ],
+      "score_adjustments": [
+        {
+          "dimension_id": "dimension:security",
+          "value": 1.0
+        },
+        {
+          "dimension_id": "dimension:operability",
+          "value": -1.0
+        },
+        {
+          "dimension_id": "dimension:portability",
+          "value": 3.0
+        }
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "component_selections": [],
+      "default_provider_class": "oss",
+      "deployment_family_id": "pattern:self-hosted-kubernetes",
+      "description": "Customer-operated open-source control and execution plane.",
+      "id": "bundle-template:oss-sovereign",
+      "integration_penalty": 1.0,
+      "name": "Open-source sovereign stack",
+      "plane_selections": [],
+      "requirement_acceptance": [
+        {
+          "accepted_values": [
+            "customer-managed"
+          ],
+          "requirement_id": "requirement:execution-placement"
+        }
+      ],
+      "score_adjustments": [
+        {
+          "dimension_id": "dimension:operability",
+          "value": -2.0
+        },
+        {
+          "dimension_id": "dimension:portability",
+          "value": 2.0
+        },
+        {
+          "dimension_id": "dimension:economics",
+          "value": 2.0
+        }
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "component_selections": [],
+      "default_provider_class": "saas",
+      "deployment_family_id": "pattern:vendor-ephemeral",
+      "description": "Managed SaaS control plane and vendor-operated execution services.",
+      "id": "bundle-template:saas-composable",
+      "integration_penalty": 0.5,
+      "name": "Composable SaaS stack",
+      "plane_selections": [],
+      "requirement_acceptance": [
+        {
+          "accepted_values": [
+            "vendor-managed",
+            "hybrid"
+          ],
+          "requirement_id": "requirement:execution-placement"
+        }
+      ],
+      "score_adjustments": [
+        {
+          "dimension_id": "dimension:operability",
+          "value": 1.0
+        },
+        {
+          "dimension_id": "dimension:portability",
+          "value": -2.0
+        },
+        {
+          "dimension_id": "dimension:delivery-speed",
+          "value": 2.0
+        }
+      ],
+      "version": "1.0.0"
+    }
+  ],
+  "capability_rules": [
+    {
+      "id": "capability-rule:approved-packages",
+      "name": "Approved private package registries",
+      "operator": "equals",
+      "rationale": "Package access must authenticate to approved private registries and deny unapproved sources.",
+      "required_capability": "private_registry",
+      "requirement_id": "requirement:approved-package-registries",
+      "target_component_ids": [
+        "component:package-access"
+      ],
+      "value": true,
+      "version": "1.0.0"
+    },
+    {
+      "id": "capability-rule:approved-regions",
+      "name": "Approved-region deployment",
+      "operator": "equals",
+      "rationale": "Regional deployment must be configurable across the approved region set.",
+      "required_capability": "multi_region",
+      "requirement_id": "requirement:approved-regions",
+      "target_component_ids": [
+        "component:multi-region",
+        "component:orchestration-runtime"
+      ],
+      "value": "any-approved",
+      "version": "1.0.0"
+    },
+    {
+      "id": "capability-rule:dedicated-tenancy",
+      "name": "Dedicated tenancy",
+      "operator": "equals",
+      "rationale": "Execution services must preserve a dedicated customer tenancy boundary.",
+      "required_capability": "dedicated_tenancy",
+      "requirement_id": "requirement:runtime-isolation",
+      "target_component_ids": [
+        "component:container-runtime",
+        "component:ephemeral-runtime",
+        "component:kubernetes-runtime",
+        "component:local-runtime",
+        "component:persistent-workspace"
+      ],
+      "value": "dedicated-tenant",
+      "version": "1.0.0"
+    },
+    {
+      "id": "capability-rule:durable-audit",
+      "name": "Durable audit retention",
+      "operator": "greater_than_or_equal",
+      "rationale": "The audit ledger must preserve immutable records for the required retention period.",
+      "required_capability": "durable_audit",
+      "requirement_id": "requirement:audit-retention-days",
+      "target_component_ids": [
+        "component:audit-ledger"
+      ],
+      "value": 90,
+      "version": "1.0.0"
+    },
+    {
+      "id": "capability-rule:enterprise-scale",
+      "name": "Enterprise scale",
+      "operator": "greater_than_or_equal",
+      "rationale": "Shared control-plane services must support enterprise developer population and concurrency.",
+      "required_capability": "high_scale",
+      "requirement_id": "requirement:developer-count",
+      "target_component_ids": [
+        "component:execution-broker",
+        "component:orchestration-runtime",
+        "component:quota-manager"
+      ],
+      "value": 1000,
+      "version": "1.0.0"
+    },
+    {
+      "id": "capability-rule:entra-workforce",
+      "name": "Microsoft Entra workforce federation",
+      "operator": "equals",
+      "rationale": "The workforce identity service must federate Entra users and groups.",
+      "required_capability": "entra_oidc",
+      "requirement_id": "requirement:enterprise-identity",
+      "target_component_ids": [
+        "component:workforce-identity"
+      ],
+      "value": "entra",
+      "version": "1.0.0"
+    },
+    {
+      "id": "capability-rule:gitlab-saas",
+      "name": "GitLab SaaS integration",
+      "operator": "equals",
+      "rationale": "The source-control adapter must support GitLab SaaS events and APIs.",
+      "required_capability": "gitlab_saas",
+      "requirement_id": "requirement:source-control",
+      "target_component_ids": [
+        "component:source-control-integration"
+      ],
+      "value": "gitlab-saas",
+      "version": "1.0.0"
+    },
+    {
+      "id": "capability-rule:microvm-isolation",
+      "name": "MicroVM isolation",
+      "operator": "equals",
+      "rationale": "Every selected active execution service must provide a MicroVM isolation boundary.",
+      "required_capability": "microvm_isolation",
+      "requirement_id": "requirement:runtime-isolation",
+      "target_component_ids": [
+        "component:container-runtime",
+        "component:ephemeral-runtime",
+        "component:kubernetes-runtime",
+        "component:local-runtime",
+        "component:persistent-workspace"
+      ],
+      "value": "microvm",
+      "version": "1.0.0"
+    },
+    {
+      "id": "capability-rule:private-connectivity",
+      "name": "Private connectivity",
+      "operator": "equals",
+      "rationale": "Control-plane and execution traffic must remain on approved private paths.",
+      "required_capability": "private_connectivity",
+      "requirement_id": "requirement:private-connectivity",
+      "target_component_ids": [
+        "component:execution-broker",
+        "component:model-gateway",
+        "component:tool-gateway"
+      ],
+      "value": true,
+      "version": "1.0.0"
+    },
+    {
+      "id": "capability-rule:restricted-egress",
+      "name": "Restricted runtime egress",
+      "operator": "equals",
+      "rationale": "Selected execution and tool services must enforce explicit outbound destinations.",
+      "required_capability": "restricted_egress",
+      "requirement_id": "requirement:restricted-egress",
+      "target_component_ids": [
+        "component:container-runtime",
+        "component:ephemeral-runtime",
+        "component:execution-broker",
+        "component:kubernetes-runtime",
+        "component:local-runtime",
+        "component:persistent-workspace",
+        "component:tool-gateway"
+      ],
+      "value": true,
+      "version": "1.0.0"
+    }
+  ],
+  "component_bindings": [
+    {
+      "component_id": "component:advisor-workspace",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:architecture-evidence",
+        "interface:identity-assertion"
+      ]
+    },
+    {
+      "component_id": "component:agent-registry",
+      "provides_interface_ids": [
+        "interface:agent-specification"
+      ],
+      "requires_interface_ids": [
+        "interface:identity-assertion"
+      ]
+    },
+    {
+      "component_id": "component:architecture-knowledge",
+      "provides_interface_ids": [
+        "interface:architecture-evidence"
+      ],
+      "requires_interface_ids": [
+        "interface:evidence-query"
+      ]
+    },
+    {
+      "component_id": "component:audit-ledger",
+      "provides_interface_ids": [
+        "interface:audit-write"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:connector-registry",
+      "provides_interface_ids": [
+        "interface:connector-discovery"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:container-runtime",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ]
+    },
+    {
+      "component_id": "component:developer-clients",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:identity-assertion",
+        "interface:model-inference",
+        "interface:tool-invocation"
+      ]
+    },
+    {
+      "component_id": "component:economics-ledger",
+      "provides_interface_ids": [
+        "interface:economics-record"
+      ],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ]
+    },
+    {
+      "component_id": "component:enterprise-api-access",
+      "provides_interface_ids": [
+        "interface:enterprise-api"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:ephemeral-runtime",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ]
+    },
+    {
+      "component_id": "component:evaluation-service",
+      "provides_interface_ids": [
+        "interface:evaluation-result"
+      ],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ]
+    },
+    {
+      "component_id": "component:evidence-catalog",
+      "provides_interface_ids": [
+        "interface:evidence-query"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:execution-broker",
+      "provides_interface_ids": [
+        "interface:execution-dispatch"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:policy-decision",
+        "interface:quota-decision",
+        "interface:workload-credential"
+      ]
+    },
+    {
+      "component_id": "component:human-approval",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:identity-assertion"
+      ]
+    },
+    {
+      "component_id": "component:kubernetes-runtime",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ]
+    },
+    {
+      "component_id": "component:local-runtime",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ]
+    },
+    {
+      "component_id": "component:managed-model-provider",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ]
+    },
+    {
+      "component_id": "component:model-catalog",
+      "provides_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:model-fallback",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog",
+        "interface:model-inference"
+      ]
+    },
+    {
+      "component_id": "component:model-gateway",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:identity-assertion",
+        "interface:model-catalog",
+        "interface:policy-decision",
+        "interface:quota-decision"
+      ]
+    },
+    {
+      "component_id": "component:model-router",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ]
+    },
+    {
+      "component_id": "component:multi-agent-supervisor",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ]
+    },
+    {
+      "component_id": "component:multi-region",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ]
+    },
+    {
+      "component_id": "component:orchestration-runtime",
+      "provides_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "requires_interface_ids": [
+        "interface:agent-specification",
+        "interface:execution-dispatch",
+        "interface:model-inference",
+        "interface:tool-invocation",
+        "interface:workflow-specification"
+      ]
+    },
+    {
+      "component_id": "component:outcome-correlator",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:economics-record",
+        "interface:evaluation-result",
+        "interface:source-control"
+      ]
+    },
+    {
+      "component_id": "component:package-access",
+      "provides_interface_ids": [
+        "interface:package-retrieval"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:parallel-reviewer",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ]
+    },
+    {
+      "component_id": "component:persistent-workspace",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ]
+    },
+    {
+      "component_id": "component:policy-engine",
+      "provides_interface_ids": [
+        "interface:policy-decision"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:private-connectivity",
+      "provides_interface_ids": [],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:quota-manager",
+      "provides_interface_ids": [
+        "interface:quota-decision"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:restricted-egress",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:policy-decision"
+      ]
+    },
+    {
+      "component_id": "component:secrets-broker",
+      "provides_interface_ids": [
+        "interface:secret-lease"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:self-hosted-inference",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ]
+    },
+    {
+      "component_id": "component:sequential-handoff",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ]
+    },
+    {
+      "component_id": "component:source-control-integration",
+      "provides_interface_ids": [
+        "interface:source-control"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:static-model-binding",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ]
+    },
+    {
+      "component_id": "component:team-workspaces",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:identity-assertion"
+      ]
+    },
+    {
+      "component_id": "component:telemetry-pipeline",
+      "provides_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:tool-gateway",
+      "provides_interface_ids": [
+        "interface:tool-invocation"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:connector-discovery",
+        "interface:policy-decision",
+        "interface:quota-decision",
+        "interface:secret-lease"
+      ]
+    },
+    {
+      "component_id": "component:warm-runtime-pool",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:telemetry-ingest"
+      ]
+    },
+    {
+      "component_id": "component:workflow-definitions",
+      "provides_interface_ids": [
+        "interface:workflow-specification"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:workforce-identity",
+      "provides_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "requires_interface_ids": []
+    },
+    {
+      "component_id": "component:workload-identity",
+      "provides_interface_ids": [
+        "interface:workload-credential"
+      ],
+      "requires_interface_ids": []
+    }
+  ],
+  "content_hash": "sha256:a8b6f30a781d113970baafce67560ec8bde05739ca5bf2699f039e398d3e8671",
+  "effective_on": "2026-07-30",
+  "id": "deployable-catalog:coding-platform",
+  "interfaces": [
+    {
+      "contract_version": "1.0",
+      "description": "Versioned coding-agent metadata, tools, models, and policy envelope.",
+      "id": "interface:agent-specification",
+      "name": "Agent specification",
+      "protocol": "OCI artifact plus JSON Schema",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Versioned architecture pattern and evidence claim retrieval.",
+      "id": "interface:architecture-evidence",
+      "name": "Architecture evidence",
+      "protocol": "JSON-LD",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Append-only agent decision, action, approval, and tool event.",
+      "id": "interface:audit-write",
+      "name": "Audit write",
+      "protocol": "CloudEvents",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Connector metadata, ownership, scopes, and health state.",
+      "id": "interface:connector-discovery",
+      "name": "Connector discovery",
+      "protocol": "JSON Schema",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Normalized token, runtime, storage, and network cost record.",
+      "id": "interface:economics-record",
+      "name": "Economics record",
+      "protocol": "CloudEvents",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Approved enterprise API discovery and invocation.",
+      "id": "interface:enterprise-api",
+      "name": "Enterprise API access",
+      "protocol": "OpenAPI 3.1",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Quality, safety, regression, and task-completion evaluation.",
+      "id": "interface:evaluation-result",
+      "name": "Evaluation result",
+      "protocol": "CloudEvents",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Source-linked claim retrieval with review and expiry state.",
+      "id": "interface:evidence-query",
+      "name": "Evidence query",
+      "protocol": "JSON-LD",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Idempotent task dispatch, lease, heartbeat, and completion.",
+      "id": "interface:execution-dispatch",
+      "name": "Execution dispatch",
+      "protocol": "CloudEvents",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Authenticated workforce subject, tenant, and group claims.",
+      "id": "interface:identity-assertion",
+      "name": "Workforce identity assertion",
+      "protocol": "OIDC",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Approved models, regions, limits, capabilities, and policy labels.",
+      "id": "interface:model-catalog",
+      "name": "Model catalog",
+      "protocol": "JSON Schema",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "2026-01",
+      "description": "Streaming and non-streaming inference with usage metadata.",
+      "id": "interface:model-inference",
+      "name": "Model inference",
+      "protocol": "OpenAI-compatible HTTP",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Agent lifecycle, handoff, cancellation, and completion events.",
+      "id": "interface:orchestration-control",
+      "name": "Orchestration control",
+      "protocol": "CloudEvents",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Authenticated access to approved packages and build artifacts.",
+      "id": "interface:package-retrieval",
+      "name": "Package retrieval",
+      "protocol": "OCI and native package protocols",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Allow, deny, and approval-required decisions with rationale.",
+      "id": "interface:policy-decision",
+      "name": "Policy decision",
+      "protocol": "Cedar-compatible authorization request",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Tenant, team, user, model, and tool quota decision.",
+      "id": "interface:quota-decision",
+      "name": "Quota decision",
+      "protocol": "Rate Limit Service",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Short-lived, audience-bound secret material.",
+      "id": "interface:secret-lease",
+      "name": "Secret lease",
+      "protocol": "Secret broker API",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Repository, merge request, review, pipeline, and deployment events.",
+      "id": "interface:source-control",
+      "name": "Source control event",
+      "protocol": "CloudEvents",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Traces, metrics, logs, token usage, and semantic agent spans.",
+      "id": "interface:telemetry-ingest",
+      "name": "Agent telemetry ingest",
+      "protocol": "OTLP",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "2025-11",
+      "description": "Discoverable, policy-scoped tool invocation and result envelope.",
+      "id": "interface:tool-invocation",
+      "name": "Tool invocation",
+      "protocol": "MCP",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Versioned orchestration graph and approval checkpoints.",
+      "id": "interface:workflow-specification",
+      "name": "Workflow specification",
+      "protocol": "JSON Schema",
+      "version": "1.0.0"
+    },
+    {
+      "contract_version": "1.0",
+      "description": "Short-lived workload identity and scoped credential exchange.",
+      "id": "interface:workload-credential",
+      "name": "Workload credential",
+      "protocol": "OAuth 2.0 token exchange",
+      "version": "1.0.0"
+    }
+  ],
+  "logical_catalog_id": "catalog:coding-platform",
+  "providers": [
+    {
+      "delivery_model": "managed",
+      "dimension_scores": [
+        {
+          "dimension_id": "dimension:security",
+          "value": 92.0
+        },
+        {
+          "dimension_id": "dimension:operability",
+          "value": 88.0
+        },
+        {
+          "dimension_id": "dimension:portability",
+          "value": 62.0
+        },
+        {
+          "dimension_id": "dimension:economics",
+          "value": 72.0
+        },
+        {
+          "dimension_id": "dimension:delivery-speed",
+          "value": 84.0
+        }
+      ],
+      "id": "provider:aws-managed",
+      "name": "AWS managed and AWS-native",
+      "provider_class": "aws",
+      "supported_capabilities": [
+        "dedicated_tenancy",
+        "durable_audit",
+        "entra_oidc",
+        "gitlab_saas",
+        "high_scale",
+        "microvm_isolation",
+        "multi_region",
+        "private_connectivity",
+        "private_registry",
+        "restricted_egress"
+      ],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "delivery_model": "customer_selected",
+      "dimension_scores": [
+        {
+          "dimension_id": "dimension:security",
+          "value": 65.0
+        },
+        {
+          "dimension_id": "dimension:operability",
+          "value": 50.0
+        },
+        {
+          "dimension_id": "dimension:portability",
+          "value": 88.0
+        },
+        {
+          "dimension_id": "dimension:economics",
+          "value": 62.0
+        },
+        {
+          "dimension_id": "dimension:delivery-speed",
+          "value": 48.0
+        }
+      ],
+      "id": "provider:byop-adapter",
+      "name": "Bring your own platform adapter",
+      "provider_class": "byop",
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "delivery_model": "self_managed",
+      "dimension_scores": [
+        {
+          "dimension_id": "dimension:security",
+          "value": 78.0
+        },
+        {
+          "dimension_id": "dimension:operability",
+          "value": 62.0
+        },
+        {
+          "dimension_id": "dimension:portability",
+          "value": 95.0
+        },
+        {
+          "dimension_id": "dimension:economics",
+          "value": 86.0
+        },
+        {
+          "dimension_id": "dimension:delivery-speed",
+          "value": 58.0
+        }
+      ],
+      "id": "provider:oss-self-managed",
+      "name": "Open-source self-managed",
+      "provider_class": "oss",
+      "supported_capabilities": [
+        "dedicated_tenancy",
+        "durable_audit",
+        "entra_oidc",
+        "gitlab_saas",
+        "high_scale",
+        "microvm_isolation",
+        "multi_region",
+        "private_connectivity",
+        "private_registry",
+        "restricted_egress"
+      ],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "delivery_model": "managed",
+      "dimension_scores": [
+        {
+          "dimension_id": "dimension:security",
+          "value": 80.0
+        },
+        {
+          "dimension_id": "dimension:operability",
+          "value": 94.0
+        },
+        {
+          "dimension_id": "dimension:portability",
+          "value": 52.0
+        },
+        {
+          "dimension_id": "dimension:economics",
+          "value": 70.0
+        },
+        {
+          "dimension_id": "dimension:delivery-speed",
+          "value": 96.0
+        }
+      ],
+      "id": "provider:saas-managed",
+      "name": "Composable SaaS",
+      "provider_class": "saas",
+      "supported_capabilities": [
+        "durable_audit",
+        "entra_oidc",
+        "gitlab_saas",
+        "high_scale",
+        "multi_region",
+        "private_registry"
+      ],
+      "unsupported_capabilities": [
+        "dedicated_tenancy",
+        "microvm_isolation",
+        "private_connectivity",
+        "restricted_egress"
+      ],
+      "version": "1.0.0"
+    }
+  ],
+  "schema_version": "3.0-r0.2",
+  "score_dimensions": [
+    {
+      "description": "Time to establish a governed production service and onboard teams.",
+      "higher_is_better": true,
+      "id": "dimension:delivery-speed",
+      "name": "Delivery speed",
+      "version": "1.0.0"
+    },
+    {
+      "description": "Expected platform efficiency before workload-specific consumption pricing.",
+      "higher_is_better": true,
+      "id": "dimension:economics",
+      "name": "Economics",
+      "version": "1.0.0"
+    },
+    {
+      "description": "Operational burden, reliability, supportability, and managed-service depth.",
+      "higher_is_better": true,
+      "id": "dimension:operability",
+      "name": "Operability",
+      "version": "1.0.0"
+    },
+    {
+      "description": "Ability to move providers, preserve interfaces, and avoid proprietary coupling.",
+      "higher_is_better": true,
+      "id": "dimension:portability",
+      "name": "Portability",
+      "version": "1.0.0"
+    },
+    {
+      "description": "Identity, isolation, policy enforcement, auditability, and control coverage.",
+      "higher_is_better": true,
+      "id": "dimension:security",
+      "name": "Security and governance",
+      "version": "1.0.0"
+    }
+  ],
+  "score_profiles": [
+    {
+      "conditional_penalty": 8.0,
+      "id": "score-profile:balanced-enterprise",
+      "name": "Balanced enterprise coding platform",
+      "version": "1.0.0",
+      "weights": [
+        {
+          "dimension_id": "dimension:security",
+          "weight": 0.25
+        },
+        {
+          "dimension_id": "dimension:operability",
+          "weight": 0.2
+        },
+        {
+          "dimension_id": "dimension:portability",
+          "weight": 0.15
+        },
+        {
+          "dimension_id": "dimension:economics",
+          "weight": 0.15
+        },
+        {
+          "dimension_id": "dimension:delivery-speed",
+          "weight": 0.25
+        }
+      ]
+    }
+  ],
+  "service_variants": [
+    {
+      "component_id": "component:advisor-workspace",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:advisor-workspace-aws",
+      "name": "AWS-hosted Platform Advisor workspace",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:architecture-evidence",
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:advisor-workspace",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:advisor-workspace-byop",
+      "name": "Customer portal workspace adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:architecture-evidence",
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:advisor-workspace",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:advisor-workspace-oss",
+      "name": "Backstage-based architecture workspace",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:architecture-evidence",
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:advisor-workspace",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:advisor-workspace-saas",
+      "name": "Managed Platform Advisor workspace",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:architecture-evidence",
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:agent-registry",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:agent-registry-aws",
+      "name": "Amazon ECR agent artifact registry",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:agent-specification"
+      ],
+      "requires_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:agent-registry",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:agent-registry-byop",
+      "name": "Customer agent registry adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:agent-specification"
+      ],
+      "requires_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:agent-registry",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:agent-registry-oss",
+      "name": "OCI agent artifact registry",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:agent-specification"
+      ],
+      "requires_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:agent-registry",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:agent-registry-saas",
+      "name": "Managed agent registry",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:agent-specification"
+      ],
+      "requires_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:architecture-knowledge",
+      "delivery_model": "managed",
+      "dependency_component_ids": [],
+      "id": "service:architecture-knowledge-aws",
+      "name": "Amazon OpenSearch Serverless architecture index",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:architecture-evidence"
+      ],
+      "requires_interface_ids": [
+        "interface:evidence-query"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:architecture-knowledge",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [],
+      "id": "service:architecture-knowledge-byop",
+      "name": "Customer architecture knowledge adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:architecture-evidence"
+      ],
+      "requires_interface_ids": [
+        "interface:evidence-query"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:architecture-knowledge",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [],
+      "id": "service:architecture-knowledge-oss",
+      "name": "OpenSearch architecture knowledge index",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:architecture-evidence"
+      ],
+      "requires_interface_ids": [
+        "interface:evidence-query"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:architecture-knowledge",
+      "delivery_model": "managed",
+      "dependency_component_ids": [],
+      "id": "service:architecture-knowledge-saas",
+      "name": "Managed architecture knowledge service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:architecture-evidence"
+      ],
+      "requires_interface_ids": [
+        "interface:evidence-query"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:audit-ledger",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:audit-ledger-aws",
+      "name": "AWS CloudTrail and Amazon S3 Object Lock",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:audit-write"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:audit-ledger",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:audit-ledger-byop",
+      "name": "Customer audit ledger adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:audit-write"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:audit-ledger",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:audit-ledger-oss",
+      "name": "Append-only PostgreSQL audit ledger",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:audit-write"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:audit-ledger",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:audit-ledger-saas",
+      "name": "Managed immutable audit export",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:audit-write"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:connector-registry",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:connector-registry-aws",
+      "name": "AgentCore Gateway target catalog",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:connector-discovery"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:connector-registry",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:connector-registry-byop",
+      "name": "Customer connector registry adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:connector-discovery"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:connector-registry",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:connector-registry-oss",
+      "name": "Backstage connector catalog",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:connector-discovery"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:connector-registry",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:connector-registry-saas",
+      "name": "Managed connector registry",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:connector-discovery"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:container-runtime",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:container-runtime-aws",
+      "name": "Amazon ECS on AWS Fargate",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:container-runtime",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:container-runtime-byop",
+      "name": "Customer container runtime adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:container-runtime",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:container-runtime-oss",
+      "name": "HashiCorp Nomad container runtime",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:container-runtime",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:container-runtime-saas",
+      "name": "Managed container runner",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:developer-clients",
+      "delivery_model": "managed",
+      "dependency_component_ids": [],
+      "id": "service:developer-clients-aws",
+      "name": "Enterprise coding-agent clients with AWS governance",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:identity-assertion",
+        "interface:model-inference",
+        "interface:tool-invocation"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:developer-clients",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [],
+      "id": "service:developer-clients-byop",
+      "name": "Customer-selected coding-agent client adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:identity-assertion",
+        "interface:model-inference",
+        "interface:tool-invocation"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:developer-clients",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [],
+      "id": "service:developer-clients-oss",
+      "name": "Open-source IDE and CLI agent clients",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:identity-assertion",
+        "interface:model-inference",
+        "interface:tool-invocation"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:developer-clients",
+      "delivery_model": "managed",
+      "dependency_component_ids": [],
+      "id": "service:developer-clients-saas",
+      "name": "Managed Claude Code and Codex clients",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:identity-assertion",
+        "interface:model-inference",
+        "interface:tool-invocation"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:economics-ledger",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:economics-ledger-aws",
+      "name": "AWS cost and token economics ledger",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:economics-record"
+      ],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:economics-ledger",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:economics-ledger-byop",
+      "name": "Customer economics ledger adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:economics-record"
+      ],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:economics-ledger",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:economics-ledger-oss",
+      "name": "OpenCost and token usage ledger",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:economics-record"
+      ],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:economics-ledger",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:economics-ledger-saas",
+      "name": "Managed AI FinOps ledger",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:economics-record"
+      ],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:enterprise-api-access",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:connector-registry"
+      ],
+      "id": "service:enterprise-api-access-aws",
+      "name": "Amazon API Gateway and AWS PrivateLink",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:enterprise-api"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:enterprise-api-access",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:connector-registry"
+      ],
+      "id": "service:enterprise-api-access-byop",
+      "name": "Customer API access adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:enterprise-api"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:enterprise-api-access",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:connector-registry"
+      ],
+      "id": "service:enterprise-api-access-oss",
+      "name": "Kong enterprise API access",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:enterprise-api"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:enterprise-api-access",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:connector-registry"
+      ],
+      "id": "service:enterprise-api-access-saas",
+      "name": "Managed enterprise API integration",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:enterprise-api"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:ephemeral-runtime",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:ephemeral-runtime-aws",
+      "name": "AWS isolated ephemeral task runtime",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:ephemeral-runtime",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:ephemeral-runtime-byop",
+      "name": "Customer ephemeral runtime adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:ephemeral-runtime",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:ephemeral-runtime-oss",
+      "name": "Firecracker ephemeral worker",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:ephemeral-runtime",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:ephemeral-runtime-saas",
+      "name": "Managed isolated sandbox service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:evaluation-service",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:evaluation-service-aws",
+      "name": "Amazon Bedrock evaluation service",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:evaluation-result"
+      ],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:evaluation-service",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:evaluation-service-byop",
+      "name": "Customer evaluation service adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:evaluation-result"
+      ],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:evaluation-service",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:evaluation-service-oss",
+      "name": "Open-source agent evaluation harness",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:evaluation-result"
+      ],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:evaluation-service",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:evaluation-service-saas",
+      "name": "Managed agent evaluation service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:evaluation-result"
+      ],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:evidence-catalog",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:architecture-knowledge"
+      ],
+      "id": "service:evidence-catalog-aws",
+      "name": "Amazon S3 and DynamoDB evidence catalog",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:evidence-query"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:evidence-catalog",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:architecture-knowledge"
+      ],
+      "id": "service:evidence-catalog-byop",
+      "name": "Customer evidence catalog adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:evidence-query"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:evidence-catalog",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:architecture-knowledge"
+      ],
+      "id": "service:evidence-catalog-oss",
+      "name": "Git-backed evidence catalog",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:evidence-query"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:evidence-catalog",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:architecture-knowledge"
+      ],
+      "id": "service:evidence-catalog-saas",
+      "name": "Managed evidence catalog",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:evidence-query"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:execution-broker",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:execution-broker-aws",
+      "name": "Amazon SQS and AWS Step Functions execution broker",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:execution-dispatch"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:policy-decision",
+        "interface:quota-decision",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:execution-broker",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:execution-broker-byop",
+      "name": "Customer execution broker adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:execution-dispatch"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:policy-decision",
+        "interface:quota-decision",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:execution-broker",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:execution-broker-oss",
+      "name": "Temporal task broker",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:execution-dispatch"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:policy-decision",
+        "interface:quota-decision",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:execution-broker",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:execution-broker-saas",
+      "name": "Managed agent task broker",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:execution-dispatch"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:policy-decision",
+        "interface:quota-decision",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:human-approval",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:audit-ledger",
+        "component:policy-engine"
+      ],
+      "id": "service:human-approval-aws",
+      "name": "AWS Step Functions callback approval",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:human-approval",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:audit-ledger",
+        "component:policy-engine"
+      ],
+      "id": "service:human-approval-byop",
+      "name": "Customer approval workflow adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:human-approval",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:audit-ledger",
+        "component:policy-engine"
+      ],
+      "id": "service:human-approval-oss",
+      "name": "Temporal signal-based approval",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:human-approval",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:audit-ledger",
+        "component:policy-engine"
+      ],
+      "id": "service:human-approval-saas",
+      "name": "Managed human approval workflow",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:kubernetes-runtime",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:container-runtime"
+      ],
+      "id": "service:kubernetes-runtime-aws",
+      "name": "Amazon EKS",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:kubernetes-runtime",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:container-runtime"
+      ],
+      "id": "service:kubernetes-runtime-byop",
+      "name": "Customer Kubernetes adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:kubernetes-runtime",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:container-runtime"
+      ],
+      "id": "service:kubernetes-runtime-oss",
+      "name": "Upstream Kubernetes",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:kubernetes-runtime",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:container-runtime"
+      ],
+      "id": "service:kubernetes-runtime-saas",
+      "name": "Managed Kubernetes service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:local-runtime",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:local-runtime-aws",
+      "name": "Enterprise-managed local runtime with AWS control",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:local-runtime",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:local-runtime-byop",
+      "name": "Customer local runtime adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:local-runtime",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:local-runtime-oss",
+      "name": "Dev Container local runtime",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:local-runtime",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:local-runtime-saas",
+      "name": "Managed endpoint agent runtime",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:managed-model-provider",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:managed-model-provider-aws",
+      "name": "Amazon Bedrock managed inference",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:managed-model-provider",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:managed-model-provider-byop",
+      "name": "Customer managed-provider adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:managed-model-provider",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:managed-model-provider-oss",
+      "name": "vLLM on customer compute",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:managed-model-provider",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:managed-model-provider-saas",
+      "name": "Anthropic API",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-catalog",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:model-catalog-aws",
+      "name": "Amazon Bedrock model catalog",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-catalog",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:model-catalog-byop",
+      "name": "Customer model catalog adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-catalog",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:model-catalog-oss",
+      "name": "Open model metadata catalog",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-catalog",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:model-catalog-saas",
+      "name": "Managed model catalog",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-fallback",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-router"
+      ],
+      "id": "service:model-fallback-aws",
+      "name": "Amazon Bedrock model fallback policy",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog",
+        "interface:model-inference"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-fallback",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:model-router"
+      ],
+      "id": "service:model-fallback-byop",
+      "name": "Customer model fallback adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog",
+        "interface:model-inference"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-fallback",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:model-router"
+      ],
+      "id": "service:model-fallback-oss",
+      "name": "LiteLLM fallback policy",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog",
+        "interface:model-inference"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-fallback",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-router"
+      ],
+      "id": "service:model-fallback-saas",
+      "name": "Managed model fallback service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog",
+        "interface:model-inference"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-gateway",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:model-gateway-aws",
+      "name": "Amazon Bedrock governed model gateway",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:identity-assertion",
+        "interface:model-catalog",
+        "interface:policy-decision",
+        "interface:quota-decision"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-gateway",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:model-gateway-byop",
+      "name": "Customer model gateway adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:identity-assertion",
+        "interface:model-catalog",
+        "interface:policy-decision",
+        "interface:quota-decision"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-gateway",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:model-gateway-oss",
+      "name": "LiteLLM model gateway",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:identity-assertion",
+        "interface:model-catalog",
+        "interface:policy-decision",
+        "interface:quota-decision"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-gateway",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:model-gateway-saas",
+      "name": "Managed AI model gateway",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:identity-assertion",
+        "interface:model-catalog",
+        "interface:policy-decision",
+        "interface:quota-decision"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-router",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-catalog"
+      ],
+      "id": "service:model-router-aws",
+      "name": "AWS policy-based model router",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-router",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:model-catalog"
+      ],
+      "id": "service:model-router-byop",
+      "name": "Customer model router adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-router",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:model-catalog"
+      ],
+      "id": "service:model-router-oss",
+      "name": "LiteLLM policy router",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:model-router",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-catalog"
+      ],
+      "id": "service:model-router-saas",
+      "name": "Managed AI gateway router",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:multi-agent-supervisor",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:orchestration-runtime"
+      ],
+      "id": "service:multi-agent-supervisor-aws",
+      "name": "AWS multi-agent supervisor runtime",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:multi-agent-supervisor",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:orchestration-runtime"
+      ],
+      "id": "service:multi-agent-supervisor-byop",
+      "name": "Customer supervisor adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:multi-agent-supervisor",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:orchestration-runtime"
+      ],
+      "id": "service:multi-agent-supervisor-oss",
+      "name": "LangGraph multi-agent supervisor",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:multi-agent-supervisor",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:orchestration-runtime"
+      ],
+      "id": "service:multi-agent-supervisor-saas",
+      "name": "Managed multi-agent supervisor",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:multi-region",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:multi-region-aws",
+      "name": "AWS multi-region service deployment",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:multi-region",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:multi-region-byop",
+      "name": "Customer multi-region adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:multi-region",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:multi-region-oss",
+      "name": "Multi-cluster Kubernetes deployment",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:multi-region",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "id": "service:multi-region-saas",
+      "name": "Managed multi-region service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:orchestration-runtime",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workflow-definitions"
+      ],
+      "id": "service:orchestration-runtime-aws",
+      "name": "Amazon Bedrock AgentCore Runtime",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "requires_interface_ids": [
+        "interface:agent-specification",
+        "interface:execution-dispatch",
+        "interface:model-inference",
+        "interface:tool-invocation",
+        "interface:workflow-specification"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:orchestration-runtime",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workflow-definitions"
+      ],
+      "id": "service:orchestration-runtime-byop",
+      "name": "Customer orchestration runtime adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "requires_interface_ids": [
+        "interface:agent-specification",
+        "interface:execution-dispatch",
+        "interface:model-inference",
+        "interface:tool-invocation",
+        "interface:workflow-specification"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:orchestration-runtime",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workflow-definitions"
+      ],
+      "id": "service:orchestration-runtime-oss",
+      "name": "LangGraph and Temporal orchestration",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "requires_interface_ids": [
+        "interface:agent-specification",
+        "interface:execution-dispatch",
+        "interface:model-inference",
+        "interface:tool-invocation",
+        "interface:workflow-specification"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:orchestration-runtime",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workflow-definitions"
+      ],
+      "id": "service:orchestration-runtime-saas",
+      "name": "Managed agent orchestration service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "requires_interface_ids": [
+        "interface:agent-specification",
+        "interface:execution-dispatch",
+        "interface:model-inference",
+        "interface:tool-invocation",
+        "interface:workflow-specification"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:outcome-correlator",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:evaluation-service",
+        "component:source-control-integration"
+      ],
+      "id": "service:outcome-correlator-aws",
+      "name": "AWS event-driven outcome correlator",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:economics-record",
+        "interface:evaluation-result",
+        "interface:source-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:outcome-correlator",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:evaluation-service",
+        "component:source-control-integration"
+      ],
+      "id": "service:outcome-correlator-byop",
+      "name": "Customer outcome correlator adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:economics-record",
+        "interface:evaluation-result",
+        "interface:source-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:outcome-correlator",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:evaluation-service",
+        "component:source-control-integration"
+      ],
+      "id": "service:outcome-correlator-oss",
+      "name": "OpenTelemetry and GitLab outcome correlator",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:economics-record",
+        "interface:evaluation-result",
+        "interface:source-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:outcome-correlator",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:evaluation-service",
+        "component:source-control-integration"
+      ],
+      "id": "service:outcome-correlator-saas",
+      "name": "Managed engineering outcome analytics",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:economics-record",
+        "interface:evaluation-result",
+        "interface:source-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:package-access",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:package-access-aws",
+      "name": "AWS CodeArtifact",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:package-retrieval"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:package-access",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:package-access-byop",
+      "name": "Customer package registry adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:package-retrieval"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:package-access",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:package-access-oss",
+      "name": "Sonatype Nexus Repository",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:package-retrieval"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:package-access",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:package-access-saas",
+      "name": "GitLab SaaS package registry",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:package-retrieval"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:parallel-reviewer",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:multi-agent-supervisor"
+      ],
+      "id": "service:parallel-reviewer-aws",
+      "name": "AWS parallel reviewer workflow",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:parallel-reviewer",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:multi-agent-supervisor"
+      ],
+      "id": "service:parallel-reviewer-byop",
+      "name": "Customer parallel reviewer adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:parallel-reviewer",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:multi-agent-supervisor"
+      ],
+      "id": "service:parallel-reviewer-oss",
+      "name": "Temporal parallel reviewer workflow",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:parallel-reviewer",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:multi-agent-supervisor"
+      ],
+      "id": "service:parallel-reviewer-saas",
+      "name": "Managed parallel reviewer",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:persistent-workspace",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:persistent-workspace-aws",
+      "name": "Amazon EC2 and EBS developer workspace",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:persistent-workspace",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:persistent-workspace-byop",
+      "name": "Customer persistent workspace adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:persistent-workspace",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:persistent-workspace-oss",
+      "name": "Coder persistent workspace",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:persistent-workspace",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:execution-broker"
+      ],
+      "id": "service:persistent-workspace-saas",
+      "name": "Managed cloud development workspace",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:package-retrieval",
+        "interface:telemetry-ingest",
+        "interface:workload-credential"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:policy-engine",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:policy-engine-aws",
+      "name": "Amazon Verified Permissions and Cedar",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:policy-decision"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:policy-engine",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:policy-engine-byop",
+      "name": "Customer policy engine adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:policy-decision"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:policy-engine",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:policy-engine-oss",
+      "name": "Open Policy Agent",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:policy-decision"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:policy-engine",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:policy-engine-saas",
+      "name": "Managed policy decision service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:policy-decision"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:private-connectivity",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:private-connectivity-aws",
+      "name": "AWS PrivateLink and VPC endpoints",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:private-connectivity",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:private-connectivity-byop",
+      "name": "Customer private network adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:private-connectivity",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:private-connectivity-oss",
+      "name": "Service mesh private connectivity",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:private-connectivity",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:private-connectivity-saas",
+      "name": "SaaS private connectivity add-on",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:quota-manager",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:team-workspaces"
+      ],
+      "id": "service:quota-manager-aws",
+      "name": "AWS quota and budget control service",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:quota-decision"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:quota-manager",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:team-workspaces"
+      ],
+      "id": "service:quota-manager-byop",
+      "name": "Customer quota manager adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:quota-decision"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:quota-manager",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:team-workspaces"
+      ],
+      "id": "service:quota-manager-oss",
+      "name": "Envoy rate-limit service",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:quota-decision"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:quota-manager",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:team-workspaces"
+      ],
+      "id": "service:quota-manager-saas",
+      "name": "Managed AI quota and budget service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:quota-decision"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:restricted-egress",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:execution-broker",
+        "component:policy-engine"
+      ],
+      "id": "service:restricted-egress-aws",
+      "name": "AWS Network Firewall and VPC endpoints",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:policy-decision"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:restricted-egress",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:execution-broker",
+        "component:policy-engine"
+      ],
+      "id": "service:restricted-egress-byop",
+      "name": "Customer egress control adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:policy-decision"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:restricted-egress",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:execution-broker",
+        "component:policy-engine"
+      ],
+      "id": "service:restricted-egress-oss",
+      "name": "Cilium egress policy",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:policy-decision"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:restricted-egress",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:execution-broker",
+        "component:policy-engine"
+      ],
+      "id": "service:restricted-egress-saas",
+      "name": "Managed sandbox egress policy",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:policy-decision"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:secrets-broker",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:policy-engine"
+      ],
+      "id": "service:secrets-broker-aws",
+      "name": "AWS Secrets Manager",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:secret-lease"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:secrets-broker",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:policy-engine"
+      ],
+      "id": "service:secrets-broker-byop",
+      "name": "Customer secrets broker adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:secret-lease"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:secrets-broker",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:policy-engine"
+      ],
+      "id": "service:secrets-broker-oss",
+      "name": "HashiCorp Vault",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:secret-lease"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:secrets-broker",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:policy-engine"
+      ],
+      "id": "service:secrets-broker-saas",
+      "name": "Managed secrets broker",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:secret-lease"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:self-hosted-inference",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:self-hosted-inference-aws",
+      "name": "Bedrock Custom Model Import / EC2 GPU inference",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:self-hosted-inference",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:self-hosted-inference-byop",
+      "name": "Customer self-hosted inference stack",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:self-hosted-inference",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:self-hosted-inference-oss",
+      "name": "vLLM / TGI in-VPC inference",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:self-hosted-inference",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-gateway"
+      ],
+      "id": "service:self-hosted-inference-saas",
+      "name": "Dedicated single-tenant inference endpoint",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:model-inference"
+      ],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:sequential-handoff",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:orchestration-runtime"
+      ],
+      "id": "service:sequential-handoff-aws",
+      "name": "AWS sequential agent workflow",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:sequential-handoff",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:orchestration-runtime"
+      ],
+      "id": "service:sequential-handoff-byop",
+      "name": "Customer handoff adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:sequential-handoff",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:orchestration-runtime"
+      ],
+      "id": "service:sequential-handoff-oss",
+      "name": "LangGraph sequential handoff",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:sequential-handoff",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:orchestration-runtime"
+      ],
+      "id": "service:sequential-handoff-saas",
+      "name": "Managed sequential agent handoff",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:orchestration-control"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:source-control-integration",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:source-control-integration-aws",
+      "name": "AWS event-driven GitLab integration",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:source-control"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:source-control-integration",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:source-control-integration-byop",
+      "name": "Customer source-control adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:source-control"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:source-control-integration",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:source-control-integration-oss",
+      "name": "GitLab webhook and API integration",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:source-control"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:source-control-integration",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:tool-gateway"
+      ],
+      "id": "service:source-control-integration-saas",
+      "name": "Managed GitLab SaaS connector",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:source-control"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:static-model-binding",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-catalog"
+      ],
+      "id": "service:static-model-binding-aws",
+      "name": "Amazon Bedrock inference profile binding",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:static-model-binding",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:model-catalog"
+      ],
+      "id": "service:static-model-binding-byop",
+      "name": "Customer model binding adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:static-model-binding",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:model-catalog"
+      ],
+      "id": "service:static-model-binding-oss",
+      "name": "LiteLLM model alias binding",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:static-model-binding",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:model-catalog"
+      ],
+      "id": "service:static-model-binding-saas",
+      "name": "Managed static model binding",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:model-catalog"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:team-workspaces",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:team-workspaces-aws",
+      "name": "DynamoDB-backed team workspace registry",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:team-workspaces",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:team-workspaces-byop",
+      "name": "Customer team workspace adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:team-workspaces",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:team-workspaces-oss",
+      "name": "Backstage team workspace catalog",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:team-workspaces",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:team-workspaces-saas",
+      "name": "Managed team workspace service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:telemetry-pipeline",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:telemetry-pipeline-aws",
+      "name": "AWS Distro for OpenTelemetry and Amazon CloudWatch",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:telemetry-pipeline",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:telemetry-pipeline-byop",
+      "name": "Customer telemetry pipeline adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:telemetry-pipeline",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:telemetry-pipeline-oss",
+      "name": "OpenTelemetry Collector pipeline",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:telemetry-pipeline",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:telemetry-pipeline-saas",
+      "name": "Managed agent observability pipeline",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:telemetry-ingest"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:tool-gateway",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:tool-gateway-aws",
+      "name": "Amazon Bedrock AgentCore Gateway",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:tool-invocation"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:connector-discovery",
+        "interface:policy-decision",
+        "interface:quota-decision",
+        "interface:secret-lease"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:tool-gateway",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:tool-gateway-byop",
+      "name": "Customer tool gateway adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:tool-invocation"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:connector-discovery",
+        "interface:policy-decision",
+        "interface:quota-decision",
+        "interface:secret-lease"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:tool-gateway",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:tool-gateway-oss",
+      "name": "Open-source MCP gateway",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:tool-invocation"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:connector-discovery",
+        "interface:policy-decision",
+        "interface:quota-decision",
+        "interface:secret-lease"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:tool-gateway",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workload-identity"
+      ],
+      "id": "service:tool-gateway-saas",
+      "name": "Managed MCP and API gateway",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:tool-invocation"
+      ],
+      "requires_interface_ids": [
+        "interface:audit-write",
+        "interface:connector-discovery",
+        "interface:policy-decision",
+        "interface:quota-decision",
+        "interface:secret-lease"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:warm-runtime-pool",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:ephemeral-runtime"
+      ],
+      "id": "service:warm-runtime-pool-aws",
+      "name": "AWS warm isolated runtime pool",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:warm-runtime-pool",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:ephemeral-runtime"
+      ],
+      "id": "service:warm-runtime-pool-byop",
+      "name": "Customer warm runtime adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:warm-runtime-pool",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:ephemeral-runtime"
+      ],
+      "id": "service:warm-runtime-pool-oss",
+      "name": "Kubernetes warm worker pool",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:warm-runtime-pool",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:ephemeral-runtime"
+      ],
+      "id": "service:warm-runtime-pool-saas",
+      "name": "Managed warm sandbox pool",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [],
+      "requires_interface_ids": [
+        "interface:execution-dispatch",
+        "interface:telemetry-ingest"
+      ],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workflow-definitions",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:agent-registry"
+      ],
+      "id": "service:workflow-definitions-aws",
+      "name": "Amazon S3 versioned workflow catalog",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:workflow-specification"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workflow-definitions",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:agent-registry"
+      ],
+      "id": "service:workflow-definitions-byop",
+      "name": "Customer workflow catalog adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:workflow-specification"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workflow-definitions",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:agent-registry"
+      ],
+      "id": "service:workflow-definitions-oss",
+      "name": "Git-backed workflow definitions",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:workflow-specification"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workflow-definitions",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:agent-registry"
+      ],
+      "id": "service:workflow-definitions-saas",
+      "name": "Managed workflow definition service",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:workflow-specification"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workforce-identity",
+      "delivery_model": "managed",
+      "dependency_component_ids": [],
+      "id": "service:workforce-identity-aws",
+      "name": "AWS IAM Identity Center federation",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workforce-identity",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [],
+      "id": "service:workforce-identity-byop",
+      "name": "Customer OIDC identity adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workforce-identity",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [],
+      "id": "service:workforce-identity-oss",
+      "name": "Keycloak workforce identity",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workforce-identity",
+      "delivery_model": "managed",
+      "dependency_component_ids": [],
+      "id": "service:workforce-identity-saas",
+      "name": "Microsoft Entra ID or Okta federation",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:identity-assertion"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workload-identity",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:workload-identity-aws",
+      "name": "AWS IAM roles and STS",
+      "provider_class": "aws",
+      "provider_id": "provider:aws-managed",
+      "provides_interface_ids": [
+        "interface:workload-credential"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workload-identity",
+      "delivery_model": "customer_selected",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:workload-identity-byop",
+      "name": "Customer workload identity adapter",
+      "provider_class": "byop",
+      "provider_id": "provider:byop-adapter",
+      "provides_interface_ids": [
+        "interface:workload-credential"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workload-identity",
+      "delivery_model": "self_managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:workload-identity-oss",
+      "name": "SPIFFE and SPIRE workload identity",
+      "provider_class": "oss",
+      "provider_id": "provider:oss-self-managed",
+      "provides_interface_ids": [
+        "interface:workload-credential"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    },
+    {
+      "component_id": "component:workload-identity",
+      "delivery_model": "managed",
+      "dependency_component_ids": [
+        "component:workforce-identity"
+      ],
+      "id": "service:workload-identity-saas",
+      "name": "Managed workload identity broker",
+      "provider_class": "saas",
+      "provider_id": "provider:saas-managed",
+      "provides_interface_ids": [
+        "interface:workload-credential"
+      ],
+      "requires_interface_ids": [],
+      "score_adjustments": [],
+      "supported_capabilities": [],
+      "unsupported_capabilities": [],
+      "version": "1.0.0"
+    }
+  ],
+  "title": "Coding agent platform deployable offerings",
+  "validated_as_of": "2026-08-11",
+  "version": "0.2.0"
+}

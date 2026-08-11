@@ -1,0 +1,79 @@
+{
+  "pass_count": 6,
+  "results": [
+    {
+      "after_report_hash": "sha256:e648914b0efbcb41088776ce1f6611f7a1529be031230818a09b91e3c4582a64",
+      "after_valid": true,
+      "before_report_hash": "sha256:e648914b0efbcb41088776ce1f6611f7a1529be031230818a09b91e3c4582a64",
+      "before_valid": true,
+      "issue_codes": [],
+      "kind": "positive",
+      "passed": true,
+      "scenario_id": "scenario:release-positive"
+    },
+    {
+      "after_report_hash": "sha256:665c19257cf92fd371895edfe79dfd46d70542b92d0972add51afe1ed0945c90",
+      "after_valid": false,
+      "before_report_hash": "sha256:e648914b0efbcb41088776ce1f6611f7a1529be031230818a09b91e3c4582a64",
+      "before_valid": true,
+      "issue_codes": [
+        "missing_entity_reference"
+      ],
+      "kind": "negative",
+      "passed": true,
+      "scenario_id": "scenario:release-negative-missing-entity"
+    },
+    {
+      "after_report_hash": "sha256:f663e4367d3c22072315fad3ae27b3cda967c66f25bbfeb22a21b30b57fdd77e",
+      "after_valid": false,
+      "before_report_hash": "sha256:e648914b0efbcb41088776ce1f6611f7a1529be031230818a09b91e3c4582a64",
+      "before_valid": true,
+      "issue_codes": [
+        "missing_evidence_snapshot"
+      ],
+      "kind": "unknown",
+      "passed": true,
+      "scenario_id": "scenario:release-unknown-evidence"
+    },
+    {
+      "after_report_hash": "sha256:f35bc52ed996dc7ddb9f38788d1681f1481c4a598c7cd4240bcafba25579d358",
+      "after_valid": false,
+      "before_report_hash": "sha256:e648914b0efbcb41088776ce1f6611f7a1529be031230818a09b91e3c4582a64",
+      "before_valid": true,
+      "issue_codes": [
+        "stale_active_knowledge"
+      ],
+      "kind": "stale",
+      "passed": true,
+      "scenario_id": "scenario:release-stale-claim"
+    },
+    {
+      "after_report_hash": "sha256:8077c98fbce7b917916231f29ce7b9e6ac83c0ff414a417d601e6cf38f466d8e",
+      "after_valid": false,
+      "before_report_hash": "sha256:e648914b0efbcb41088776ce1f6611f7a1529be031230818a09b91e3c4582a64",
+      "before_valid": true,
+      "issue_codes": [
+        "conflicting_relationships"
+      ],
+      "kind": "contradiction",
+      "passed": true,
+      "scenario_id": "scenario:release-contradictory-relationships"
+    },
+    {
+      "after_report_hash": "sha256:f35bc52ed996dc7ddb9f38788d1681f1481c4a598c7cd4240bcafba25579d358",
+      "after_valid": false,
+      "before_report_hash": "sha256:e648914b0efbcb41088776ce1f6611f7a1529be031230818a09b91e3c4582a64",
+      "before_valid": true,
+      "issue_codes": [
+        "stale_active_knowledge"
+      ],
+      "kind": "one_variable_flip",
+      "passed": true,
+      "scenario_id": "scenario:release-one-variable-stale-flip"
+    }
+  ],
+  "scenario_count": 6,
+  "scenario_suite_id": "scenario-suite:knowledge-release-safety",
+  "scenario_suite_version": "1.0.0",
+  "schema_version": "1.0"
+}

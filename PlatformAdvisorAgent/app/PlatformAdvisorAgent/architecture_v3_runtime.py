@@ -12,9 +12,9 @@ from boto3.dynamodb.types import TypeSerializer
 from botocore.exceptions import ClientError
 from pydantic import BaseModel, ConfigDict, Field
 
-from advisor_core.v3.demo import build_demo_workspace
 from advisor_core.v3.models import content_hash
 from advisor_core.v3.projection import build_frontend_projection
+from advisor_core.v3.runtime import build_runtime_workspace
 
 
 ACTION = "architecture.v3.workspace"
@@ -367,21 +367,36 @@ class ArchitectureV3RuntimeAdapter:
         persistence_revision: int,
         persistence_hash: str,
     ) -> tuple[dict[str, Any], dict[str, str]]:
-        catalog, workspace = build_demo_workspace(
+        release, workspace = build_runtime_workspace(
             as_of,
+            workspace_id=workspace_id,
             requirement_values=answers,
         )
-        projection = build_frontend_projection(workspace, catalog)
+        projection = build_frontend_projection(
+            workspace,
+            release.logical_catalog,
+            deployable_catalog=release.deployable_catalog,
+        )
+        projection["knowledge_release"] = {
+            "release_id": release.manifest.release_id,
+            "version": release.manifest.release_version,
+            "manifest_hash": release.manifest.manifest_hash,
+            "deployable_catalog_id": release.deployable_catalog.id,
+            "deployable_catalog_version": release.deployable_catalog.version,
+            "deployable_catalog_hash": release.deployable_catalog.content_hash,
+        }
         projection["workspace"]["workspace_id"] = workspace_id
         projection["workspace"]["persistence_revision"] = persistence_revision
         projection["workspace"]["persistence_hash"] = persistence_hash
         _rehash_projection(projection)
         pins = {
-            "catalog_hash": catalog.content_hash,
+            "catalog_hash": release.logical_catalog.content_hash,
+            "deployable_catalog_hash": release.deployable_catalog.content_hash,
+            "knowledge_release_manifest_hash": release.manifest.manifest_hash,
             "ruleset_hash": content_hash({
                 "rules": [
                     rule.model_dump(mode="json")
-                    for rule in catalog.rules
+                    for rule in release.logical_catalog.rules
                 ],
             }),
             "engine_hash": _engine_hash(),
@@ -477,6 +492,31 @@ class ArchitectureV3RuntimeAdapter:
             raise ValueError(
                 "Persisted architecture revision catalog hash is inconsistent"
             )
+        knowledge_release = projection.get("knowledge_release")
+        if knowledge_release is not None:
+            if (
+                not isinstance(knowledge_release, dict)
+                or knowledge_release.get("manifest_hash")
+                != revision.get("knowledge_release_manifest_hash")
+                or knowledge_release.get("deployable_catalog_hash")
+                != revision.get("deployable_catalog_hash")
+            ):
+                raise ValueError(
+                    "Persisted architecture knowledge release is inconsistent"
+                )
+            for field in (
+                "knowledge_release_manifest_hash",
+                "deployable_catalog_hash",
+            ):
+                value = revision.get(field)
+                if (
+                    not isinstance(value, str)
+                    or not value.startswith("sha256:")
+                    or len(value) != 71
+                ):
+                    raise ValueError(
+                        f"Persisted architecture revision {field} is invalid"
+                    )
         return projection
 
     def _state_projection(self, state: dict[str, Any]) -> dict[str, Any]:

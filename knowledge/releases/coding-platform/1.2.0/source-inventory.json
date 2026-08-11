@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "authority_tier": "tier_a_decision_authority",
+      "name": "Amazon Bedrock Documentation",
+      "publisher": "Amazon Web Services",
+      "snapshots": [
+        {
+          "final_uri": "https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html",
+          "normalized_content_hash": "sha256:3641761e2dcdd2ab28d7b8e1ed3a5e7069022bee590fdb7ba481ad555a9b928c",
+          "raw_content_hash": "sha256:3641761e2dcdd2ab28d7b8e1ed3a5e7069022bee590fdb7ba481ad555a9b928c",
+          "retrieved_at": "2026-07-30T00:00:00+00:00",
+          "snapshot_id": "source:aws-bedrock-docs"
+        }
+      ],
+      "source_id": "source:aws-bedrock-docs"
+    },
+    {
+      "authority_tier": "tier_a_decision_authority",
+      "name": "AWS Well-Architected Framework",
+      "publisher": "Amazon Web Services",
+      "snapshots": [
+        {
+          "final_uri": "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html",
+          "normalized_content_hash": "sha256:43321706ff284208766c402dc980802d9754dd27fbe1409b53230c278332a812",
+          "raw_content_hash": "sha256:43321706ff284208766c402dc980802d9754dd27fbe1409b53230c278332a812",
+          "retrieved_at": "2026-07-30T00:00:00+00:00",
+          "snapshot_id": "source:aws-well-architected"
+        }
+      ],
+      "source_id": "source:aws-well-architected"
+    },
+    {
+      "authority_tier": "tier_a_decision_authority",
+      "name": "Platform Advisor Product Vision",
+      "publisher": "Platform Advisor",
+      "snapshots": [
+        {
+          "final_uri": "repo:docs/platform-advisor-product-vision.md",
+          "normalized_content_hash": "sha256:a236155058acc31e350dc7094549a69454c795cef0da6c29a0d84471752b6a81",
+          "raw_content_hash": "sha256:a236155058acc31e350dc7094549a69454c795cef0da6c29a0d84471752b6a81",
+          "retrieved_at": "2026-07-30T00:00:00+00:00",
+          "snapshot_id": "source:platform-advisor-vision"
+        }
+      ],
+      "source_id": "source:platform-advisor-vision"
+    }
+  ]
+}

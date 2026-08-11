@@ -114,6 +114,7 @@ def valid_catalog() -> dict[str, object]:
                         "value": True,
                     }
                 ],
+                "authority": "hard_constraint",
                 "effect": "require",
                 "target_component_ids": ["component:model-gateway"],
                 "evidence_claim_ids": ["claim:gateway-routing"],
@@ -334,6 +335,69 @@ def test_rejects_mixed_component_and_pattern_rule_targets(
     with pytest.raises(
         CatalogCompilationError,
         match="cannot mix component and pattern targets",
+    ):
+        compile_catalog(path, as_of=AS_OF)
+
+
+@pytest.mark.parametrize(
+    ("authority", "effect", "message"),
+    [
+        (
+            "hard_constraint",
+            "recommend",
+            "hard-constraint rules must require or exclude components",
+        ),
+        (
+            "compatibility",
+            "exclude",
+            "compatibility rules must exclude deployment patterns",
+        ),
+        (
+            "preference",
+            "require",
+            "preference rules must recommend components",
+        ),
+        (
+            "explanation",
+            "require",
+            "explanation rules must use the warn effect",
+        ),
+    ],
+)
+def test_rejects_rule_authority_mismatches(
+    tmp_path: Path,
+    authority: str,
+    effect: str,
+    message: str,
+) -> None:
+    payload = valid_catalog()
+    payload["rules"][0]["authority"] = authority
+    payload["rules"][0]["effect"] = effect
+    path = write_catalog(tmp_path / "catalog.json", payload)
+
+    with pytest.raises(CatalogCompilationError, match=message):
+        compile_catalog(path, as_of=AS_OF)
+
+
+def test_rejects_authoritative_dependency_on_preference(
+    tmp_path: Path,
+) -> None:
+    payload = valid_catalog()
+    preference = deepcopy(payload["rules"][0])
+    preference.update({
+        "id": "rule:preferred-routing",
+        "name": "Prefer regional routing",
+        "authority": "preference",
+        "effect": "recommend",
+        "depends_on_rule_ids": [],
+    })
+    payload["rules"].append(preference)
+    payload["rules"][0]["depends_on_rule_ids"] = [preference["id"]]
+    path = write_catalog(tmp_path / "catalog.json", payload)
+
+    with pytest.raises(
+        CatalogCompilationError,
+        match="outside its authority surface",
     ):
         compile_catalog(path, as_of=AS_OF)
 

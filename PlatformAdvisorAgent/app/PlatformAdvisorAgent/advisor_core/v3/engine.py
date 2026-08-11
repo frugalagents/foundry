@@ -4,6 +4,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from .authority import (
+    is_architecture_authority,
+    is_eligibility_authority,
+)
 from .models import (
     AnswerImpact,
     ArchitectureDelta,
@@ -186,7 +190,9 @@ def _active_rules(
     """Activate matching rules only after their rule dependencies are active."""
 
     active: dict[str, DecisionRule] = {}
-    pending = list(catalog.rules)
+    pending = [
+        rule for rule in catalog.rules if is_architecture_authority(rule)
+    ]
     while pending:
         next_pending: list[DecisionRule] = []
         progressed = False
@@ -314,6 +320,7 @@ def _rule_evaluations(
         RuleEvaluation(
             evaluation_id=f"evaluation:{rule.id.split(':', 1)[1]}",
             rule_id=rule.id,
+            authority=rule.authority,
             effect=rule.effect,
             requirement_ids=tuple(
                 predicate.requirement_id for predicate in rule.when
@@ -342,7 +349,7 @@ def _derive_state(
     activated_rules = _active_rules(catalog, applicable_requirements)
     excluded_component_ids: set[str] = set()
     for rule in activated_rules:
-        if rule.effect in (RuleEffect.REQUIRE, RuleEffect.RECOMMEND):
+        if rule.effect is RuleEffect.REQUIRE:
             component_ids.update(rule.target_component_ids)
         elif rule.effect is RuleEffect.EXCLUDE:
             excluded_component_ids.update(rule.target_component_ids)
@@ -471,6 +478,7 @@ def _evaluate_exclusion_rule(
     return FeasibilityRuleEvaluation(
         evaluation_id=f"evaluation:{rule_slug}--{pattern_slug}",
         rule_id=rule.id,
+        authority=rule.authority,
         pattern_id=pattern_id,
         outcome=outcome,
         requirement_ids=tuple(
@@ -572,11 +580,12 @@ def _deployment_family_evaluations(
     if not family_patterns:
         raise ValueError("catalog contains no deployment-family patterns")
 
-    hard_rules = tuple(
+    eligibility_rules = tuple(
         rule
         for rule in catalog.rules
         if (
-            rule.effect is RuleEffect.EXCLUDE
+            is_eligibility_authority(rule)
+            and rule.effect is RuleEffect.EXCLUDE
             and rule.target_pattern_ids
         )
     )
@@ -584,12 +593,12 @@ def _deployment_family_evaluations(
     for pattern in family_patterns:
         pattern_rules = tuple(
             rule
-            for rule in hard_rules
+            for rule in eligibility_rules
             if pattern.id in rule.target_pattern_ids
         )
         if not pattern_rules:
             raise ValueError(
-                f"deployment family {pattern.id} has no hard-rule coverage"
+                f"deployment family {pattern.id} has no eligibility-rule coverage"
             )
         covered_requirement_ids = {
             predicate.requirement_id
@@ -602,7 +611,7 @@ def _deployment_family_evaluations(
         )
         if missing_rule_coverage:
             raise ValueError(
-                f"deployment family {pattern.id} is missing hard-rule "
+                f"deployment family {pattern.id} is missing eligibility-rule "
                 "coverage for material requirements: "
                 f"{', '.join(sorted(missing_rule_coverage))}"
             )
@@ -864,7 +873,10 @@ def rank_next_questions(
     hard_risk: dict[str, bool] = {}
     for rule in catalog.rules:
         for predicate in rule.when:
-            if rule.effect in (RuleEffect.REQUIRE, RuleEffect.EXCLUDE):
+            if (
+                is_architecture_authority(rule)
+                or is_eligibility_authority(rule)
+            ):
                 hard_risk[predicate.requirement_id] = True
 
     current_requirements = {

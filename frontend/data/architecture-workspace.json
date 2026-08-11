@@ -257,40 +257,6 @@
         }
       },
       {
-        "edge_id": "edge:multi-agent-supervisor--depends-on--orchestration-runtime",
-        "relationship": "depends_on",
-        "source": {
-          "component_id": "component:multi-agent-supervisor",
-          "instance_id": "node:multi-agent-supervisor",
-          "name": "Multi-agent supervisor",
-          "plane": "orchestration"
-        },
-        "status": "added",
-        "target": {
-          "component_id": "component:orchestration-runtime",
-          "instance_id": "node:orchestration-runtime",
-          "name": "Agent orchestration runtime",
-          "plane": "orchestration"
-        }
-      },
-      {
-        "edge_id": "edge:multi-region--depends-on--telemetry-pipeline",
-        "relationship": "depends_on",
-        "source": {
-          "component_id": "component:multi-region",
-          "instance_id": "node:multi-region",
-          "name": "Multi-region resilience",
-          "plane": "observability"
-        },
-        "status": "added",
-        "target": {
-          "component_id": "component:telemetry-pipeline",
-          "instance_id": "node:telemetry-pipeline",
-          "name": "Agent telemetry pipeline",
-          "plane": "observability"
-        }
-      },
-      {
         "edge_id": "edge:orchestration-runtime--depends-on--workflow-definitions",
         "relationship": "depends_on",
         "source": {
@@ -356,23 +322,6 @@
           "instance_id": "node:tool-gateway",
           "name": "Tool and API gateway",
           "plane": "tool"
-        }
-      },
-      {
-        "edge_id": "edge:parallel-reviewer--depends-on--multi-agent-supervisor",
-        "relationship": "depends_on",
-        "source": {
-          "component_id": "component:parallel-reviewer",
-          "instance_id": "node:parallel-reviewer",
-          "name": "Parallel candidates with independent review",
-          "plane": "orchestration"
-        },
-        "status": "added",
-        "target": {
-          "component_id": "component:multi-agent-supervisor",
-          "instance_id": "node:multi-agent-supervisor",
-          "name": "Multi-agent supervisor",
-          "plane": "orchestration"
         }
       },
       {
@@ -649,28 +598,12 @@
             "status": "baseline"
           },
           {
-            "component_id": "component:multi-agent-supervisor",
-            "description": "Coordinates specialist workers and independent review.",
-            "instance_id": "node:multi-agent-supervisor",
-            "kind": "overlay",
-            "name": "Multi-agent supervisor",
-            "status": "added"
-          },
-          {
             "component_id": "component:orchestration-runtime",
             "description": "Coordinates agent turns, handoffs, state, and cancellation.",
             "instance_id": "node:orchestration-runtime",
             "kind": "logical",
             "name": "Agent orchestration runtime",
             "status": "baseline"
-          },
-          {
-            "component_id": "component:parallel-reviewer",
-            "description": "Runs independent candidate agents and routes their results through a separate reviewer.",
-            "instance_id": "node:parallel-reviewer",
-            "kind": "overlay",
-            "name": "Parallel candidates with independent review",
-            "status": "added"
           },
           {
             "component_id": "component:workflow-definitions",
@@ -885,14 +818,6 @@
             "status": "baseline"
           },
           {
-            "component_id": "component:multi-region",
-            "description": "Adds region-aware routing, failover, and evidence.",
-            "instance_id": "node:multi-region",
-            "kind": "overlay",
-            "name": "Multi-region resilience",
-            "status": "added"
-          },
-          {
             "component_id": "component:outcome-correlator",
             "description": "Joins agent traces to source-control and CI results.",
             "instance_id": "node:outcome-correlator",
@@ -914,12 +839,12 @@
       }
     ],
     "summary": {
-      "added_component_count": 9,
-      "added_edge_count": 11,
+      "added_component_count": 6,
+      "added_edge_count": 8,
       "baseline_component_count": 25,
       "baseline_edge_count": 23,
-      "current_component_count": 34,
-      "current_edge_count": 34
+      "current_component_count": 31,
+      "current_edge_count": 31
     }
   },
   "assumptions": [
@@ -1002,7 +927,7 @@
       "rationale": "Working demonstration baseline pending customer confirmation.",
       "requirement_id": "requirement:multi-agent",
       "source": "Coding-platform demonstration baseline",
-      "value": true
+      "value": false
     },
     {
       "confidence": 0.6,
@@ -1012,15 +937,6 @@
       "requirement_id": "requirement:multi-model-provider",
       "source": "Coding-platform demonstration baseline",
       "value": true
-    },
-    {
-      "confidence": 0.6,
-      "name": "Agent orchestration mode",
-      "owner": "Platform Advisor product team",
-      "rationale": "Working demonstration baseline pending customer confirmation.",
-      "requirement_id": "requirement:orchestration-mode",
-      "source": "Coding-platform demonstration baseline",
-      "value": "parallel-review"
     },
     {
       "confidence": 0.6,
@@ -1069,7 +985,7 @@
     }
   ],
   "assurance": {
-    "architecture_catalog_content_hash": "sha256:37bce222073ce8af0ec2b55fdeaaf338e51aab7131bb406b04e2c1c8c8ff432d",
+    "architecture_catalog_content_hash": "sha256:9e601e68bd4fa1e3e4e75c73283d59f29b1f92c8ca727951a088b903bd4c2f77",
     "architecture_catalog_id": "catalog:coding-platform",
     "architecture_catalog_version": "3.0.0",
     "assurance_catalog_content_hash": "sha256:fd9d2f469fd4d35d5ecaba2f01644a984651b17c24736be5cc57115472174367",
@@ -1366,7 +1282,7 @@
         }
       ]
     },
-    "generated_as_of": "2026-08-04",
+    "generated_as_of": "2026-07-30",
     "outcomes": {
       "event_contract": [
         {
@@ -1953,7 +1869,7 @@
         }
       ]
     },
-    "packet_hash": "sha256:6e2148f6a3f5abd123f12ea6f2532c228feb1169361e4ef7169b3498aaad12cc",
+    "packet_hash": "sha256:0b31c6ac2a7eb9fc380d966d5053298e216381fff71e7f39a12e97272b3abb69",
     "readiness": {
       "blocking_reason_codes": [
         "bundle_selection_missing",
@@ -1975,7 +1891,7 @@
         "required": false
       },
       "freshness": {
-        "evaluated_as_of": "2026-08-04",
+        "evaluated_as_of": "2026-07-30",
         "stale_claim_ids": [],
         "status": "unknown"
       },
@@ -1991,11 +1907,10 @@
       "critical_path_package_ids": [
         "work-package:component-workforce-identity",
         "work-package:component-workload-identity",
-        "work-package:component-agent-registry",
-        "work-package:component-workflow-definitions",
-        "work-package:component-orchestration-runtime",
-        "work-package:component-multi-agent-supervisor",
-        "work-package:component-parallel-reviewer"
+        "work-package:component-tool-gateway",
+        "work-package:component-source-control-integration",
+        "work-package:component-outcome-correlator",
+        "work-package:control-tamper-evident-audit"
       ],
       "phases": [
         {
@@ -2521,27 +2436,6 @@
               "title": "Implement Model catalog"
             },
             {
-              "component_id": "component:multi-region",
-              "control_id": null,
-              "dependency_package_ids": [
-                "work-package:component-telemetry-pipeline"
-              ],
-              "effort_person_days": {
-                "high": 21.0,
-                "low": 7.0
-              },
-              "exit_criteria": [
-                "Multi-region resilience is configured and version controlled.",
-                "Declared dependencies pass integration checks.",
-                "Operational owner accepts runbook and support boundary."
-              ],
-              "kind": "component",
-              "offering_id": null,
-              "owner": "Platform Reliability",
-              "package_id": "work-package:component-multi-region",
-              "title": "Implement Multi-region resilience"
-            },
-            {
               "component_id": "component:package-access",
               "control_id": null,
               "dependency_package_ids": [
@@ -2909,31 +2803,10 @@
             "Every work package in this wave meets its exit criteria.",
             "No unresolved dependency blocks the next wave."
           ],
-          "name": "Dependency wave 6",
+          "name": "Control verification",
           "phase_id": "phase:wave-06",
           "sequence": 6,
           "work_packages": [
-            {
-              "component_id": "component:multi-agent-supervisor",
-              "control_id": null,
-              "dependency_package_ids": [
-                "work-package:component-orchestration-runtime"
-              ],
-              "effort_person_days": {
-                "high": 23.0,
-                "low": 9.0
-              },
-              "exit_criteria": [
-                "Multi-agent supervisor is configured and version controlled.",
-                "Declared dependencies pass integration checks.",
-                "Operational owner accepts runbook and support boundary."
-              ],
-              "kind": "component",
-              "offering_id": null,
-              "owner": "Agent Platform",
-              "package_id": "work-package:component-multi-agent-supervisor",
-              "title": "Implement Multi-agent supervisor"
-            },
             {
               "component_id": null,
               "control_id": "control:model-eligibility",
@@ -2981,43 +2854,11 @@
               "title": "Verify control: Replayable tamper-evident audit trail"
             }
           ]
-        },
-        {
-          "exit_criteria": [
-            "Every work package in this wave meets its exit criteria.",
-            "No unresolved dependency blocks the next wave."
-          ],
-          "name": "Dependency wave 7",
-          "phase_id": "phase:wave-07",
-          "sequence": 7,
-          "work_packages": [
-            {
-              "component_id": "component:parallel-reviewer",
-              "control_id": null,
-              "dependency_package_ids": [
-                "work-package:component-multi-agent-supervisor"
-              ],
-              "effort_person_days": {
-                "high": 23.0,
-                "low": 9.0
-              },
-              "exit_criteria": [
-                "Parallel candidates with independent review is configured and version controlled.",
-                "Declared dependencies pass integration checks.",
-                "Operational owner accepts runbook and support boundary."
-              ],
-              "kind": "component",
-              "offering_id": null,
-              "owner": "Agent Platform",
-              "package_id": "work-package:component-parallel-reviewer",
-              "title": "Implement Parallel candidates with independent review"
-            }
-          ]
         }
       ],
       "total_effort_person_days": {
-        "high": 741.0,
-        "low": 256.0
+        "high": 674.0,
+        "low": 231.0
       }
     },
     "schema_version": "3.0",
@@ -3550,30 +3391,47 @@
     },
     "selected_bundle_id": null,
     "workspace_id": "workspace:coding-platform-demo",
-    "workspace_revision_id": "revision:r-0cd120eef96d25fd4676",
-    "workspace_state_hash": "sha256:504e54bb2b5bead04ca9c65bfc48e67be0c41d27fc4be4b8abc01bed1ec0e70c"
+    "workspace_revision_id": "revision:r-40686e0465fcaff722e5",
+    "workspace_state_hash": "sha256:15f50f102e2a156e17c7de5ea486a492b6b98418207e62924f3ea6b67cf54ea3"
   },
   "catalog": {
     "catalog_release_id": "catalog:coding-platform",
-    "content_hash": "sha256:37bce222073ce8af0ec2b55fdeaaf338e51aab7131bb406b04e2c1c8c8ff432d",
-    "validated_as_of": "2026-08-04",
+    "content_hash": "sha256:9e601e68bd4fa1e3e4e75c73283d59f29b1f92c8ca727951a088b903bd4c2f77",
+    "validated_as_of": "2026-07-30",
     "version": "3.0.0"
+  },
+  "decision_authority": {
+    "advisory_outputs": [
+      "candidate_ranking",
+      "pareto_analysis",
+      "preference_rules",
+      "sensitivity_analysis"
+    ],
+    "authoritative_operations": [
+      "catalog_lifecycle",
+      "component_requirements",
+      "dependency_closure",
+      "deployment_eligibility",
+      "required_controls"
+    ],
+    "automatic_bundle_selection": false,
+    "schema_version": "1.0"
   },
   "decision_history": {
     "current_revision": {
-      "created_at": "2026-08-04T12:00:00+00:00",
-      "parent_revision_id": "revision:r-f65a4226052bc384cadf",
-      "revision_id": "revision:r-0cd120eef96d25fd4676",
+      "created_at": "2026-07-30T12:00:00+00:00",
+      "parent_revision_id": "revision:r-c8c2131aa20f8fb7893b",
+      "revision_id": "revision:r-40686e0465fcaff722e5",
       "revision_number": 2,
-      "state_hash": "sha256:504e54bb2b5bead04ca9c65bfc48e67be0c41d27fc4be4b8abc01bed1ec0e70c"
+      "state_hash": "sha256:15f50f102e2a156e17c7de5ea486a492b6b98418207e62924f3ea6b67cf54ea3"
     },
-    "history_hash": "sha256:1a293e0e3958a6da11e4a6576a60e8747c31d212ea3dbb902b0ff8287f15970d",
+    "history_hash": "sha256:aa2e4c473a7ef25aa4eea3f541e3f7455695684780e1ae54288e435478b60d56",
     "initial_revision": {
-      "created_at": "2026-08-04T12:00:00+00:00",
+      "created_at": "2026-07-30T12:00:00+00:00",
       "parent_revision_id": null,
-      "revision_id": "revision:r-f65a4226052bc384cadf",
+      "revision_id": "revision:r-c8c2131aa20f8fb7893b",
       "revision_number": 1,
-      "state_hash": "sha256:671f04970694cdf85c17f124e85c2b084945ceda97f7d703f92b23e09c017788"
+      "state_hash": "sha256:23326c60d5b19fade1ddafa2995a4b773f2c86211ff6fe6caec755c464d9b19b"
     },
     "transitions": [
       {
@@ -3599,21 +3457,6 @@
                 "component_id": "component:model-router",
                 "name": "Model router",
                 "plane": "model"
-              },
-              {
-                "component_id": "component:multi-agent-supervisor",
-                "name": "Multi-agent supervisor",
-                "plane": "orchestration"
-              },
-              {
-                "component_id": "component:multi-region",
-                "name": "Multi-region resilience",
-                "plane": "observability"
-              },
-              {
-                "component_id": "component:parallel-reviewer",
-                "name": "Parallel candidates with independent review",
-                "plane": "orchestration"
               },
               {
                 "component_id": "component:restricted-egress",
@@ -3711,54 +3554,6 @@
                 }
               },
               {
-                "edge_id": "edge:multi-agent-supervisor--depends-on--orchestration-runtime",
-                "relationship": "depends_on",
-                "source": {
-                  "component_id": "component:multi-agent-supervisor",
-                  "instance_id": "node:multi-agent-supervisor",
-                  "name": "Multi-agent supervisor",
-                  "plane": "orchestration"
-                },
-                "target": {
-                  "component_id": "component:orchestration-runtime",
-                  "instance_id": "node:orchestration-runtime",
-                  "name": "Agent orchestration runtime",
-                  "plane": "orchestration"
-                }
-              },
-              {
-                "edge_id": "edge:multi-region--depends-on--telemetry-pipeline",
-                "relationship": "depends_on",
-                "source": {
-                  "component_id": "component:multi-region",
-                  "instance_id": "node:multi-region",
-                  "name": "Multi-region resilience",
-                  "plane": "observability"
-                },
-                "target": {
-                  "component_id": "component:telemetry-pipeline",
-                  "instance_id": "node:telemetry-pipeline",
-                  "name": "Agent telemetry pipeline",
-                  "plane": "observability"
-                }
-              },
-              {
-                "edge_id": "edge:parallel-reviewer--depends-on--multi-agent-supervisor",
-                "relationship": "depends_on",
-                "source": {
-                  "component_id": "component:parallel-reviewer",
-                  "instance_id": "node:parallel-reviewer",
-                  "name": "Parallel candidates with independent review",
-                  "plane": "orchestration"
-                },
-                "target": {
-                  "component_id": "component:multi-agent-supervisor",
-                  "instance_id": "node:multi-agent-supervisor",
-                  "name": "Multi-agent supervisor",
-                  "plane": "orchestration"
-                }
-              },
-              {
                 "edge_id": "edge:restricted-egress--depends-on--execution-broker",
                 "relationship": "depends_on",
                 "source": {
@@ -3811,18 +3606,18 @@
           }
         },
         "current_revision": {
-          "created_at": "2026-08-04T12:00:00+00:00",
-          "parent_revision_id": "revision:r-f65a4226052bc384cadf",
-          "revision_id": "revision:r-0cd120eef96d25fd4676",
+          "created_at": "2026-07-30T12:00:00+00:00",
+          "parent_revision_id": "revision:r-c8c2131aa20f8fb7893b",
+          "revision_id": "revision:r-40686e0465fcaff722e5",
           "revision_number": 2,
-          "state_hash": "sha256:504e54bb2b5bead04ca9c65bfc48e67be0c41d27fc4be4b8abc01bed1ec0e70c"
+          "state_hash": "sha256:15f50f102e2a156e17c7de5ea486a492b6b98418207e62924f3ea6b67cf54ea3"
         },
         "prior_revision": {
-          "created_at": "2026-08-04T12:00:00+00:00",
+          "created_at": "2026-07-30T12:00:00+00:00",
           "parent_revision_id": null,
-          "revision_id": "revision:r-f65a4226052bc384cadf",
+          "revision_id": "revision:r-c8c2131aa20f8fb7893b",
           "revision_number": 1,
-          "state_hash": "sha256:671f04970694cdf85c17f124e85c2b084945ceda97f7d703f92b23e09c017788"
+          "state_hash": "sha256:23326c60d5b19fade1ddafa2995a4b773f2c86211ff6fe6caec755c464d9b19b"
         },
         "requirement_changes": [
           {
@@ -3834,7 +3629,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -3851,7 +3646,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -3868,7 +3663,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": "any-approved"
             },
@@ -3885,7 +3680,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -3902,7 +3697,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": 1000
             },
@@ -3919,7 +3714,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": 5000
             },
@@ -3936,7 +3731,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": "entra"
             },
@@ -3953,7 +3748,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": "hybrid"
             },
@@ -3970,9 +3765,9 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
-              "value": true
+              "value": false
             },
             "name": "Multiple coding agents",
             "previous": null,
@@ -3987,7 +3782,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -4004,24 +3799,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
-              "source": "assumption",
-              "value": "parallel-review"
-            },
-            "name": "Agent orchestration mode",
-            "previous": null,
-            "requirement_id": "requirement:orchestration-mode"
-          },
-          {
-            "change_type": "added",
-            "current": {
-              "assumption": {
-                "confidence": 0.6,
-                "owner": "Platform Advisor product team",
-                "rationale": "Working demonstration baseline pending customer confirmation.",
-                "source": "Coding-platform demonstration baseline"
-              },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -4038,7 +3816,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -4055,7 +3833,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": "gitlab-saas"
             },
@@ -4072,7 +3850,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -4089,7 +3867,7 @@
                 "rationale": "Working demonstration baseline pending customer confirmation.",
                 "source": "Coding-platform demonstration baseline"
               },
-              "recorded_at": "2026-08-04T12:00:00+00:00",
+              "recorded_at": "2026-07-30T12:00:00+00:00",
               "source": "assumption",
               "value": true
             },
@@ -4101,6 +3879,7 @@
         "rules": {
           "activated": [
             {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:asynchronous-runtime",
               "evidence_claim_ids": [],
@@ -4131,6 +3910,7 @@
               "target_patterns": []
             },
             {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:high-concurrency-runtime",
               "evidence_claim_ids": [],
@@ -4161,6 +3941,7 @@
               "target_patterns": []
             },
             {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:hybrid-execution",
               "evidence_claim_ids": [],
@@ -4196,36 +3977,7 @@
               "target_patterns": []
             },
             {
-              "effect": "require",
-              "evaluation_id": "evaluation:multi-agent-supervision",
-              "evidence_claim_ids": [],
-              "rationale": "Multi-agent workflows require orchestration and supervision.",
-              "requirements": [
-                {
-                  "assumption": {
-                    "confidence": 0.6,
-                    "owner": "Platform Advisor product team",
-                    "rationale": "Working demonstration baseline pending customer confirmation.",
-                    "source": "Coding-platform demonstration baseline"
-                  },
-                  "name": "Multiple coding agents",
-                  "requirement_id": "requirement:multi-agent",
-                  "source": "assumption",
-                  "value": true
-                }
-              ],
-              "rule_id": "rule:multi-agent-supervision",
-              "rule_name": "Supervise multiple agents",
-              "target_components": [
-                {
-                  "component_id": "component:multi-agent-supervisor",
-                  "name": "Multi-agent supervisor",
-                  "plane": "orchestration"
-                }
-              ],
-              "target_patterns": []
-            },
-            {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:multi-provider-routing",
               "evidence_claim_ids": [],
@@ -4256,6 +4008,7 @@
               "target_patterns": []
             },
             {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:outcome-correlation",
               "evidence_claim_ids": [],
@@ -4291,6 +4044,7 @@
               "target_patterns": []
             },
             {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:package-governance",
               "evidence_claim_ids": [],
@@ -4321,182 +4075,7 @@
               "target_patterns": []
             },
             {
-              "effect": "require",
-              "evaluation_id": "evaluation:parallel-independent-review",
-              "evidence_claim_ids": [],
-              "rationale": "Parallel candidate generation requires supervision and an independent review stage.",
-              "requirements": [
-                {
-                  "assumption": {
-                    "confidence": 0.6,
-                    "owner": "Platform Advisor product team",
-                    "rationale": "Working demonstration baseline pending customer confirmation.",
-                    "source": "Coding-platform demonstration baseline"
-                  },
-                  "name": "Agent orchestration mode",
-                  "requirement_id": "requirement:orchestration-mode",
-                  "source": "assumption",
-                  "value": "parallel-review"
-                }
-              ],
-              "rule_id": "rule:parallel-independent-review",
-              "rule_name": "Add parallel candidates and independent review",
-              "target_components": [
-                {
-                  "component_id": "component:parallel-reviewer",
-                  "name": "Parallel candidates with independent review",
-                  "plane": "orchestration"
-                }
-              ],
-              "target_patterns": []
-            },
-            {
-              "effect": "recommend",
-              "evaluation_id": "evaluation:regional-flexibility",
-              "evidence_claim_ids": [],
-              "rationale": "Any-approved-region deployment benefits from region-aware routing.",
-              "requirements": [
-                {
-                  "assumption": {
-                    "confidence": 0.6,
-                    "owner": "Platform Advisor product team",
-                    "rationale": "Working demonstration baseline pending customer confirmation.",
-                    "source": "Coding-platform demonstration baseline"
-                  },
-                  "name": "Approved regions",
-                  "requirement_id": "requirement:approved-regions",
-                  "source": "assumption",
-                  "value": "any-approved"
-                }
-              ],
-              "rule_id": "rule:regional-flexibility",
-              "rule_name": "Add region-aware resilience",
-              "target_components": [
-                {
-                  "component_id": "component:multi-region",
-                  "name": "Multi-region resilience",
-                  "plane": "observability"
-                }
-              ],
-              "target_patterns": []
-            },
-            {
-              "effect": "exclude",
-              "evaluation_id": "evaluation:reject-developer-local-concurrency",
-              "evidence_claim_ids": [],
-              "rationale": "Developer-local execution is not a defensible primary family at 500 or more concurrent unattended agent tasks; use a scalable remote execution family.",
-              "requirements": [
-                {
-                  "assumption": {
-                    "confidence": 0.6,
-                    "owner": "Platform Advisor product team",
-                    "rationale": "Working demonstration baseline pending customer confirmation.",
-                    "source": "Coding-platform demonstration baseline"
-                  },
-                  "name": "Concurrent agent tasks",
-                  "requirement_id": "requirement:concurrent-agent-tasks",
-                  "source": "assumption",
-                  "value": 1000
-                }
-              ],
-              "rule_id": "rule:reject-developer-local-concurrency",
-              "rule_name": "Constrain developer-local concurrency",
-              "target_components": [],
-              "target_patterns": [
-                {
-                  "name": "Developer-hosted local runtime",
-                  "pattern_id": "pattern:developer-local"
-                }
-              ]
-            },
-            {
-              "effect": "exclude",
-              "evaluation_id": "evaluation:reject-managed-customer-placement",
-              "evidence_claim_ids": [],
-              "rationale": "Managed control-plane execution on customer runtimes requires customer-managed placement.",
-              "requirements": [
-                {
-                  "assumption": {
-                    "confidence": 0.6,
-                    "owner": "Platform Advisor product team",
-                    "rationale": "Working demonstration baseline pending customer confirmation.",
-                    "source": "Coding-platform demonstration baseline"
-                  },
-                  "name": "Execution placement",
-                  "requirement_id": "requirement:execution-placement",
-                  "source": "assumption",
-                  "value": "hybrid"
-                }
-              ],
-              "rule_id": "rule:reject-managed-customer-placement",
-              "rule_name": "Constrain managed customer execution",
-              "target_components": [],
-              "target_patterns": [
-                {
-                  "name": "Managed control plane with customer execution",
-                  "pattern_id": "pattern:managed-customer-execution"
-                }
-              ]
-            },
-            {
-              "effect": "exclude",
-              "evaluation_id": "evaluation:reject-self-hosted-container-placement",
-              "evidence_claim_ids": [],
-              "rationale": "A self-hosted VM or container platform requires customer-managed placement.",
-              "requirements": [
-                {
-                  "assumption": {
-                    "confidence": 0.6,
-                    "owner": "Platform Advisor product team",
-                    "rationale": "Working demonstration baseline pending customer confirmation.",
-                    "source": "Coding-platform demonstration baseline"
-                  },
-                  "name": "Execution placement",
-                  "requirement_id": "requirement:execution-placement",
-                  "source": "assumption",
-                  "value": "hybrid"
-                }
-              ],
-              "rule_id": "rule:reject-self-hosted-container-placement",
-              "rule_name": "Constrain self-hosted container placement",
-              "target_components": [],
-              "target_patterns": [
-                {
-                  "name": "Self-hosted VM or container platform",
-                  "pattern_id": "pattern:self-hosted-container"
-                }
-              ]
-            },
-            {
-              "effect": "exclude",
-              "evaluation_id": "evaluation:reject-self-hosted-kubernetes-placement",
-              "evidence_claim_ids": [],
-              "rationale": "A self-hosted Kubernetes platform requires customer-managed placement.",
-              "requirements": [
-                {
-                  "assumption": {
-                    "confidence": 0.6,
-                    "owner": "Platform Advisor product team",
-                    "rationale": "Working demonstration baseline pending customer confirmation.",
-                    "source": "Coding-platform demonstration baseline"
-                  },
-                  "name": "Execution placement",
-                  "requirement_id": "requirement:execution-placement",
-                  "source": "assumption",
-                  "value": "hybrid"
-                }
-              ],
-              "rule_id": "rule:reject-self-hosted-kubernetes-placement",
-              "rule_name": "Constrain self-hosted Kubernetes placement",
-              "target_components": [],
-              "target_patterns": [
-                {
-                  "name": "Self-hosted Kubernetes platform",
-                  "pattern_id": "pattern:self-hosted-kubernetes"
-                }
-              ]
-            },
-            {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:restricted-egress",
               "evidence_claim_ids": [],
@@ -4527,6 +4106,7 @@
               "target_patterns": []
             },
             {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:risk-based-approval",
               "evidence_claim_ids": [],
@@ -4557,6 +4137,7 @@
               "target_patterns": []
             },
             {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:scale-quotas",
               "evidence_claim_ids": [],
@@ -4587,6 +4168,7 @@
               "target_patterns": []
             },
             {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:team-isolation",
               "evidence_claim_ids": [],
@@ -4622,6 +4204,7 @@
               "target_patterns": []
             },
             {
+              "authority": "hard_constraint",
               "effect": "require",
               "evaluation_id": "evaluation:warm-runtime-capacity",
               "evidence_claim_ids": [],
@@ -4654,13 +4237,14 @@
           ],
           "deactivated": []
         },
-        "transition_hash": "sha256:f13ed3173d9347ff8fd107accc9c6a846766e91941a717927ba3e21d5037a1c2",
+        "transition_hash": "sha256:a4746ea444b4d83483c9c6051a00bd2e39676856598dec6a493b48477ac71cf1",
         "transition_id": "trace:r-1-to-r-2"
       }
     ]
   },
   "decision_trace": [
     {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:asynchronous-runtime",
       "evidence_claim_ids": [],
@@ -4691,6 +4275,7 @@
       "target_patterns": []
     },
     {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:high-concurrency-runtime",
       "evidence_claim_ids": [],
@@ -4721,6 +4306,7 @@
       "target_patterns": []
     },
     {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:hybrid-execution",
       "evidence_claim_ids": [],
@@ -4756,36 +4342,7 @@
       "target_patterns": []
     },
     {
-      "effect": "require",
-      "evaluation_id": "evaluation:multi-agent-supervision",
-      "evidence_claim_ids": [],
-      "rationale": "Multi-agent workflows require orchestration and supervision.",
-      "requirements": [
-        {
-          "assumption": {
-            "confidence": 0.6,
-            "owner": "Platform Advisor product team",
-            "rationale": "Working demonstration baseline pending customer confirmation.",
-            "source": "Coding-platform demonstration baseline"
-          },
-          "name": "Multiple coding agents",
-          "requirement_id": "requirement:multi-agent",
-          "source": "assumption",
-          "value": true
-        }
-      ],
-      "rule_id": "rule:multi-agent-supervision",
-      "rule_name": "Supervise multiple agents",
-      "target_components": [
-        {
-          "component_id": "component:multi-agent-supervisor",
-          "name": "Multi-agent supervisor",
-          "plane": "orchestration"
-        }
-      ],
-      "target_patterns": []
-    },
-    {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:multi-provider-routing",
       "evidence_claim_ids": [],
@@ -4816,6 +4373,7 @@
       "target_patterns": []
     },
     {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:outcome-correlation",
       "evidence_claim_ids": [],
@@ -4851,6 +4409,7 @@
       "target_patterns": []
     },
     {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:package-governance",
       "evidence_claim_ids": [],
@@ -4881,182 +4440,7 @@
       "target_patterns": []
     },
     {
-      "effect": "require",
-      "evaluation_id": "evaluation:parallel-independent-review",
-      "evidence_claim_ids": [],
-      "rationale": "Parallel candidate generation requires supervision and an independent review stage.",
-      "requirements": [
-        {
-          "assumption": {
-            "confidence": 0.6,
-            "owner": "Platform Advisor product team",
-            "rationale": "Working demonstration baseline pending customer confirmation.",
-            "source": "Coding-platform demonstration baseline"
-          },
-          "name": "Agent orchestration mode",
-          "requirement_id": "requirement:orchestration-mode",
-          "source": "assumption",
-          "value": "parallel-review"
-        }
-      ],
-      "rule_id": "rule:parallel-independent-review",
-      "rule_name": "Add parallel candidates and independent review",
-      "target_components": [
-        {
-          "component_id": "component:parallel-reviewer",
-          "name": "Parallel candidates with independent review",
-          "plane": "orchestration"
-        }
-      ],
-      "target_patterns": []
-    },
-    {
-      "effect": "recommend",
-      "evaluation_id": "evaluation:regional-flexibility",
-      "evidence_claim_ids": [],
-      "rationale": "Any-approved-region deployment benefits from region-aware routing.",
-      "requirements": [
-        {
-          "assumption": {
-            "confidence": 0.6,
-            "owner": "Platform Advisor product team",
-            "rationale": "Working demonstration baseline pending customer confirmation.",
-            "source": "Coding-platform demonstration baseline"
-          },
-          "name": "Approved regions",
-          "requirement_id": "requirement:approved-regions",
-          "source": "assumption",
-          "value": "any-approved"
-        }
-      ],
-      "rule_id": "rule:regional-flexibility",
-      "rule_name": "Add region-aware resilience",
-      "target_components": [
-        {
-          "component_id": "component:multi-region",
-          "name": "Multi-region resilience",
-          "plane": "observability"
-        }
-      ],
-      "target_patterns": []
-    },
-    {
-      "effect": "exclude",
-      "evaluation_id": "evaluation:reject-developer-local-concurrency",
-      "evidence_claim_ids": [],
-      "rationale": "Developer-local execution is not a defensible primary family at 500 or more concurrent unattended agent tasks; use a scalable remote execution family.",
-      "requirements": [
-        {
-          "assumption": {
-            "confidence": 0.6,
-            "owner": "Platform Advisor product team",
-            "rationale": "Working demonstration baseline pending customer confirmation.",
-            "source": "Coding-platform demonstration baseline"
-          },
-          "name": "Concurrent agent tasks",
-          "requirement_id": "requirement:concurrent-agent-tasks",
-          "source": "assumption",
-          "value": 1000
-        }
-      ],
-      "rule_id": "rule:reject-developer-local-concurrency",
-      "rule_name": "Constrain developer-local concurrency",
-      "target_components": [],
-      "target_patterns": [
-        {
-          "name": "Developer-hosted local runtime",
-          "pattern_id": "pattern:developer-local"
-        }
-      ]
-    },
-    {
-      "effect": "exclude",
-      "evaluation_id": "evaluation:reject-managed-customer-placement",
-      "evidence_claim_ids": [],
-      "rationale": "Managed control-plane execution on customer runtimes requires customer-managed placement.",
-      "requirements": [
-        {
-          "assumption": {
-            "confidence": 0.6,
-            "owner": "Platform Advisor product team",
-            "rationale": "Working demonstration baseline pending customer confirmation.",
-            "source": "Coding-platform demonstration baseline"
-          },
-          "name": "Execution placement",
-          "requirement_id": "requirement:execution-placement",
-          "source": "assumption",
-          "value": "hybrid"
-        }
-      ],
-      "rule_id": "rule:reject-managed-customer-placement",
-      "rule_name": "Constrain managed customer execution",
-      "target_components": [],
-      "target_patterns": [
-        {
-          "name": "Managed control plane with customer execution",
-          "pattern_id": "pattern:managed-customer-execution"
-        }
-      ]
-    },
-    {
-      "effect": "exclude",
-      "evaluation_id": "evaluation:reject-self-hosted-container-placement",
-      "evidence_claim_ids": [],
-      "rationale": "A self-hosted VM or container platform requires customer-managed placement.",
-      "requirements": [
-        {
-          "assumption": {
-            "confidence": 0.6,
-            "owner": "Platform Advisor product team",
-            "rationale": "Working demonstration baseline pending customer confirmation.",
-            "source": "Coding-platform demonstration baseline"
-          },
-          "name": "Execution placement",
-          "requirement_id": "requirement:execution-placement",
-          "source": "assumption",
-          "value": "hybrid"
-        }
-      ],
-      "rule_id": "rule:reject-self-hosted-container-placement",
-      "rule_name": "Constrain self-hosted container placement",
-      "target_components": [],
-      "target_patterns": [
-        {
-          "name": "Self-hosted VM or container platform",
-          "pattern_id": "pattern:self-hosted-container"
-        }
-      ]
-    },
-    {
-      "effect": "exclude",
-      "evaluation_id": "evaluation:reject-self-hosted-kubernetes-placement",
-      "evidence_claim_ids": [],
-      "rationale": "A self-hosted Kubernetes platform requires customer-managed placement.",
-      "requirements": [
-        {
-          "assumption": {
-            "confidence": 0.6,
-            "owner": "Platform Advisor product team",
-            "rationale": "Working demonstration baseline pending customer confirmation.",
-            "source": "Coding-platform demonstration baseline"
-          },
-          "name": "Execution placement",
-          "requirement_id": "requirement:execution-placement",
-          "source": "assumption",
-          "value": "hybrid"
-        }
-      ],
-      "rule_id": "rule:reject-self-hosted-kubernetes-placement",
-      "rule_name": "Constrain self-hosted Kubernetes placement",
-      "target_components": [],
-      "target_patterns": [
-        {
-          "name": "Self-hosted Kubernetes platform",
-          "pattern_id": "pattern:self-hosted-kubernetes"
-        }
-      ]
-    },
-    {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:restricted-egress",
       "evidence_claim_ids": [],
@@ -5087,6 +4471,7 @@
       "target_patterns": []
     },
     {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:risk-based-approval",
       "evidence_claim_ids": [],
@@ -5117,6 +4502,7 @@
       "target_patterns": []
     },
     {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:scale-quotas",
       "evidence_claim_ids": [],
@@ -5147,6 +4533,7 @@
       "target_patterns": []
     },
     {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:team-isolation",
       "evidence_claim_ids": [],
@@ -5182,6 +4569,7 @@
       "target_patterns": []
     },
     {
+      "authority": "hard_constraint",
       "effect": "require",
       "evaluation_id": "evaluation:warm-runtime-capacity",
       "evidence_claim_ids": [],
@@ -5251,18 +4639,6 @@
             "interface_id": null,
             "message": "Customer package registry adapter has not verified private_registry: Package access must authenticate to approved private registries and deny unapproved sources.",
             "requirement_id": "requirement:approved-package-registries",
-            "severity": "warning",
-            "status": "conditional"
-          },
-          {
-            "code": "required_capability_unverified",
-            "component_ids": [
-              "component:multi-region"
-            ],
-            "finding_id": "finding:byop-portable-r2-capability-approved-regions-multi-region",
-            "interface_id": null,
-            "message": "Customer multi-region adapter has not verified multi_region: Regional deployment must be configurable across the approved region set.",
-            "requirement_id": "requirement:approved-regions",
             "severity": "warning",
             "status": "conditional"
           },
@@ -5536,20 +4912,6 @@
             "service_variant_id": "service:model-router-byop"
           },
           {
-            "component_id": "component:multi-agent-supervisor",
-            "delivery_model": "customer_selected",
-            "provider_class": "byop",
-            "service_name": "Customer supervisor adapter",
-            "service_variant_id": "service:multi-agent-supervisor-byop"
-          },
-          {
-            "component_id": "component:multi-region",
-            "delivery_model": "customer_selected",
-            "provider_class": "byop",
-            "service_name": "Customer multi-region adapter",
-            "service_variant_id": "service:multi-region-byop"
-          },
-          {
             "component_id": "component:orchestration-runtime",
             "delivery_model": "customer_selected",
             "provider_class": "byop",
@@ -5569,13 +4931,6 @@
             "provider_class": "byop",
             "service_name": "Customer package registry adapter",
             "service_variant_id": "service:package-access-byop"
-          },
-          {
-            "component_id": "component:parallel-reviewer",
-            "delivery_model": "customer_selected",
-            "provider_class": "byop",
-            "service_name": "Customer parallel reviewer adapter",
-            "service_variant_id": "service:parallel-reviewer-byop"
           },
           {
             "component_id": "component:persistent-workspace",
@@ -5687,9 +5042,9 @@
           },
           {
             "dimension_id": null,
-            "impact": 15.0,
+            "impact": 14.0,
             "kind": "constraint",
-            "statement": "15 requirement or compatibility constraint(s) require resolution.",
+            "statement": "14 requirement or compatibility constraint(s) require resolution.",
             "tradeoff_id": "tradeoff:byop-portable-constraints"
           }
         ],
@@ -5899,20 +5254,6 @@
             "service_variant_id": "service:model-router-saas"
           },
           {
-            "component_id": "component:multi-agent-supervisor",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed multi-agent supervisor",
-            "service_variant_id": "service:multi-agent-supervisor-saas"
-          },
-          {
-            "component_id": "component:multi-region",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed multi-region service",
-            "service_variant_id": "service:multi-region-saas"
-          },
-          {
             "component_id": "component:orchestration-runtime",
             "delivery_model": "managed",
             "provider_class": "saas",
@@ -5932,13 +5273,6 @@
             "provider_class": "saas",
             "service_name": "GitLab SaaS package registry",
             "service_variant_id": "service:package-access-saas"
-          },
-          {
-            "component_id": "component:parallel-reviewer",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed parallel reviewer",
-            "service_variant_id": "service:parallel-reviewer-saas"
           },
           {
             "component_id": "component:policy-engine",
@@ -6214,20 +5548,6 @@
             "service_variant_id": "service:model-router-aws"
           },
           {
-            "component_id": "component:multi-agent-supervisor",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS multi-agent supervisor runtime",
-            "service_variant_id": "service:multi-agent-supervisor-aws"
-          },
-          {
-            "component_id": "component:multi-region",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS multi-region service deployment",
-            "service_variant_id": "service:multi-region-aws"
-          },
-          {
             "component_id": "component:orchestration-runtime",
             "delivery_model": "managed",
             "provider_class": "aws",
@@ -6247,13 +5567,6 @@
             "provider_class": "aws",
             "service_name": "AWS CodeArtifact",
             "service_variant_id": "service:package-access-aws"
-          },
-          {
-            "component_id": "component:parallel-reviewer",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS parallel reviewer workflow",
-            "service_variant_id": "service:parallel-reviewer-aws"
           },
           {
             "component_id": "component:policy-engine",
@@ -6373,23 +5686,23 @@
         "dimension_scores": [
           {
             "dimension_id": "dimension:delivery-speed",
-            "score": 88.114
+            "score": 87.75
           },
           {
             "dimension_id": "dimension:economics",
-            "score": 71.314
+            "score": 71.375
           },
           {
             "dimension_id": "dimension:operability",
-            "score": 89.057
+            "score": 88.875
           },
           {
             "dimension_id": "dimension:portability",
-            "score": 61.571
+            "score": 61.875
           },
           {
             "dimension_id": "dimension:security",
-            "score": 88.886
+            "score": 89.25
           }
         ],
         "family_feasibility_status": "rejected",
@@ -6529,20 +5842,6 @@
             "service_variant_id": "service:model-router-saas"
           },
           {
-            "component_id": "component:multi-agent-supervisor",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed multi-agent supervisor",
-            "service_variant_id": "service:multi-agent-supervisor-saas"
-          },
-          {
-            "component_id": "component:multi-region",
-            "delivery_model": "managed",
-            "provider_class": "aws",
-            "service_name": "AWS multi-region service deployment",
-            "service_variant_id": "service:multi-region-aws"
-          },
-          {
             "component_id": "component:orchestration-runtime",
             "delivery_model": "managed",
             "provider_class": "saas",
@@ -6562,13 +5861,6 @@
             "provider_class": "saas",
             "service_name": "GitLab SaaS package registry",
             "service_variant_id": "service:package-access-saas"
-          },
-          {
-            "component_id": "component:parallel-reviewer",
-            "delivery_model": "managed",
-            "provider_class": "saas",
-            "service_name": "Managed parallel reviewer",
-            "service_variant_id": "service:parallel-reviewer-saas"
           },
           {
             "component_id": "component:policy-engine",
@@ -6658,17 +5950,17 @@
         "template_id": "bundle-template:hybrid-governed",
         "tradeoffs": [
           {
-            "dimension_id": "dimension:operability",
-            "impact": 89.057,
+            "dimension_id": "dimension:security",
+            "impact": 89.25,
             "kind": "advantage",
-            "statement": "Strongest dimension is dimension:operability at 89.1/100.",
+            "statement": "Strongest dimension is dimension:security at 89.2/100.",
             "tradeoff_id": "tradeoff:hybrid-governed-advantage"
           },
           {
             "dimension_id": "dimension:portability",
-            "impact": 61.571,
+            "impact": 61.875,
             "kind": "compromise",
-            "statement": "Primary compromise is dimension:portability at 61.6/100.",
+            "statement": "Primary compromise is dimension:portability at 61.9/100.",
             "tradeoff_id": "tradeoff:hybrid-governed-compromise"
           },
           {
@@ -6868,20 +6160,6 @@
             "service_variant_id": "service:model-router-oss"
           },
           {
-            "component_id": "component:multi-agent-supervisor",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "LangGraph multi-agent supervisor",
-            "service_variant_id": "service:multi-agent-supervisor-oss"
-          },
-          {
-            "component_id": "component:multi-region",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Multi-cluster Kubernetes deployment",
-            "service_variant_id": "service:multi-region-oss"
-          },
-          {
             "component_id": "component:orchestration-runtime",
             "delivery_model": "self_managed",
             "provider_class": "oss",
@@ -6901,13 +6179,6 @@
             "provider_class": "oss",
             "service_name": "Sonatype Nexus Repository",
             "service_variant_id": "service:package-access-oss"
-          },
-          {
-            "component_id": "component:parallel-reviewer",
-            "delivery_model": "self_managed",
-            "provider_class": "oss",
-            "service_name": "Temporal parallel reviewer workflow",
-            "service_variant_id": "service:parallel-reviewer-oss"
           },
           {
             "component_id": "component:policy-engine",
@@ -7021,10 +6292,10 @@
         "weighted_score": 0.0
       }
     ],
-    "deployable_catalog_hash": "sha256:6e5591a15d18c2cab99cefd361ba021b438429db374f35c42ef74e39521892a5",
+    "deployable_catalog_hash": "sha256:a8b6f30a781d113970baafce67560ec8bde05739ca5bf2699f039e398d3e8671",
     "deployable_catalog_id": "deployable-catalog:coding-platform",
     "deployable_catalog_version": "0.2.0",
-    "logical_catalog_hash": "sha256:37bce222073ce8af0ec2b55fdeaaf338e51aab7131bb406b04e2c1c8c8ff432d",
+    "logical_catalog_hash": "sha256:9e601e68bd4fa1e3e4e75c73283d59f29b1f92c8ca727951a088b903bd4c2f77",
     "logical_catalog_id": "catalog:coding-platform",
     "logical_catalog_version": "3.0.0",
     "pareto_candidate_ids": [],
@@ -7033,13 +6304,13 @@
       "rationale": "No generated bundle combines a feasible deployment family with a complete, compatible variant and interface closure; no recommendation is safe.",
       "state": "no_viable_candidate"
     },
-    "result_hash": "sha256:adea726e9c9d736ef9044f4bf381f0aa2008e2a1c466c4e747f9d1e956f8601b",
+    "result_hash": "sha256:175cbc0f0dc98b81f3f6f86826ac1cd611074712ef729d5a20d35f27f7550dd8",
     "schema_version": "3.0-r0.2",
     "score_profile_id": "score-profile:balanced-enterprise",
     "sensitivity": [],
-    "workspace_revision_id": "revision:r-0cd120eef96d25fd4676",
+    "workspace_revision_id": "revision:r-40686e0465fcaff722e5",
     "workspace_revision_number": 2,
-    "workspace_state_hash": "sha256:504e54bb2b5bead04ca9c65bfc48e67be0c41d27fc4be4b8abc01bed1ec0e70c"
+    "workspace_state_hash": "sha256:15f50f102e2a156e17c7de5ea486a492b6b98418207e62924f3ea6b67cf54ea3"
   },
   "deployment_families": [
     {
@@ -7053,6 +6324,7 @@
       ],
       "rule_evaluations": [
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-developer-local-concurrency--developer-local",
           "evidence_claim_ids": [],
           "outcome": "violates",
@@ -7076,6 +6348,7 @@
           "unknown_requirement_ids": []
         },
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-developer-local-isolation--developer-local",
           "evidence_claim_ids": [],
           "outcome": "unknown",
@@ -7109,6 +6382,7 @@
       ],
       "rule_evaluations": [
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-managed-customer-isolation--managed-customer-execution",
           "evidence_claim_ids": [],
           "outcome": "unknown",
@@ -7129,6 +6403,7 @@
           ]
         },
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-managed-customer-placement--managed-customer-execution",
           "evidence_claim_ids": [],
           "outcome": "violates",
@@ -7185,6 +6460,7 @@
       "rejection_rule_ids": [],
       "rule_evaluations": [
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-nonpersistent-workspace--persistent-remote-workspace",
           "evidence_claim_ids": [],
           "outcome": "unknown",
@@ -7205,6 +6481,7 @@
           ]
         },
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-persistent-workspace-isolation--persistent-remote-workspace",
           "evidence_claim_ids": [],
           "outcome": "unknown",
@@ -7238,6 +6515,7 @@
       ],
       "rule_evaluations": [
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-self-hosted-container-isolation--self-hosted-container",
           "evidence_claim_ids": [],
           "outcome": "unknown",
@@ -7258,6 +6536,7 @@
           ]
         },
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-self-hosted-container-placement--self-hosted-container",
           "evidence_claim_ids": [],
           "outcome": "violates",
@@ -7294,6 +6573,7 @@
       ],
       "rule_evaluations": [
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-self-hosted-kubernetes-isolation--self-hosted-kubernetes",
           "evidence_claim_ids": [],
           "outcome": "unknown",
@@ -7314,6 +6594,7 @@
           ]
         },
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-self-hosted-kubernetes-placement--self-hosted-kubernetes",
           "evidence_claim_ids": [],
           "outcome": "violates",
@@ -7363,6 +6644,7 @@
       "rejection_rule_ids": [],
       "rule_evaluations": [
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-vendor-ephemeral-isolation--vendor-ephemeral",
           "evidence_claim_ids": [],
           "outcome": "unknown",
@@ -7383,6 +6665,7 @@
           ]
         },
         {
+          "authority": "compatibility",
           "evaluation_id": "evaluation:reject-vendor-ephemeral-private-connectivity--vendor-ephemeral",
           "evidence_claim_ids": [],
           "outcome": "unknown",
@@ -7432,36 +6715,87 @@
     }
   ],
   "next_question": {
-    "affected_components": [],
+    "affected_components": [
+      {
+        "component_id": "component:persistent-workspace",
+        "name": "Persistent developer workspace",
+        "plane": "execution"
+      }
+    ],
     "answer_enrichments": [
       {
-        "best_for": "Fully local deployments where agents never share compute with other users.",
-        "description": "Each developer's agent runs on their own machine \u2014 there is no shared infrastructure requiring tenant separation.",
-        "label": "No cross-user isolation needed (runs on developer's own device)",
-        "watch_out": "Not appropriate if agents run on any shared cloud infrastructure \u2014 this option assumes no multi-tenancy."
+        "best_for": "Large codebase migrations, multi-sprint refactors, long-running dependency upgrades, or teams that want agents to accumulate context over time.",
+        "description": "Agents maintain their workspace state \u2014 files, environment, partial progress \u2014 across multiple sessions.",
+        "label": "Yes \u2014 we need persistent agent workspaces",
+        "watch_out": "Persistent workspaces consume storage and compute even when idle \u2014 they require lifecycle management (pause, resume, expiry policies)."
       },
       {
-        "best_for": "Most enterprise coding platforms \u2014 cost-effective, widely supported, and sufficient for typical enterprise compliance requirements.",
-        "description": "Each agent session runs in a separate container. Standard isolation for most enterprise workloads.",
-        "label": "Container-level isolation (Docker / OCI)",
-        "watch_out": "Containers share an OS kernel \u2014 not appropriate for workloads where kernel-level separation is a compliance requirement."
+        "best_for": "Most task-oriented coding agent use cases \u2014 issue resolution, PR review, targeted refactoring.",
+        "description": "Agents work on ephemeral, scoped checkouts. They check out the repo, do their work, push a branch, and the workspace is discarded.",
+        "label": "No \u2014 each agent task starts fresh",
+        "watch_out": "Not suitable for large migrations or multi-day tasks that require accumulated context across sessions."
       },
-      {
-        "best_for": "Highly regulated environments (financial services, healthcare, government) or workloads executing externally-generated or untrusted code.",
-        "description": "Each agent session runs in a hardware-virtualized microVM \u2014 stronger isolation than containers with sub-second startup times.",
-        "label": "VM-level isolation (microVM / hardware virtualization)",
-        "watch_out": "Higher cost and operational complexity than containers \u2014 typically only needed when compliance explicitly mandates kernel-level separation."
-      },
-      {
-        "best_for": "SaaS platforms reselling agent capacity to external customers, or enterprises with strict contractual tenant-separation requirements.",
-        "description": "Each major team or customer gets fully dedicated compute \u2014 no shared infrastructure whatsoever.",
-        "label": "Dedicated infrastructure per team or customer",
-        "watch_out": "Highest cost and operational burden of any isolation option \u2014 typically only justified for external multi-tenant SaaS, not internal enterprise platforms."
-      }
+      null
     ],
     "answer_impacts": [
       {
-        "answer": "developer-endpoint",
+        "answer": true,
+        "components": {
+          "added": [
+            {
+              "component_id": "component:persistent-workspace",
+              "name": "Persistent developer workspace",
+              "plane": "execution"
+            }
+          ],
+          "removed": []
+        },
+        "deployment_families": {
+          "feasible": [],
+          "rejected": [
+            {
+              "name": "Developer-hosted local runtime",
+              "pattern_id": "pattern:developer-local"
+            },
+            {
+              "name": "Managed control plane with customer execution",
+              "pattern_id": "pattern:managed-customer-execution"
+            },
+            {
+              "name": "Self-hosted VM or container platform",
+              "pattern_id": "pattern:self-hosted-container"
+            },
+            {
+              "name": "Self-hosted Kubernetes platform",
+              "pattern_id": "pattern:self-hosted-kubernetes"
+            }
+          ],
+          "unknown": [
+            {
+              "name": "Persistent remote developer workspace",
+              "pattern_id": "pattern:persistent-remote-workspace"
+            },
+            {
+              "name": "Vendor-managed ephemeral task",
+              "pattern_id": "pattern:vendor-ephemeral"
+            }
+          ]
+        },
+        "edges": {
+          "added_edge_ids": [
+            "edge:persistent-workspace--depends-on--execution-broker"
+          ],
+          "removed_edge_ids": []
+        },
+        "rules": {
+          "activated_rule_ids": [
+            "rule:persistent-workspaces"
+          ],
+          "deactivated_rule_ids": []
+        }
+      },
+      {
+        "answer": false,
         "components": {
           "added": [],
           "removed": []
@@ -7488,31 +6822,26 @@
             {
               "name": "Self-hosted Kubernetes platform",
               "pattern_id": "pattern:self-hosted-kubernetes"
-            },
+            }
+          ],
+          "unknown": [
             {
               "name": "Vendor-managed ephemeral task",
               "pattern_id": "pattern:vendor-ephemeral"
             }
-          ],
-          "unknown": []
+          ]
         },
         "edges": {
           "added_edge_ids": [],
           "removed_edge_ids": []
         },
         "rules": {
-          "activated_rule_ids": [
-            "rule:reject-managed-customer-isolation",
-            "rule:reject-persistent-workspace-isolation",
-            "rule:reject-self-hosted-container-isolation",
-            "rule:reject-self-hosted-kubernetes-isolation",
-            "rule:reject-vendor-ephemeral-isolation"
-          ],
+          "activated_rule_ids": [],
           "deactivated_rule_ids": []
         }
       },
       {
-        "answer": "container",
+        "answer": null,
         "components": {
           "added": [],
           "removed": []
@@ -7553,130 +6882,28 @@
           "removed_edge_ids": []
         },
         "rules": {
-          "activated_rule_ids": [
-            "rule:reject-developer-local-isolation"
-          ],
-          "deactivated_rule_ids": []
-        }
-      },
-      {
-        "answer": "microvm",
-        "components": {
-          "added": [],
-          "removed": []
-        },
-        "deployment_families": {
-          "feasible": [],
-          "rejected": [
-            {
-              "name": "Developer-hosted local runtime",
-              "pattern_id": "pattern:developer-local"
-            },
-            {
-              "name": "Managed control plane with customer execution",
-              "pattern_id": "pattern:managed-customer-execution"
-            },
-            {
-              "name": "Self-hosted VM or container platform",
-              "pattern_id": "pattern:self-hosted-container"
-            },
-            {
-              "name": "Self-hosted Kubernetes platform",
-              "pattern_id": "pattern:self-hosted-kubernetes"
-            }
-          ],
-          "unknown": [
-            {
-              "name": "Persistent remote developer workspace",
-              "pattern_id": "pattern:persistent-remote-workspace"
-            },
-            {
-              "name": "Vendor-managed ephemeral task",
-              "pattern_id": "pattern:vendor-ephemeral"
-            }
-          ]
-        },
-        "edges": {
-          "added_edge_ids": [],
-          "removed_edge_ids": []
-        },
-        "rules": {
-          "activated_rule_ids": [
-            "rule:reject-developer-local-isolation",
-            "rule:reject-self-hosted-container-isolation",
-            "rule:reject-self-hosted-kubernetes-isolation"
-          ],
-          "deactivated_rule_ids": []
-        }
-      },
-      {
-        "answer": "dedicated-tenant",
-        "components": {
-          "added": [],
-          "removed": []
-        },
-        "deployment_families": {
-          "feasible": [],
-          "rejected": [
-            {
-              "name": "Developer-hosted local runtime",
-              "pattern_id": "pattern:developer-local"
-            },
-            {
-              "name": "Managed control plane with customer execution",
-              "pattern_id": "pattern:managed-customer-execution"
-            },
-            {
-              "name": "Self-hosted VM or container platform",
-              "pattern_id": "pattern:self-hosted-container"
-            },
-            {
-              "name": "Self-hosted Kubernetes platform",
-              "pattern_id": "pattern:self-hosted-kubernetes"
-            },
-            {
-              "name": "Vendor-managed ephemeral task",
-              "pattern_id": "pattern:vendor-ephemeral"
-            }
-          ],
-          "unknown": [
-            {
-              "name": "Persistent remote developer workspace",
-              "pattern_id": "pattern:persistent-remote-workspace"
-            }
-          ]
-        },
-        "edges": {
-          "added_edge_ids": [],
-          "removed_edge_ids": []
-        },
-        "rules": {
-          "activated_rule_ids": [
-            "rule:reject-developer-local-isolation",
-            "rule:reject-vendor-ephemeral-isolation"
-          ],
+          "activated_rule_ids": [],
           "deactivated_rule_ids": []
         }
       }
     ],
     "candidate_answers": [
-      "developer-endpoint",
-      "container",
-      "microvm",
-      "dedicated-tenant"
+      true,
+      false,
+      null
     ],
-    "candidate_elimination_count": 2,
-    "customer_question": "How strictly must each developer's agent session be isolated from other users?",
+    "candidate_elimination_count": 1,
+    "customer_question": "Do developers need the agent to maintain full context and state across work that spans days or weeks?",
     "hard_constraint_risk": true,
-    "information_gain": 240.0,
-    "prompt": "What minimum isolation boundary must separate coding-agent execution?",
-    "question_id": "question:runtime-isolation",
-    "requirement_id": "requirement:runtime-isolation",
-    "requirement_name": "Runtime isolation",
-    "why_it_matters": "Isolation is your security boundary \u2014 it determines how far a misbehaving or compromised agent session can affect others on the same infrastructure.",
-    "why_now": "This answer produces 4 distinct baseline outcomes across 0 components, can eliminate 2 deployment families, and can change a hard constraint."
+    "information_gain": 225.0,
+    "prompt": "Are persistent workspaces required for migrations or durable development environments?",
+    "question_id": "question:long-running-workspaces",
+    "requirement_id": "requirement:long-running-workspaces",
+    "requirement_name": "Long-running workspaces",
+    "why_it_matters": "Standard agent sessions are ephemeral \u2014 the workspace is discarded when a task ends. Persistent workspaces let agents maintain a durable 'desk' for large, multi-session work.",
+    "why_now": "This answer produces 3 distinct baseline outcomes across 1 components, can eliminate 1 deployment families, and can change a hard constraint."
   },
-  "projection_hash": "sha256:5267c5604e0332e7108ab59e3edcc155c630b5f1dad006c8f7010bbeb8182e11",
+  "projection_hash": "sha256:84ca37f44d5e68246afc7ea305f6a014dbeb024d0dfa9a0f516976a8286e8a5f",
   "requirements": [
     {
       "assumption": {
@@ -7685,6 +6912,10 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Should agents require human approval before taking high-risk actions \u2014 like pushing commits, running migrations, or calling external APIs?",
       "description": "Must approval requirements vary by the risk of the action?",
       "name": "Action-dependent approval",
@@ -7703,6 +6934,10 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Are agents restricted to only installing packages from your organization's approved package registries?",
       "description": "May coding agents download packages only from approved registries?",
       "name": "Approved package registries",
@@ -7721,6 +6956,10 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        "fixed-regions",
+        "any-approved"
+      ],
       "customer_question": "Can workloads run in any region your AWS account has approved, or only a specific fixed set of regions?",
       "description": "May workloads run in any approved region or only a fixed region set?",
       "name": "Approved regions",
@@ -7739,6 +6978,10 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Will developers submit work and come back later \u2014 rather than watching it happen live?",
       "description": "Must agents execute unattended issue-to-pull-request tasks?",
       "name": "Asynchronous tasks",
@@ -7752,6 +6995,7 @@
     },
     {
       "assumption": null,
+      "candidate_answers": [],
       "customer_question": "For how many days must the platform keep a complete, replayable record of every action an agent took?",
       "description": "How many days must agent decisions and actions remain replayable?",
       "name": "Audit retention",
@@ -7770,6 +7014,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [],
       "customer_question": "At peak, how many coding-agent tasks will run simultaneously across all your developers?",
       "description": "How many concurrent coding-agent tasks must be supported?",
       "name": "Concurrent agent tasks",
@@ -7788,6 +7033,7 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [],
       "customer_question": "How many developers will use the platform at peak?",
       "description": "How many developers must the platform support?",
       "name": "Developer population",
@@ -7801,6 +7047,12 @@
     },
     {
       "assumption": null,
+      "candidate_answers": [
+        "balanced",
+        "quality",
+        "cost",
+        "latency"
+      ],
       "customer_question": "When choosing which AI model to use for a task, what should the platform optimize for?",
       "description": "Should routing optimize cost, quality, latency, or a balanced outcome?",
       "name": "Economic priority",
@@ -7819,6 +7071,12 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        "entra",
+        "okta",
+        "cognito",
+        "other-oidc"
+      ],
       "customer_question": "Which identity system controls who can log in and what permissions they have on the platform?",
       "description": "Which workforce identity provider and group source must authorize developers?",
       "name": "Enterprise identity",
@@ -7837,6 +7095,12 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        "local",
+        "customer-managed",
+        "vendor-managed",
+        "hybrid"
+      ],
       "customer_question": "Where should your coding agents actually run?",
       "description": "Where must interactive and asynchronous coding-agent execution run?",
       "name": "Execution placement",
@@ -7850,6 +7114,10 @@
     },
     {
       "assumption": null,
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Do developers need the agent to maintain full context and state across work that spans days or weeks?",
       "description": "Are persistent workspaces required for migrations or durable development environments?",
       "name": "Long-running workspaces",
@@ -7863,6 +7131,10 @@
     },
     {
       "assumption": null,
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Should the platform automatically switch to a backup model if the primary one is unavailable or too slow?",
       "description": "Is automatic provider or model fallback required?",
       "name": "Model fallback",
@@ -7876,6 +7148,10 @@
     },
     {
       "assumption": null,
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Must the platform enforce that certain data never crosses geographic or jurisdictional boundaries when calling AI models?",
       "description": "Must model routing enforce region or data-residency constraints?",
       "name": "Residency-aware routing",
@@ -7889,6 +7165,10 @@
     },
     {
       "assumption": null,
+      "candidate_answers": [
+        "static",
+        "dynamic"
+      ],
       "customer_question": "Should the platform use fixed model assignments, or pick the best model automatically for each request?",
       "description": "Should model assignments be static or selected dynamically by policy?",
       "name": "Model routing mode",
@@ -7907,6 +7187,10 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Will multiple specialized agents collaborate together on a single coding task?",
       "description": "Must the platform coordinate multiple coding agents or specialist workers?",
       "name": "Multiple coding agents",
@@ -7914,7 +7198,7 @@
       "requirement_id": "requirement:multi-agent",
       "source": "assumption",
       "status": "assumed",
-      "value": true,
+      "value": false,
       "value_type": "boolean",
       "why_it_matters": "Complex tasks \u2014 like delivering a full feature end-to-end \u2014 may need a planner, a coder, a test writer, and a security reviewer each contributing their own expertise."
     },
@@ -7925,6 +7209,10 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Do you need to use more than one AI model provider simultaneously?",
       "description": "Must the platform route across more than one model provider?",
       "name": "Multiple model providers",
@@ -7937,20 +7225,20 @@
       "why_it_matters": "A single provider is simpler. Multiple providers unlock cost optimization across providers, resilience when one is down, and routing different tasks to the best model for the job."
     },
     {
-      "assumption": {
-        "confidence": 0.6,
-        "owner": "Platform Advisor product team",
-        "rationale": "Working demonstration baseline pending customer confirmation.",
-        "source": "Coding-platform demonstration baseline"
-      },
+      "assumption": null,
+      "candidate_answers": [
+        "independent",
+        "sequential",
+        "parallel-review"
+      ],
       "customer_question": "When multiple agents work together on a task, how should they coordinate their work?",
       "description": "Should agents work independently, hand off sequentially, or produce parallel candidates for review?",
       "name": "Agent orchestration mode",
       "required": false,
       "requirement_id": "requirement:orchestration-mode",
-      "source": "assumption",
-      "status": "assumed",
-      "value": "parallel-review",
+      "source": null,
+      "status": "unanswered",
+      "value": null,
       "value_type": "string",
       "why_it_matters": "The coordination pattern determines latency, cost, quality, and failure modes. Choose the pattern that matches how your human teams actually collaborate today."
     },
@@ -7961,6 +7249,10 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Do you need to trace what an agent did in code all the way back to your CI/CD pipeline and Git history?",
       "description": "Must agent traces correlate with Git and CI outcomes?",
       "name": "Outcome observability",
@@ -7974,6 +7266,10 @@
     },
     {
       "assumption": null,
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Must traffic to model providers and enterprise systems travel over a private network path \u2014 never the public internet?",
       "description": "Must model, tool, and enterprise API traffic use private connectivity?",
       "name": "Private connectivity",
@@ -7987,6 +7283,11 @@
     },
     {
       "assumption": null,
+      "candidate_answers": [
+        "managed",
+        "self-hosted",
+        "multi-provider"
+      ],
       "customer_question": "How will the AI models your agents use be hosted and accessed?",
       "description": "How are model providers hosted and reached through the model gateway?",
       "name": "Model provider hosting",
@@ -8005,6 +7306,10 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Must agent runtimes be restricted to only contacting a pre-approved list of external services \u2014 not the open internet?",
       "description": "Must runtime network egress be restricted to approved destinations?",
       "name": "Restricted egress",
@@ -8018,6 +7323,12 @@
     },
     {
       "assumption": null,
+      "candidate_answers": [
+        "developer-endpoint",
+        "container",
+        "microvm",
+        "dedicated-tenant"
+      ],
       "customer_question": "How strictly must each developer's agent session be isolated from other users?",
       "description": "What minimum isolation boundary must separate coding-agent execution?",
       "name": "Runtime isolation",
@@ -8036,6 +7347,12 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        "gitlab-saas",
+        "gitlab-self-managed",
+        "github",
+        "other"
+      ],
       "customer_question": "Which Git platform do your developers use for code, branches, and pull requests?",
       "description": "Which source-control and pull-request system is authoritative?",
       "name": "Source control system",
@@ -8054,6 +7371,10 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Should each team or business unit have its own isolated workspace with separate policies, usage quotas, and audit logs?",
       "description": "Must teams receive separate policy, quota, and audit workspaces?",
       "name": "Team boundaries",
@@ -8072,6 +7393,10 @@
         "rationale": "Working demonstration baseline pending customer confirmation.",
         "source": "Coding-platform demonstration baseline"
       },
+      "candidate_answers": [
+        true,
+        false
+      ],
       "customer_question": "Must agent tasks start almost instantly, or is a 30\u201360 second initialization wait acceptable?",
       "description": "Must the platform keep warm runtimes or resumable snapshots to meet startup SLOs?",
       "name": "Warm runtime capacity",
@@ -8085,15 +7410,15 @@
     }
   ],
   "revision": {
-    "created_at": "2026-08-04T12:00:00+00:00",
-    "parent_revision_id": "revision:r-f65a4226052bc384cadf",
-    "revision_id": "revision:r-0cd120eef96d25fd4676",
+    "created_at": "2026-07-30T12:00:00+00:00",
+    "parent_revision_id": "revision:r-c8c2131aa20f8fb7893b",
+    "revision_id": "revision:r-40686e0465fcaff722e5",
     "revision_number": 2,
-    "state_hash": "sha256:504e54bb2b5bead04ca9c65bfc48e67be0c41d27fc4be4b8abc01bed1ec0e70c"
+    "state_hash": "sha256:15f50f102e2a156e17c7de5ea486a492b6b98418207e62924f3ea6b67cf54ea3"
   },
   "schema_version": "3.0",
   "workspace": {
-    "current_revision_id": "revision:r-0cd120eef96d25fd4676",
+    "current_revision_id": "revision:r-40686e0465fcaff722e5",
     "workspace_id": "workspace:coding-platform-demo"
   }
 }

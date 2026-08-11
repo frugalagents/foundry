@@ -7,9 +7,15 @@ from datetime import date
 from pathlib import Path
 from typing import Sequence
 
+from .authority import decision_authority_projection
 from .assurance import SelectedBundleContext, build_assurance_outputs
 from .assurance.models import BundleImplementation
-from .deployable import build_deployable_solution, compile_deployable_catalog
+from .deployable import (
+    RecommendationState,
+    build_deployable_solution,
+    compile_deployable_catalog,
+)
+from .deployable.models import DeployableCatalogRelease
 from .engine import evaluate_deployment_feasibility, rank_next_questions
 from .question_enrichment import get_answer_label, get_enrichment
 from .models import (
@@ -148,6 +154,7 @@ def _family_projection(
                 "evaluation_id": rule_evaluation.evaluation_id,
                 "rule_id": rule_evaluation.rule_id,
                 "rule_name": rules[rule_evaluation.rule_id].name,
+                "authority": rule_evaluation.authority.value,
                 "outcome": rule_evaluation.outcome.value,
                 "requirements": [
                     _requirement_ref(
@@ -270,6 +277,7 @@ def _decision_projection(
         "evaluation_id": evaluation.evaluation_id,
         "rule_id": evaluation.rule_id,
         "rule_name": rule.name,
+        "authority": evaluation.authority.value,
         "effect": evaluation.effect.value,
         "requirements": [
             _requirement_ref(requirement_id, requirements, constraints)
@@ -574,20 +582,20 @@ def _evidence_projection(
 def build_frontend_projection(
     workspace: ArchitectureWorkspace,
     catalog: CatalogRelease,
+    *,
+    deployable_catalog: DeployableCatalogRelease | None = None,
 ) -> dict[str, object]:
     """Project a validated workspace into a deterministic frontend contract."""
 
     initial = workspace.revisions[0]
     current = workspace.revisions[-1]
     feasibility = evaluate_deployment_feasibility(workspace, catalog)
-    # Compile the deployable catalog once so capability-rule thresholds feed the
-    # discovery engine (e.g. audit-retention-days >= 90) without double I/O.
-    try:
-        deployable_catalog = compile_deployable_catalog(catalog)
-        capability_rules = deployable_catalog.capability_rules
-    except Exception:
-        deployable_catalog = None
-        capability_rules = ()
+    # Production supplies the deployable catalog from the same verified release.
+    # Source compilation remains available only for explicit local/test callers.
+    resolved_deployable_catalog = (
+        deployable_catalog or compile_deployable_catalog(catalog)
+    )
+    capability_rules = resolved_deployable_catalog.capability_rules
     questions = rank_next_questions(workspace, catalog, extra_capability_rules=capability_rules)
 
     requirements = {
@@ -604,18 +612,27 @@ def build_frontend_projection(
     rules = {rule.id: rule for rule in catalog.rules}
     claims = {claim.id: claim for claim in catalog.evidence_claims}
     sources = {source.id: source for source in catalog.evidence_sources}
-    deployable = build_deployable_solution(current, catalog, deployable_catalog)
-    recommended_candidate = next(
+    deployable = build_deployable_solution(
+        current,
+        catalog,
+        resolved_deployable_catalog,
+    )
+    automatically_selected_candidate = next(
         (
             candidate
             for candidate in deployable.candidates
-            if candidate.bundle_id == deployable.recommendation.candidate_id
+            if (
+                deployable.recommendation.state
+                is RecommendationState.RECOMMENDED
+                and candidate.bundle_id
+                == deployable.recommendation.candidate_id
+            )
         ),
         None,
     )
     selected_bundle = (
         SelectedBundleContext(
-            bundle_id=recommended_candidate.bundle_id,
+            bundle_id=automatically_selected_candidate.bundle_id,
             implementations=tuple(
                 BundleImplementation(
                     component_id=selection.component_id,
@@ -623,10 +640,10 @@ def build_frontend_projection(
                     provider=selection.provider_class.value.upper(),
                     product=selection.service_name,
                 )
-                for selection in recommended_candidate.selections
+                for selection in automatically_selected_candidate.selections
             ),
         )
-        if recommended_candidate is not None
+        if automatically_selected_candidate is not None
         else None
     )
     assurance = build_assurance_outputs(
@@ -634,6 +651,7 @@ def build_frontend_projection(
         catalog,
         selected_bundle,
         as_of=catalog.validated_as_of,
+        deployable_catalog=resolved_deployable_catalog,
     )
 
     baseline_component_ids = {
@@ -732,6 +750,7 @@ def build_frontend_projection(
 
     payload: dict[str, object] = {
         "schema_version": PROJECTION_SCHEMA_VERSION,
+        "decision_authority": decision_authority_projection(),
         "workspace": {
             "workspace_id": workspace.workspace_id,
             "current_revision_id": workspace.current_revision_id,

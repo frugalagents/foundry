@@ -14,6 +14,7 @@ from advisor_core.v3 import (
     RequirementOperator,
     RequirementPatch,
     RevisionConflictError,
+    RuleAuthority,
     RuleEffect,
     RulePredicate,
     apply_requirement_patch,
@@ -42,6 +43,23 @@ SCENARIO_PATH = (
 
 def _catalog():
     return compile_catalog(CATALOG_PATH, as_of=date(2026, 7, 30))
+
+
+def test_catalog_rules_have_explicit_authority():
+    catalog = _catalog()
+    counts = {
+        authority: sum(
+            rule.authority is authority for rule in catalog.rules
+        )
+        for authority in RuleAuthority
+    }
+
+    assert counts == {
+        RuleAuthority.HARD_CONSTRAINT: 24,
+        RuleAuthority.COMPATIBILITY: 15,
+        RuleAuthority.PREFERENCE: 1,
+        RuleAuthority.EXPLANATION: 0,
+    }
 
 
 def _constraint(requirement_id: str, value, *, minute: int = 0):
@@ -324,7 +342,7 @@ def test_unknown_value_preserves_architecture_without_firing_rule():
     assert updated.revisions[-1].delta.activated_rule_ids == ()
 
 
-def test_unknown_does_not_activate_negative_rule_or_get_immediately_reasked():
+def test_required_unknown_does_not_activate_rule_and_is_reasked():
     catalog = _catalog()
     negative_rule = DecisionRule(
         id="rule:non-local-model-router",
@@ -338,6 +356,7 @@ def test_unknown_does_not_activate_negative_rule_or_get_immediately_reasked():
                 value="local",
             ),
         ),
+        authority=RuleAuthority.HARD_CONSTRAINT,
         effect=RuleEffect.REQUIRE,
         target_component_ids=("component:model-router",),
     )
@@ -366,10 +385,14 @@ def test_unknown_does_not_activate_negative_rule_or_get_immediately_reasked():
         evaluation.rule_id
         for evaluation in updated.revisions[-1].rule_evaluations
     }
-    assert "requirement:execution-placement" not in {
-        question.requirement_id
+    questions = {
+        question.requirement_id: question
         for question in rank_next_questions(updated, catalog)
     }
+    assert "requirement:execution-placement" in questions
+    assert None not in questions[
+        "requirement:execution-placement"
+    ].candidate_answers
 
 
 def test_child_answer_is_dormant_when_prerequisite_becomes_false():
@@ -456,6 +479,7 @@ def test_catalog_content_pin_and_component_conflicts_fail_closed():
                 value=True,
             ),
         ),
+        authority=RuleAuthority.HARD_CONSTRAINT,
         effect=RuleEffect.EXCLUDE,
         target_component_ids=("component:execution-broker",),
     )
@@ -545,7 +569,7 @@ def test_question_ranking_surfaces_hard_architecture_effects():
     assert "component:restricted-egress" in candidate.affected_component_ids
     assert True in candidate.candidate_answers
     assert False in candidate.candidate_answers
-    assert None in candidate.candidate_answers
+    assert None not in candidate.candidate_answers
     assert candidate.candidate_elimination_count == 0
     assert candidate.information_gain > 100
     impacts = {impact.answer: impact for impact in candidate.answer_impacts}
@@ -557,7 +581,6 @@ def test_question_ranking_surfaces_hard_architecture_effects():
         "edge:restricted-egress--depends-on--policy-engine",
     } == set(impacts[True].added_edge_ids)
     assert impacts[False].added_component_ids == ()
-    assert impacts[None].added_component_ids == ()
     placement_impacts = {
         impact.answer: impact for impact in placement.answer_impacts
     }
@@ -695,11 +718,11 @@ def test_missing_family_rule_coverage_fails_closed():
     )
 
     with pytest.raises(
-        ValueError,
-        match=(
-            "self-hosted-kubernetes.*missing hard-rule coverage.*"
-            "runtime-isolation"
-        ),
+            ValueError,
+            match=(
+                "self-hosted-kubernetes.*missing eligibility-rule coverage.*"
+                "runtime-isolation"
+            ),
     ):
         evaluate_deployment_feasibility(workspace, catalog)
 
@@ -979,12 +1002,14 @@ def test_headless_demo_proves_progressive_architecture_without_ui():
     assert result["revision"]["revision_number"] == 2
     assert {
         "component:model-router",
-        "component:multi-agent-supervisor",
-        "component:parallel-reviewer",
         "component:restricted-egress",
         "component:warm-runtime-pool",
         "component:local-runtime",
     } <= set(result["revision"]["delta"]["added_component_ids"])
+    assert {
+        "component:multi-agent-supervisor",
+        "component:parallel-reviewer",
+    }.isdisjoint(result["revision"]["delta"]["added_component_ids"])
     assert result["next_question"]["hard_constraint_risk"] is True
     assert (
         result["next_question"]["requirement_id"]
@@ -997,9 +1022,9 @@ def test_headless_demo_proves_progressive_architecture_without_ui():
     assert {
         "rule:hybrid-execution",
         "rule:multi-provider-routing",
-        "rule:parallel-independent-review",
         "rule:restricted-egress",
     } <= rule_ids
+    assert "rule:parallel-independent-review" not in rule_ids
     family_statuses = {
         family["pattern_id"]: family["status"]
         for family in result["deployment_feasibility"]["families"]

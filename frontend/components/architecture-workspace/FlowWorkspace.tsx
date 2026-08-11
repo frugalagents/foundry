@@ -126,6 +126,7 @@ export function FlowWorkspace({
 
   const guidance = useMemo(() => deriveWorkspaceGuidance(projection), [projection]);
   const recommendation = projection.deployable_solution?.recommendation;
+  const isAdvisoryComparison = recommendation?.state === 'advisory';
   const selectedCandidate = projection.deployable_solution?.candidates.find(
     (candidate) => candidate.bundle_id === recommendation?.candidate_id,
   ) ?? projection.deployable_solution?.candidates[0];
@@ -662,7 +663,11 @@ export function FlowWorkspace({
               })()}
 
               <section>
-                <h3>Recommended deployable solution</h3>
+                <h3>
+                  {isAdvisoryComparison
+                    ? 'Advisory comparison leader'
+                    : 'Recommended deployable solution'}
+                </h3>
                 {selectedCandidate ? (
                   <>
                     <p className="fw-dialog-copy"><b>{selectedCandidate.name}</b> | {recommendation?.rationale}</p>
@@ -718,8 +723,8 @@ export function FlowWorkspace({
                       <div key={indicator.dimension_id}>
                         <b>{shortId(indicator.dimension_id)}</b>
                         <span>{indicator.winner_changes
-                          ? `Winner changes to ${shortId(indicator.challenger_candidate_id ?? 'challenger')} at weight ${indicator.switch_weight?.toFixed(2)}`
-                          : 'Recommendation remains stable across tested weights'}</span>
+                          ? `Comparison leader changes to ${shortId(indicator.challenger_candidate_id ?? 'challenger')} at weight ${indicator.switch_weight?.toFixed(2)}`
+                          : 'Comparison leader remains stable across tested weights'}</span>
                       </div>
                     ))}
                   </div>
@@ -1071,7 +1076,7 @@ function WorkspaceSummary({
                 </p>
                 {guidance.openRequirements.length > 0 ? (
                   <>
-                    <p>{guidance.openRequirements.length} additional answer{guidance.openRequirements.length === 1 ? '' : 's'} will complete the bundle recommendation and unlock publication.</p>
+                    <p>{guidance.openRequirements.length} additional answer{guidance.openRequirements.length === 1 ? '' : 's'} will complete the bundle comparison for review.</p>
                     {guidance.openRequirements.map((req) => {
                       const chosen = openReqPatch[req.id];
                       if ((req.candidate_answers?.length ?? 0) > 0) {

@@ -104,6 +104,13 @@ class RuleEffect(StrEnum):
     WARN = "warn"
 
 
+class RuleAuthority(StrEnum):
+    HARD_CONSTRAINT = "hard_constraint"
+    COMPATIBILITY = "compatibility"
+    PREFERENCE = "preference"
+    EXPLANATION = "explanation"
+
+
 class FeasibilityStatus(StrEnum):
     FEASIBLE = "feasible"
     REJECTED = "rejected"
@@ -265,6 +272,7 @@ class DecisionRule(VersionedRecord):
     name: str = Field(min_length=1)
     description: str = Field(min_length=1)
     when: tuple[RulePredicate, ...]
+    authority: RuleAuthority
     effect: RuleEffect
     target_component_ids: tuple[StableId, ...] = ()
     target_pattern_ids: tuple[StableId, ...] = ()
@@ -293,6 +301,31 @@ class DecisionRule(VersionedRecord):
             )
         if self.id in self.depends_on_rule_ids:
             raise ValueError(f"rule {self.id} cannot depend on itself")
+        if self.authority is RuleAuthority.HARD_CONSTRAINT and (
+            self.effect not in (RuleEffect.REQUIRE, RuleEffect.EXCLUDE)
+            or not self.target_component_ids
+        ):
+            raise ValueError(
+                "hard-constraint rules must require or exclude components"
+            )
+        if self.authority is RuleAuthority.COMPATIBILITY and (
+            self.effect is not RuleEffect.EXCLUDE
+            or not self.target_pattern_ids
+        ):
+            raise ValueError(
+                "compatibility rules must exclude deployment patterns"
+            )
+        if self.authority is RuleAuthority.PREFERENCE and (
+            self.effect is not RuleEffect.RECOMMEND
+            or not self.target_component_ids
+        ):
+            raise ValueError(
+                "preference rules must recommend components"
+            )
+        if self.authority is RuleAuthority.EXPLANATION and (
+            self.effect is not RuleEffect.WARN
+        ):
+            raise ValueError("explanation rules must use the warn effect")
         return self
 
 
@@ -519,6 +552,7 @@ class ArchitectureState(FrozenModel):
 class RuleEvaluation(FrozenModel):
     evaluation_id: StableId
     rule_id: StableId
+    authority: RuleAuthority
     effect: RuleEffect
     requirement_ids: tuple[StableId, ...]
     target_component_ids: tuple[StableId, ...] = ()
@@ -619,6 +653,7 @@ class DecisionTraceTransition(FrozenModel):
 class FeasibilityRuleEvaluation(FrozenModel):
     evaluation_id: StableId
     rule_id: StableId
+    authority: RuleAuthority
     pattern_id: StableId
     outcome: RuleOutcome
     requirement_ids: tuple[StableId, ...]

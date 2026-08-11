@@ -1,0 +1,87 @@
+name: Knowledge Release Validation
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/knowledge-release-validation.yml"
+      - "Makefile"
+      - "infra/template.yaml"
+      - "knowledge/**"
+      - "tools/knowledge/**"
+      - "backend/api/routers/architecture.py"
+      - "PlatformAdvisorAgent/agentcore/agentcore.json"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/advisor_core/knowledge/**"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/advisor_core/v3/authority.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/advisor_core/v3/catalog.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/advisor_core/v3/catalogs/**"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/advisor_core/v3/deployable/**"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/advisor_core/v3/runtime.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/architecture_v3_runtime.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_knowledge_*.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_legacy_knowledge_migration.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_okf_loader.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_publication.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_release_*.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_runtime_graph.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_runtime_release.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_architecture_v3_runtime.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_v3_decision_authority.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_search_projection.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_vector_projection.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/tests/test_semantic_validator.py"
+  push:
+    branches: [main]
+    paths:
+      - "knowledge/**"
+      - "tools/knowledge/**"
+      - "PlatformAdvisorAgent/agentcore/agentcore.json"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/advisor_core/knowledge/**"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/advisor_core/v3/authority.py"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/advisor_core/v3/catalogs/**"
+      - "PlatformAdvisorAgent/app/PlatformAdvisorAgent/advisor_core/v3/runtime.py"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: PlatformAdvisorAgent/app/PlatformAdvisorAgent
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Validate locked dependencies
+        run: uv lock --check
+
+      - name: Run knowledge release safety suite
+        run: >-
+          uv run --locked --with pytest pytest -q
+          tests/test_knowledge_catalog_compiler.py
+          tests/test_knowledge_models.py
+          tests/test_knowledge_pages.py
+          tests/test_legacy_knowledge_migration.py
+          tests/test_okf_loader.py
+          tests/test_publication.py
+          tests/test_release_artifacts.py
+          tests/test_release_publication.py
+          tests/test_release_scenarios.py
+          tests/test_runtime_release.py
+          tests/test_architecture_v3_runtime.py
+          tests/test_v3_decision_authority.py
+          tests/test_semantic_validator.py
+          tests/test_source_portfolio.py
+          tests/test_source_registry.py
+          tests/test_v3_catalog_compiler.py
+          tests/test_v3_deployable_bundles.py
+          tests/test_v3_release_safety.py

@@ -9,9 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, ConfigDict, Field
 
-from advisor_core.v3.demo import build_demo_workspace
+from advisor_core.knowledge.runtime_release import (
+    KnowledgeReleaseLoadError,
+    get_configured_knowledge_release,
+)
 from advisor_core.v3.models import content_hash
 from advisor_core.v3.projection import build_frontend_projection
+from advisor_core.v3.runtime import build_runtime_workspace
 from api.db import dynamodb as db
 from api.middleware.auth import authorize_owned_resource, get_current_user, get_user_id
 
@@ -99,16 +103,34 @@ def _projection(
     persistence_hash: str,
 ) -> dict[str, object]:
     try:
-        catalog, workspace = build_demo_workspace(
+        release, workspace = build_runtime_workspace(
             as_of,
+            workspace_id=workspace_id,
             requirement_values=answers,
         )
-        projection = build_frontend_projection(workspace, catalog)
+        projection = build_frontend_projection(
+            workspace,
+            release.logical_catalog,
+            deployable_catalog=release.deployable_catalog,
+        )
+    except KnowledgeReleaseLoadError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The pinned architecture knowledge release is unavailable",
+        ) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
+    projection["knowledge_release"] = {
+        "release_id": release.manifest.release_id,
+        "version": release.manifest.release_version,
+        "manifest_hash": release.manifest.manifest_hash,
+        "deployable_catalog_id": release.deployable_catalog.id,
+        "deployable_catalog_version": release.deployable_catalog.version,
+        "deployable_catalog_hash": release.deployable_catalog.content_hash,
+    }
     projection["workspace"]["workspace_id"] = workspace_id
     projection["workspace"]["persistence_revision"] = persistence_revision
     projection["workspace"]["persistence_hash"] = persistence_hash
@@ -281,6 +303,24 @@ def _customer_package(
             "catalog_content_hash": projection["catalog"]["content_hash"],
             "catalog_validated_as_of": projection["catalog"][
                 "validated_as_of"
+            ],
+            "knowledge_release_id": projection["knowledge_release"][
+                "release_id"
+            ],
+            "knowledge_release_version": projection["knowledge_release"][
+                "version"
+            ],
+            "knowledge_release_manifest_hash": projection[
+                "knowledge_release"
+            ]["manifest_hash"],
+            "deployable_catalog_id": projection["knowledge_release"][
+                "deployable_catalog_id"
+            ],
+            "deployable_catalog_version": projection[
+                "knowledge_release"
+            ]["deployable_catalog_version"],
+            "deployable_catalog_hash": projection["knowledge_release"][
+                "deployable_catalog_hash"
             ],
             "engine_revision_id": projection["revision"]["revision_id"],
             "engine_revision_number": projection["revision"][
@@ -668,10 +708,13 @@ async def chat_architecture(
             detail="Architecture engine is unavailable",
         ) from exc
 
-    catalog, _ = build_demo_workspace(
-        date.fromisoformat(state["as_of"]),
-        requirement_values=answers,
-    )
+    try:
+        catalog = get_configured_knowledge_release().logical_catalog
+    except KnowledgeReleaseLoadError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The pinned architecture knowledge release is unavailable",
+        ) from exc
     result = engine_agents.interpret_requirements(
         payload.message,
         catalog.requirements,

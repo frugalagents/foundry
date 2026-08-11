@@ -3,37 +3,22 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import date, datetime, time, timezone
+from datetime import date
 from pathlib import Path
 
 from .catalog import compile_catalog
 from .engine import (
-    apply_requirement_patch,
     evaluate_deployment_feasibility,
-    initialize_workspace,
     rank_next_questions,
 )
-from .models import AssumptionMetadata, RequirementConstraint, RequirementPatch
+from .runtime import (
+    CODING_PLATFORM_WORKING_ASSUMPTIONS,
+    build_workspace_from_catalog,
+)
 
 
 CATALOG_PATH = Path(__file__).parent / "catalogs" / "coding-platform"
-DEMO_ASSUMPTIONS = {
-    "requirement:action-approval": True,
-    "requirement:approved-package-registries": True,
-    "requirement:approved-regions": "any-approved",
-    "requirement:asynchronous-tasks": True,
-    "requirement:concurrent-agent-tasks": 1000,
-    "requirement:developer-count": 5000,
-    "requirement:enterprise-identity": "entra",
-    "requirement:execution-placement": "hybrid",
-    "requirement:multi-agent": False,
-    "requirement:multi-model-provider": True,
-    "requirement:outcome-observability": True,
-    "requirement:restricted-egress": True,
-    "requirement:source-control": "gitlab-saas",
-    "requirement:team-boundaries": True,
-    "requirement:warm-runtime-capacity": True,
-}
+DEMO_ASSUMPTIONS = CODING_PLATFORM_WORKING_ASSUMPTIONS
 
 
 def build_demo_workspace(
@@ -42,54 +27,12 @@ def build_demo_workspace(
 ):
     """Build the deterministic workspace shared by headless demo projections."""
 
-    recorded_at = datetime.combine(as_of, time(12, 0), tzinfo=timezone.utc)
     catalog = compile_catalog(CATALOG_PATH, as_of=as_of)
-    workspace = initialize_workspace(
+    workspace = build_workspace_from_catalog(
         catalog,
+        as_of=as_of,
         workspace_id="workspace:coding-platform-demo",
-        created_at=recorded_at,
-    )
-    initial = workspace.revisions[-1]
-    user_values = requirement_values or {}
-    values = {**DEMO_ASSUMPTIONS, **user_values}
-    patch = RequirementPatch(
-        patch_id="patch:enterprise-coding-platform",
-        base_revision_number=initial.revision_number,
-        changes=tuple(
-            RequirementConstraint(
-                requirement_id=requirement_id,
-                value=value,
-                source=(
-                    "user"
-                    if requirement_id in user_values
-                    else "assumption"
-                ),
-                assumption=(
-                    None
-                    if requirement_id in user_values
-                    else AssumptionMetadata(
-                        rationale=(
-                            "Working demonstration baseline pending customer "
-                            "confirmation."
-                        ),
-                        confidence=0.6,
-                        owner="Platform Advisor product team",
-                        source="Coding-platform demonstration baseline",
-                    )
-                ),
-                recorded_at=recorded_at,
-            )
-            for requirement_id, value in sorted(values.items())
-        ),
-        rationale=(
-            "Apply demonstration assumptions and any explicit user requirements."
-        ),
-    )
-    workspace = apply_requirement_patch(
-        workspace,
-        patch,
-        catalog,
-        created_at=recorded_at,
+        requirement_values=requirement_values,
     )
     return catalog, workspace
 

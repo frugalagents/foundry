@@ -25,6 +25,22 @@
           "value": "EDDM8YZDNJ"
         },
         {
+          "name": "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_ROOT",
+          "value": "runtime_releases"
+        },
+        {
+          "name": "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_PLATFORM",
+          "value": "coding-platform"
+        },
+        {
+          "name": "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_VERSION",
+          "value": "1.3.0"
+        },
+        {
+          "name": "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_MANIFEST_HASH",
+          "value": "sha256:dcfd1f4d77bd43b92dd2bf06beccbdb11eaacac901da7b16df5f2bb3d46ae9ab"
+        },
+        {
           "name": "AWS_DOCS_MCP_ENDPOINT",
           "value": ""
         },

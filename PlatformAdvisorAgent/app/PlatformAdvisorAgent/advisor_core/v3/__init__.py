@@ -1,6 +1,21 @@
 """Architecture-first Platform Advisor v3 contracts and catalog compiler."""
 
-from .catalog import CatalogCompilationError, compile_catalog, load_catalog_documents
+from .authority import (
+    ADVISORY_OUTPUTS,
+    AUTHORITATIVE_OPERATIONS,
+    DecisionAuthorityError,
+    decision_authority_projection,
+    is_advisory_rule,
+    is_architecture_authority,
+    is_eligibility_authority,
+    validate_decision_authority,
+)
+from .catalog import (
+    CatalogCompilationError,
+    compile_catalog,
+    compile_catalog_documents,
+    load_catalog_documents,
+)
 from .engine import (
     ArchitectureConflictError,
     RevisionConflictError,
@@ -40,6 +55,7 @@ from .models import (
     RequirementPatch,
     RequirementValueType,
     RuleEvaluation,
+    RuleAuthority,
     RuleEffect,
     RuleOutcome,
     RulePredicate,
@@ -49,6 +65,8 @@ from .models import (
 )
 
 __all__ = [
+    "ADVISORY_OUTPUTS",
+    "AUTHORITATIVE_OPERATIONS",
     "AnswerImpact",
     "ArchitectureDelta",
     "ArchitectureEdge",
@@ -66,6 +84,7 @@ __all__ = [
     "ComponentDefinition",
     "ComponentKind",
     "DecisionRule",
+    "DecisionAuthorityError",
     "DeploymentFamilyEvaluation",
     "DeploymentFeasibilityAssessment",
     "EvidenceClaim",
@@ -82,6 +101,7 @@ __all__ = [
     "RequirementValueType",
     "RevisionConflictError",
     "RuleEvaluation",
+    "RuleAuthority",
     "RuleEffect",
     "RuleOutcome",
     "RulePredicate",
@@ -89,9 +109,15 @@ __all__ = [
     "apply_requirement_patch",
     "canonical_json",
     "compile_catalog",
+    "compile_catalog_documents",
     "content_hash",
+    "decision_authority_projection",
     "evaluate_deployment_feasibility",
     "initialize_workspace",
+    "is_advisory_rule",
+    "is_architecture_authority",
+    "is_eligibility_authority",
     "load_catalog_documents",
     "rank_next_questions",
+    "validate_decision_authority",
 ]

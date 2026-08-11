@@ -7,6 +7,7 @@ from datetime import date
 from pydantic import BaseModel
 
 from ..deployable import build_deployable_solution
+from ..deployable.models import DeployableCatalogRelease
 from ..engine import validate_workspace_revision
 from ..models import ArchitectureWorkspace, CatalogRelease, content_hash
 from .catalog import load_assurance_catalog
@@ -38,6 +39,7 @@ def build_assurance_outputs(
     ) = None,
     *,
     as_of: date,
+    deployable_catalog: DeployableCatalogRelease | None = None,
 ) -> AssuranceOutputs:
     """Build one deterministic, content-addressed R0.3 assurance packet."""
 
@@ -94,7 +96,11 @@ def build_assurance_outputs(
         as_of=as_of,
     )
     outcomes = build_outcome_plan(assurance_catalog)
-    decision_matrix = build_deployable_solution(revision, catalog)
+    decision_matrix = build_deployable_solution(
+        revision,
+        catalog,
+        deployable_catalog,
+    )
     readiness = build_decision_readiness(
         revision,
         catalog,

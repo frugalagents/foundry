@@ -1,0 +1,19 @@
+schema_version: "1.0"
+principals:
+  research_agent:
+    - write_candidate
+    - write_review_bundle
+  human_reviewer:
+    - record_review_decision
+  release_pipeline:
+    - publish_knowledge
+    - publish_catalog
+publication_requirements:
+  - all candidate review records are approved
+  - a contradiction report is present
+  - no blocking contradiction remains unresolved
+external_controls_required:
+  - protect the default branch
+  - require knowledge-owner review
+  - require the knowledge validation workflow
+  - restrict catalog publication credentials to the release pipeline

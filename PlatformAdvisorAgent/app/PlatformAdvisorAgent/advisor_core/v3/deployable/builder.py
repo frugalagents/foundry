@@ -1000,21 +1000,15 @@ def build_deployable_solution(
     eligible = _eligible_candidates(candidates)
     if eligible:
         winner = sorted(eligible, key=_ranking_key)[0]
-        state = (
-            RecommendationState.RECOMMENDED
-            if winner.compatibility_status
-            is CompatibilityStatus.COMPATIBLE
-            else RecommendationState.CONDITIONAL
-        )
         recommendation = Recommendation(
-            state=state,
+            state=RecommendationState.ADVISORY,
             candidate_id=winner.bundle_id,
             rationale=(
-                f"{winner.name} ranks first at "
-                f"{winner.weighted_score:.3f}/100, satisfies the highest "
-                "available compatibility tier, uses a feasible deployment "
-                "family, and is evaluated against "
-                f"{len(winner.selections)} family-closure components."
+                f"{winner.name} is the comparison leader at "
+                f"{winner.weighted_score:.3f}/100 under the current scoring "
+                "profile. The score is advisory and does not select a bundle; "
+                "selection requires reviewed decision patterns and explicit "
+                "customer acceptance."
             ),
         )
     else:

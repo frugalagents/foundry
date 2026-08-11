@@ -51,6 +51,7 @@ class FindingSeverity(StrEnum):
 class RecommendationState(StrEnum):
     RECOMMENDED = "recommended"
     CONDITIONAL = "conditional"
+    ADVISORY = "advisory"
     NO_VIABLE_CANDIDATE = "no_viable_candidate"
 
 

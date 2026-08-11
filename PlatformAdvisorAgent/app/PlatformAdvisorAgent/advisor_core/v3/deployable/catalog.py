@@ -342,7 +342,21 @@ def compile_deployable_catalog(
 ) -> DeployableCatalogRelease:
     """Compile R0.2 artifacts against an exact logical catalog release."""
 
-    documents = load_deployable_documents(path)
+    return compile_deployable_documents(
+        logical_catalog,
+        load_deployable_documents(path),
+        as_of=as_of,
+    )
+
+
+def compile_deployable_documents(
+    logical_catalog: CatalogRelease,
+    documents: tuple[DeployableCatalogDocument, ...],
+    *,
+    as_of: date | None = None,
+) -> DeployableCatalogRelease:
+    """Compile parsed deployable documents against a logical release."""
+
     manifest = _one_manifest(documents)
     validated_as_of = as_of or logical_catalog.validated_as_of
     if validated_as_of < manifest.effective_on:
@@ -407,7 +421,7 @@ def compile_deployable_catalog(
         raise DeployableCatalogCompilationError(
             "component offering records must be unique"
         )
-    if set(offering_ids) != component_ids:
+    if offerings and set(offering_ids) != component_ids:
         raise DeployableCatalogCompilationError(
             "component offering coverage must exactly match logical components"
         )

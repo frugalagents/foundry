@@ -1,0 +1,52 @@
+{
+  "built_at": "2026-08-11T12:00:00Z",
+  "compiler_version": "1.0.0",
+  "deployable_catalog_hash": "sha256:a8b6f30a781d113970baafce67560ec8bde05739ca5bf2699f039e398d3e8671",
+  "deployable_catalog_id": "deployable-catalog:coding-platform",
+  "deployable_catalog_version": "0.2.0",
+  "files": [
+    {
+      "content_hash": "sha256:f79df3dcf852ef9da865cc832d6174e11b25180bee04627bf7eca7d99fa0681d",
+      "media_type": "application/json",
+      "path": "benchmark-report.json",
+      "size_bytes": 2847
+    },
+    {
+      "content_hash": "sha256:28c9478d07864626d0a0a90b17d627d9db27e6478810efa6fae7d20b21524fa6",
+      "media_type": "application/json",
+      "path": "deployable-catalog.json",
+      "size_bytes": 147166
+    },
+    {
+      "content_hash": "sha256:d642e017ab83c42bbca5b5b9ee38b186d51f5c8c50e8bcefbe8baffce3f0fd5c",
+      "media_type": "application/json",
+      "path": "logical-catalog.json",
+      "size_bytes": 64223
+    },
+    {
+      "content_hash": "sha256:d5d65b5797e58227eb72b5b29f4ef53a71f767a6b8476469b91aeb73854cba3e",
+      "media_type": "application/json",
+      "path": "semantic-validation.json",
+      "size_bytes": 235
+    },
+    {
+      "content_hash": "sha256:3d7e53c354648a44248a4c8f42af3325d6a75a8565a46f60d9c3e1c5b35e07de",
+      "media_type": "application/json",
+      "path": "source-inventory.json",
+      "size_bytes": 2060
+    }
+  ],
+  "logical_catalog_hash": "sha256:11163b71cab05bf05658b26320fec87e59a662f59bd71bd350d930a0ace574f8",
+  "logical_catalog_id": "catalog:coding-platform",
+  "logical_catalog_version": "3.0.0",
+  "manifest_hash": "sha256:66570937b8b7ca7700f5aa186a50c852492fa62d5cce7ebb0704a8332690c2f5",
+  "migration_bundle_hash": "sha256:4da1b1467ad746f280df1a0e0ad268a08a7cf997f8cae354b50f7742266cfcbf",
+  "release_id": "release:coding-platform-knowledge",
+  "release_version": "1.0.0",
+  "scenario_count": 6,
+  "scenario_pass_count": 6,
+  "scenario_suite_id": "scenario-suite:knowledge-release-safety",
+  "scenario_suite_version": "1.0.0",
+  "schema_version": "1.0",
+  "semantic_validation_hash": "sha256:e648914b0efbcb41088776ce1f6611f7a1529be031230818a09b91e3c4582a64"
+}

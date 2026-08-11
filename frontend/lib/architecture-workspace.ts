@@ -3,7 +3,12 @@ export type RequirementValue = string | number | boolean | null;
 export type ComponentStatus = 'baseline' | 'added' | 'removed';
 export type FeasibilityStatus = 'feasible' | 'rejected' | 'unknown';
 export type RequirementStatus = 'answered' | 'assumed' | 'unknown' | 'unanswered';
-export type RuleEffect = 'require' | 'recommend' | 'exclude';
+export type RuleAuthority =
+  | 'hard_constraint'
+  | 'compatibility'
+  | 'preference'
+  | 'explanation';
+export type RuleEffect = 'require' | 'recommend' | 'exclude' | 'warn';
 
 export interface ArchitectureWorkspaceMeta {
   workspace_id: string;
@@ -111,6 +116,7 @@ export interface NextArchitectureQuestion {
 export interface DecisionTraceEntry {
   evaluation_id: string;
   rule_id: string;
+  authority: RuleAuthority;
   effect: RuleEffect;
   requirement_ids: string[];
   target_component_ids: string[];
@@ -171,7 +177,7 @@ export interface DeployableDecisionMatrix {
   candidates: DeployableCandidate[];
   pareto_candidate_ids: string[];
   recommendation: {
-    state: 'recommended' | 'conditional' | 'no_viable_candidate';
+    state: 'recommended' | 'conditional' | 'advisory' | 'no_viable_candidate';
     candidate_id?: string;
     rationale: string;
   };
@@ -293,8 +299,16 @@ export interface NumericRange {
   high: number;
 }
 
+export interface DecisionAuthority {
+  schema_version: string;
+  authoritative_operations: string[];
+  advisory_outputs: string[];
+  automatic_bundle_selection: boolean;
+}
+
 export interface ArchitectureWorkspaceProjection {
   meta: ArchitectureWorkspaceMeta;
+  decision_authority: DecisionAuthority;
   requirements: ArchitectureRequirement[];
   assumptions?: (RequirementAssumption & {
     requirement_id: string;
@@ -489,6 +503,23 @@ export const architectureSampleProjection: ArchitectureWorkspaceProjection = {
     catalog_id: 'catalog:coding-platform',
     catalog_version: '3.0.0',
     generated_at: '2026-07-30T12:00:00Z',
+  },
+  decision_authority: {
+    schema_version: '1.0',
+    authoritative_operations: [
+      'catalog_lifecycle',
+      'component_requirements',
+      'dependency_closure',
+      'deployment_eligibility',
+      'required_controls',
+    ],
+    advisory_outputs: [
+      'candidate_ranking',
+      'pareto_analysis',
+      'preference_rules',
+      'sensitivity_analysis',
+    ],
+    automatic_bundle_selection: false,
   },
   requirements: [
     { id: 'requirement:execution-placement', name: 'Execution placement', value: 'hybrid', status: 'answered' },
@@ -706,22 +737,22 @@ export const architectureSampleProjection: ArchitectureWorkspaceProjection = {
     ],
   },
   decision_trace: [
-    { evaluation_id: 'evaluation:hybrid-execution', rule_id: 'rule:hybrid-execution', effect: 'require', requirement_ids: ['requirement:execution-placement'], target_component_ids: ['component:ephemeral-runtime', 'component:local-runtime'], rationale: 'Hybrid placement requires governed developer-local execution plus isolated ephemeral remote execution.' },
-    { evaluation_id: 'evaluation:asynchronous-runtime', rule_id: 'rule:asynchronous-runtime', effect: 'require', requirement_ids: ['requirement:asynchronous-tasks'], target_component_ids: ['component:ephemeral-runtime'], rationale: 'Unattended tasks require an isolated ephemeral runtime.' },
-    { evaluation_id: 'evaluation:high-concurrency-runtime', rule_id: 'rule:high-concurrency-runtime', effect: 'require', requirement_ids: ['requirement:concurrent-agent-tasks'], target_component_ids: ['component:ephemeral-runtime'], rationale: 'High concurrent task volume requires scalable remote execution.' },
-    { evaluation_id: 'evaluation:warm-runtime-capacity', rule_id: 'rule:warm-runtime-capacity', effect: 'require', requirement_ids: ['requirement:warm-runtime-capacity'], target_component_ids: ['component:warm-runtime-pool'], rationale: 'Strict startup SLOs require warm capacity or resumable execution snapshots.' },
-    { evaluation_id: 'evaluation:multi-agent-supervision', rule_id: 'rule:multi-agent-supervision', effect: 'require', requirement_ids: ['requirement:multi-agent'], target_component_ids: ['component:multi-agent-supervisor'], rationale: 'Multi-agent workflows require orchestration and supervision.' },
-    { evaluation_id: 'evaluation:parallel-independent-review', rule_id: 'rule:parallel-independent-review', effect: 'require', requirement_ids: ['requirement:orchestration-mode'], target_component_ids: ['component:parallel-reviewer'], rationale: 'Parallel candidate generation requires supervision and an independent review stage.' },
-    { evaluation_id: 'evaluation:multi-provider-routing', rule_id: 'rule:multi-provider-routing', effect: 'require', requirement_ids: ['requirement:multi-model-provider'], target_component_ids: ['component:model-router'], rationale: 'Multiple providers require a model catalog and policy router.' },
-    { evaluation_id: 'evaluation:restricted-egress', rule_id: 'rule:restricted-egress', effect: 'require', requirement_ids: ['requirement:restricted-egress'], target_component_ids: ['component:restricted-egress'], rationale: 'Restricted egress requires a policy-enforced network boundary.' },
-    { evaluation_id: 'evaluation:risk-based-approval', rule_id: 'rule:risk-based-approval', effect: 'require', requirement_ids: ['requirement:action-approval'], target_component_ids: ['component:human-approval'], rationale: 'Risk-dependent actions require policy and approval evidence.' },
-    { evaluation_id: 'evaluation:outcome-correlation', rule_id: 'rule:outcome-correlation', effect: 'require', requirement_ids: ['requirement:outcome-observability'], target_component_ids: ['component:economics-ledger', 'component:outcome-correlator'], rationale: 'Outcome observability requires trace, evaluation, Git, and CI correlation.' },
-    { evaluation_id: 'evaluation:regional-flexibility', rule_id: 'rule:regional-flexibility', effect: 'recommend', requirement_ids: ['requirement:approved-regions'], target_component_ids: ['component:multi-region'], rationale: 'Any-approved-region deployment benefits from region-aware routing.' },
-    { evaluation_id: 'evaluation:team-isolation', rule_id: 'rule:team-isolation', effect: 'require', requirement_ids: ['requirement:team-boundaries'], target_component_ids: ['component:quota-manager', 'component:team-workspaces'], rationale: 'Team boundaries require independent quota and policy scopes.' },
-    { evaluation_id: 'evaluation:scale-quotas', rule_id: 'rule:scale-quotas', effect: 'require', requirement_ids: ['requirement:developer-count'], target_component_ids: ['component:quota-manager'], rationale: 'Large developer populations require quota and budget controls.' },
-    { evaluation_id: 'evaluation:package-governance', rule_id: 'rule:package-governance', effect: 'require', requirement_ids: ['requirement:approved-package-registries'], target_component_ids: ['component:package-access'], rationale: 'Approved registries require controlled package access.' },
-    { evaluation_id: 'evaluation:reject-managed-customer-placement', rule_id: 'rule:reject-managed-customer-placement', effect: 'exclude', requirement_ids: ['requirement:execution-placement'], target_component_ids: [], target_pattern_ids: ['pattern:managed-customer-execution'], rationale: 'Managed customer execution requires customer-managed placement.' },
-    { evaluation_id: 'evaluation:reject-self-hosted-container-placement', rule_id: 'rule:reject-self-hosted-container-placement', effect: 'exclude', requirement_ids: ['requirement:execution-placement'], target_component_ids: [], target_pattern_ids: ['pattern:self-hosted-container'], rationale: 'A self-hosted container platform requires customer-managed placement.' },
-    { evaluation_id: 'evaluation:reject-self-hosted-kubernetes-placement', rule_id: 'rule:reject-self-hosted-kubernetes-placement', effect: 'exclude', requirement_ids: ['requirement:execution-placement'], target_component_ids: [], target_pattern_ids: ['pattern:self-hosted-kubernetes'], rationale: 'A self-hosted Kubernetes platform requires customer-managed placement.' },
+    { evaluation_id: 'evaluation:hybrid-execution', rule_id: 'rule:hybrid-execution', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:execution-placement'], target_component_ids: ['component:ephemeral-runtime', 'component:local-runtime'], rationale: 'Hybrid placement requires governed developer-local execution plus isolated ephemeral remote execution.' },
+    { evaluation_id: 'evaluation:asynchronous-runtime', rule_id: 'rule:asynchronous-runtime', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:asynchronous-tasks'], target_component_ids: ['component:ephemeral-runtime'], rationale: 'Unattended tasks require an isolated ephemeral runtime.' },
+    { evaluation_id: 'evaluation:high-concurrency-runtime', rule_id: 'rule:high-concurrency-runtime', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:concurrent-agent-tasks'], target_component_ids: ['component:ephemeral-runtime'], rationale: 'High concurrent task volume requires scalable remote execution.' },
+    { evaluation_id: 'evaluation:warm-runtime-capacity', rule_id: 'rule:warm-runtime-capacity', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:warm-runtime-capacity'], target_component_ids: ['component:warm-runtime-pool'], rationale: 'Strict startup SLOs require warm capacity or resumable execution snapshots.' },
+    { evaluation_id: 'evaluation:multi-agent-supervision', rule_id: 'rule:multi-agent-supervision', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:multi-agent'], target_component_ids: ['component:multi-agent-supervisor'], rationale: 'Multi-agent workflows require orchestration and supervision.' },
+    { evaluation_id: 'evaluation:parallel-independent-review', rule_id: 'rule:parallel-independent-review', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:orchestration-mode'], target_component_ids: ['component:parallel-reviewer'], rationale: 'Parallel candidate generation requires supervision and an independent review stage.' },
+    { evaluation_id: 'evaluation:multi-provider-routing', rule_id: 'rule:multi-provider-routing', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:multi-model-provider'], target_component_ids: ['component:model-router'], rationale: 'Multiple providers require a model catalog and policy router.' },
+    { evaluation_id: 'evaluation:restricted-egress', rule_id: 'rule:restricted-egress', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:restricted-egress'], target_component_ids: ['component:restricted-egress'], rationale: 'Restricted egress requires a policy-enforced network boundary.' },
+    { evaluation_id: 'evaluation:risk-based-approval', rule_id: 'rule:risk-based-approval', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:action-approval'], target_component_ids: ['component:human-approval'], rationale: 'Risk-dependent actions require policy and approval evidence.' },
+    { evaluation_id: 'evaluation:outcome-correlation', rule_id: 'rule:outcome-correlation', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:outcome-observability'], target_component_ids: ['component:economics-ledger', 'component:outcome-correlator'], rationale: 'Outcome observability requires trace, evaluation, Git, and CI correlation.' },
+    { evaluation_id: 'evaluation:regional-flexibility', rule_id: 'rule:regional-flexibility', authority: 'preference', effect: 'recommend', requirement_ids: ['requirement:approved-regions'], target_component_ids: ['component:multi-region'], rationale: 'Any-approved-region deployment benefits from region-aware routing.' },
+    { evaluation_id: 'evaluation:team-isolation', rule_id: 'rule:team-isolation', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:team-boundaries'], target_component_ids: ['component:quota-manager', 'component:team-workspaces'], rationale: 'Team boundaries require independent quota and policy scopes.' },
+    { evaluation_id: 'evaluation:scale-quotas', rule_id: 'rule:scale-quotas', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:developer-count'], target_component_ids: ['component:quota-manager'], rationale: 'Large developer populations require quota and budget controls.' },
+    { evaluation_id: 'evaluation:package-governance', rule_id: 'rule:package-governance', authority: 'hard_constraint', effect: 'require', requirement_ids: ['requirement:approved-package-registries'], target_component_ids: ['component:package-access'], rationale: 'Approved registries require controlled package access.' },
+    { evaluation_id: 'evaluation:reject-managed-customer-placement', rule_id: 'rule:reject-managed-customer-placement', authority: 'compatibility', effect: 'exclude', requirement_ids: ['requirement:execution-placement'], target_component_ids: [], target_pattern_ids: ['pattern:managed-customer-execution'], rationale: 'Managed customer execution requires customer-managed placement.' },
+    { evaluation_id: 'evaluation:reject-self-hosted-container-placement', rule_id: 'rule:reject-self-hosted-container-placement', authority: 'compatibility', effect: 'exclude', requirement_ids: ['requirement:execution-placement'], target_component_ids: [], target_pattern_ids: ['pattern:self-hosted-container'], rationale: 'A self-hosted container platform requires customer-managed placement.' },
+    { evaluation_id: 'evaluation:reject-self-hosted-kubernetes-placement', rule_id: 'rule:reject-self-hosted-kubernetes-placement', authority: 'compatibility', effect: 'exclude', requirement_ids: ['requirement:execution-placement'], target_component_ids: [], target_pattern_ids: ['pattern:self-hosted-kubernetes'], rationale: 'A self-hosted Kubernetes platform requires customer-managed placement.' },
   ],
 };

@@ -8,9 +8,9 @@ from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import ClientError
 
 import architecture_v3_runtime
-from advisor_core.v3.demo import build_demo_workspace
 from advisor_core.v3.models import content_hash
 from advisor_core.v3.projection import build_frontend_projection
+from advisor_core.v3.runtime import build_runtime_workspace
 from architecture_v3_runtime import (
     ACTION,
     ArchitectureV3Conflict,
@@ -203,8 +203,24 @@ def test_get_matches_shared_projection_and_atomically_pins_initial_revision():
     result = _adapter(table).execute(_request("get"))
     projection = result["projection"]
 
-    catalog, workspace = build_demo_workspace(AS_OF, requirement_values={})
-    expected = build_frontend_projection(workspace, catalog)
+    release, workspace = build_runtime_workspace(
+        AS_OF,
+        workspace_id=projection["workspace"]["workspace_id"],
+        requirement_values={},
+    )
+    expected = build_frontend_projection(
+        workspace,
+        release.logical_catalog,
+        deployable_catalog=release.deployable_catalog,
+    )
+    expected["knowledge_release"] = {
+        "release_id": release.manifest.release_id,
+        "version": release.manifest.release_version,
+        "manifest_hash": release.manifest.manifest_hash,
+        "deployable_catalog_id": release.deployable_catalog.id,
+        "deployable_catalog_version": release.deployable_catalog.version,
+        "deployable_catalog_hash": release.deployable_catalog.content_hash,
+    }
     expected["workspace"]["workspace_id"] = projection["workspace"][
         "workspace_id"
     ]
@@ -228,6 +244,8 @@ def test_get_matches_shared_projection_and_atomically_pins_initial_revision():
     ) == projection
     for field in (
         "catalog_hash",
+        "deployable_catalog_hash",
+        "knowledge_release_manifest_hash",
         "ruleset_hash",
         "engine_hash",
         "projection_hash",
@@ -315,7 +333,7 @@ def test_get_replays_stored_packet_without_current_catalogs(monkeypatch):
 
     monkeypatch.setattr(
         architecture_v3_runtime,
-        "build_demo_workspace",
+        "build_runtime_workspace",
         unavailable,
     )
 

@@ -1,0 +1,2044 @@
+{
+  "components": [
+    {
+      "dependency_ids": [
+        "component:workforce-identity"
+      ],
+      "description": "Versioned requirements, decisions, and architecture state.",
+      "evidence_claim_ids": [],
+      "id": "component:advisor-workspace",
+      "kind": "logical",
+      "name": "Architecture workspace",
+      "plane": "experience",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workload-identity"
+      ],
+      "description": "Controls approved coding agents, versions, and ownership.",
+      "evidence_claim_ids": [],
+      "id": "component:agent-registry",
+      "kind": "logical",
+      "name": "Agent registry",
+      "plane": "orchestration",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [],
+      "description": "Stores versioned patterns, components, rules, and controls.",
+      "evidence_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "id": "component:architecture-knowledge",
+      "kind": "logical",
+      "name": "Architecture intelligence catalog",
+      "plane": "knowledge",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workforce-identity"
+      ],
+      "description": "Preserves replayable requirements, decisions, and agent actions.",
+      "evidence_claim_ids": [],
+      "id": "component:audit-ledger",
+      "kind": "logical",
+      "name": "Decision and action ledger",
+      "plane": "governance",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:tool-gateway"
+      ],
+      "description": "Catalogs approved tools, APIs, schemas, and owners.",
+      "evidence_claim_ids": [],
+      "id": "component:connector-registry",
+      "kind": "logical",
+      "name": "Connector registry",
+      "plane": "tool",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:execution-broker"
+      ],
+      "description": "Runs coding-agent tasks on customer-operated container compute.",
+      "evidence_claim_ids": [],
+      "id": "component:container-runtime",
+      "kind": "logical",
+      "name": "Self-hosted container runtime",
+      "plane": "execution",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [],
+      "description": "Developer-facing CLI, IDE, and task interfaces.",
+      "evidence_claim_ids": [],
+      "id": "component:developer-clients",
+      "kind": "logical",
+      "name": "Coding agent clients",
+      "plane": "experience",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "description": "Attributes model and platform cost to successful outcomes.",
+      "evidence_claim_ids": [],
+      "id": "component:economics-ledger",
+      "kind": "logical",
+      "name": "Token and platform economics",
+      "plane": "observability",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:connector-registry"
+      ],
+      "description": "Connects approved enterprise systems with scoped credentials.",
+      "evidence_claim_ids": [],
+      "id": "component:enterprise-api-access",
+      "kind": "logical",
+      "name": "Enterprise API access",
+      "plane": "tool",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:execution-broker"
+      ],
+      "description": "Runs isolated asynchronous tasks in short-lived environments.",
+      "evidence_claim_ids": [],
+      "id": "component:ephemeral-runtime",
+      "kind": "logical",
+      "name": "Ephemeral task runtime",
+      "plane": "execution",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "description": "Measures task quality, safety, and regression behavior.",
+      "evidence_claim_ids": [],
+      "id": "component:evaluation-service",
+      "kind": "logical",
+      "name": "Evaluation service",
+      "plane": "observability",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:architecture-knowledge"
+      ],
+      "description": "Connects reviewed claims to immutable source snapshots.",
+      "evidence_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "id": "component:evidence-catalog",
+      "kind": "logical",
+      "name": "Evidence claim catalog",
+      "plane": "knowledge",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workload-identity"
+      ],
+      "description": "Places tasks onto eligible local or remote runtimes.",
+      "evidence_claim_ids": [],
+      "id": "component:execution-broker",
+      "kind": "logical",
+      "name": "Execution broker",
+      "plane": "execution",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:audit-ledger",
+        "component:policy-engine"
+      ],
+      "description": "Requires approval at declared high-impact transaction boundaries.",
+      "evidence_claim_ids": [],
+      "id": "component:human-approval",
+      "kind": "overlay",
+      "name": "Risk-based human approval",
+      "plane": "governance",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:container-runtime"
+      ],
+      "description": "Runs coding-agent tasks on a customer-operated Kubernetes platform.",
+      "evidence_claim_ids": [],
+      "id": "component:kubernetes-runtime",
+      "kind": "logical",
+      "name": "Self-hosted Kubernetes runtime",
+      "plane": "execution",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:execution-broker"
+      ],
+      "description": "Runs interactive coding agents on governed developer endpoints.",
+      "evidence_claim_ids": [],
+      "id": "component:local-runtime",
+      "kind": "logical",
+      "name": "Managed local runtime",
+      "plane": "execution",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:model-gateway"
+      ],
+      "description": "Frontier inference via a managed provider (e.g. Amazon Bedrock, Anthropic API), reached through the model gateway.",
+      "evidence_claim_ids": [
+        "claim:bedrock-managed-inference"
+      ],
+      "id": "component:managed-model-provider",
+      "kind": "overlay",
+      "name": "Managed model provider",
+      "plane": "model",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:model-gateway"
+      ],
+      "description": "Records approved models, providers, regions, and constraints.",
+      "evidence_claim_ids": [],
+      "id": "component:model-catalog",
+      "kind": "logical",
+      "name": "Model catalog",
+      "plane": "model",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:model-router"
+      ],
+      "description": "Applies bounded fallback among eligible model providers.",
+      "evidence_claim_ids": [],
+      "id": "component:model-fallback",
+      "kind": "overlay",
+      "name": "Model-provider fallback",
+      "plane": "model",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workload-identity"
+      ],
+      "description": "Provides a governed model invocation boundary.",
+      "evidence_claim_ids": [],
+      "id": "component:model-gateway",
+      "kind": "logical",
+      "name": "Model gateway",
+      "plane": "model",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:model-catalog"
+      ],
+      "description": "Selects eligible models using declared policy and economics.",
+      "evidence_claim_ids": [],
+      "id": "component:model-router",
+      "kind": "logical",
+      "name": "Model router",
+      "plane": "model",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:orchestration-runtime"
+      ],
+      "description": "Coordinates specialist workers and independent review.",
+      "evidence_claim_ids": [],
+      "id": "component:multi-agent-supervisor",
+      "kind": "overlay",
+      "name": "Multi-agent supervisor",
+      "plane": "orchestration",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:telemetry-pipeline"
+      ],
+      "description": "Adds region-aware routing, failover, and evidence.",
+      "evidence_claim_ids": [],
+      "id": "component:multi-region",
+      "kind": "overlay",
+      "name": "Multi-region resilience",
+      "plane": "observability",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workflow-definitions"
+      ],
+      "description": "Coordinates agent turns, handoffs, state, and cancellation.",
+      "evidence_claim_ids": [],
+      "id": "component:orchestration-runtime",
+      "kind": "logical",
+      "name": "Agent orchestration runtime",
+      "plane": "orchestration",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:evaluation-service",
+        "component:source-control-integration"
+      ],
+      "description": "Joins agent traces to source-control and CI results.",
+      "evidence_claim_ids": [],
+      "id": "component:outcome-correlator",
+      "kind": "logical",
+      "name": "Outcome correlator",
+      "plane": "observability",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:tool-gateway"
+      ],
+      "description": "Restricts dependency retrieval to governed registries.",
+      "evidence_claim_ids": [],
+      "id": "component:package-access",
+      "kind": "logical",
+      "name": "Approved package access",
+      "plane": "tool",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:multi-agent-supervisor"
+      ],
+      "description": "Runs independent candidate agents and routes their results through a separate reviewer.",
+      "evidence_claim_ids": [],
+      "id": "component:parallel-reviewer",
+      "kind": "overlay",
+      "name": "Parallel candidates with independent review",
+      "plane": "orchestration",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:execution-broker"
+      ],
+      "description": "Supports long migrations and durable development environments.",
+      "evidence_claim_ids": [],
+      "id": "component:persistent-workspace",
+      "kind": "logical",
+      "name": "Persistent developer workspace",
+      "plane": "execution",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workload-identity"
+      ],
+      "description": "Evaluates tool, model, data, network, and approval policy.",
+      "evidence_claim_ids": [],
+      "id": "component:policy-engine",
+      "kind": "logical",
+      "name": "Policy engine",
+      "plane": "governance",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workload-identity"
+      ],
+      "description": "Keeps eligible model, tool, and runtime traffic on private paths.",
+      "evidence_claim_ids": [],
+      "id": "component:private-connectivity",
+      "kind": "overlay",
+      "name": "Private connectivity",
+      "plane": "access",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:team-workspaces"
+      ],
+      "description": "Enforces team concurrency, usage, and economic limits.",
+      "evidence_claim_ids": [],
+      "id": "component:quota-manager",
+      "kind": "logical",
+      "name": "Quota and budget manager",
+      "plane": "governance",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:execution-broker",
+        "component:policy-engine"
+      ],
+      "description": "Allows runtimes to reach only approved destinations.",
+      "evidence_claim_ids": [],
+      "id": "component:restricted-egress",
+      "kind": "overlay",
+      "name": "Restricted runtime egress",
+      "plane": "governance",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:policy-engine"
+      ],
+      "description": "Issues short-lived credentials to approved agent actions.",
+      "evidence_claim_ids": [],
+      "id": "component:secrets-broker",
+      "kind": "logical",
+      "name": "Secrets broker",
+      "plane": "governance",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:model-gateway"
+      ],
+      "description": "In-VPC or air-gapped model serving for residency-sensitive and sovereign workloads.",
+      "evidence_claim_ids": [
+        "claim:self-hosted-residency"
+      ],
+      "id": "component:self-hosted-inference",
+      "kind": "overlay",
+      "name": "Self-hosted inference",
+      "plane": "model",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:orchestration-runtime"
+      ],
+      "description": "Passes bounded work products between specialist agents with explicit state and completion criteria.",
+      "evidence_claim_ids": [],
+      "id": "component:sequential-handoff",
+      "kind": "overlay",
+      "name": "Sequential specialist handoff",
+      "plane": "orchestration",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:tool-gateway"
+      ],
+      "description": "Connects issues, repositories, branches, reviews, and merges.",
+      "evidence_claim_ids": [],
+      "id": "component:source-control-integration",
+      "kind": "logical",
+      "name": "Source control integration",
+      "plane": "tool",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:model-catalog"
+      ],
+      "description": "Pins approved models to declared agent roles without request-time model selection.",
+      "evidence_claim_ids": [],
+      "id": "component:static-model-binding",
+      "kind": "overlay",
+      "name": "Static multi-model binding",
+      "plane": "model",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workforce-identity"
+      ],
+      "description": "Separates delegated policy, quota, and audit scopes.",
+      "evidence_claim_ids": [],
+      "id": "component:team-workspaces",
+      "kind": "logical",
+      "name": "Team workspaces",
+      "plane": "access",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workload-identity"
+      ],
+      "description": "Collects model, tool, runtime, and policy traces.",
+      "evidence_claim_ids": [],
+      "id": "component:telemetry-pipeline",
+      "kind": "logical",
+      "name": "Agent telemetry pipeline",
+      "plane": "observability",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workload-identity"
+      ],
+      "description": "Applies authentication, policy, and audit to tool invocation.",
+      "evidence_claim_ids": [],
+      "id": "component:tool-gateway",
+      "kind": "logical",
+      "name": "Tool and API gateway",
+      "plane": "tool",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:ephemeral-runtime"
+      ],
+      "description": "Maintains pre-initialized or resumable execution capacity for startup-latency objectives.",
+      "evidence_claim_ids": [],
+      "id": "component:warm-runtime-pool",
+      "kind": "overlay",
+      "name": "Warm pools and resumable snapshots",
+      "plane": "execution",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:agent-registry"
+      ],
+      "description": "Defines reproducible single-agent and multi-agent workflows.",
+      "evidence_claim_ids": [],
+      "id": "component:workflow-definitions",
+      "kind": "logical",
+      "name": "Workflow definitions",
+      "plane": "orchestration",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [],
+      "description": "Authenticates developers and resolves enterprise groups.",
+      "evidence_claim_ids": [],
+      "id": "component:workforce-identity",
+      "kind": "logical",
+      "name": "Workforce identity",
+      "plane": "access",
+      "version": "1.0.0"
+    },
+    {
+      "dependency_ids": [
+        "component:workforce-identity"
+      ],
+      "description": "Issues scoped identities to agent runs and tools.",
+      "evidence_claim_ids": [],
+      "id": "component:workload-identity",
+      "kind": "logical",
+      "name": "Workload identity",
+      "plane": "access",
+      "version": "1.0.0"
+    }
+  ],
+  "content_hash": "sha256:11163b71cab05bf05658b26320fec87e59a662f59bd71bd350d930a0ace574f8",
+  "effective_on": "2026-07-30",
+  "evidence_claims": [
+    {
+      "critical": false,
+      "effective_on": "2026-07-30",
+      "expires_on": null,
+      "id": "claim:architecture-first-authority",
+      "review_status": "approved",
+      "reviewer": "person:legacy-catalog-reviewer",
+      "source_id": "source:platform-advisor-vision",
+      "source_locator": "Vision and Product Principles",
+      "statement": "Provider-neutral architecture and deterministic constraints precede named service selection.",
+      "version": "1.0.0"
+    },
+    {
+      "critical": false,
+      "effective_on": "2026-07-30",
+      "expires_on": null,
+      "id": "claim:bedrock-managed-inference",
+      "review_status": "approved",
+      "reviewer": "person:legacy-catalog-reviewer",
+      "source_id": "source:aws-bedrock-docs",
+      "source_locator": "What is Amazon Bedrock",
+      "statement": "Amazon Bedrock provides managed, region-scoped access to frontier models with private connectivity via VPC endpoints, removing the need to operate inference infrastructure.",
+      "version": "1.0.0"
+    },
+    {
+      "critical": false,
+      "effective_on": "2026-07-30",
+      "expires_on": null,
+      "id": "claim:multi-provider-resilience",
+      "review_status": "approved",
+      "reviewer": "person:legacy-catalog-reviewer",
+      "source_id": "source:aws-well-architected",
+      "source_locator": "Reliability Pillar - Failure Management",
+      "statement": "Routing across more than one model provider with bounded fallback improves availability and mitigates single-provider capacity and quota limits.",
+      "version": "1.0.0"
+    },
+    {
+      "critical": false,
+      "effective_on": "2026-07-30",
+      "expires_on": null,
+      "id": "claim:self-hosted-residency",
+      "review_status": "approved",
+      "reviewer": "person:legacy-catalog-reviewer",
+      "source_id": "source:aws-well-architected",
+      "source_locator": "Security Pillar - Data Protection",
+      "statement": "Self-hosted, in-VPC or air-gapped inference keeps model traffic and data within a controlled boundary, satisfying data-residency and sovereignty constraints at the cost of operating the serving stack.",
+      "version": "1.0.0"
+    }
+  ],
+  "evidence_sources": [
+    {
+      "id": "source:aws-bedrock-docs",
+      "publisher": "Amazon Web Services",
+      "retrieved_at": "2026-07-30T00:00:00Z",
+      "snapshot_hash": "sha256:3641761e2dcdd2ab28d7b8e1ed3a5e7069022bee590fdb7ba481ad555a9b928c",
+      "title": "Amazon Bedrock Documentation snapshot",
+      "uri": "https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html",
+      "version": "1.0.0"
+    },
+    {
+      "id": "source:aws-well-architected",
+      "publisher": "Amazon Web Services",
+      "retrieved_at": "2026-07-30T00:00:00Z",
+      "snapshot_hash": "sha256:43321706ff284208766c402dc980802d9754dd27fbe1409b53230c278332a812",
+      "title": "AWS Well-Architected Framework snapshot",
+      "uri": "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html",
+      "version": "1.0.0"
+    },
+    {
+      "id": "source:platform-advisor-vision",
+      "publisher": "Platform Advisor",
+      "retrieved_at": "2026-07-30T00:00:00Z",
+      "snapshot_hash": "sha256:a236155058acc31e350dc7094549a69454c795cef0da6c29a0d84471752b6a81",
+      "title": "Platform Advisor Product Vision snapshot",
+      "uri": "repo:docs/platform-advisor-product-vision.md",
+      "version": "1.0.0"
+    }
+  ],
+  "id": "catalog:coding-platform",
+  "patterns": [
+    {
+      "component_ids": [
+        "component:agent-registry",
+        "component:audit-ledger",
+        "component:developer-clients",
+        "component:execution-broker",
+        "component:local-runtime",
+        "component:model-gateway",
+        "component:policy-engine",
+        "component:source-control-integration",
+        "component:telemetry-pipeline",
+        "component:tool-gateway",
+        "component:workforce-identity"
+      ],
+      "description": "Interactive agents execute on governed developer endpoints.",
+      "evidence_claim_ids": [],
+      "id": "pattern:developer-local",
+      "name": "Developer-hosted local runtime",
+      "role": "deployment_family",
+      "version": "1.0.0"
+    },
+    {
+      "component_ids": [
+        "component:advisor-workspace",
+        "component:agent-registry",
+        "component:architecture-knowledge",
+        "component:audit-ledger",
+        "component:connector-registry",
+        "component:developer-clients",
+        "component:economics-ledger",
+        "component:evaluation-service",
+        "component:evidence-catalog",
+        "component:execution-broker",
+        "component:model-catalog",
+        "component:model-gateway",
+        "component:orchestration-runtime",
+        "component:outcome-correlator",
+        "component:package-access",
+        "component:policy-engine",
+        "component:quota-manager",
+        "component:secrets-broker",
+        "component:source-control-integration",
+        "component:team-workspaces",
+        "component:telemetry-pipeline",
+        "component:tool-gateway",
+        "component:workflow-definitions",
+        "component:workforce-identity",
+        "component:workload-identity"
+      ],
+      "description": "A deployment-neutral coding-agent platform hypothesis refined by requirements.",
+      "evidence_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "id": "pattern:logical-reference",
+      "name": "Provider-neutral logical reference",
+      "role": "logical_reference",
+      "version": "1.0.0"
+    },
+    {
+      "component_ids": [
+        "component:agent-registry",
+        "component:audit-ledger",
+        "component:container-runtime",
+        "component:developer-clients",
+        "component:execution-broker",
+        "component:model-gateway",
+        "component:orchestration-runtime",
+        "component:policy-engine",
+        "component:secrets-broker",
+        "component:source-control-integration",
+        "component:team-workspaces",
+        "component:telemetry-pipeline",
+        "component:tool-gateway",
+        "component:workflow-definitions",
+        "component:workforce-identity",
+        "component:workload-identity"
+      ],
+      "description": "A managed control plane places work onto customer-governed runtimes.",
+      "evidence_claim_ids": [],
+      "id": "pattern:managed-customer-execution",
+      "name": "Managed control plane with customer execution",
+      "role": "deployment_family",
+      "version": "1.0.0"
+    },
+    {
+      "component_ids": [
+        "component:agent-registry",
+        "component:audit-ledger",
+        "component:developer-clients",
+        "component:execution-broker",
+        "component:model-gateway",
+        "component:persistent-workspace",
+        "component:policy-engine",
+        "component:secrets-broker",
+        "component:source-control-integration",
+        "component:telemetry-pipeline",
+        "component:tool-gateway",
+        "component:workforce-identity",
+        "component:workload-identity"
+      ],
+      "description": "Agents and developers share durable remote environments.",
+      "evidence_claim_ids": [],
+      "id": "pattern:persistent-remote-workspace",
+      "name": "Persistent remote developer workspace",
+      "role": "deployment_family",
+      "version": "1.0.0"
+    },
+    {
+      "component_ids": [
+        "component:agent-registry",
+        "component:audit-ledger",
+        "component:container-runtime",
+        "component:developer-clients",
+        "component:execution-broker",
+        "component:model-gateway",
+        "component:policy-engine",
+        "component:secrets-broker",
+        "component:source-control-integration",
+        "component:telemetry-pipeline",
+        "component:tool-gateway",
+        "component:workforce-identity",
+        "component:workload-identity"
+      ],
+      "description": "Customer-operated container compute hosts coding agents.",
+      "evidence_claim_ids": [],
+      "id": "pattern:self-hosted-container",
+      "name": "Self-hosted VM or container platform",
+      "role": "deployment_family",
+      "version": "1.0.0"
+    },
+    {
+      "component_ids": [
+        "component:agent-registry",
+        "component:audit-ledger",
+        "component:developer-clients",
+        "component:execution-broker",
+        "component:kubernetes-runtime",
+        "component:model-gateway",
+        "component:orchestration-runtime",
+        "component:policy-engine",
+        "component:quota-manager",
+        "component:secrets-broker",
+        "component:source-control-integration",
+        "component:team-workspaces",
+        "component:telemetry-pipeline",
+        "component:tool-gateway",
+        "component:workflow-definitions",
+        "component:workforce-identity",
+        "component:workload-identity"
+      ],
+      "description": "Customer-operated Kubernetes provides runtime placement and isolation.",
+      "evidence_claim_ids": [],
+      "id": "pattern:self-hosted-kubernetes",
+      "name": "Self-hosted Kubernetes platform",
+      "role": "deployment_family",
+      "version": "1.0.0"
+    },
+    {
+      "component_ids": [
+        "component:agent-registry",
+        "component:audit-ledger",
+        "component:developer-clients",
+        "component:ephemeral-runtime",
+        "component:execution-broker",
+        "component:model-gateway",
+        "component:policy-engine",
+        "component:source-control-integration",
+        "component:telemetry-pipeline",
+        "component:tool-gateway",
+        "component:workforce-identity",
+        "component:workload-identity"
+      ],
+      "description": "A managed service executes short-lived coding tasks.",
+      "evidence_claim_ids": [],
+      "id": "pattern:vendor-ephemeral",
+      "name": "Vendor-managed ephemeral task",
+      "role": "deployment_family",
+      "version": "1.0.0"
+    }
+  ],
+  "requirements": [
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "Must approval requirements vary by the risk of the action?",
+      "evidence_claim_ids": [],
+      "id": "requirement:action-approval",
+      "name": "Action-dependent approval",
+      "required": true,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "May coding agents download packages only from approved registries?",
+      "evidence_claim_ids": [],
+      "id": "requirement:approved-package-registries",
+      "name": "Approved package registries",
+      "required": true,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [
+        "fixed-regions",
+        "any-approved"
+      ],
+      "ask_when": [],
+      "description": "May workloads run in any approved region or only a fixed region set?",
+      "evidence_claim_ids": [],
+      "id": "requirement:approved-regions",
+      "name": "Approved regions",
+      "required": false,
+      "value_type": "string",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "Must agents execute unattended issue-to-pull-request tasks?",
+      "evidence_claim_ids": [],
+      "id": "requirement:asynchronous-tasks",
+      "name": "Asynchronous tasks",
+      "required": false,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "How many days must agent decisions and actions remain replayable?",
+      "evidence_claim_ids": [],
+      "id": "requirement:audit-retention-days",
+      "name": "Audit retention",
+      "required": false,
+      "value_type": "integer",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "How many concurrent coding-agent tasks must be supported?",
+      "evidence_claim_ids": [],
+      "id": "requirement:concurrent-agent-tasks",
+      "name": "Concurrent agent tasks",
+      "required": true,
+      "value_type": "integer",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "How many developers must the platform support?",
+      "evidence_claim_ids": [],
+      "id": "requirement:developer-count",
+      "name": "Developer population",
+      "required": true,
+      "value_type": "integer",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [
+        "balanced",
+        "quality",
+        "cost",
+        "latency"
+      ],
+      "ask_when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:multi-model-provider",
+          "value": true
+        }
+      ],
+      "description": "Should routing optimize cost, quality, latency, or a balanced outcome?",
+      "evidence_claim_ids": [],
+      "id": "requirement:economic-priority",
+      "name": "Economic priority",
+      "required": false,
+      "value_type": "string",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [
+        "entra",
+        "okta",
+        "cognito",
+        "other-oidc"
+      ],
+      "ask_when": [],
+      "description": "Which workforce identity provider and group source must authorize developers?",
+      "evidence_claim_ids": [],
+      "id": "requirement:enterprise-identity",
+      "name": "Enterprise identity",
+      "required": true,
+      "value_type": "string",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [
+        "local",
+        "customer-managed",
+        "vendor-managed",
+        "hybrid"
+      ],
+      "ask_when": [],
+      "description": "Where must interactive and asynchronous coding-agent execution run?",
+      "evidence_claim_ids": [],
+      "id": "requirement:execution-placement",
+      "name": "Execution placement",
+      "required": true,
+      "value_type": "string",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "Are persistent workspaces required for migrations or durable development environments?",
+      "evidence_claim_ids": [],
+      "id": "requirement:long-running-workspaces",
+      "name": "Long-running workspaces",
+      "required": false,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:multi-model-provider",
+          "value": true
+        }
+      ],
+      "description": "Is automatic provider or model fallback required?",
+      "evidence_claim_ids": [],
+      "id": "requirement:model-fallback",
+      "name": "Model fallback",
+      "required": false,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:multi-model-provider",
+          "value": true
+        }
+      ],
+      "description": "Must model routing enforce region or data-residency constraints?",
+      "evidence_claim_ids": [],
+      "id": "requirement:model-residency-routing",
+      "name": "Residency-aware routing",
+      "required": false,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [
+        "static",
+        "dynamic"
+      ],
+      "ask_when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:multi-model-provider",
+          "value": true
+        }
+      ],
+      "description": "Should model assignments be static or selected dynamically by policy?",
+      "evidence_claim_ids": [],
+      "id": "requirement:model-routing-mode",
+      "name": "Model routing mode",
+      "required": false,
+      "value_type": "string",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "Must the platform coordinate multiple coding agents or specialist workers?",
+      "evidence_claim_ids": [],
+      "id": "requirement:multi-agent",
+      "name": "Multiple coding agents",
+      "required": false,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "Must the platform route across more than one model provider?",
+      "evidence_claim_ids": [],
+      "id": "requirement:multi-model-provider",
+      "name": "Multiple model providers",
+      "required": true,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [
+        "independent",
+        "sequential",
+        "parallel-review"
+      ],
+      "ask_when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:multi-agent",
+          "value": true
+        }
+      ],
+      "description": "Should agents work independently, hand off sequentially, or produce parallel candidates for review?",
+      "evidence_claim_ids": [],
+      "id": "requirement:orchestration-mode",
+      "name": "Agent orchestration mode",
+      "required": false,
+      "value_type": "string",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "Must agent traces correlate with Git and CI outcomes?",
+      "evidence_claim_ids": [],
+      "id": "requirement:outcome-observability",
+      "name": "Outcome observability",
+      "required": true,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:restricted-egress",
+          "value": true
+        }
+      ],
+      "description": "Must model, tool, and enterprise API traffic use private connectivity?",
+      "evidence_claim_ids": [],
+      "id": "requirement:private-connectivity",
+      "name": "Private connectivity",
+      "required": false,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [
+        "managed",
+        "self-hosted",
+        "multi-provider"
+      ],
+      "ask_when": [],
+      "description": "How are model providers hosted and reached through the model gateway?",
+      "evidence_claim_ids": [],
+      "id": "requirement:provider-hosting",
+      "name": "Model provider hosting",
+      "required": true,
+      "value_type": "string",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "Must runtime network egress be restricted to approved destinations?",
+      "evidence_claim_ids": [],
+      "id": "requirement:restricted-egress",
+      "name": "Restricted egress",
+      "required": true,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [
+        "developer-endpoint",
+        "container",
+        "microvm",
+        "dedicated-tenant"
+      ],
+      "ask_when": [],
+      "description": "What minimum isolation boundary must separate coding-agent execution?",
+      "evidence_claim_ids": [],
+      "id": "requirement:runtime-isolation",
+      "name": "Runtime isolation",
+      "required": true,
+      "value_type": "string",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [
+        "gitlab-saas",
+        "gitlab-self-managed",
+        "github",
+        "other"
+      ],
+      "ask_when": [],
+      "description": "Which source-control and pull-request system is authoritative?",
+      "evidence_claim_ids": [],
+      "id": "requirement:source-control",
+      "name": "Source control system",
+      "required": true,
+      "value_type": "string",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [],
+      "description": "Must teams receive separate policy, quota, and audit workspaces?",
+      "evidence_claim_ids": [],
+      "id": "requirement:team-boundaries",
+      "name": "Team boundaries",
+      "required": false,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    },
+    {
+      "allowed_values": [],
+      "ask_when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:asynchronous-tasks",
+          "value": true
+        }
+      ],
+      "description": "Must the platform keep warm runtimes or resumable snapshots to meet startup SLOs?",
+      "evidence_claim_ids": [],
+      "id": "requirement:warm-runtime-capacity",
+      "name": "Warm runtime capacity",
+      "required": false,
+      "value_type": "boolean",
+      "version": "1.0.0"
+    }
+  ],
+  "rules": [
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Unattended tasks require an isolated ephemeral runtime.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:asynchronous-runtime",
+      "name": "Add ephemeral asynchronous runtime",
+      "target_component_ids": [
+        "component:ephemeral-runtime"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:asynchronous-tasks",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Customer-managed placement requires a governed container runtime behind the execution broker.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:customer-managed-execution",
+      "name": "Add customer-managed execution",
+      "target_component_ids": [
+        "component:container-runtime"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:execution-placement",
+          "value": "customer-managed"
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "High concurrent task volume requires scalable remote execution.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:high-concurrency-runtime",
+      "name": "Add scalable remote runtime",
+      "target_component_ids": [
+        "component:ephemeral-runtime"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "greater_than_or_equal",
+          "requirement_id": "requirement:concurrent-agent-tasks",
+          "value": 500
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Hybrid placement requires governed developer-local execution plus isolated ephemeral remote execution.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:hybrid-execution",
+      "name": "Add hybrid local and remote execution",
+      "target_component_ids": [
+        "component:ephemeral-runtime",
+        "component:local-runtime"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:execution-placement",
+          "value": "hybrid"
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Local execution placement activates the governed endpoint runtime.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:local-execution",
+      "name": "Add local runtime",
+      "target_component_ids": [
+        "component:local-runtime"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:execution-placement",
+          "value": "local"
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Automatic fallback requires explicit eligibility and routing.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:model-fallback",
+      "name": "Add bounded model fallback",
+      "target_component_ids": [
+        "component:model-fallback"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:model-fallback",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Multi-agent workflows require orchestration and supervision.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:multi-agent-supervision",
+      "name": "Supervise multiple agents",
+      "target_component_ids": [
+        "component:multi-agent-supervisor"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:multi-agent",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Multiple providers require a model catalog and policy router.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:multi-provider-routing",
+      "name": "Govern multiple model providers",
+      "target_component_ids": [
+        "component:model-router"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:multi-model-provider",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Outcome observability requires trace, evaluation, Git, and CI correlation.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:outcome-correlation",
+      "name": "Correlate agent outcomes",
+      "target_component_ids": [
+        "component:economics-ledger",
+        "component:outcome-correlator"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:outcome-observability",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Approved registries require controlled package access.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:package-governance",
+      "name": "Govern package access",
+      "target_component_ids": [
+        "component:package-access"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:approved-package-registries",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Parallel candidate generation requires supervision and an independent review stage.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:parallel-independent-review",
+      "name": "Add parallel candidates and independent review",
+      "target_component_ids": [
+        "component:parallel-reviewer"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:orchestration-mode",
+          "value": "parallel-review"
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Long migrations require durable workspace state.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:persistent-workspaces",
+      "name": "Add persistent workspaces",
+      "target_component_ids": [
+        "component:persistent-workspace"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:long-running-workspaces",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Private connectivity adds private model, tool, and runtime paths.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:private-connectivity",
+      "name": "Use private connectivity",
+      "target_component_ids": [
+        "component:private-connectivity"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:private-connectivity",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Managed provider hosting reaches frontier models through the governed model gateway.",
+      "effect": "require",
+      "evidence_claim_ids": [
+        "claim:bedrock-managed-inference"
+      ],
+      "id": "rule:provider-managed",
+      "name": "Add managed model provider",
+      "target_component_ids": [
+        "component:managed-model-provider"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:provider-hosting",
+          "value": "managed"
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Multi-provider hosting requires a policy router and bounded fallback across eligible providers for resilience.",
+      "effect": "require",
+      "evidence_claim_ids": [
+        "claim:multi-provider-resilience"
+      ],
+      "id": "rule:provider-multi",
+      "name": "Add multi-provider routing and fallback",
+      "target_component_ids": [
+        "component:model-fallback",
+        "component:model-router"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:provider-hosting",
+          "value": "multi-provider"
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Self-hosted provider hosting adds in-VPC or air-gapped inference for residency-sensitive workloads.",
+      "effect": "require",
+      "evidence_claim_ids": [
+        "claim:self-hosted-residency"
+      ],
+      "id": "rule:provider-self-hosted",
+      "name": "Add self-hosted inference",
+      "target_component_ids": [
+        "component:self-hosted-inference"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:provider-hosting",
+          "value": "self-hosted"
+        }
+      ]
+    },
+    {
+      "authority": "preference",
+      "depends_on_rule_ids": [],
+      "description": "Any-approved-region deployment benefits from region-aware routing.",
+      "effect": "recommend",
+      "evidence_claim_ids": [],
+      "id": "rule:regional-flexibility",
+      "name": "Add region-aware resilience",
+      "target_component_ids": [
+        "component:multi-region"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:approved-regions",
+          "value": "any-approved"
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "Developer-local execution is not a defensible primary family at 500 or more concurrent unattended agent tasks; use a scalable remote execution family.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-developer-local-concurrency",
+      "name": "Constrain developer-local concurrency",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:developer-local"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "greater_than_or_equal",
+          "requirement_id": "requirement:concurrent-agent-tasks",
+          "value": 500
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "Developer-local execution provides a governed endpoint boundary, not a remote container, microVM, or tenant-dedicated runtime boundary.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-developer-local-isolation",
+      "name": "Constrain developer-local isolation",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:developer-local"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_in",
+          "requirement_id": "requirement:runtime-isolation",
+          "value": [
+            "developer-endpoint"
+          ]
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "Developer-local execution is incompatible when the required placement excludes local execution.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-developer-local-placement",
+      "name": "Constrain developer-local placement",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:developer-local"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_in",
+          "requirement_id": "requirement:execution-placement",
+          "value": [
+            "local",
+            "hybrid"
+          ]
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "Customer-governed remote execution supports container, microVM, or tenant-dedicated isolation, but not a developer-endpoint boundary.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-managed-customer-isolation",
+      "name": "Constrain managed customer isolation",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:managed-customer-execution"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_in",
+          "requirement_id": "requirement:runtime-isolation",
+          "value": [
+            "container",
+            "microvm",
+            "dedicated-tenant"
+          ]
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "Managed control-plane execution on customer runtimes requires customer-managed placement.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-managed-customer-placement",
+      "name": "Constrain managed customer execution",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:managed-customer-execution"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_equals",
+          "requirement_id": "requirement:execution-placement",
+          "value": "customer-managed"
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "A persistent remote workspace is incompatible when durable long-running workspaces are not required.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-nonpersistent-workspace",
+      "name": "Constrain persistent workspaces",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:persistent-remote-workspace"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_equals",
+          "requirement_id": "requirement:long-running-workspaces",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "Persistent remote workspaces support container, microVM, or tenant-dedicated isolation, but not a developer-endpoint boundary.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-persistent-workspace-isolation",
+      "name": "Constrain persistent workspace isolation",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:persistent-remote-workspace"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_in",
+          "requirement_id": "requirement:runtime-isolation",
+          "value": [
+            "container",
+            "microvm",
+            "dedicated-tenant"
+          ]
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "A persistent remote workspace requires customer-managed, vendor-managed, or hybrid placement rather than local-only execution.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-persistent-workspace-placement",
+      "name": "Constrain persistent workspace placement",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:persistent-remote-workspace"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:execution-placement",
+          "value": "local"
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "The self-hosted VM or container family supports container or tenant-dedicated isolation, but does not claim a microVM or developer-endpoint boundary.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-self-hosted-container-isolation",
+      "name": "Constrain self-hosted container isolation",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:self-hosted-container"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_in",
+          "requirement_id": "requirement:runtime-isolation",
+          "value": [
+            "container",
+            "dedicated-tenant"
+          ]
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "A self-hosted VM or container platform requires customer-managed placement.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-self-hosted-container-placement",
+      "name": "Constrain self-hosted container placement",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:self-hosted-container"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_equals",
+          "requirement_id": "requirement:execution-placement",
+          "value": "customer-managed"
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "The baseline Kubernetes family supports container or tenant-dedicated isolation, but does not claim a microVM or developer-endpoint boundary.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-self-hosted-kubernetes-isolation",
+      "name": "Constrain self-hosted Kubernetes isolation",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:self-hosted-kubernetes"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_in",
+          "requirement_id": "requirement:runtime-isolation",
+          "value": [
+            "container",
+            "dedicated-tenant"
+          ]
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "A self-hosted Kubernetes platform requires customer-managed placement.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-self-hosted-kubernetes-placement",
+      "name": "Constrain self-hosted Kubernetes placement",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:self-hosted-kubernetes"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_equals",
+          "requirement_id": "requirement:execution-placement",
+          "value": "customer-managed"
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "The vendor-ephemeral family supports container or microVM task isolation, but not developer-endpoint or tenant-dedicated execution.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-vendor-ephemeral-isolation",
+      "name": "Constrain vendor-ephemeral isolation",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:vendor-ephemeral"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_in",
+          "requirement_id": "requirement:runtime-isolation",
+          "value": [
+            "container",
+            "microvm"
+          ]
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "Vendor-ephemeral execution is incompatible when the required placement excludes vendor-managed execution.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-vendor-ephemeral-placement",
+      "name": "Constrain vendor-ephemeral placement",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:vendor-ephemeral"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "not_in",
+          "requirement_id": "requirement:execution-placement",
+          "value": [
+            "vendor-managed",
+            "hybrid"
+          ]
+        }
+      ]
+    },
+    {
+      "authority": "compatibility",
+      "depends_on_rule_ids": [],
+      "description": "The baseline vendor-ephemeral family is incompatible when restricted egress also requires private paths to models, tools, and enterprise APIs.",
+      "effect": "exclude",
+      "evidence_claim_ids": [],
+      "id": "rule:reject-vendor-ephemeral-private-connectivity",
+      "name": "Constrain vendor-ephemeral private connectivity",
+      "target_component_ids": [],
+      "target_pattern_ids": [
+        "pattern:vendor-ephemeral"
+      ],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:restricted-egress",
+          "value": true
+        },
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:private-connectivity",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Restricted egress requires a policy-enforced network boundary.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:restricted-egress",
+      "name": "Restrict runtime egress",
+      "target_component_ids": [
+        "component:restricted-egress"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:restricted-egress",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Risk-dependent actions require policy and approval evidence.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:risk-based-approval",
+      "name": "Add action-dependent approval",
+      "target_component_ids": [
+        "component:human-approval"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:action-approval",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Large developer populations require quota and budget controls.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:scale-quotas",
+      "name": "Add scale-aware quotas",
+      "target_component_ids": [
+        "component:quota-manager"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "greater_than_or_equal",
+          "requirement_id": "requirement:developer-count",
+          "value": 1000
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Sequential specialist workflows require explicit handoff state and completion contracts.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:sequential-specialists",
+      "name": "Add sequential specialist handoff",
+      "target_component_ids": [
+        "component:sequential-handoff"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:orchestration-mode",
+          "value": "sequential"
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Static multi-model use requires explicit model assignments for each agent role.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:static-model-roles",
+      "name": "Add static model-to-role binding",
+      "target_component_ids": [
+        "component:static-model-binding"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:model-routing-mode",
+          "value": "static"
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Team boundaries require independent quota and policy scopes.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:team-isolation",
+      "name": "Add team workspace controls",
+      "target_component_ids": [
+        "component:quota-manager",
+        "component:team-workspaces"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:team-boundaries",
+          "value": true
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Vendor-managed placement requires an isolated ephemeral runtime governed through the execution broker.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:vendor-managed-execution",
+      "name": "Add vendor-managed execution",
+      "target_component_ids": [
+        "component:ephemeral-runtime"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:execution-placement",
+          "value": "vendor-managed"
+        }
+      ]
+    },
+    {
+      "authority": "hard_constraint",
+      "depends_on_rule_ids": [],
+      "description": "Strict startup SLOs require warm capacity or resumable execution snapshots.",
+      "effect": "require",
+      "evidence_claim_ids": [],
+      "id": "rule:warm-runtime-capacity",
+      "name": "Add warm runtime capacity",
+      "target_component_ids": [
+        "component:warm-runtime-pool"
+      ],
+      "target_pattern_ids": [],
+      "version": "1.0.0",
+      "when": [
+        {
+          "operator": "equals",
+          "requirement_id": "requirement:warm-runtime-capacity",
+          "value": true
+        }
+      ]
+    }
+  ],
+  "schema_version": "3.0",
+  "title": "Provider-neutral coding agent platform",
+  "validated_as_of": "2026-08-11",
+  "version": "3.0.0"
+}

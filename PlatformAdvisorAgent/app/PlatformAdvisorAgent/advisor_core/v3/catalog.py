@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from .authority import DecisionAuthorityError, validate_decision_authority
 from .models import (
     ArchitecturePattern,
     CatalogDocument,
@@ -389,12 +390,13 @@ def _sorted(records: tuple[object, ...]) -> tuple[object, ...]:
     return tuple(sorted(records, key=lambda record: (record.id, record.version)))
 
 
-def compile_catalog(
-    path: str | Path, *, as_of: date | None = None
+def compile_catalog_documents(
+    documents: tuple[CatalogDocument, ...],
+    *,
+    as_of: date | None = None,
 ) -> CatalogRelease:
-    """Compile catalog JSON files into one validated, content-addressed release."""
+    """Compile already parsed catalog documents into one validated release."""
 
-    documents = load_catalog_documents(path)
     manifest = _one_manifest(documents)
     validated_as_of = as_of or date.today()
     if validated_as_of < manifest.effective_on:
@@ -423,6 +425,10 @@ def compile_catalog(
         sources, claims, requirements, components, patterns, rules
     )
     _validate_predicates(requirements, rules)
+    try:
+        validate_decision_authority(rules)
+    except DecisionAuthorityError as exc:
+        raise CatalogCompilationError(str(exc)) from exc
     _validate_acyclic(
         "requirement applicability",
         {
@@ -463,4 +469,15 @@ def compile_catalog(
         components=components,
         patterns=patterns,
         rules=rules,
+    )
+
+
+def compile_catalog(
+    path: str | Path, *, as_of: date | None = None
+) -> CatalogRelease:
+    """Compile catalog JSON files into one validated, content-addressed release."""
+
+    return compile_catalog_documents(
+        load_catalog_documents(path),
+        as_of=as_of,
     )

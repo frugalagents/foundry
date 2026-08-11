@@ -13,6 +13,14 @@ MAKEFILE_PATH = REPO_ROOT / "Makefile"
 AGENTCORE_CONFIG_PATH = (
     REPO_ROOT / "PlatformAdvisorAgent" / "agentcore" / "agentcore.json"
 )
+KNOWLEDGE_RELEASE_MANIFEST_PATH = (
+    REPO_ROOT
+    / "knowledge"
+    / "releases"
+    / "coding-platform"
+    / "1.3.0"
+    / "manifest.json"
+)
 
 
 class _CloudFormationLoader(yaml.SafeLoader):
@@ -178,6 +186,56 @@ def test_dev_agentcore_network_mode_remains_public_and_is_not_rewritten():
 
     assert len(runtimes) == 1
     assert runtimes[0]["networkMode"] == "PUBLIC"
+
+
+def test_lambda_and_agentcore_pin_the_same_packaged_knowledge_release():
+    template = _template()
+    config = json.loads(AGENTCORE_CONFIG_PATH.read_text(encoding="utf-8"))
+    manifest = json.loads(
+        KNOWLEDGE_RELEASE_MANIFEST_PATH.read_text(encoding="utf-8")
+    )
+    globals_env = template["Globals"]["Function"]["Environment"]["Variables"]
+    runtime_env = {
+        item["name"]: item["value"]
+        for item in config["runtimes"][0]["envVars"]
+    }
+
+    assert template["Parameters"]["KnowledgeReleaseVersion"]["Default"] == (
+        manifest["release_version"]
+    )
+    assert template["Parameters"]["KnowledgeReleaseManifestHash"][
+        "Default"
+    ] == manifest["manifest_hash"]
+    assert globals_env[
+        "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_VERSION"
+    ] == "KnowledgeReleaseVersion"
+    assert globals_env[
+        "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_MANIFEST_HASH"
+    ] == "KnowledgeReleaseManifestHash"
+    assert runtime_env[
+        "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_VERSION"
+    ] == manifest["release_version"]
+    assert runtime_env[
+        "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_MANIFEST_HASH"
+    ] == manifest["manifest_hash"]
+    assert runtime_env["PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_ROOT"] == (
+        "runtime_releases"
+    )
+
+
+def test_deployment_builds_include_and_verify_the_pinned_release():
+    makefile = MAKEFILE_PATH.read_text(encoding="utf-8")
+
+    assert "validate-knowledge-release:" in makefile
+    assert "verify_runtime_release.py" in makefile
+    assert "prepare-agentcore-release:" in makefile
+    assert "deploy-agentcore: check-agentcore-cli prepare-agentcore-release" in (
+        makefile
+    )
+    assert (
+        "$(LAMBDA_STAGE)/runtime_releases/$(KNOWLEDGE_RELEASE_PLATFORM)"
+        in makefile
+    )
 
 
 def test_frontend_bucket_is_private_versioned_and_retained_for_rollback():

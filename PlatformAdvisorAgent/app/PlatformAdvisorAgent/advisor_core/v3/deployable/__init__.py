@@ -5,6 +5,7 @@ from .catalog import (
     DEFAULT_CATALOG_PATH,
     DeployableCatalogCompilationError,
     compile_deployable_catalog,
+    compile_deployable_documents,
     load_deployable_documents,
 )
 from .models import (
@@ -35,5 +36,6 @@ __all__ = [
     "ServiceVariant",
     "build_deployable_solution",
     "compile_deployable_catalog",
+    "compile_deployable_documents",
     "load_deployable_documents",
 ]

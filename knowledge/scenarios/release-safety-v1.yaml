@@ -1,0 +1,60 @@
+schema_version: "1.0"
+id: scenario-suite:knowledge-release-safety
+version: "1.0.0"
+as_of: 2026-08-11
+scenarios:
+  - id: scenario:release-positive
+    kind: positive
+    mutation:
+      mutation_type: none
+    expected_valid: true
+
+  - id: scenario:release-negative-missing-entity
+    kind: negative
+    mutation:
+      mutation_type: remove_entity
+      target_id: component:workforce-identity
+    expected_valid: false
+    expected_issue_codes:
+      - missing_entity_reference
+
+  - id: scenario:release-unknown-evidence
+    kind: unknown
+    mutation:
+      mutation_type: remove_snapshot
+      target_id: source:platform-advisor-vision
+    expected_valid: false
+    expected_issue_codes:
+      - missing_evidence_snapshot
+
+  - id: scenario:release-stale-claim
+    kind: stale
+    mutation:
+      mutation_type: set_stale_after
+      target_id: claim:architecture-first-authority
+      value: 2026-08-10
+    expected_valid: false
+    expected_issue_codes:
+      - stale_active_knowledge
+
+  - id: scenario:release-contradictory-relationships
+    kind: contradiction
+    mutation:
+      mutation_type: add_relationship_conflict
+      source_id: component:architecture-knowledge
+      relationship_target_id: component:evidence-catalog
+      supporting_claim_id: claim:architecture-first-authority
+    expected_valid: false
+    expected_issue_codes:
+      - conflicting_relationships
+
+  - id: scenario:release-one-variable-stale-flip
+    kind: one_variable_flip
+    mutation:
+      mutation_type: set_stale_after
+      target_id: claim:architecture-first-authority
+      value: 2026-08-10
+    expected_before_valid: true
+    expected_valid: false
+    expected_issue_codes:
+      - stale_active_knowledge

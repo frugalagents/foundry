@@ -39,3 +39,6 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated deployment copy of the promoted knowledge release
+runtime_releases/

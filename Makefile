@@ -2,6 +2,7 @@
         setup-db test-backend lint-frontend check-frontend-production-env build-frontend \
         check-deploy-config check-admin-migration check-frontend-bucket deploy deploy-frontend \
         deploy-admin-migration-phase1 deploy-admin-migration-phase2 smoke-test prepare-lambda \
+        prepare-agentcore-release validate-knowledge-release \
         configure-log-retention check-agentcore-cli deploy-agentcore wire-agentcore seed-demo clean
 
 BACKEND_DIR    := backend
@@ -21,6 +22,11 @@ LOG_RETENTION_DAYS ?= 30
 MIDWAY_CLIENT_ID ?= platform-advisor-dev
 MIDWAY_CLIENT_SECRET ?=
 KNOWLEDGE_BASE_ID ?= EDDM8YZDNJ
+KNOWLEDGE_RELEASE_PLATFORM ?= coding-platform
+KNOWLEDGE_RELEASE_VERSION ?= 1.3.0
+KNOWLEDGE_RELEASE_MANIFEST_HASH ?= sha256:dcfd1f4d77bd43b92dd2bf06beccbdb11eaacac901da7b16df5f2bb3d46ae9ab
+KNOWLEDGE_RELEASE_SOURCE := knowledge/releases/$(KNOWLEDGE_RELEASE_PLATFORM)/$(KNOWLEDGE_RELEASE_VERSION)
+AGENT_RUNTIME_RELEASE_ROOT := $(AGENT_APP_DIR)/runtime_releases
 AWS_PROFILE    ?= platform-advisor
 AWS_REGION     ?= us-east-1
 AGENTCORE_UV_CACHE_DIR ?= /tmp/platform-advisor-uv-cache
@@ -72,6 +78,7 @@ help:
 	@echo "  deploy-frontend       Build, sync to S3, invalidate CF, run smoke test"
 	@echo "  smoke-test            Run post-deploy smoke test (real Cognito auth)"
 	@echo "  deploy-agentcore      Deploy Strands agent to AgentCore Runtime (CodeZip)"
+	@echo "  validate-knowledge-release  Verify the pinned runtime release artifacts"
 	@echo "  wire-agentcore        Update Lambda stack with AgentCore Runtime ARN"
 	@echo "  clean                 Remove build artefacts"
 
@@ -299,7 +306,20 @@ smoke-test:
 	S3_BUCKET="$(S3_BUCKET)" \
 	uv run --no-project --with boto3 python smoke_test.py
 
-prepare-lambda:
+validate-knowledge-release:
+	python3 tools/knowledge/verify_runtime_release.py \
+		--release-root "$(KNOWLEDGE_RELEASE_SOURCE)" \
+		--expected-version "$(KNOWLEDGE_RELEASE_VERSION)" \
+		--expected-manifest-hash "$(KNOWLEDGE_RELEASE_MANIFEST_HASH)"
+
+prepare-agentcore-release: validate-knowledge-release
+	rm -rf "$(AGENT_RUNTIME_RELEASE_ROOT)"
+	mkdir -p "$(AGENT_RUNTIME_RELEASE_ROOT)/$(KNOWLEDGE_RELEASE_PLATFORM)"
+	rsync -a \
+		"$(KNOWLEDGE_RELEASE_SOURCE)/" \
+		"$(AGENT_RUNTIME_RELEASE_ROOT)/$(KNOWLEDGE_RELEASE_PLATFORM)/$(KNOWLEDGE_RELEASE_VERSION)/"
+
+prepare-lambda: validate-knowledge-release
 	@echo "Preparing Lambda source..."
 	rm -rf $(LAMBDA_STAGE)
 	mkdir -p $(LAMBDA_STAGE)
@@ -315,6 +335,11 @@ prepare-lambda:
 			--exclude='*.pyc' \
 			$(AGENT_APP_DIR)/$$package/ $(LAMBDA_STAGE)/$$package/; \
 	done
+	mkdir -p \
+		$(LAMBDA_STAGE)/runtime_releases/$(KNOWLEDGE_RELEASE_PLATFORM)
+	rsync -a \
+		$(KNOWLEDGE_RELEASE_SOURCE)/ \
+		$(LAMBDA_STAGE)/runtime_releases/$(KNOWLEDGE_RELEASE_PLATFORM)/$(KNOWLEDGE_RELEASE_VERSION)/
 
 check-deploy-config:
 	@if [ "$(ENV)" != "dev" ] && [ "$(ALLOW_NON_DEV_DEPLOY)" != "true" ]; then \
@@ -493,6 +518,8 @@ deploy: check-deploy-config check-admin-migration prepare-lambda
 			MidwayClientId="$(MIDWAY_CLIENT_ID)" \
 			$$midway_override \
 			KnowledgeBaseId="$(KNOWLEDGE_BASE_ID)" \
+			KnowledgeReleaseVersion="$(KNOWLEDGE_RELEASE_VERSION)" \
+			KnowledgeReleaseManifestHash="$(KNOWLEDGE_RELEASE_MANIFEST_HASH)" \
 			AgentCoreRuntimeArn="$(AGENTCORE_RUNTIME_ARN)" \
 		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
 		--resolve-s3 \
@@ -535,7 +562,7 @@ check-agentcore-cli:
 	fi; \
 	echo "Using @aws/agentcore $$version: $(AGENTCORE_CLI)"
 
-deploy-agentcore: check-agentcore-cli
+deploy-agentcore: check-agentcore-cli prepare-agentcore-release
 	@echo "Deploying Platform Advisor agent to AgentCore Runtime..."
 	cd $(AGENTCORE_DIR) && \
 	UV_CACHE_DIR="$(AGENTCORE_UV_CACHE_DIR)" \
@@ -581,3 +608,4 @@ clean:
 	find $(BACKEND_DIR) -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find $(BACKEND_DIR) -name "*.pyc" -delete 2>/dev/null || true
 	cd $(INFRA_DIR) && rm -rf .aws-sam .lambda-src 2>/dev/null || true
+	rm -rf $(AGENT_RUNTIME_RELEASE_ROOT) 2>/dev/null || true

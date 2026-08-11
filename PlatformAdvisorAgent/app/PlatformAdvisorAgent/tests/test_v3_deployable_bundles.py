@@ -154,10 +154,7 @@ def test_completed_scenario_recommends_interface_closed_baseline_overlay():
     revision = workspace.revisions[-1]
     matrix = build_deployable_solution(revision, logical_catalog)
 
-    assert matrix.recommendation.state in {
-        RecommendationState.RECOMMENDED,
-        RecommendationState.CONDITIONAL,
-    }
+    assert matrix.recommendation.state is RecommendationState.ADVISORY
     assert matrix.recommendation.candidate_id is not None
     recommended = _candidate(
         matrix,
@@ -421,7 +418,7 @@ def test_recommendation_uses_feasible_family_over_logical_baseline():
         )
     }
 
-    assert matrix.recommendation.state is RecommendationState.RECOMMENDED
+    assert matrix.recommendation.state is RecommendationState.ADVISORY
     assert (
         recommended.family_feasibility_status
         is FeasibilityStatus.FEASIBLE

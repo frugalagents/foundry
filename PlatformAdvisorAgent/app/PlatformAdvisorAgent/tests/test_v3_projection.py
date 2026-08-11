@@ -47,7 +47,17 @@ def test_projection_exposes_named_architecture_and_requirement_state():
             "Which workforce identity provider and group source must "
             "authorize developers?"
         ),
+        "customer_question": (
+            "Which identity system controls who can log in and what "
+            "permissions they have on the platform?"
+        ),
+        "why_it_matters": (
+            "The platform connects to your existing identity provider to know "
+            "who each developer is, which team they belong to, and what they "
+            "are authorized to do — not a separate login system."
+        ),
         "value_type": "string",
+        "candidate_answers": ["entra", "okta", "cognito", "other-oidc"],
         "required": True,
         "status": "assumed",
         "value": "entra",
@@ -70,11 +80,11 @@ def test_projection_exposes_named_architecture_and_requirement_state():
     assert architecture["pattern"]["pattern_id"] == "pattern:logical-reference"
     assert architecture["summary"] == {
         "baseline_component_count": 25,
-        "current_component_count": 34,
-        "added_component_count": 9,
+        "current_component_count": 31,
+        "added_component_count": 6,
         "baseline_edge_count": 23,
-        "current_edge_count": 34,
-        "added_edge_count": 11,
+        "current_edge_count": 31,
+        "added_edge_count": 8,
     }
     assert [plane["plane_id"] for plane in architecture["planes"]] == [
         "experience",
@@ -136,21 +146,23 @@ def test_projection_explains_families_question_impacts_and_decisions():
     )
 
     question = projection["next_question"]
-    assert question["requirement_name"] == "Runtime isolation"
+    assert question["requirement_name"] == "Long-running workspaces"
     assert len(question["answer_impacts"]) == len(
         question["candidate_answers"]
     )
-    dedicated_impact = next(
+    persistent_impact = next(
         impact for impact in question["answer_impacts"]
-        if impact["answer"] == "dedicated-tenant"
+        if impact["answer"] is True
     )
     assert {
-        family["pattern_id"]
-        for family in dedicated_impact["deployment_families"]["rejected"]
-    } >= {
-        "pattern:developer-local",
-        "pattern:vendor-ephemeral",
+        component["component_id"]
+        for component in persistent_impact["components"]["added"]
+    } == {
+        "component:persistent-workspace",
     }
+    assert persistent_impact["rules"]["activated_rule_ids"] == [
+        "rule:persistent-workspaces"
+    ]
 
     decisions = {
         decision["rule_id"]: decision
@@ -158,6 +170,7 @@ def test_projection_explains_families_question_impacts_and_decisions():
     }
     hybrid = decisions["rule:hybrid-execution"]
     assert hybrid["rule_name"] == "Add hybrid local and remote execution"
+    assert hybrid["authority"] == "hard_constraint"
     assert hybrid["requirements"][0]["value"] == "hybrid"
     assert {
         component["name"] for component in hybrid["target_components"]
@@ -187,7 +200,13 @@ def test_projection_includes_deployable_matrix_and_assurance_packet():
         "revision_id"
     ]
     assert len(assurance["security"]["threats"]) == 10
-    assert len(assurance["roadmap"]["phases"]) == 7
+    assert len(assurance["roadmap"]["phases"]) == 6
+    assert [
+        phase["sequence"] for phase in assurance["roadmap"]["phases"]
+    ] == list(range(1, 7))
+    assert assurance["roadmap"]["phases"][-1]["name"] == (
+        "Control verification"
+    )
     assert len(assurance["outcomes"]["metrics"]) == 13
     assert assurance["packet_hash"].startswith("sha256:")
 
@@ -247,7 +266,7 @@ def test_assumptions_are_validated_and_user_answers_replace_them():
     assert "requirement:enterprise-identity" not in {
         item["requirement_id"] for item in projection["assumptions"]
     }
-    assert len(projection["assumptions"]) == 15
+    assert len(projection["assumptions"]) == 14
 
 
 def test_decision_history_links_revisions_and_explains_patch_deltas():
@@ -257,17 +276,17 @@ def test_decision_history_links_revisions_and_explains_patch_deltas():
     workspace = apply_requirement_patch(
         workspace,
         RequirementPatch(
-            patch_id="patch:disable-multi-agent",
+            patch_id="patch:disable-restricted-egress",
             base_revision_number=prior.revision_number,
             changes=(
                 RequirementConstraint(
-                    requirement_id="requirement:multi-agent",
+                    requirement_id="requirement:restricted-egress",
                     value=False,
                     source="user",
                     recorded_at=recorded_at,
                 ),
             ),
-            rationale="Customer confirms a single-agent operating model.",
+            rationale="Customer confirms unrestricted outbound access.",
         ),
         catalog,
         created_at=recorded_at,
@@ -283,7 +302,7 @@ def test_decision_history_links_revisions_and_explains_patch_deltas():
     assert latest["current_revision"]["parent_revision_id"] == prior.revision_id
 
     change = latest["requirement_changes"][0]
-    assert change["requirement_id"] == "requirement:multi-agent"
+    assert change["requirement_id"] == "requirement:restricted-egress"
     assert change["previous"]["source"] == "assumption"
     assert change["previous"]["assumption"]["confidence"] == 0.6
     assert change["current"]["source"] == "user"
@@ -291,17 +310,11 @@ def test_decision_history_links_revisions_and_explains_patch_deltas():
 
     assert {
         rule["rule_id"] for rule in latest["rules"]["deactivated"]
-    } >= {
-        "rule:multi-agent-supervision",
-        "rule:parallel-independent-review",
-    }
+    } >= {"rule:restricted-egress"}
     assert {
         component["component_id"]
         for component in latest["architecture_delta"]["components"]["removed"]
-    } >= {
-        "component:multi-agent-supervisor",
-        "component:parallel-reviewer",
-    }
+    } >= {"component:restricted-egress"}
     assert latest["architecture_delta"]["edges"]["removed"]
     assert latest["transition_hash"].startswith("sha256:")
 
