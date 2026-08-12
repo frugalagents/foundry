@@ -726,9 +726,18 @@ Task IDs are stable so they can be moved into GitHub Issues or another tracker.
     Projection metadata declares the authoritative and advisory surfaces, and
     the frontend uses comparison language instead of recommendation language.
 
-- [ ] **KS-055 - Add decision-pattern retrieval**
+- [x] **KS-055 - Add decision-pattern retrieval**
   - Retrieve reviewed `recommended_when`, `avoid_when`, trade-offs, and evidence.
   - Depends on KS-051 and KS-052.
+  - Verified 2026-08-12: five reviewed coding-platform decision patterns now
+    compile into immutable knowledge release `1.4.0`. FastAPI and AgentCore
+    attach deterministic, candidate-specific fit guidance containing use
+    conditions, avoid conditions, trade-offs, review metadata, and cited
+    evidence. The workspace surfaces the guidance during discovery and in the
+    deployable-node inspector. Incomplete discovery is explicitly labeled as a
+    provisional pattern and architecture draft rather than a selected
+    recommendation. The focused Chromium contract passes at desktop and mobile
+    viewports.
 
 ### P1: Change Impact And Workspace
 

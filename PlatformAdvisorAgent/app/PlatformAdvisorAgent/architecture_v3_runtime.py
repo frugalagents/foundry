@@ -12,6 +12,9 @@ from boto3.dynamodb.types import TypeSerializer
 from botocore.exceptions import ClientError
 from pydantic import BaseModel, ConfigDict, Field
 
+from advisor_core.knowledge.decision_guidance import (
+    contextualize_decision_guidance,
+)
 from advisor_core.v3.models import content_hash
 from advisor_core.v3.projection import build_frontend_projection
 from advisor_core.v3.runtime import build_runtime_workspace
@@ -376,6 +379,10 @@ class ArchitectureV3RuntimeAdapter:
             workspace,
             release.logical_catalog,
             deployable_catalog=release.deployable_catalog,
+        )
+        projection["decision_guidance"] = contextualize_decision_guidance(
+            projection,
+            release.decision_guidance,
         )
         projection["knowledge_release"] = {
             "release_id": release.manifest.release_id,

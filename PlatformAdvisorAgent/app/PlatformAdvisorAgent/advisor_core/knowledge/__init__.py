@@ -42,6 +42,14 @@ from .contradictions import (
     ContradictionType,
     detect_contradictions,
 )
+from .decision_guidance import (
+    DecisionGuidanceCompilationError,
+    DecisionGuidanceEvidence,
+    DecisionGuidanceProjection,
+    ReviewedDecisionPattern,
+    compile_decision_guidance,
+    contextualize_decision_guidance,
+)
 from .models import (
     Capability,
     CLAIM_REVIEW_POLICIES,
@@ -273,6 +281,12 @@ __all__ = [
     "ContradictionSeverity",
     "ContradictionType",
     "detect_contradictions",
+    "DecisionGuidanceCompilationError",
+    "DecisionGuidanceEvidence",
+    "DecisionGuidanceProjection",
+    "ReviewedDecisionPattern",
+    "compile_decision_guidance",
+    "contextualize_decision_guidance",
     "Capability",
     "CLAIM_REVIEW_POLICIES",
     "Claim",

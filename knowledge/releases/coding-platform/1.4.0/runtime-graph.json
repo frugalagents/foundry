@@ -1,0 +1,5143 @@
+{
+  "as_of": "2026-08-12",
+  "edges": [
+    {
+      "directed": true,
+      "id": "relationship:advisor-workspace-requires-workforce-identity",
+      "relationship_hash": "sha256:9d7e064f76039080856582d04b3585f1380912aa2cce93ba847469bdbb7fe784",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:advisor-workspace",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workforce-identity"
+    },
+    {
+      "directed": true,
+      "id": "relationship:agent-registry-requires-workload-identity",
+      "relationship_hash": "sha256:8b9c41aa697e997fd3f537abfbb6dde5782b0ef030664ebc83bd0bdc3a8afe16",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:agent-registry",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workload-identity"
+    },
+    {
+      "directed": true,
+      "id": "relationship:architecture-knowledge-supported-by-architecture-first-authority",
+      "relationship_hash": "sha256:6f009f9fd6dd6c0112db91a081589713cb0cc0810ca4f41141ec84e109be823a",
+      "relationship_type": "SUPPORTED_BY",
+      "source_id": "component:architecture-knowledge",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "claim:architecture-first-authority"
+    },
+    {
+      "directed": true,
+      "id": "relationship:audit-ledger-requires-workforce-identity",
+      "relationship_hash": "sha256:4f6b5fc2b043b2d16cd758cc5aac0e2c409f6734b537e435480c8a46bef0589b",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:audit-ledger",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workforce-identity"
+    },
+    {
+      "directed": true,
+      "id": "relationship:connector-registry-requires-tool-gateway",
+      "relationship_hash": "sha256:e66af7c2cc0eb69c7c415c285d611ebeba094fa95a12f9ba3770547e3dd46cf4",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:connector-registry",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:tool-gateway"
+    },
+    {
+      "directed": true,
+      "id": "relationship:container-runtime-requires-execution-broker",
+      "relationship_hash": "sha256:ada37c9a9254d1c7f80324b5822cc2436900fe101db39a086aef6f079660d775",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:container-runtime",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:execution-broker"
+    },
+    {
+      "directed": true,
+      "id": "relationship:economics-ledger-requires-telemetry-pipeline",
+      "relationship_hash": "sha256:fb6272a6a773cc5ddd17f5125c05a87279d91022eb620f8ecbe825f2bd143f5f",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:economics-ledger",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:telemetry-pipeline"
+    },
+    {
+      "directed": true,
+      "id": "relationship:enterprise-api-access-requires-connector-registry",
+      "relationship_hash": "sha256:6f2d15afad2c230dcb7cb57e07d048c66db92cc7a821d83bd0d02dd0ad886bdc",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:enterprise-api-access",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:connector-registry"
+    },
+    {
+      "directed": true,
+      "id": "relationship:ephemeral-runtime-requires-execution-broker",
+      "relationship_hash": "sha256:11e36e1b0af5fe43981dc13180c1351127b52632e7249766bb5b22316e7b2e38",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:ephemeral-runtime",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:execution-broker"
+    },
+    {
+      "directed": true,
+      "id": "relationship:evaluation-service-requires-telemetry-pipeline",
+      "relationship_hash": "sha256:eb3f3cd4e68e8ed4cd534f1d54548383ff8d0c44f3e35a07306cc466d94fbb17",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:evaluation-service",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:telemetry-pipeline"
+    },
+    {
+      "directed": true,
+      "id": "relationship:evidence-catalog-requires-architecture-knowledge",
+      "relationship_hash": "sha256:5e77ac89b7b4a61e9910ac798450e31b000bb295f3c1e3f0fcd6b023df53bbe7",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:evidence-catalog",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:architecture-knowledge"
+    },
+    {
+      "directed": true,
+      "id": "relationship:evidence-catalog-supported-by-architecture-first-authority",
+      "relationship_hash": "sha256:7190a5ef1c0fc597546c9e06ffc3446423fcd5e0656938cda049d6a954340842",
+      "relationship_type": "SUPPORTED_BY",
+      "source_id": "component:evidence-catalog",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "claim:architecture-first-authority"
+    },
+    {
+      "directed": true,
+      "id": "relationship:execution-broker-requires-workload-identity",
+      "relationship_hash": "sha256:20ac624394032d6211b8c3374613153cbc65541d52159a8604830a70a25b08ab",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:execution-broker",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workload-identity"
+    },
+    {
+      "directed": true,
+      "id": "relationship:human-approval-requires-audit-ledger",
+      "relationship_hash": "sha256:2633a8862904cbab3c605fbb6d07ee8e35d9889722f173d4ef55800b02900f96",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:human-approval",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:audit-ledger"
+    },
+    {
+      "directed": true,
+      "id": "relationship:human-approval-requires-policy-engine",
+      "relationship_hash": "sha256:33a3e66f30156217c9013c9b21d14cd26d2f10f34a8e8b38d056d79b00c5ecea",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:human-approval",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:policy-engine"
+    },
+    {
+      "directed": true,
+      "id": "relationship:kubernetes-runtime-requires-container-runtime",
+      "relationship_hash": "sha256:a75e3311608ea785a99565b39a1f633b4f73ddbea6fc16a979a94b8a248efda6",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:kubernetes-runtime",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:container-runtime"
+    },
+    {
+      "directed": true,
+      "id": "relationship:local-runtime-requires-execution-broker",
+      "relationship_hash": "sha256:3a459bd1ff7c8e08992305dc96391168a0dab3697164c6a9726a45b33b6d071f",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:local-runtime",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:execution-broker"
+    },
+    {
+      "directed": true,
+      "id": "relationship:managed-model-provider-requires-model-gateway",
+      "relationship_hash": "sha256:b075b9972458d6c2a6b15221bac334dceabe3a20d0f2f96fd973042138adfed2",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:managed-model-provider",
+      "supporting_claim_ids": [
+        "claim:bedrock-managed-inference"
+      ],
+      "target_id": "component:model-gateway"
+    },
+    {
+      "directed": true,
+      "id": "relationship:managed-model-provider-supported-by-bedrock-managed-inference",
+      "relationship_hash": "sha256:664b11685b40e59c33ed9de22044f32621d251403dcdf9d181611414c741f1ac",
+      "relationship_type": "SUPPORTED_BY",
+      "source_id": "component:managed-model-provider",
+      "supporting_claim_ids": [
+        "claim:bedrock-managed-inference"
+      ],
+      "target_id": "claim:bedrock-managed-inference"
+    },
+    {
+      "directed": true,
+      "id": "relationship:model-catalog-requires-model-gateway",
+      "relationship_hash": "sha256:f331571c0d81ef9526bad773ee048d9d5e3f9bc9c5eef79751d871427ba61976",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:model-catalog",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:model-gateway"
+    },
+    {
+      "directed": true,
+      "id": "relationship:model-fallback-requires-model-router",
+      "relationship_hash": "sha256:7b89d3a15018a01409b83be061546d502273db9de52312b9c4d967fa4a5401a9",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:model-fallback",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:model-router"
+    },
+    {
+      "directed": true,
+      "id": "relationship:model-gateway-requires-workload-identity",
+      "relationship_hash": "sha256:13eae80984b4c6551ed042178f3810333f0aa74287fa9fa33ef27c03d7e8a760",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:model-gateway",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workload-identity"
+    },
+    {
+      "directed": true,
+      "id": "relationship:model-router-requires-model-catalog",
+      "relationship_hash": "sha256:ff3bb22e2e2e9eec9633b310da1a5ba13e0039954eb67a0ff6d2f4282c141311",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:model-router",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:model-catalog"
+    },
+    {
+      "directed": true,
+      "id": "relationship:multi-agent-supervisor-requires-orchestration-runtime",
+      "relationship_hash": "sha256:1a6e153d593e486d0aec86c7cc3e67992166cbcb124ae9acee0cfe0a93006d62",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:multi-agent-supervisor",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:orchestration-runtime"
+    },
+    {
+      "directed": true,
+      "id": "relationship:multi-region-requires-telemetry-pipeline",
+      "relationship_hash": "sha256:a35d0569bcd0deaa139a2ac5f5120503640c575ec6003f66e9937e9e8c361e93",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:multi-region",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:telemetry-pipeline"
+    },
+    {
+      "directed": true,
+      "id": "relationship:orchestration-runtime-requires-workflow-definitions",
+      "relationship_hash": "sha256:7bc0c4f52e450774d734001bc3658766667ca4d453d5b5e91c8c5c34d345568f",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:orchestration-runtime",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workflow-definitions"
+    },
+    {
+      "directed": true,
+      "id": "relationship:outcome-correlator-requires-evaluation-service",
+      "relationship_hash": "sha256:2358e3155e40cd7248a5d55986f7b4cf0262380c8e939d7f525915bfaeefe569",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:outcome-correlator",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:evaluation-service"
+    },
+    {
+      "directed": true,
+      "id": "relationship:outcome-correlator-requires-source-control-integration",
+      "relationship_hash": "sha256:73134b582b23ca0c88e79bac25502ea36c115e1f89be0d5991fab0ecbbc6e0f8",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:outcome-correlator",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:source-control-integration"
+    },
+    {
+      "directed": true,
+      "id": "relationship:package-access-requires-tool-gateway",
+      "relationship_hash": "sha256:64492d3e16475e941aa1d3d8f2fd8b4e3955f97532d2d292863eea8d61cf2c2a",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:package-access",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:tool-gateway"
+    },
+    {
+      "directed": true,
+      "id": "relationship:parallel-reviewer-requires-multi-agent-supervisor",
+      "relationship_hash": "sha256:1a923a48edcfb43d664760a6cc1b4dd5d4964e6831c447960db04548f459ff05",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:parallel-reviewer",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:multi-agent-supervisor"
+    },
+    {
+      "directed": true,
+      "id": "relationship:persistent-workspace-requires-execution-broker",
+      "relationship_hash": "sha256:561c5e78a4304b37936e8d097cb3cbcf4a394ac023e9ac8bf1d3913939f67e3d",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:persistent-workspace",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:execution-broker"
+    },
+    {
+      "directed": true,
+      "id": "relationship:policy-engine-requires-workload-identity",
+      "relationship_hash": "sha256:da64a10c4db6af4edba335fbcce50ed3329c1e4913ce13af9ca98455daea1fd1",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:policy-engine",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workload-identity"
+    },
+    {
+      "directed": true,
+      "id": "relationship:private-connectivity-requires-workload-identity",
+      "relationship_hash": "sha256:77dd1a9d2643acf1fc2640862d8a0182c6e962fe5281471226b26d69fe90d73d",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:private-connectivity",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workload-identity"
+    },
+    {
+      "directed": true,
+      "id": "relationship:quota-manager-requires-team-workspaces",
+      "relationship_hash": "sha256:5e1d1cc424cccf4755ed3015cc2af259a9600d244a2dad79f1f08f483a3e2c9b",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:quota-manager",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:team-workspaces"
+    },
+    {
+      "directed": true,
+      "id": "relationship:restricted-egress-requires-execution-broker",
+      "relationship_hash": "sha256:1a739aafae68c5cab69074238feb13a89635091a5bfe6cc587c086dc705cf708",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:restricted-egress",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:execution-broker"
+    },
+    {
+      "directed": true,
+      "id": "relationship:restricted-egress-requires-policy-engine",
+      "relationship_hash": "sha256:155e5d2176df0ff53acaee7d9f114d4e7f3460dd70cbff4e858d5d56427c0d36",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:restricted-egress",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:policy-engine"
+    },
+    {
+      "directed": true,
+      "id": "relationship:secrets-broker-requires-policy-engine",
+      "relationship_hash": "sha256:bd6164c96776ff7c3c5d6add9991c72cc9d9653734e301586924a313def33949",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:secrets-broker",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:policy-engine"
+    },
+    {
+      "directed": true,
+      "id": "relationship:self-hosted-inference-requires-model-gateway",
+      "relationship_hash": "sha256:da7690bfdfb05d6fced795a5a1a2bd270a39c8ac2fb3178caab702e77dc16939",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:self-hosted-inference",
+      "supporting_claim_ids": [
+        "claim:self-hosted-residency"
+      ],
+      "target_id": "component:model-gateway"
+    },
+    {
+      "directed": true,
+      "id": "relationship:self-hosted-inference-supported-by-self-hosted-residency",
+      "relationship_hash": "sha256:2080f3f65f10c61eff228e16abea11dc652cccf119f86443c5a6c19fd67d5809",
+      "relationship_type": "SUPPORTED_BY",
+      "source_id": "component:self-hosted-inference",
+      "supporting_claim_ids": [
+        "claim:self-hosted-residency"
+      ],
+      "target_id": "claim:self-hosted-residency"
+    },
+    {
+      "directed": true,
+      "id": "relationship:sequential-handoff-requires-orchestration-runtime",
+      "relationship_hash": "sha256:6dd7c0ee1e0f40ab8c3d865d1b972d3cc936d63fa106ab7f36a497c3827213c3",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:sequential-handoff",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:orchestration-runtime"
+    },
+    {
+      "directed": true,
+      "id": "relationship:source-control-integration-requires-tool-gateway",
+      "relationship_hash": "sha256:28678e78b1b61b87b9a694bfb0da27accc8feb9fa3a9bc9e8a16b50ee2aa2115",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:source-control-integration",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:tool-gateway"
+    },
+    {
+      "directed": true,
+      "id": "relationship:static-model-binding-requires-model-catalog",
+      "relationship_hash": "sha256:19348897c9672e564f55cd96cf736f07a87de52f48576f510162b04fceb0b996",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:static-model-binding",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:model-catalog"
+    },
+    {
+      "directed": true,
+      "id": "relationship:team-workspaces-requires-workforce-identity",
+      "relationship_hash": "sha256:b7f01422b7824204e694868e5615b39817d1bc07f300cc91b9d3b37330a2d743",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:team-workspaces",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workforce-identity"
+    },
+    {
+      "directed": true,
+      "id": "relationship:telemetry-pipeline-requires-workload-identity",
+      "relationship_hash": "sha256:330777f344dbc1b3cdc86f3d9e161d58b0cb96726e195fa74875ff8992f444f3",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:telemetry-pipeline",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workload-identity"
+    },
+    {
+      "directed": true,
+      "id": "relationship:tool-gateway-requires-workload-identity",
+      "relationship_hash": "sha256:aeb58c31acf63877a167cbed92adaf47c78cdabdbe51c3f6d16a624aee9caacc",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:tool-gateway",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workload-identity"
+    },
+    {
+      "directed": true,
+      "id": "relationship:warm-runtime-pool-requires-ephemeral-runtime",
+      "relationship_hash": "sha256:89c8d32042db8f76cd7f46634017b29182de9d3efac4eb15cbfe133e748ad4d7",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:warm-runtime-pool",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:ephemeral-runtime"
+    },
+    {
+      "directed": true,
+      "id": "relationship:workflow-definitions-requires-agent-registry",
+      "relationship_hash": "sha256:4b4f1b9a187e3aa7a5486f6c873911708c8cd712689f3c8d93ce6a7031c681ba",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:workflow-definitions",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:agent-registry"
+    },
+    {
+      "directed": true,
+      "id": "relationship:workload-identity-requires-workforce-identity",
+      "relationship_hash": "sha256:4152ace60287602a520f68c704a171c79a50bb44d3a2cc18ecb85ff9abbb5f3f",
+      "relationship_type": "REQUIRES",
+      "source_id": "component:workload-identity",
+      "supporting_claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "target_id": "component:workforce-identity"
+    }
+  ],
+  "evidence_by_edge": [
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:advisor-workspace-requires-workforce-identity"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:agent-registry-requires-workload-identity"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:architecture-knowledge-supported-by-architecture-first-authority"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:audit-ledger-requires-workforce-identity"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:connector-registry-requires-tool-gateway"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:container-runtime-requires-execution-broker"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:economics-ledger-requires-telemetry-pipeline"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:enterprise-api-access-requires-connector-registry"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:ephemeral-runtime-requires-execution-broker"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:evaluation-service-requires-telemetry-pipeline"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:evidence-catalog-requires-architecture-knowledge"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:evidence-catalog-supported-by-architecture-first-authority"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:execution-broker-requires-workload-identity"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:human-approval-requires-audit-ledger"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:human-approval-requires-policy-engine"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:kubernetes-runtime-requires-container-runtime"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:local-runtime-requires-execution-broker"
+    },
+    {
+      "claim_ids": [
+        "claim:bedrock-managed-inference"
+      ],
+      "edge_id": "relationship:managed-model-provider-requires-model-gateway"
+    },
+    {
+      "claim_ids": [
+        "claim:bedrock-managed-inference"
+      ],
+      "edge_id": "relationship:managed-model-provider-supported-by-bedrock-managed-inference"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:model-catalog-requires-model-gateway"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:model-fallback-requires-model-router"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:model-gateway-requires-workload-identity"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:model-router-requires-model-catalog"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:multi-agent-supervisor-requires-orchestration-runtime"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:multi-region-requires-telemetry-pipeline"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:orchestration-runtime-requires-workflow-definitions"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:outcome-correlator-requires-evaluation-service"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:outcome-correlator-requires-source-control-integration"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:package-access-requires-tool-gateway"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:parallel-reviewer-requires-multi-agent-supervisor"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:persistent-workspace-requires-execution-broker"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:policy-engine-requires-workload-identity"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:private-connectivity-requires-workload-identity"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:quota-manager-requires-team-workspaces"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:restricted-egress-requires-execution-broker"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:restricted-egress-requires-policy-engine"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:secrets-broker-requires-policy-engine"
+    },
+    {
+      "claim_ids": [
+        "claim:self-hosted-residency"
+      ],
+      "edge_id": "relationship:self-hosted-inference-requires-model-gateway"
+    },
+    {
+      "claim_ids": [
+        "claim:self-hosted-residency"
+      ],
+      "edge_id": "relationship:self-hosted-inference-supported-by-self-hosted-residency"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:sequential-handoff-requires-orchestration-runtime"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:source-control-integration-requires-tool-gateway"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:static-model-binding-requires-model-catalog"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:team-workspaces-requires-workforce-identity"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:telemetry-pipeline-requires-workload-identity"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:tool-gateway-requires-workload-identity"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:warm-runtime-pool-requires-ephemeral-runtime"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:workflow-definitions-requires-agent-registry"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "edge_id": "relationship:workload-identity-requires-workforce-identity"
+    }
+  ],
+  "evidence_by_subject": [
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority",
+        "claim:multi-provider-resilience"
+      ],
+      "subject_id": "component:architecture-knowledge"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "subject_id": "component:evidence-catalog"
+    },
+    {
+      "claim_ids": [
+        "claim:bedrock-managed-inference"
+      ],
+      "subject_id": "component:managed-model-provider"
+    },
+    {
+      "claim_ids": [
+        "claim:self-hosted-residency"
+      ],
+      "subject_id": "component:self-hosted-inference"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority",
+        "claim:bedrock-managed-inference"
+      ],
+      "subject_id": "decision-pattern:aws-governed"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "subject_id": "decision-pattern:byop-portable"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "subject_id": "decision-pattern:hybrid-governed"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority",
+        "claim:self-hosted-residency"
+      ],
+      "subject_id": "decision-pattern:oss-sovereign"
+    },
+    {
+      "claim_ids": [
+        "claim:architecture-first-authority"
+      ],
+      "subject_id": "decision-pattern:saas-composable"
+    }
+  ],
+  "graph_hash": "sha256:280d4b405beae012959130f017eda0927d8ddc348677c50799a136df4d382efa",
+  "incoming": [
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:architecture-knowledge-supported-by-architecture-first-authority",
+          "neighbor_id": "component:architecture-knowledge",
+          "relationship_type": "SUPPORTED_BY"
+        },
+        {
+          "edge_id": "relationship:evidence-catalog-supported-by-architecture-first-authority",
+          "neighbor_id": "component:evidence-catalog",
+          "relationship_type": "SUPPORTED_BY"
+        }
+      ],
+      "node_id": "claim:architecture-first-authority"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:managed-model-provider-supported-by-bedrock-managed-inference",
+          "neighbor_id": "component:managed-model-provider",
+          "relationship_type": "SUPPORTED_BY"
+        }
+      ],
+      "node_id": "claim:bedrock-managed-inference"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:self-hosted-inference-supported-by-self-hosted-residency",
+          "neighbor_id": "component:self-hosted-inference",
+          "relationship_type": "SUPPORTED_BY"
+        }
+      ],
+      "node_id": "claim:self-hosted-residency"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:workflow-definitions-requires-agent-registry",
+          "neighbor_id": "component:workflow-definitions",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:agent-registry"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:evidence-catalog-requires-architecture-knowledge",
+          "neighbor_id": "component:evidence-catalog",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:architecture-knowledge"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:human-approval-requires-audit-ledger",
+          "neighbor_id": "component:human-approval",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:audit-ledger"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:enterprise-api-access-requires-connector-registry",
+          "neighbor_id": "component:enterprise-api-access",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:connector-registry"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:kubernetes-runtime-requires-container-runtime",
+          "neighbor_id": "component:kubernetes-runtime",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:container-runtime"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:warm-runtime-pool-requires-ephemeral-runtime",
+          "neighbor_id": "component:warm-runtime-pool",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:ephemeral-runtime"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:outcome-correlator-requires-evaluation-service",
+          "neighbor_id": "component:outcome-correlator",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:evaluation-service"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:container-runtime-requires-execution-broker",
+          "neighbor_id": "component:container-runtime",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:ephemeral-runtime-requires-execution-broker",
+          "neighbor_id": "component:ephemeral-runtime",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:local-runtime-requires-execution-broker",
+          "neighbor_id": "component:local-runtime",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:persistent-workspace-requires-execution-broker",
+          "neighbor_id": "component:persistent-workspace",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:restricted-egress-requires-execution-broker",
+          "neighbor_id": "component:restricted-egress",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:execution-broker"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:model-router-requires-model-catalog",
+          "neighbor_id": "component:model-router",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:static-model-binding-requires-model-catalog",
+          "neighbor_id": "component:static-model-binding",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:model-catalog"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:managed-model-provider-requires-model-gateway",
+          "neighbor_id": "component:managed-model-provider",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:model-catalog-requires-model-gateway",
+          "neighbor_id": "component:model-catalog",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:self-hosted-inference-requires-model-gateway",
+          "neighbor_id": "component:self-hosted-inference",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:model-gateway"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:model-fallback-requires-model-router",
+          "neighbor_id": "component:model-fallback",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:model-router"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:parallel-reviewer-requires-multi-agent-supervisor",
+          "neighbor_id": "component:parallel-reviewer",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:multi-agent-supervisor"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:multi-agent-supervisor-requires-orchestration-runtime",
+          "neighbor_id": "component:multi-agent-supervisor",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:sequential-handoff-requires-orchestration-runtime",
+          "neighbor_id": "component:sequential-handoff",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:orchestration-runtime"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:human-approval-requires-policy-engine",
+          "neighbor_id": "component:human-approval",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:restricted-egress-requires-policy-engine",
+          "neighbor_id": "component:restricted-egress",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:secrets-broker-requires-policy-engine",
+          "neighbor_id": "component:secrets-broker",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:policy-engine"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:outcome-correlator-requires-source-control-integration",
+          "neighbor_id": "component:outcome-correlator",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:source-control-integration"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:quota-manager-requires-team-workspaces",
+          "neighbor_id": "component:quota-manager",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:team-workspaces"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:economics-ledger-requires-telemetry-pipeline",
+          "neighbor_id": "component:economics-ledger",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:evaluation-service-requires-telemetry-pipeline",
+          "neighbor_id": "component:evaluation-service",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:multi-region-requires-telemetry-pipeline",
+          "neighbor_id": "component:multi-region",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:telemetry-pipeline"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:connector-registry-requires-tool-gateway",
+          "neighbor_id": "component:connector-registry",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:package-access-requires-tool-gateway",
+          "neighbor_id": "component:package-access",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:source-control-integration-requires-tool-gateway",
+          "neighbor_id": "component:source-control-integration",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:tool-gateway"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:orchestration-runtime-requires-workflow-definitions",
+          "neighbor_id": "component:orchestration-runtime",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:workflow-definitions"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:advisor-workspace-requires-workforce-identity",
+          "neighbor_id": "component:advisor-workspace",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:audit-ledger-requires-workforce-identity",
+          "neighbor_id": "component:audit-ledger",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:team-workspaces-requires-workforce-identity",
+          "neighbor_id": "component:team-workspaces",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:workload-identity-requires-workforce-identity",
+          "neighbor_id": "component:workload-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:workforce-identity"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:agent-registry-requires-workload-identity",
+          "neighbor_id": "component:agent-registry",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:execution-broker-requires-workload-identity",
+          "neighbor_id": "component:execution-broker",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:model-gateway-requires-workload-identity",
+          "neighbor_id": "component:model-gateway",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:policy-engine-requires-workload-identity",
+          "neighbor_id": "component:policy-engine",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:private-connectivity-requires-workload-identity",
+          "neighbor_id": "component:private-connectivity",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:telemetry-pipeline-requires-workload-identity",
+          "neighbor_id": "component:telemetry-pipeline",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:tool-gateway-requires-workload-identity",
+          "neighbor_id": "component:tool-gateway",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:workload-identity"
+    }
+  ],
+  "nodes": [
+    {
+      "entity_hash": "sha256:e206d19d1dca3d1ff00ef39430380a8efb3cfbfb504fe9ae9a373965c7d969f6",
+      "id": "claim:architecture-first-authority",
+      "kind": "Claim",
+      "title": "Architecture First Authority"
+    },
+    {
+      "entity_hash": "sha256:0bf18f3cc851afc20746e38a2d0965a4f3235e7d5a83c9a562d00747b03c2038",
+      "id": "claim:bedrock-managed-inference",
+      "kind": "Claim",
+      "title": "Bedrock Managed Inference"
+    },
+    {
+      "entity_hash": "sha256:54c455ba1a7e850837e8ce98b0c3f575441ac626756ab5309c7b006afd98f726",
+      "id": "claim:multi-provider-resilience",
+      "kind": "Claim",
+      "title": "Multi Provider Resilience"
+    },
+    {
+      "entity_hash": "sha256:cef4aa2bcc866413d9cd67f55c6cad34a9e7711aed8db801303092b10c95b410",
+      "id": "claim:self-hosted-residency",
+      "kind": "Claim",
+      "title": "Self Hosted Residency"
+    },
+    {
+      "entity_hash": "sha256:db5244e2091c302ee80a43040a8cc74364153e73706f61654ce97c078a628808",
+      "id": "component:advisor-workspace",
+      "kind": "Component",
+      "title": "Architecture workspace"
+    },
+    {
+      "entity_hash": "sha256:ee2a9a1de0599e9c1ac01b364dc8bb660eee6fa9515470702a7123adb836787c",
+      "id": "component:agent-registry",
+      "kind": "Component",
+      "title": "Agent registry"
+    },
+    {
+      "entity_hash": "sha256:b013869238d03ac47cbbdfcd6718ceed298d44f626bf701ddcd5e66c82c72326",
+      "id": "component:architecture-knowledge",
+      "kind": "Component",
+      "title": "Architecture intelligence catalog"
+    },
+    {
+      "entity_hash": "sha256:289b2e4e7f9b7d092ffb34ed4386bd136fb7b9df23cdffe93f9a4656f2c8ff83",
+      "id": "component:audit-ledger",
+      "kind": "Component",
+      "title": "Decision and action ledger"
+    },
+    {
+      "entity_hash": "sha256:0a471f992f24b9fd0b575967b35ca2e12179c4cdb279e9f6ac3ac9c4c7f108fe",
+      "id": "component:connector-registry",
+      "kind": "Component",
+      "title": "Connector registry"
+    },
+    {
+      "entity_hash": "sha256:7f6e4e46e67694a2883a61ea8fc596916a8a2bd134ee9eb9b43af9a416b17fa6",
+      "id": "component:container-runtime",
+      "kind": "Component",
+      "title": "Self-hosted container runtime"
+    },
+    {
+      "entity_hash": "sha256:a9fe7c8570f8b1cf1bec1521ccc5ca2843516f2af784b33eecc1d75598eec9a4",
+      "id": "component:developer-clients",
+      "kind": "Component",
+      "title": "Coding agent clients"
+    },
+    {
+      "entity_hash": "sha256:188bdc1db593a8f01cc4ebda1962a2a0416422311fddb0db1176cdee445cbd57",
+      "id": "component:economics-ledger",
+      "kind": "Component",
+      "title": "Token and platform economics"
+    },
+    {
+      "entity_hash": "sha256:aff1c91ee5434cb8608be4c1c02a4aec029c453e03b099e834da5b383f2010b3",
+      "id": "component:enterprise-api-access",
+      "kind": "Component",
+      "title": "Enterprise API access"
+    },
+    {
+      "entity_hash": "sha256:ce09fd3dbeae21c9ef6aaa525ecd83ab5049736523f687db993a472339c2fab5",
+      "id": "component:ephemeral-runtime",
+      "kind": "Component",
+      "title": "Ephemeral task runtime"
+    },
+    {
+      "entity_hash": "sha256:6c1483a0395fd9e757fdb7506d61df2ec2c1b65dfa12b690ccdaf7f5cb045447",
+      "id": "component:evaluation-service",
+      "kind": "Component",
+      "title": "Evaluation service"
+    },
+    {
+      "entity_hash": "sha256:4a9eb12bbd2838cff4bf947d561a2b711689b0d6a23ee8aeca40c4b4d55520c6",
+      "id": "component:evidence-catalog",
+      "kind": "Component",
+      "title": "Evidence claim catalog"
+    },
+    {
+      "entity_hash": "sha256:3fadc2019e3a01cffd56d82e0decce58fb928284767bb323bc3deb8aae8be446",
+      "id": "component:execution-broker",
+      "kind": "Component",
+      "title": "Execution broker"
+    },
+    {
+      "entity_hash": "sha256:a4c338eb98c985a14f277860ffda7f4d90679a6c8a7de71b1d1ba4e76a5db41f",
+      "id": "component:human-approval",
+      "kind": "Component",
+      "title": "Risk-based human approval"
+    },
+    {
+      "entity_hash": "sha256:bc6b9950afb648421a24623aafdc8ade845356e7785437ef5d3b7dc68f6b634f",
+      "id": "component:kubernetes-runtime",
+      "kind": "Component",
+      "title": "Self-hosted Kubernetes runtime"
+    },
+    {
+      "entity_hash": "sha256:95a2a69c6843d04bf3632029eb7507d57222b0cb8f379c851fa1cb6f7eb9c51f",
+      "id": "component:local-runtime",
+      "kind": "Component",
+      "title": "Managed local runtime"
+    },
+    {
+      "entity_hash": "sha256:e6b79abcec674338f93f84c57864f660d3b7c0b0634f05e2e9472e3eaf523c09",
+      "id": "component:managed-model-provider",
+      "kind": "Component",
+      "title": "Managed model provider"
+    },
+    {
+      "entity_hash": "sha256:c5779033ac59b2134763a283ba0437cddc2f5a188669d70b983dc2375bce69d3",
+      "id": "component:model-catalog",
+      "kind": "Component",
+      "title": "Model catalog"
+    },
+    {
+      "entity_hash": "sha256:4b31aecef5abfb3afdbaec5893ef19bf01d0f081b50cefe5adf05c4dc2a8f3f4",
+      "id": "component:model-fallback",
+      "kind": "Component",
+      "title": "Model-provider fallback"
+    },
+    {
+      "entity_hash": "sha256:84da340c5d5d453ac1e2b56c50cc2725ff409754cb36bea06428b652e574ec08",
+      "id": "component:model-gateway",
+      "kind": "Component",
+      "title": "Model gateway"
+    },
+    {
+      "entity_hash": "sha256:89209c972880cc5348f6d47d42210ab386cf2318248fe9ff423c6427b9e0f02a",
+      "id": "component:model-router",
+      "kind": "Component",
+      "title": "Model router"
+    },
+    {
+      "entity_hash": "sha256:f4e00608363fb752b812fdb1c9baec69ace0cc55532a90ee0034b66f7aceb9c1",
+      "id": "component:multi-agent-supervisor",
+      "kind": "Component",
+      "title": "Multi-agent supervisor"
+    },
+    {
+      "entity_hash": "sha256:7a60ede2d4854f85c900136fff89a50dc52fd7d4372fc52b22fce1b99b27c6f5",
+      "id": "component:multi-region",
+      "kind": "Component",
+      "title": "Multi-region resilience"
+    },
+    {
+      "entity_hash": "sha256:df13cc5b8fc8305267445ebf0ed135741b80788668f830dadc13a4378abc6dad",
+      "id": "component:orchestration-runtime",
+      "kind": "Component",
+      "title": "Agent orchestration runtime"
+    },
+    {
+      "entity_hash": "sha256:8bbb353e46a3239672709359016669a5fdc19f10781d05d63264e2d9682bd6ae",
+      "id": "component:outcome-correlator",
+      "kind": "Component",
+      "title": "Outcome correlator"
+    },
+    {
+      "entity_hash": "sha256:af99cf660f20dc722acdf113fef95b33d2b1701be5296790e0f88a646c1950cf",
+      "id": "component:package-access",
+      "kind": "Component",
+      "title": "Approved package access"
+    },
+    {
+      "entity_hash": "sha256:d2902bc58ffa24b3ca9428c51585052148a110eb8e1c67e08e8dedc68fd8f146",
+      "id": "component:parallel-reviewer",
+      "kind": "Component",
+      "title": "Parallel candidates with independent review"
+    },
+    {
+      "entity_hash": "sha256:b6817ebb7236cbb285713f410318047706288a86bc8b20929eb8e98403695975",
+      "id": "component:persistent-workspace",
+      "kind": "Component",
+      "title": "Persistent developer workspace"
+    },
+    {
+      "entity_hash": "sha256:1b9c5cff0e1364b0ac827fb7c988fc6eaf03541ab2d96554326450597d09bd78",
+      "id": "component:policy-engine",
+      "kind": "Component",
+      "title": "Policy engine"
+    },
+    {
+      "entity_hash": "sha256:7db4a1516c269d28e3ea7f8e2f26fd72c2ea3dd99b8ca933f5b032736599a006",
+      "id": "component:private-connectivity",
+      "kind": "Component",
+      "title": "Private connectivity"
+    },
+    {
+      "entity_hash": "sha256:122713a457079ee5d84aec4a4e030b13aa2d1575b54da0c588258f3b0d328336",
+      "id": "component:quota-manager",
+      "kind": "Component",
+      "title": "Quota and budget manager"
+    },
+    {
+      "entity_hash": "sha256:670bca1a4626ce4833f4d75f393af1c0633e07e64e977abc1c8798b9da6c10b5",
+      "id": "component:restricted-egress",
+      "kind": "Component",
+      "title": "Restricted runtime egress"
+    },
+    {
+      "entity_hash": "sha256:eba41d6ba24b6c8fdd56c806685c48b86153cbef03f74fd652e3115c3945b22f",
+      "id": "component:secrets-broker",
+      "kind": "Component",
+      "title": "Secrets broker"
+    },
+    {
+      "entity_hash": "sha256:5bbf948d3e4336fc379ff68f95abe3a5763926d2d3d35d06be3d7094635bdc10",
+      "id": "component:self-hosted-inference",
+      "kind": "Component",
+      "title": "Self-hosted inference"
+    },
+    {
+      "entity_hash": "sha256:21b561afe4fe6ed4fe7684cf9642e033cece106b9ee04c5716772c05df7b1575",
+      "id": "component:sequential-handoff",
+      "kind": "Component",
+      "title": "Sequential specialist handoff"
+    },
+    {
+      "entity_hash": "sha256:e6833ed8e35452cb0573dd1e6e10ef4ff4891f25d5ec2ada93b12a576e10026b",
+      "id": "component:source-control-integration",
+      "kind": "Component",
+      "title": "Source control integration"
+    },
+    {
+      "entity_hash": "sha256:69a0be03c181e0ef7da4a3ea7d16be546380c7de0fdd8b8f0ca881fda939182a",
+      "id": "component:static-model-binding",
+      "kind": "Component",
+      "title": "Static multi-model binding"
+    },
+    {
+      "entity_hash": "sha256:5a1386bb6192127879375143dc0c23ccba6ea394d5bd9ece62ef9d99b9a015c8",
+      "id": "component:team-workspaces",
+      "kind": "Component",
+      "title": "Team workspaces"
+    },
+    {
+      "entity_hash": "sha256:2b90861418eae19902cffb86780a47dbfb30131eec747126a9e3d819fc207d2d",
+      "id": "component:telemetry-pipeline",
+      "kind": "Component",
+      "title": "Agent telemetry pipeline"
+    },
+    {
+      "entity_hash": "sha256:509ed9c8f06dce0ea484fdc6344c45542c70fdfdbeaea5fbd59ef38de21de697",
+      "id": "component:tool-gateway",
+      "kind": "Component",
+      "title": "Tool and API gateway"
+    },
+    {
+      "entity_hash": "sha256:d0253156b2794f23363516636e2bf87164e99a09a4347d02ba580ffa88650964",
+      "id": "component:warm-runtime-pool",
+      "kind": "Component",
+      "title": "Warm pools and resumable snapshots"
+    },
+    {
+      "entity_hash": "sha256:40e68e707d48295ae319d9b48c8d2a0481b43066c13b1049317b4f792885690a",
+      "id": "component:workflow-definitions",
+      "kind": "Component",
+      "title": "Workflow definitions"
+    },
+    {
+      "entity_hash": "sha256:268c18b4bc857c90bb48b0305d973d21223b670fae1fc9e0d69eebc2d1ef6a5a",
+      "id": "component:workforce-identity",
+      "kind": "Component",
+      "title": "Workforce identity"
+    },
+    {
+      "entity_hash": "sha256:81a443f8b81f63185a1092208cca24e1c4c2b2f3ed40009090a8fdd3eb8a5aad",
+      "id": "component:workload-identity",
+      "kind": "Component",
+      "title": "Workload identity"
+    },
+    {
+      "entity_hash": "sha256:2ffd69ed6a72420ced86e878218a338c1ccfda126a81bfdd83852759cb9db458",
+      "id": "decision-pattern:aws-governed",
+      "kind": "DecisionPattern",
+      "title": "AWS governed managed platform"
+    },
+    {
+      "entity_hash": "sha256:27926e42a59114d015bcf135e5e98acd7574d3a18a0a86d510bbfe1f4d3ed07e",
+      "id": "decision-pattern:byop-portable",
+      "kind": "DecisionPattern",
+      "title": "BYOP portable platform"
+    },
+    {
+      "entity_hash": "sha256:9094876d45ec893c659136b0abd6a69a87d4ad0c30fff1ebc3e2144db2530dcd",
+      "id": "decision-pattern:hybrid-governed",
+      "kind": "DecisionPattern",
+      "title": "Hybrid governed platform"
+    },
+    {
+      "entity_hash": "sha256:35a75859440e078d2c3877aa30fa82eeffd34cb85131d0f16432380997569af0",
+      "id": "decision-pattern:oss-sovereign",
+      "kind": "DecisionPattern",
+      "title": "Open-source sovereign platform"
+    },
+    {
+      "entity_hash": "sha256:3a868ae7bfd98d5cb00f90af08b09519ef1e161d6b45c7dcbf57b7f498a8c19d",
+      "id": "decision-pattern:saas-composable",
+      "kind": "DecisionPattern",
+      "title": "Composable SaaS platform"
+    },
+    {
+      "entity_hash": "sha256:37ad684cbf4124b9c0093261fce2b65a7993cedc5a9cda2c02e6097774937d85",
+      "id": "interface:agent-specification",
+      "kind": "Interface",
+      "title": "Agent specification"
+    },
+    {
+      "entity_hash": "sha256:30665742ac77d6d7b94730b8b1ce1be39ac84378c7799ef62b1e3c2eac9600c4",
+      "id": "interface:architecture-evidence",
+      "kind": "Interface",
+      "title": "Architecture evidence"
+    },
+    {
+      "entity_hash": "sha256:61028f1d7cce8561382cf33c161d7206503ab7ff2d059c14b75dfd5505490d1a",
+      "id": "interface:audit-write",
+      "kind": "Interface",
+      "title": "Audit write"
+    },
+    {
+      "entity_hash": "sha256:5c722aa4c4434967ae74bfeda536f071c8c0bc2c525c6cccba44779a6fba0826",
+      "id": "interface:connector-discovery",
+      "kind": "Interface",
+      "title": "Connector discovery"
+    },
+    {
+      "entity_hash": "sha256:0b6d6714353e17f9bc908d5f3abdf7d1ca12732f8be8abf813cb3520635a5981",
+      "id": "interface:economics-record",
+      "kind": "Interface",
+      "title": "Economics record"
+    },
+    {
+      "entity_hash": "sha256:58cef146804719d644b7bfe06cc0f5d69b6cc4210887f79db038e060eeac3d7e",
+      "id": "interface:enterprise-api",
+      "kind": "Interface",
+      "title": "Enterprise API access"
+    },
+    {
+      "entity_hash": "sha256:67f195c7bc3084641271a28474cd9f1af23b76ec9a61885d53b4421395e55a21",
+      "id": "interface:evaluation-result",
+      "kind": "Interface",
+      "title": "Evaluation result"
+    },
+    {
+      "entity_hash": "sha256:6de74184a3960a36e75c6c5b0aee6a9abedfd4306479eb10eb84b097b4e8e2a9",
+      "id": "interface:evidence-query",
+      "kind": "Interface",
+      "title": "Evidence query"
+    },
+    {
+      "entity_hash": "sha256:bf818056f5523cfe4a55623ef21509950e595a94bd128d3b0654cf8d4eac2955",
+      "id": "interface:execution-dispatch",
+      "kind": "Interface",
+      "title": "Execution dispatch"
+    },
+    {
+      "entity_hash": "sha256:602e0a2472a1b97ef5b68a14607c5edb9de7c1d2291becce561e9dc2409d9927",
+      "id": "interface:identity-assertion",
+      "kind": "Interface",
+      "title": "Workforce identity assertion"
+    },
+    {
+      "entity_hash": "sha256:73bb8af17cb92d68a10f9512801a9a85534d114111514045c4e83e68158bb014",
+      "id": "interface:model-catalog",
+      "kind": "Interface",
+      "title": "Model catalog"
+    },
+    {
+      "entity_hash": "sha256:011dfbb997d35951878dd7613f708502285871913420d66219a2c555264b601c",
+      "id": "interface:model-inference",
+      "kind": "Interface",
+      "title": "Model inference"
+    },
+    {
+      "entity_hash": "sha256:59e6560b5eff93d7a1e2809a0cc55f595abc67f9c084f2d5e6775d017da397d1",
+      "id": "interface:orchestration-control",
+      "kind": "Interface",
+      "title": "Orchestration control"
+    },
+    {
+      "entity_hash": "sha256:5a671de8219bdc6fe27802ccb260989090ae5766333e5f5083293e683563e954",
+      "id": "interface:package-retrieval",
+      "kind": "Interface",
+      "title": "Package retrieval"
+    },
+    {
+      "entity_hash": "sha256:e06e04888b71c3a77c114f2a989eafa9f596240f5938547e95f230cc1d965093",
+      "id": "interface:policy-decision",
+      "kind": "Interface",
+      "title": "Policy decision"
+    },
+    {
+      "entity_hash": "sha256:8dd2ffb4c46810741a0d354cf02838e15467d4ccc16272ed520f8fd1956386e6",
+      "id": "interface:quota-decision",
+      "kind": "Interface",
+      "title": "Quota decision"
+    },
+    {
+      "entity_hash": "sha256:8e2b5b18e25b7c697d4938782324a1409ed9e46e09513d0a17cc06624cf23e46",
+      "id": "interface:secret-lease",
+      "kind": "Interface",
+      "title": "Secret lease"
+    },
+    {
+      "entity_hash": "sha256:e064a3adff97dedde29236b9b712508aa792737ec8a90a236b36d5345efc2ffd",
+      "id": "interface:source-control",
+      "kind": "Interface",
+      "title": "Source control event"
+    },
+    {
+      "entity_hash": "sha256:99fd851a29f082ffad3ee62d44987338a3f9d5e32d1c4aa943351b50d1b73deb",
+      "id": "interface:telemetry-ingest",
+      "kind": "Interface",
+      "title": "Agent telemetry ingest"
+    },
+    {
+      "entity_hash": "sha256:a49850ff23786b1c342baa326088af7c1c83eead1b1604f77b835c86bae7e031",
+      "id": "interface:tool-invocation",
+      "kind": "Interface",
+      "title": "Tool invocation"
+    },
+    {
+      "entity_hash": "sha256:50d0a7f6d3f5de675252c14b14dcfe0b541ab54941e4ead4255b3d7fc5190b60",
+      "id": "interface:workflow-specification",
+      "kind": "Interface",
+      "title": "Workflow specification"
+    },
+    {
+      "entity_hash": "sha256:af80aaf5e450c61ae43085144d8fed93be9c4d36ff54ff3949fe8ead0026a103",
+      "id": "interface:workload-credential",
+      "kind": "Interface",
+      "title": "Workload credential"
+    },
+    {
+      "entity_hash": "sha256:58c53acf44fa23dc033e7af12b39234c4cd5e4e8951e05d53687ca473e9bb608",
+      "id": "offering:advisor-workspace-aws",
+      "kind": "Offering",
+      "title": "AWS-hosted Platform Advisor workspace"
+    },
+    {
+      "entity_hash": "sha256:e106a0e26ee834c89ce117d516038d840425d4975fd5ca723ec794428fdbb467",
+      "id": "offering:advisor-workspace-byop",
+      "kind": "Offering",
+      "title": "Customer portal workspace adapter"
+    },
+    {
+      "entity_hash": "sha256:06ea9c2ecdb6d196c44978d10c917ea32ca4dd9a599c03968f5b5ef33057e06c",
+      "id": "offering:advisor-workspace-oss",
+      "kind": "Offering",
+      "title": "Backstage-based architecture workspace"
+    },
+    {
+      "entity_hash": "sha256:acf37dcebdf9c81cf6a53e4351d3967122858f468f9209eb27706a2db03b49ca",
+      "id": "offering:advisor-workspace-saas",
+      "kind": "Offering",
+      "title": "Managed Platform Advisor workspace"
+    },
+    {
+      "entity_hash": "sha256:7d3a1506af41f397c305b52fdd4ef52a27bc18c463698b5fd4fae5cfee91518a",
+      "id": "offering:agent-registry-aws",
+      "kind": "Offering",
+      "title": "Amazon ECR agent artifact registry"
+    },
+    {
+      "entity_hash": "sha256:fdf27ff2084453b4e54439d7d2d442be15e2a47a56149b9c960460674e24db8e",
+      "id": "offering:agent-registry-byop",
+      "kind": "Offering",
+      "title": "Customer agent registry adapter"
+    },
+    {
+      "entity_hash": "sha256:a25464255a3f8c3b8397261561da381a043169211a32ce54d50f4ae17e540aec",
+      "id": "offering:agent-registry-oss",
+      "kind": "Offering",
+      "title": "OCI agent artifact registry"
+    },
+    {
+      "entity_hash": "sha256:6e5aaffcdf4cb6776b88b7e03c975191303f51e338678b1a2d6ea93e2167cea3",
+      "id": "offering:agent-registry-saas",
+      "kind": "Offering",
+      "title": "Managed agent registry"
+    },
+    {
+      "entity_hash": "sha256:d4e391f652bc187573b0f62090bfaac85b2a296757e6cfadf02f674b6ef646a2",
+      "id": "offering:architecture-knowledge-aws",
+      "kind": "Offering",
+      "title": "Amazon OpenSearch Serverless architecture index"
+    },
+    {
+      "entity_hash": "sha256:1dcee0c40e431348f68472f12980842357d9327757a4e730b7a2b227440a7dca",
+      "id": "offering:architecture-knowledge-byop",
+      "kind": "Offering",
+      "title": "Customer architecture knowledge adapter"
+    },
+    {
+      "entity_hash": "sha256:00f9dc657ae3cb7e5dcbad0dc22c66fbf39c4e9347474cf69653f9c403f0af80",
+      "id": "offering:architecture-knowledge-oss",
+      "kind": "Offering",
+      "title": "OpenSearch architecture knowledge index"
+    },
+    {
+      "entity_hash": "sha256:74aa7b7d9ffbeb3b9b1a0c3c5902a2651a03abcc5186a7d513d8704c167f6574",
+      "id": "offering:architecture-knowledge-saas",
+      "kind": "Offering",
+      "title": "Managed architecture knowledge service"
+    },
+    {
+      "entity_hash": "sha256:1885028bda35096c0ffd3c210ca5c960e7256d61f7710fd4964c195ec6d83e19",
+      "id": "offering:audit-ledger-aws",
+      "kind": "Offering",
+      "title": "AWS CloudTrail and Amazon S3 Object Lock"
+    },
+    {
+      "entity_hash": "sha256:276287b416cfc5a5417cf193722e6578ec9d4464dd63332b5c86a8638fd37e53",
+      "id": "offering:audit-ledger-byop",
+      "kind": "Offering",
+      "title": "Customer audit ledger adapter"
+    },
+    {
+      "entity_hash": "sha256:0a5aab63333b6fdacfc781bf00d0b0b7ffe6275a6b41f199f41f21c6b3770636",
+      "id": "offering:audit-ledger-oss",
+      "kind": "Offering",
+      "title": "Append-only PostgreSQL audit ledger"
+    },
+    {
+      "entity_hash": "sha256:ab8ca4eaab58d88b2453ed0c82a67980ecbd18ea227724868dc82ee29fe46971",
+      "id": "offering:audit-ledger-saas",
+      "kind": "Offering",
+      "title": "Managed immutable audit export"
+    },
+    {
+      "entity_hash": "sha256:f0de342f6a2e9bd8b79cd989c6abed2092b61ca8f274822d7b5d6bc61f428335",
+      "id": "offering:connector-registry-aws",
+      "kind": "Offering",
+      "title": "AgentCore Gateway target catalog"
+    },
+    {
+      "entity_hash": "sha256:797afc493aecbe62fd132585aeb023215fb6f41a9220955b22ed3d01b0c16764",
+      "id": "offering:connector-registry-byop",
+      "kind": "Offering",
+      "title": "Customer connector registry adapter"
+    },
+    {
+      "entity_hash": "sha256:f09d51d80fb8bb0c48ce6c7d48981f7405e9c164739864391863efc684633f82",
+      "id": "offering:connector-registry-oss",
+      "kind": "Offering",
+      "title": "Backstage connector catalog"
+    },
+    {
+      "entity_hash": "sha256:9ed93dadcf0d58005bf199680953d5502824072fe049ea83399bf6e29048f8eb",
+      "id": "offering:connector-registry-saas",
+      "kind": "Offering",
+      "title": "Managed connector registry"
+    },
+    {
+      "entity_hash": "sha256:57e8f6d763d6b9ded4697adb9b3979c98902670ff06754b1899acca614ddf98a",
+      "id": "offering:container-runtime-aws",
+      "kind": "Offering",
+      "title": "Amazon ECS on AWS Fargate"
+    },
+    {
+      "entity_hash": "sha256:b80f0bd6289fe46658c8fc6308620fc2e38c194cfd5750c2781d318a35e43503",
+      "id": "offering:container-runtime-byop",
+      "kind": "Offering",
+      "title": "Customer container runtime adapter"
+    },
+    {
+      "entity_hash": "sha256:e02d6cb87366a771d8ffe1e953e46d0583c88d08b08f56d8188435f8ac9b33c9",
+      "id": "offering:container-runtime-oss",
+      "kind": "Offering",
+      "title": "HashiCorp Nomad container runtime"
+    },
+    {
+      "entity_hash": "sha256:b9965041818cd42cb1857947533471945e42e81ee2b7205d8d5afaa15c58c89c",
+      "id": "offering:container-runtime-saas",
+      "kind": "Offering",
+      "title": "Managed container runner"
+    },
+    {
+      "entity_hash": "sha256:fae38711fa2bbd26d30e04c35effbe0f11d1f656f37ec95963d97de8e2311b79",
+      "id": "offering:developer-clients-aws",
+      "kind": "Offering",
+      "title": "Enterprise coding-agent clients with AWS governance"
+    },
+    {
+      "entity_hash": "sha256:83a120a136d41e14eb79ac082b04888403f661490cb79e86afbb672a9b4bf9fb",
+      "id": "offering:developer-clients-byop",
+      "kind": "Offering",
+      "title": "Customer-selected coding-agent client adapter"
+    },
+    {
+      "entity_hash": "sha256:8dd4c5266698bdadfe5becf2730947b1f01a52c4b2930f51ef50bc382654fbd8",
+      "id": "offering:developer-clients-oss",
+      "kind": "Offering",
+      "title": "Open-source IDE and CLI agent clients"
+    },
+    {
+      "entity_hash": "sha256:0ff033cd5368b659dbbd5d2d3368fcc8d2d077d6b61dfca0553bdcf40adda707",
+      "id": "offering:developer-clients-saas",
+      "kind": "Offering",
+      "title": "Managed Claude Code and Codex clients"
+    },
+    {
+      "entity_hash": "sha256:46ac851aaac14306712cab8f1e95c97906de8b0385623970128b82a992403d15",
+      "id": "offering:economics-ledger-aws",
+      "kind": "Offering",
+      "title": "AWS cost and token economics ledger"
+    },
+    {
+      "entity_hash": "sha256:8e83578f64efce88b6510c4fd276f8bc6f363774d57fe231b172924fe4bc89a8",
+      "id": "offering:economics-ledger-byop",
+      "kind": "Offering",
+      "title": "Customer economics ledger adapter"
+    },
+    {
+      "entity_hash": "sha256:86bb69b8d902f087fe935812f554200c45275914e37e33e5bd0145d66c14625d",
+      "id": "offering:economics-ledger-oss",
+      "kind": "Offering",
+      "title": "OpenCost and token usage ledger"
+    },
+    {
+      "entity_hash": "sha256:07d5c81cc91ec2c48d78600449653486d7ff5a5a46c2901ecd0f81c810d5bb8b",
+      "id": "offering:economics-ledger-saas",
+      "kind": "Offering",
+      "title": "Managed AI FinOps ledger"
+    },
+    {
+      "entity_hash": "sha256:fcafcb681a890b3163c1635e3119ab15ba045f56e9b2e2fc1945b783f5b45323",
+      "id": "offering:enterprise-api-access-aws",
+      "kind": "Offering",
+      "title": "Amazon API Gateway and AWS PrivateLink"
+    },
+    {
+      "entity_hash": "sha256:6c4c37c8d2529e5f921fa89b37532d3fd86381e28ebd5ced611d5097ea91f5db",
+      "id": "offering:enterprise-api-access-byop",
+      "kind": "Offering",
+      "title": "Customer API access adapter"
+    },
+    {
+      "entity_hash": "sha256:931c61b2a2649f0361efc15f181f3708b06be4d6f978309ced830db19a3bf732",
+      "id": "offering:enterprise-api-access-oss",
+      "kind": "Offering",
+      "title": "Kong enterprise API access"
+    },
+    {
+      "entity_hash": "sha256:726a601be8dbc4363b71d903ac949463fd1d01c2bb77fe0896b30d3f9fe22132",
+      "id": "offering:enterprise-api-access-saas",
+      "kind": "Offering",
+      "title": "Managed enterprise API integration"
+    },
+    {
+      "entity_hash": "sha256:d3859f0af42cbbddbaca7f85f354fb2e6891ac6b3be006ba2fdf100133b42538",
+      "id": "offering:ephemeral-runtime-aws",
+      "kind": "Offering",
+      "title": "AWS isolated ephemeral task runtime"
+    },
+    {
+      "entity_hash": "sha256:df5cb432c7851d8c9f0fdf7fbd38f547e5e4b87a83300f4469bb24f7a64b6400",
+      "id": "offering:ephemeral-runtime-byop",
+      "kind": "Offering",
+      "title": "Customer ephemeral runtime adapter"
+    },
+    {
+      "entity_hash": "sha256:555000016ab8507373b4d7cb02b1aa937176846257fa8767b6368a106352cc21",
+      "id": "offering:ephemeral-runtime-oss",
+      "kind": "Offering",
+      "title": "Firecracker ephemeral worker"
+    },
+    {
+      "entity_hash": "sha256:971d2735094a448b4bdc9f2f878db4e55d96d9c0e7dcba0a55ef932e33afb6ca",
+      "id": "offering:ephemeral-runtime-saas",
+      "kind": "Offering",
+      "title": "Managed isolated sandbox service"
+    },
+    {
+      "entity_hash": "sha256:913612472f1fb96715358cad891d5f7749bcd262d569de1f1bdb743962e02746",
+      "id": "offering:evaluation-service-aws",
+      "kind": "Offering",
+      "title": "Amazon Bedrock evaluation service"
+    },
+    {
+      "entity_hash": "sha256:28e06038e281c8ef1abe1fb059cca8b6ed1594f6e03c0fa8176efd0a2d183c30",
+      "id": "offering:evaluation-service-byop",
+      "kind": "Offering",
+      "title": "Customer evaluation service adapter"
+    },
+    {
+      "entity_hash": "sha256:c0bdccd7755ec9adb7e908113d8384340225747c4b1d689cdd01b4197663f3c3",
+      "id": "offering:evaluation-service-oss",
+      "kind": "Offering",
+      "title": "Open-source agent evaluation harness"
+    },
+    {
+      "entity_hash": "sha256:b78abc411eb1b546c546f7923c5bc95ee4210addf8a661ebc5a2771a82f89c51",
+      "id": "offering:evaluation-service-saas",
+      "kind": "Offering",
+      "title": "Managed agent evaluation service"
+    },
+    {
+      "entity_hash": "sha256:9409247655f6a065a0a295366ce0879b6a3c1cc740140f6f9d38e4dd860258f0",
+      "id": "offering:evidence-catalog-aws",
+      "kind": "Offering",
+      "title": "Amazon S3 and DynamoDB evidence catalog"
+    },
+    {
+      "entity_hash": "sha256:d359d0b5356141556feff69ed7cd404bb3dd7cd494c85492baa2dc6070182022",
+      "id": "offering:evidence-catalog-byop",
+      "kind": "Offering",
+      "title": "Customer evidence catalog adapter"
+    },
+    {
+      "entity_hash": "sha256:bda19b916ab32b8ea5edfa8e5dbe7ae9ec5320af4a4777f13fce94780f1b6f73",
+      "id": "offering:evidence-catalog-oss",
+      "kind": "Offering",
+      "title": "Git-backed evidence catalog"
+    },
+    {
+      "entity_hash": "sha256:eae31f3bcb3808aec918308409d9d2467d81ded18c905d6449f3dff56efc70c5",
+      "id": "offering:evidence-catalog-saas",
+      "kind": "Offering",
+      "title": "Managed evidence catalog"
+    },
+    {
+      "entity_hash": "sha256:58d9dba7bdafaae3534e6b755e271e1637ceb09c888075d92ed2bcaac00aae8f",
+      "id": "offering:execution-broker-aws",
+      "kind": "Offering",
+      "title": "Amazon SQS and AWS Step Functions execution broker"
+    },
+    {
+      "entity_hash": "sha256:c54ae0b6afc95a4943a23cba922a38d53cc5d77b1947e065fd6de643f33d475c",
+      "id": "offering:execution-broker-byop",
+      "kind": "Offering",
+      "title": "Customer execution broker adapter"
+    },
+    {
+      "entity_hash": "sha256:b9389f20b2f032a4eed50c2d92272061331a1b1f5b70a9754b6bf2695e5eda8c",
+      "id": "offering:execution-broker-oss",
+      "kind": "Offering",
+      "title": "Temporal task broker"
+    },
+    {
+      "entity_hash": "sha256:0187ea47f156cc3b46c8ce44c33fafee1b3f8b9abe52d7f45c2251d0afb1c19f",
+      "id": "offering:execution-broker-saas",
+      "kind": "Offering",
+      "title": "Managed agent task broker"
+    },
+    {
+      "entity_hash": "sha256:3468b2cf370c144d897bb8b15f28fcfcb067878e1ce5ca334626eb981e4afa7b",
+      "id": "offering:human-approval-aws",
+      "kind": "Offering",
+      "title": "AWS Step Functions callback approval"
+    },
+    {
+      "entity_hash": "sha256:7cbd64a58da3a8d4426328af064de6b8e8499dc29698d40f8e64baf3a74a111d",
+      "id": "offering:human-approval-byop",
+      "kind": "Offering",
+      "title": "Customer approval workflow adapter"
+    },
+    {
+      "entity_hash": "sha256:36e2f327ec53389cbaa6d06a05685d24654902a9bc1ea879c31f05bb3fc27170",
+      "id": "offering:human-approval-oss",
+      "kind": "Offering",
+      "title": "Temporal signal-based approval"
+    },
+    {
+      "entity_hash": "sha256:2cf2cb6e08cf1fc5aeece18f91b2a5c867eb4405c78b3bdaae28340273a04e09",
+      "id": "offering:human-approval-saas",
+      "kind": "Offering",
+      "title": "Managed human approval workflow"
+    },
+    {
+      "entity_hash": "sha256:f60f61aecb0923e9caac0cad674140f4dc0252ad1922eecf87e647d0bd285da5",
+      "id": "offering:kubernetes-runtime-aws",
+      "kind": "Offering",
+      "title": "Amazon EKS"
+    },
+    {
+      "entity_hash": "sha256:834e19bc585bf7aff4227fe856762a132772b1c161f469fdeba1fa887a800d58",
+      "id": "offering:kubernetes-runtime-byop",
+      "kind": "Offering",
+      "title": "Customer Kubernetes adapter"
+    },
+    {
+      "entity_hash": "sha256:06164f12e542b46c0d0fcc0083dbfbb2d14b6676b986d4e0451a3ddcaa943863",
+      "id": "offering:kubernetes-runtime-oss",
+      "kind": "Offering",
+      "title": "Upstream Kubernetes"
+    },
+    {
+      "entity_hash": "sha256:088bd5e6b3fa489a14efe09bebbdb49d976f1bc3f71bfc483d3f8b08b6ced73f",
+      "id": "offering:kubernetes-runtime-saas",
+      "kind": "Offering",
+      "title": "Managed Kubernetes service"
+    },
+    {
+      "entity_hash": "sha256:469fbc6ddfcc2e89374df52b34f0fd4ad7279114fe500ef789fb1d4566b36e98",
+      "id": "offering:local-runtime-aws",
+      "kind": "Offering",
+      "title": "Enterprise-managed local runtime with AWS control"
+    },
+    {
+      "entity_hash": "sha256:cd8d70cf6acaefb43badfa4e83541275a0541a58214efd98f8c8d9cffb681f43",
+      "id": "offering:local-runtime-byop",
+      "kind": "Offering",
+      "title": "Customer local runtime adapter"
+    },
+    {
+      "entity_hash": "sha256:2eccdc27a34505c4c14d78e06a30c5cac27085ee36ed8fd3f2463fca020f8599",
+      "id": "offering:local-runtime-oss",
+      "kind": "Offering",
+      "title": "Dev Container local runtime"
+    },
+    {
+      "entity_hash": "sha256:b245bc1efe476696f37ebc9b7979561c2f0457c34fd9102b15e9d7d17e0c7c0b",
+      "id": "offering:local-runtime-saas",
+      "kind": "Offering",
+      "title": "Managed endpoint agent runtime"
+    },
+    {
+      "entity_hash": "sha256:a8a08c01618deadd5f9e7fd97f0651c4fa60aa1b93b13bff468132f77d642bab",
+      "id": "offering:managed-model-provider-aws",
+      "kind": "Offering",
+      "title": "Amazon Bedrock managed inference"
+    },
+    {
+      "entity_hash": "sha256:c375692bb5fb53db9cee7fcad55752c52d35389bd8c8cb2eb8d5ff237fbb176d",
+      "id": "offering:managed-model-provider-byop",
+      "kind": "Offering",
+      "title": "Customer managed-provider adapter"
+    },
+    {
+      "entity_hash": "sha256:ae31760ee6c10da97c018e9c7a3d0b350eeb036b843ecfd755640c46c277345d",
+      "id": "offering:managed-model-provider-oss",
+      "kind": "Offering",
+      "title": "vLLM on customer compute"
+    },
+    {
+      "entity_hash": "sha256:d44516da0033429a0de195df57e80b57f7c988104b3be87bee37ef38113eaf2b",
+      "id": "offering:managed-model-provider-saas",
+      "kind": "Offering",
+      "title": "Anthropic API"
+    },
+    {
+      "entity_hash": "sha256:c166c08c5081ba6732ee5c40a9591327bd66821a0fb077e3549b0848f334f0e9",
+      "id": "offering:model-catalog-aws",
+      "kind": "Offering",
+      "title": "Amazon Bedrock model catalog"
+    },
+    {
+      "entity_hash": "sha256:13d64ff05b770e5b605f7c30e13fbbc9844df2ace727db9d9a6454627d59442c",
+      "id": "offering:model-catalog-byop",
+      "kind": "Offering",
+      "title": "Customer model catalog adapter"
+    },
+    {
+      "entity_hash": "sha256:6888dee127c941fc79e6773afc3cc71045c680d339cede1fdb185efbdad8caea",
+      "id": "offering:model-catalog-oss",
+      "kind": "Offering",
+      "title": "Open model metadata catalog"
+    },
+    {
+      "entity_hash": "sha256:a023cfefac9420c7610b58aabbd2d9acf823af8ca962e018ea56a74b9f62d671",
+      "id": "offering:model-catalog-saas",
+      "kind": "Offering",
+      "title": "Managed model catalog"
+    },
+    {
+      "entity_hash": "sha256:f0a4bdd318eb06496cc4bef0d811a7ef76fe29ab4520ebd89ae61fabae28f1b2",
+      "id": "offering:model-fallback-aws",
+      "kind": "Offering",
+      "title": "Amazon Bedrock model fallback policy"
+    },
+    {
+      "entity_hash": "sha256:526ebca321c5bc655c68b93539d638ca3d9323293959557ccf3060e4170b31df",
+      "id": "offering:model-fallback-byop",
+      "kind": "Offering",
+      "title": "Customer model fallback adapter"
+    },
+    {
+      "entity_hash": "sha256:fb4554a95ac632bef4647e083692120df0591eeb0b54c668565149d919a2f196",
+      "id": "offering:model-fallback-oss",
+      "kind": "Offering",
+      "title": "LiteLLM fallback policy"
+    },
+    {
+      "entity_hash": "sha256:3f6b3ccb038cf4fad8a5470964cb80b2d5410e0a4b2d618999ef2e929564fb41",
+      "id": "offering:model-fallback-saas",
+      "kind": "Offering",
+      "title": "Managed model fallback service"
+    },
+    {
+      "entity_hash": "sha256:fe142978189e07ff0b3dc3a8014cded29eccd9268c693139937b446425e45fd6",
+      "id": "offering:model-gateway-aws",
+      "kind": "Offering",
+      "title": "Amazon Bedrock governed model gateway"
+    },
+    {
+      "entity_hash": "sha256:6b3bea864d8720121bff0abbf94db0e584c8d8ba8ed65d740a89d7eefb91e200",
+      "id": "offering:model-gateway-byop",
+      "kind": "Offering",
+      "title": "Customer model gateway adapter"
+    },
+    {
+      "entity_hash": "sha256:63d145680c508faf7e5f5038bb077f1b9f54f9cbce7d41af181f9dd4109ebee1",
+      "id": "offering:model-gateway-oss",
+      "kind": "Offering",
+      "title": "LiteLLM model gateway"
+    },
+    {
+      "entity_hash": "sha256:e2469308699b6043747fef5b9ac0c9c51bcd16cc249d04fd09d490e0908626fc",
+      "id": "offering:model-gateway-saas",
+      "kind": "Offering",
+      "title": "Managed AI model gateway"
+    },
+    {
+      "entity_hash": "sha256:e8dc87928f9a76f91b09b7da41a9b0feae1695f349c0c1ab1649402716625cd5",
+      "id": "offering:model-router-aws",
+      "kind": "Offering",
+      "title": "AWS policy-based model router"
+    },
+    {
+      "entity_hash": "sha256:760dcd46960892587b16a98e13b70b9aa692715afedfa33dfc7b0edc8365a5ca",
+      "id": "offering:model-router-byop",
+      "kind": "Offering",
+      "title": "Customer model router adapter"
+    },
+    {
+      "entity_hash": "sha256:26f3cf0722ac1b728955224490d296ea0d3bdf97742aaf78113b011cc58b28e9",
+      "id": "offering:model-router-oss",
+      "kind": "Offering",
+      "title": "LiteLLM policy router"
+    },
+    {
+      "entity_hash": "sha256:0cc5f3f8200c0aff8ac6f42059f75a59494c962ba4a26ccda2ab474f14f91c8c",
+      "id": "offering:model-router-saas",
+      "kind": "Offering",
+      "title": "Managed AI gateway router"
+    },
+    {
+      "entity_hash": "sha256:d973fdb0c43a99f2ebb0349a55e44cdc7d0e46b84a32686bf07d1e9e3b952da9",
+      "id": "offering:multi-agent-supervisor-aws",
+      "kind": "Offering",
+      "title": "AWS multi-agent supervisor runtime"
+    },
+    {
+      "entity_hash": "sha256:ff8eebc8aaee2ac396db8ef0d26dcd7fef3f3edde4c3fd59765df0c963b01a2d",
+      "id": "offering:multi-agent-supervisor-byop",
+      "kind": "Offering",
+      "title": "Customer supervisor adapter"
+    },
+    {
+      "entity_hash": "sha256:97122b3d0041b4bd0cc13f47dcf61be030a6d7c1bdd13008d757ea13309e830e",
+      "id": "offering:multi-agent-supervisor-oss",
+      "kind": "Offering",
+      "title": "LangGraph multi-agent supervisor"
+    },
+    {
+      "entity_hash": "sha256:41226255a16f3bab1a4e20bf8ff740bec238fa6fb4f1282636e5a50f3319008e",
+      "id": "offering:multi-agent-supervisor-saas",
+      "kind": "Offering",
+      "title": "Managed multi-agent supervisor"
+    },
+    {
+      "entity_hash": "sha256:7219a6421f0252be0cfbdf0f4e5f191d04aaad0d82d18c3fe660d8cab47ea187",
+      "id": "offering:multi-region-aws",
+      "kind": "Offering",
+      "title": "AWS multi-region service deployment"
+    },
+    {
+      "entity_hash": "sha256:56fcb4b92378482cfe6d58e2f93465c6e95162ce4b2c7d5db624ef8d4639fc05",
+      "id": "offering:multi-region-byop",
+      "kind": "Offering",
+      "title": "Customer multi-region adapter"
+    },
+    {
+      "entity_hash": "sha256:bf83709518a73358677337600525c5a4eef60fc96df4b055f3422353fa42a644",
+      "id": "offering:multi-region-oss",
+      "kind": "Offering",
+      "title": "Multi-cluster Kubernetes deployment"
+    },
+    {
+      "entity_hash": "sha256:dbad3f1d082aa01840ac47cd4bff556155c65d31e30210aafa8fce623b3324d1",
+      "id": "offering:multi-region-saas",
+      "kind": "Offering",
+      "title": "Managed multi-region service"
+    },
+    {
+      "entity_hash": "sha256:e380cc941284f59ae85b7996d0544ce51250002b210407bdb5f8bc215418a863",
+      "id": "offering:orchestration-runtime-aws",
+      "kind": "Offering",
+      "title": "Amazon Bedrock AgentCore Runtime"
+    },
+    {
+      "entity_hash": "sha256:57e21894ba4f6002df7a92de714b3d6d45e72ce462f4fc81c640a0b4c41959c9",
+      "id": "offering:orchestration-runtime-byop",
+      "kind": "Offering",
+      "title": "Customer orchestration runtime adapter"
+    },
+    {
+      "entity_hash": "sha256:6d4a28c06ca4ec9e336bc996fb1671556aa16f1fb35351032a2dbfb4ec56d468",
+      "id": "offering:orchestration-runtime-oss",
+      "kind": "Offering",
+      "title": "LangGraph and Temporal orchestration"
+    },
+    {
+      "entity_hash": "sha256:6bc014e0952999f1dfa4628f2b5611425db0caea2d842a6c2a917108524883a3",
+      "id": "offering:orchestration-runtime-saas",
+      "kind": "Offering",
+      "title": "Managed agent orchestration service"
+    },
+    {
+      "entity_hash": "sha256:828cd98cab1b1b2b7a5db873bbacefc96e69a09a759132589f3b987e2c9da1d7",
+      "id": "offering:outcome-correlator-aws",
+      "kind": "Offering",
+      "title": "AWS event-driven outcome correlator"
+    },
+    {
+      "entity_hash": "sha256:d1be5961832dfd67365a3ba8429f150319843202e8c898720e56ea47a7ad72a9",
+      "id": "offering:outcome-correlator-byop",
+      "kind": "Offering",
+      "title": "Customer outcome correlator adapter"
+    },
+    {
+      "entity_hash": "sha256:97da96b3d5c1534b319d6d50a8bd418f777178bb09ec2e9b261e141c7ce19fd5",
+      "id": "offering:outcome-correlator-oss",
+      "kind": "Offering",
+      "title": "OpenTelemetry and GitLab outcome correlator"
+    },
+    {
+      "entity_hash": "sha256:b4207bca2c51f112eedaebc275108bdd882a79dabf433a1931740bfa582c2092",
+      "id": "offering:outcome-correlator-saas",
+      "kind": "Offering",
+      "title": "Managed engineering outcome analytics"
+    },
+    {
+      "entity_hash": "sha256:abcacba41129e94f26df33d9ce4990235500e076695469998748e0210b1a9b08",
+      "id": "offering:package-access-aws",
+      "kind": "Offering",
+      "title": "AWS CodeArtifact"
+    },
+    {
+      "entity_hash": "sha256:e77b82101f64eb6235a83b96a12c2b04f54fd2a16005b9367604b76203a919b4",
+      "id": "offering:package-access-byop",
+      "kind": "Offering",
+      "title": "Customer package registry adapter"
+    },
+    {
+      "entity_hash": "sha256:e6d81f454251511a6e7e89d120bd5aa11a2ecaffd5944fbc8613ce2c4942bcb9",
+      "id": "offering:package-access-oss",
+      "kind": "Offering",
+      "title": "Sonatype Nexus Repository"
+    },
+    {
+      "entity_hash": "sha256:c5cbd81ef9e801ecfddc0bd863fca3109eab17f756da3122ddfce95dffbbc621",
+      "id": "offering:package-access-saas",
+      "kind": "Offering",
+      "title": "GitLab SaaS package registry"
+    },
+    {
+      "entity_hash": "sha256:eba4a3bfc707851c780aa83b57c46935da39e78f2555d324c12ae8468b6fdc84",
+      "id": "offering:parallel-reviewer-aws",
+      "kind": "Offering",
+      "title": "AWS parallel reviewer workflow"
+    },
+    {
+      "entity_hash": "sha256:b2db27d4ee67c941e7d8c60e3ab9dbbc3f9f26b04b24d65be4b56bd75196457b",
+      "id": "offering:parallel-reviewer-byop",
+      "kind": "Offering",
+      "title": "Customer parallel reviewer adapter"
+    },
+    {
+      "entity_hash": "sha256:729078804ba3c7cf989a4bc729d2dad87496dfcade46cc1649b499a2f0efce77",
+      "id": "offering:parallel-reviewer-oss",
+      "kind": "Offering",
+      "title": "Temporal parallel reviewer workflow"
+    },
+    {
+      "entity_hash": "sha256:0cf5c2a91d0cd91db52c79fc97a5f046e1a298844c1bbcfb572b349721ff77ca",
+      "id": "offering:parallel-reviewer-saas",
+      "kind": "Offering",
+      "title": "Managed parallel reviewer"
+    },
+    {
+      "entity_hash": "sha256:6283770ff961773f05e2a50942bc04e9fd6222cf1637768d144f1bec5c819a4c",
+      "id": "offering:persistent-workspace-aws",
+      "kind": "Offering",
+      "title": "Amazon EC2 and EBS developer workspace"
+    },
+    {
+      "entity_hash": "sha256:ca80da216ba58a22310a6ab3956634b64bf945e3434a09b8da01f6c1b529a6d6",
+      "id": "offering:persistent-workspace-byop",
+      "kind": "Offering",
+      "title": "Customer persistent workspace adapter"
+    },
+    {
+      "entity_hash": "sha256:8eff930abbec4c791f7099c3e3aecfa2eff050683fc1769ca0c144f2544335d2",
+      "id": "offering:persistent-workspace-oss",
+      "kind": "Offering",
+      "title": "Coder persistent workspace"
+    },
+    {
+      "entity_hash": "sha256:9fb979b2ae03bedff600bc94a622bd7c657f893f9e0d45def744779e92cf83df",
+      "id": "offering:persistent-workspace-saas",
+      "kind": "Offering",
+      "title": "Managed cloud development workspace"
+    },
+    {
+      "entity_hash": "sha256:f2cf1d76dd25bb6afc7a0690849b4249851189919a1c32ca0cc53ce968fb4d81",
+      "id": "offering:policy-engine-aws",
+      "kind": "Offering",
+      "title": "Amazon Verified Permissions and Cedar"
+    },
+    {
+      "entity_hash": "sha256:006075af093945b90a1e72c091df8b634f8af97c600e37cddd847c825d6a37c9",
+      "id": "offering:policy-engine-byop",
+      "kind": "Offering",
+      "title": "Customer policy engine adapter"
+    },
+    {
+      "entity_hash": "sha256:4461845eb09a109884340c4952002bd9680dc3a285cf1243a229879463e6e5a3",
+      "id": "offering:policy-engine-oss",
+      "kind": "Offering",
+      "title": "Open Policy Agent"
+    },
+    {
+      "entity_hash": "sha256:3aa28197f9bee7d5a46e63fce7f197ee0005f44658f6d229233654b6bd0e21d3",
+      "id": "offering:policy-engine-saas",
+      "kind": "Offering",
+      "title": "Managed policy decision service"
+    },
+    {
+      "entity_hash": "sha256:6c07fa3cd5f7d17eedce9be1499d9cc10f61ffa6b2c3fb0544b9e64793a5c2a8",
+      "id": "offering:private-connectivity-aws",
+      "kind": "Offering",
+      "title": "AWS PrivateLink and VPC endpoints"
+    },
+    {
+      "entity_hash": "sha256:56b1a08ec67c542f6c1d4b3efe689ad95d781ad63d38203147bad94457ac427e",
+      "id": "offering:private-connectivity-byop",
+      "kind": "Offering",
+      "title": "Customer private network adapter"
+    },
+    {
+      "entity_hash": "sha256:6f82323c571f0d3c1f3861c6aebb7a142571466dd84acd7ec062c0ca27aa4e8f",
+      "id": "offering:private-connectivity-oss",
+      "kind": "Offering",
+      "title": "Service mesh private connectivity"
+    },
+    {
+      "entity_hash": "sha256:76a9b7220dec851aecfe6c06e9c2f4e3d757140a07f9bde9c5b77b3d36e57519",
+      "id": "offering:private-connectivity-saas",
+      "kind": "Offering",
+      "title": "SaaS private connectivity add-on"
+    },
+    {
+      "entity_hash": "sha256:b07033d6a7ce67671a7fa2dd10b25990a46fd714047258cce87f7995e61a4342",
+      "id": "offering:quota-manager-aws",
+      "kind": "Offering",
+      "title": "AWS quota and budget control service"
+    },
+    {
+      "entity_hash": "sha256:6cc17aed470cb66696a13be064b8ed02c79cba0f07a061b779c9f45850061eb1",
+      "id": "offering:quota-manager-byop",
+      "kind": "Offering",
+      "title": "Customer quota manager adapter"
+    },
+    {
+      "entity_hash": "sha256:9341b32bae781f64cb4b133c6194fa220854df5540619686dd4f6b152ee1195b",
+      "id": "offering:quota-manager-oss",
+      "kind": "Offering",
+      "title": "Envoy rate-limit service"
+    },
+    {
+      "entity_hash": "sha256:162519f07b6cb12809353c56010b08a22ccb62b8cb0a1aad837f181462f1f1c3",
+      "id": "offering:quota-manager-saas",
+      "kind": "Offering",
+      "title": "Managed AI quota and budget service"
+    },
+    {
+      "entity_hash": "sha256:3ddcc5563227a6adaf77d355d9b874a2ed96b7d5bee61b9d429d7a6be22277ff",
+      "id": "offering:restricted-egress-aws",
+      "kind": "Offering",
+      "title": "AWS Network Firewall and VPC endpoints"
+    },
+    {
+      "entity_hash": "sha256:7d6bbae69ad6c9e22e5ddd264de6d71c9c9afdbf584e61cd6d45e594ae2a5f03",
+      "id": "offering:restricted-egress-byop",
+      "kind": "Offering",
+      "title": "Customer egress control adapter"
+    },
+    {
+      "entity_hash": "sha256:ca9f8e7540c5b785028eec7704d887089f1ab6ccd0a3a82f44a5b0f94ae5a820",
+      "id": "offering:restricted-egress-oss",
+      "kind": "Offering",
+      "title": "Cilium egress policy"
+    },
+    {
+      "entity_hash": "sha256:27a1c7ee9729911b252d124af5789f0bd3d73960f1a279c003365db718883c5c",
+      "id": "offering:restricted-egress-saas",
+      "kind": "Offering",
+      "title": "Managed sandbox egress policy"
+    },
+    {
+      "entity_hash": "sha256:37e45639c45e088e9ab963efb114505a4bcb56369f8ecb2845cbc428c4da1cdb",
+      "id": "offering:secrets-broker-aws",
+      "kind": "Offering",
+      "title": "AWS Secrets Manager"
+    },
+    {
+      "entity_hash": "sha256:da7069210f402254d9c2a423fc91f9caf348c8ffa4ad57db20c10cc06d5d8ba0",
+      "id": "offering:secrets-broker-byop",
+      "kind": "Offering",
+      "title": "Customer secrets broker adapter"
+    },
+    {
+      "entity_hash": "sha256:f141049780c8e34b10e0b7892a8fbdd32ba3953fd28e82e81dc24ce667c84242",
+      "id": "offering:secrets-broker-oss",
+      "kind": "Offering",
+      "title": "HashiCorp Vault"
+    },
+    {
+      "entity_hash": "sha256:6bb9bb59de1b86d22e1858bb9902a0e3f778c01091e81f02de431cac208f4467",
+      "id": "offering:secrets-broker-saas",
+      "kind": "Offering",
+      "title": "Managed secrets broker"
+    },
+    {
+      "entity_hash": "sha256:a7544291886656cdbf33a728b9fb5790709bc3809781a3d7518e9871876355c5",
+      "id": "offering:self-hosted-inference-aws",
+      "kind": "Offering",
+      "title": "Bedrock Custom Model Import / EC2 GPU inference"
+    },
+    {
+      "entity_hash": "sha256:3cc1cb5a1815ac639a8cb41e5379031aac01663b2f6aba3724e9344bde17d36f",
+      "id": "offering:self-hosted-inference-byop",
+      "kind": "Offering",
+      "title": "Customer self-hosted inference stack"
+    },
+    {
+      "entity_hash": "sha256:6e24d19ce08cb08c40479c650cbac55570108093343594361da7d73f7d8ce127",
+      "id": "offering:self-hosted-inference-oss",
+      "kind": "Offering",
+      "title": "vLLM / TGI in-VPC inference"
+    },
+    {
+      "entity_hash": "sha256:f680699cc8287415f34a7ea433f39a96e680296993d3c1e1e35ea5d686094196",
+      "id": "offering:self-hosted-inference-saas",
+      "kind": "Offering",
+      "title": "Dedicated single-tenant inference endpoint"
+    },
+    {
+      "entity_hash": "sha256:d060e27578fd912669ea3d00eb99f107045a40aaa86a1166d3fe8f0d938d9c2a",
+      "id": "offering:sequential-handoff-aws",
+      "kind": "Offering",
+      "title": "AWS sequential agent workflow"
+    },
+    {
+      "entity_hash": "sha256:7f24291321fb4081139dd89e5ae95fb0093860894fad6bc771613ca3eddbc500",
+      "id": "offering:sequential-handoff-byop",
+      "kind": "Offering",
+      "title": "Customer handoff adapter"
+    },
+    {
+      "entity_hash": "sha256:1d8d669ef2a22b41f7cf2f98ef0f6063adc6f0a0f04fdc9e5bfd68acef8b0b83",
+      "id": "offering:sequential-handoff-oss",
+      "kind": "Offering",
+      "title": "LangGraph sequential handoff"
+    },
+    {
+      "entity_hash": "sha256:d7e2790c9c8f34639a0354b95690d6ff1fd681aaac16c15df3bbdece3d7c011b",
+      "id": "offering:sequential-handoff-saas",
+      "kind": "Offering",
+      "title": "Managed sequential agent handoff"
+    },
+    {
+      "entity_hash": "sha256:737da1546edff3b3e2e7318c41544614a16dfcd41fb6893b3ceef48b0f7a6e5f",
+      "id": "offering:source-control-integration-aws",
+      "kind": "Offering",
+      "title": "AWS event-driven GitLab integration"
+    },
+    {
+      "entity_hash": "sha256:ee3acc5efb14e4d6c377b1d19b85d789a0d7e83492c9c5cf167961c60143549a",
+      "id": "offering:source-control-integration-byop",
+      "kind": "Offering",
+      "title": "Customer source-control adapter"
+    },
+    {
+      "entity_hash": "sha256:b2cd7aa0bf675e9fb7ab3136f7148109daa2ca623194b3cbd70d95ad2c6c3b95",
+      "id": "offering:source-control-integration-oss",
+      "kind": "Offering",
+      "title": "GitLab webhook and API integration"
+    },
+    {
+      "entity_hash": "sha256:5d1fdeba950a7dc99360ccc85f880e4ff28e868811e837aafb3ad34069ea1ed1",
+      "id": "offering:source-control-integration-saas",
+      "kind": "Offering",
+      "title": "Managed GitLab SaaS connector"
+    },
+    {
+      "entity_hash": "sha256:3f8c50070cc4f13b8fc5e8ca20ca66d853e31b271e50c4912e1aca0419503a6b",
+      "id": "offering:static-model-binding-aws",
+      "kind": "Offering",
+      "title": "Amazon Bedrock inference profile binding"
+    },
+    {
+      "entity_hash": "sha256:39c21d9f639f6bba5118b5a8bb0e1b5605878774bf22e3578387eb86997d2be4",
+      "id": "offering:static-model-binding-byop",
+      "kind": "Offering",
+      "title": "Customer model binding adapter"
+    },
+    {
+      "entity_hash": "sha256:a1a1b5751bc2ed621509f2d7bb52a3345762105a96e0c236ea4dc0feaef5cff0",
+      "id": "offering:static-model-binding-oss",
+      "kind": "Offering",
+      "title": "LiteLLM model alias binding"
+    },
+    {
+      "entity_hash": "sha256:23d0431d738ce8b01ba560da140d0d1bf1d80d05c76801dcce0575e7569fcc9c",
+      "id": "offering:static-model-binding-saas",
+      "kind": "Offering",
+      "title": "Managed static model binding"
+    },
+    {
+      "entity_hash": "sha256:a8c7bbf168fd0b058511eb8f3a00e3a4755d052ae88ece1384b0eb1e58faddee",
+      "id": "offering:team-workspaces-aws",
+      "kind": "Offering",
+      "title": "DynamoDB-backed team workspace registry"
+    },
+    {
+      "entity_hash": "sha256:3e5976f98ae6b1e3683d6c2b56760c6db85231e0af5d5bc424986041a961bc32",
+      "id": "offering:team-workspaces-byop",
+      "kind": "Offering",
+      "title": "Customer team workspace adapter"
+    },
+    {
+      "entity_hash": "sha256:7b48bd5d27caf204e6b8f85c68b364d1e58e51da70bf7414fe5d782cf0fa70af",
+      "id": "offering:team-workspaces-oss",
+      "kind": "Offering",
+      "title": "Backstage team workspace catalog"
+    },
+    {
+      "entity_hash": "sha256:bb9641c6d79edc865b2ada100af6efe67bbd6ff635437c3708bd4df73bed4062",
+      "id": "offering:team-workspaces-saas",
+      "kind": "Offering",
+      "title": "Managed team workspace service"
+    },
+    {
+      "entity_hash": "sha256:f5f2ee9a234b3c19ee65260fa651a3c10d8ede0abbec37e3cdb864cf2ccee10a",
+      "id": "offering:telemetry-pipeline-aws",
+      "kind": "Offering",
+      "title": "AWS Distro for OpenTelemetry and Amazon CloudWatch"
+    },
+    {
+      "entity_hash": "sha256:e34e0a2ab770518b4079e2502532b6db52b39646a830696c8e152db81cf1afe4",
+      "id": "offering:telemetry-pipeline-byop",
+      "kind": "Offering",
+      "title": "Customer telemetry pipeline adapter"
+    },
+    {
+      "entity_hash": "sha256:cedb4efe1f4a082ddee58f679816775805aff0f9fe0a388a8a3e4445d2347ddc",
+      "id": "offering:telemetry-pipeline-oss",
+      "kind": "Offering",
+      "title": "OpenTelemetry Collector pipeline"
+    },
+    {
+      "entity_hash": "sha256:9e226e79af4fd1b7ac0409ba3e07ee907b26052159b2da10bc4ee3b329fcd45d",
+      "id": "offering:telemetry-pipeline-saas",
+      "kind": "Offering",
+      "title": "Managed agent observability pipeline"
+    },
+    {
+      "entity_hash": "sha256:2fdae2a52eb0a05440d6a8ed733f0c1383cc521e4cfc5ea56c3f845150e4b9c3",
+      "id": "offering:tool-gateway-aws",
+      "kind": "Offering",
+      "title": "Amazon Bedrock AgentCore Gateway"
+    },
+    {
+      "entity_hash": "sha256:042655f676bc11d1e272566db4c2dcbc66f2805d6627d0b1ca98185c8bab81b7",
+      "id": "offering:tool-gateway-byop",
+      "kind": "Offering",
+      "title": "Customer tool gateway adapter"
+    },
+    {
+      "entity_hash": "sha256:ebaef466ea1cd3200d0f910a4cff74d61e4824b93882609ded5951b65316eab1",
+      "id": "offering:tool-gateway-oss",
+      "kind": "Offering",
+      "title": "Open-source MCP gateway"
+    },
+    {
+      "entity_hash": "sha256:6e0301963ba52ec610a5c6f1cd780574499b65a7a5638be19272bca1ec4564a6",
+      "id": "offering:tool-gateway-saas",
+      "kind": "Offering",
+      "title": "Managed MCP and API gateway"
+    },
+    {
+      "entity_hash": "sha256:7e6ffb0a52f606a27622d2334fb4f14b763563a93018706d7e126a405a8b9a8c",
+      "id": "offering:warm-runtime-pool-aws",
+      "kind": "Offering",
+      "title": "AWS warm isolated runtime pool"
+    },
+    {
+      "entity_hash": "sha256:ee19d45dbf32c9fb2b2754611133fea1cf45a1e2057f2801c6e269bcc6318c2c",
+      "id": "offering:warm-runtime-pool-byop",
+      "kind": "Offering",
+      "title": "Customer warm runtime adapter"
+    },
+    {
+      "entity_hash": "sha256:1c4f911342601b10ec71bce589a8cb457050cf0e78a6a89a524ae95a6f588d6a",
+      "id": "offering:warm-runtime-pool-oss",
+      "kind": "Offering",
+      "title": "Kubernetes warm worker pool"
+    },
+    {
+      "entity_hash": "sha256:eb6f9801ab473c9487058de8f32acd358053e523fdb058334fbffff877f34646",
+      "id": "offering:warm-runtime-pool-saas",
+      "kind": "Offering",
+      "title": "Managed warm sandbox pool"
+    },
+    {
+      "entity_hash": "sha256:24fe63553dcfe7bf35c2e213acd22c9e0bb01da2ebc6aecee0afbf3d22adc044",
+      "id": "offering:workflow-definitions-aws",
+      "kind": "Offering",
+      "title": "Amazon S3 versioned workflow catalog"
+    },
+    {
+      "entity_hash": "sha256:6e321d49e81b0c421f702d26613c1612cd2afad5a291c4137413142032c423e7",
+      "id": "offering:workflow-definitions-byop",
+      "kind": "Offering",
+      "title": "Customer workflow catalog adapter"
+    },
+    {
+      "entity_hash": "sha256:499ac69b6acfa78314a611ab48f2b5376bfe8f8becdfd138e9dd7ff8841cdcad",
+      "id": "offering:workflow-definitions-oss",
+      "kind": "Offering",
+      "title": "Git-backed workflow definitions"
+    },
+    {
+      "entity_hash": "sha256:1a9e042d75bd3ead1df7461454a8c36fb57b88ae50adacab810bbbea47afd3fd",
+      "id": "offering:workflow-definitions-saas",
+      "kind": "Offering",
+      "title": "Managed workflow definition service"
+    },
+    {
+      "entity_hash": "sha256:12ddf301bb7a3c5f8abbd52ca83f93b306e9fe20fdd350c98a9412baf1947208",
+      "id": "offering:workforce-identity-aws",
+      "kind": "Offering",
+      "title": "AWS IAM Identity Center federation"
+    },
+    {
+      "entity_hash": "sha256:2e94b880870486e6c4bc2a6d993a13f8ed0a000592c93a3373805d1ea9c4a13d",
+      "id": "offering:workforce-identity-byop",
+      "kind": "Offering",
+      "title": "Customer OIDC identity adapter"
+    },
+    {
+      "entity_hash": "sha256:6e753f4ad4061ce20c41c403b9976767b06a9b183f46ff952c6e233b8c04e25b",
+      "id": "offering:workforce-identity-oss",
+      "kind": "Offering",
+      "title": "Keycloak workforce identity"
+    },
+    {
+      "entity_hash": "sha256:5dae5d8ae6d2a57e33b2b45682d82468d31caa58acb9a9a56087ccc2c35311d9",
+      "id": "offering:workforce-identity-saas",
+      "kind": "Offering",
+      "title": "Microsoft Entra ID or Okta federation"
+    },
+    {
+      "entity_hash": "sha256:f570e0bfa1aedce55d35da6f061493140edaba67d143ae57f58cdd6ce35df10d",
+      "id": "offering:workload-identity-aws",
+      "kind": "Offering",
+      "title": "AWS IAM roles and STS"
+    },
+    {
+      "entity_hash": "sha256:96a7387b8aaa4fd58b9f149bf55d804f7bb2974e6b17f0281c7e7e3a70618cf5",
+      "id": "offering:workload-identity-byop",
+      "kind": "Offering",
+      "title": "Customer workload identity adapter"
+    },
+    {
+      "entity_hash": "sha256:437f3cbdc8ed712d13a00d9a43dda692df057764b39889afd8134946e06e6fba",
+      "id": "offering:workload-identity-oss",
+      "kind": "Offering",
+      "title": "SPIFFE and SPIRE workload identity"
+    },
+    {
+      "entity_hash": "sha256:71c6dbf52d5e785472272264d824bff5bd161e60f99ae2b714a6dae5f16b3bb3",
+      "id": "offering:workload-identity-saas",
+      "kind": "Offering",
+      "title": "Managed workload identity broker"
+    },
+    {
+      "entity_hash": "sha256:dbac81f8f718b55fc86a061a0dcb1019de43225889e43a715ab007f23684ad31",
+      "id": "service:advisor-workspace-aws",
+      "kind": "Variant",
+      "title": "AWS-hosted Platform Advisor workspace"
+    },
+    {
+      "entity_hash": "sha256:f3a20ad48cb9fd3f1c10b6c7b74c6a7ff959d4d2c3f0428ae33559d8b908a468",
+      "id": "service:advisor-workspace-byop",
+      "kind": "Variant",
+      "title": "Customer portal workspace adapter"
+    },
+    {
+      "entity_hash": "sha256:6519f1d0eb1809ba0cee36631600a53992745ea36bf0604cef737b5a107ad755",
+      "id": "service:advisor-workspace-oss",
+      "kind": "Variant",
+      "title": "Backstage-based architecture workspace"
+    },
+    {
+      "entity_hash": "sha256:d4dbdb149d786a00ff6c4f08de2103bd5a42e9b0782dfb34d7c86f6e047f2b9c",
+      "id": "service:advisor-workspace-saas",
+      "kind": "Variant",
+      "title": "Managed Platform Advisor workspace"
+    },
+    {
+      "entity_hash": "sha256:3557bbe0874bdcd6502d32ae2036efe5d2a9df2114aa66ce623f27eabc591801",
+      "id": "service:agent-registry-aws",
+      "kind": "Variant",
+      "title": "Amazon ECR agent artifact registry"
+    },
+    {
+      "entity_hash": "sha256:28490ea3e805ef031fd198f3d23cee2bc4ed4c348578ba91b5a0849efd5e60fb",
+      "id": "service:agent-registry-byop",
+      "kind": "Variant",
+      "title": "Customer agent registry adapter"
+    },
+    {
+      "entity_hash": "sha256:eac78994209c11302ba83ec60219aea09b00501b69b54b74b323c63f09c7c881",
+      "id": "service:agent-registry-oss",
+      "kind": "Variant",
+      "title": "OCI agent artifact registry"
+    },
+    {
+      "entity_hash": "sha256:24214feea7db4bc76c67e1a61ad3e2f81c8ea3ab267ddadb403b9522ee710fb2",
+      "id": "service:agent-registry-saas",
+      "kind": "Variant",
+      "title": "Managed agent registry"
+    },
+    {
+      "entity_hash": "sha256:41a6ffedd3b8bd49b379c7b79c503c54ddb2f2cd588cdf781f959d4dde0b3400",
+      "id": "service:architecture-knowledge-aws",
+      "kind": "Variant",
+      "title": "Amazon OpenSearch Serverless architecture index"
+    },
+    {
+      "entity_hash": "sha256:c77a969fb56b2e4494f0f37633cf6fbe98be9c4c5045408358aff76c0591c198",
+      "id": "service:architecture-knowledge-byop",
+      "kind": "Variant",
+      "title": "Customer architecture knowledge adapter"
+    },
+    {
+      "entity_hash": "sha256:d6a3f2f1fefd24d622c851703e572057816c76192b3525a6fd9cb57ad3886002",
+      "id": "service:architecture-knowledge-oss",
+      "kind": "Variant",
+      "title": "OpenSearch architecture knowledge index"
+    },
+    {
+      "entity_hash": "sha256:0b06ac9417f141bf088a918a16d801e7eaf2aae7c3a887006630e2d2e5b27efa",
+      "id": "service:architecture-knowledge-saas",
+      "kind": "Variant",
+      "title": "Managed architecture knowledge service"
+    },
+    {
+      "entity_hash": "sha256:6a5cfdbcfcfe249846aab523f1b5a626e6525dfaf5d6902b48710d03a55bc7fd",
+      "id": "service:audit-ledger-aws",
+      "kind": "Variant",
+      "title": "AWS CloudTrail and Amazon S3 Object Lock"
+    },
+    {
+      "entity_hash": "sha256:e2e3f17703124221a7f5fdee4006c44e6f43518586c6c3d086024d84c85763d0",
+      "id": "service:audit-ledger-byop",
+      "kind": "Variant",
+      "title": "Customer audit ledger adapter"
+    },
+    {
+      "entity_hash": "sha256:03cebaa264b70dd17682d5f28718b10295b5f761637945e11f867aeacd38b7e8",
+      "id": "service:audit-ledger-oss",
+      "kind": "Variant",
+      "title": "Append-only PostgreSQL audit ledger"
+    },
+    {
+      "entity_hash": "sha256:644f88ffd0d09806c5db6b24d5df058cb4167ed5b5a0cae5ad93c5bdfabf287a",
+      "id": "service:audit-ledger-saas",
+      "kind": "Variant",
+      "title": "Managed immutable audit export"
+    },
+    {
+      "entity_hash": "sha256:2865fd4a8886a02b380a53665d5ade649e5c4f39d2944a0b1856f059b2dfe537",
+      "id": "service:connector-registry-aws",
+      "kind": "Variant",
+      "title": "AgentCore Gateway target catalog"
+    },
+    {
+      "entity_hash": "sha256:cf427a94dc39acfad4d09a76f8387310f4800439ae14671c1402598ac5407005",
+      "id": "service:connector-registry-byop",
+      "kind": "Variant",
+      "title": "Customer connector registry adapter"
+    },
+    {
+      "entity_hash": "sha256:927aba23d5470708832a7144d645d40dceb5fc9d27fef59853ba866190b24f22",
+      "id": "service:connector-registry-oss",
+      "kind": "Variant",
+      "title": "Backstage connector catalog"
+    },
+    {
+      "entity_hash": "sha256:931a1fb39ec44d980e2048d8cbede1d58389387125317e5f36b8c36a6a692ecf",
+      "id": "service:connector-registry-saas",
+      "kind": "Variant",
+      "title": "Managed connector registry"
+    },
+    {
+      "entity_hash": "sha256:3e23eea570ba638cf27e6eef1ee019b0de6d6166e51a4b28b917002ebc718368",
+      "id": "service:container-runtime-aws",
+      "kind": "Variant",
+      "title": "Amazon ECS on AWS Fargate"
+    },
+    {
+      "entity_hash": "sha256:44285aecb150a7c44e3225c9e21d0e9a2598badd8c370946ece09bd73df1d31e",
+      "id": "service:container-runtime-byop",
+      "kind": "Variant",
+      "title": "Customer container runtime adapter"
+    },
+    {
+      "entity_hash": "sha256:b7b0695b42d73155dac59e28e36817078a9d401b6eb1e3128e694e53ec8abc21",
+      "id": "service:container-runtime-oss",
+      "kind": "Variant",
+      "title": "HashiCorp Nomad container runtime"
+    },
+    {
+      "entity_hash": "sha256:04eb96c86159907989e5bba7943a3776a23d60315a3a4dffde5bd8988aaa6d22",
+      "id": "service:container-runtime-saas",
+      "kind": "Variant",
+      "title": "Managed container runner"
+    },
+    {
+      "entity_hash": "sha256:f98c6e5048ed577a0f62d303b7a5929a9064f98ebdb2cb2bdf7c501339908957",
+      "id": "service:developer-clients-aws",
+      "kind": "Variant",
+      "title": "Enterprise coding-agent clients with AWS governance"
+    },
+    {
+      "entity_hash": "sha256:700b0a2f6c94577c3fcda651edda1557252fd07d4019285ea34b8957a2b90012",
+      "id": "service:developer-clients-byop",
+      "kind": "Variant",
+      "title": "Customer-selected coding-agent client adapter"
+    },
+    {
+      "entity_hash": "sha256:0c970b320d3dbf195ef0a28bde768b045cb5f9d5cac9f481a7426c0767d7efb0",
+      "id": "service:developer-clients-oss",
+      "kind": "Variant",
+      "title": "Open-source IDE and CLI agent clients"
+    },
+    {
+      "entity_hash": "sha256:7fbb15babcda14c71f2135f377665101024501884b6556bc77be4cf611950558",
+      "id": "service:developer-clients-saas",
+      "kind": "Variant",
+      "title": "Managed Claude Code and Codex clients"
+    },
+    {
+      "entity_hash": "sha256:8db1fd98c9126a9f3a4b80f05fcf690693b4c6b8511d6bf9a7d2e4babcc4b376",
+      "id": "service:economics-ledger-aws",
+      "kind": "Variant",
+      "title": "AWS cost and token economics ledger"
+    },
+    {
+      "entity_hash": "sha256:af41ad299541b52a56540e8aaf7243eada5bbb661bae84d9b38ac26a9e237248",
+      "id": "service:economics-ledger-byop",
+      "kind": "Variant",
+      "title": "Customer economics ledger adapter"
+    },
+    {
+      "entity_hash": "sha256:2972e6e342cfe8ba758c289bd71669022e1dc7fc0da32ba11a92807d2993120e",
+      "id": "service:economics-ledger-oss",
+      "kind": "Variant",
+      "title": "OpenCost and token usage ledger"
+    },
+    {
+      "entity_hash": "sha256:54afa7344bb5e332b3f533a0a7cefa2ba79cb3e4d9b6d6efe8628812c9a5e49e",
+      "id": "service:economics-ledger-saas",
+      "kind": "Variant",
+      "title": "Managed AI FinOps ledger"
+    },
+    {
+      "entity_hash": "sha256:a7d4011ce68d86f47ad880c53ba033442142aabf6644a52d4377b8381fbcf4ce",
+      "id": "service:enterprise-api-access-aws",
+      "kind": "Variant",
+      "title": "Amazon API Gateway and AWS PrivateLink"
+    },
+    {
+      "entity_hash": "sha256:ae663b6bea900555b3200a103b6b5f88b48536a179cf1ac8375c2b7116966eeb",
+      "id": "service:enterprise-api-access-byop",
+      "kind": "Variant",
+      "title": "Customer API access adapter"
+    },
+    {
+      "entity_hash": "sha256:f22abfe9891a3f12a8e45429a3e08b0393c8075d3e014ea05201f90f8d227137",
+      "id": "service:enterprise-api-access-oss",
+      "kind": "Variant",
+      "title": "Kong enterprise API access"
+    },
+    {
+      "entity_hash": "sha256:00e94212fbc0a19e37f29c3d81120a86bc00d820a94c2f5e0067681252955bf1",
+      "id": "service:enterprise-api-access-saas",
+      "kind": "Variant",
+      "title": "Managed enterprise API integration"
+    },
+    {
+      "entity_hash": "sha256:cfb112bd8ed149fa4892e02009dc7baada405ce45dbf487eeccfeeb8fa8575da",
+      "id": "service:ephemeral-runtime-aws",
+      "kind": "Variant",
+      "title": "AWS isolated ephemeral task runtime"
+    },
+    {
+      "entity_hash": "sha256:7c0602461380fd91a674dd68552f2e44c35bc5ca6ac48fd4faefb9cf95e3be30",
+      "id": "service:ephemeral-runtime-byop",
+      "kind": "Variant",
+      "title": "Customer ephemeral runtime adapter"
+    },
+    {
+      "entity_hash": "sha256:676f03b7fdfdf686edbe83b0719f4109085dd2191347e5bef99e82c64e1ca6ee",
+      "id": "service:ephemeral-runtime-oss",
+      "kind": "Variant",
+      "title": "Firecracker ephemeral worker"
+    },
+    {
+      "entity_hash": "sha256:1a4c0610bbd08a69dcb8e4acb439c0ee750567155ad61617e19457eada713e57",
+      "id": "service:ephemeral-runtime-saas",
+      "kind": "Variant",
+      "title": "Managed isolated sandbox service"
+    },
+    {
+      "entity_hash": "sha256:7deb85ae0856af97a3ff97231af69441471be2ef1d6b50defa0a4159081fbf0f",
+      "id": "service:evaluation-service-aws",
+      "kind": "Variant",
+      "title": "Amazon Bedrock evaluation service"
+    },
+    {
+      "entity_hash": "sha256:cc625dc7356f73fdf0a20e8692bd21425274d57293cfee5ecd5e3a4600fc1deb",
+      "id": "service:evaluation-service-byop",
+      "kind": "Variant",
+      "title": "Customer evaluation service adapter"
+    },
+    {
+      "entity_hash": "sha256:44bb937b6d86475056c60d49147b5046eec67a9e8ac45ffb5bc6f19adc680d50",
+      "id": "service:evaluation-service-oss",
+      "kind": "Variant",
+      "title": "Open-source agent evaluation harness"
+    },
+    {
+      "entity_hash": "sha256:7454a3fd7672ef1fa4a31714277b22ba61915b6eba6ea4ea5aa3710fac18aee3",
+      "id": "service:evaluation-service-saas",
+      "kind": "Variant",
+      "title": "Managed agent evaluation service"
+    },
+    {
+      "entity_hash": "sha256:c0a5ccbda81a4e48d56350db2620c26e9477c13513325f61108ab4abafbbd7b7",
+      "id": "service:evidence-catalog-aws",
+      "kind": "Variant",
+      "title": "Amazon S3 and DynamoDB evidence catalog"
+    },
+    {
+      "entity_hash": "sha256:4c9084f795b5ad540d7591457cd56e7716c445733acf9351659682b99aca9c97",
+      "id": "service:evidence-catalog-byop",
+      "kind": "Variant",
+      "title": "Customer evidence catalog adapter"
+    },
+    {
+      "entity_hash": "sha256:388dfa652008012f0cb6694da53138edf29983afa3262348ed49d5eb93508091",
+      "id": "service:evidence-catalog-oss",
+      "kind": "Variant",
+      "title": "Git-backed evidence catalog"
+    },
+    {
+      "entity_hash": "sha256:3bfce9ea8466075d70db37f50535a483cc5cb057e405828c7f2dadb789e38adc",
+      "id": "service:evidence-catalog-saas",
+      "kind": "Variant",
+      "title": "Managed evidence catalog"
+    },
+    {
+      "entity_hash": "sha256:76778b7dfe40d0b990a45375aeeaa69bb9aaae5e9f106334b9ad010ff52410b1",
+      "id": "service:execution-broker-aws",
+      "kind": "Variant",
+      "title": "Amazon SQS and AWS Step Functions execution broker"
+    },
+    {
+      "entity_hash": "sha256:3363562dff5147276f19edcef959d02a8634a422af0fdc13e96e0f356f93ea62",
+      "id": "service:execution-broker-byop",
+      "kind": "Variant",
+      "title": "Customer execution broker adapter"
+    },
+    {
+      "entity_hash": "sha256:0d1f31e1b2d6e8f0480212b365913b9b691f3f53f557cfa8969d7f0bb0fbdf36",
+      "id": "service:execution-broker-oss",
+      "kind": "Variant",
+      "title": "Temporal task broker"
+    },
+    {
+      "entity_hash": "sha256:4387d8ae7e9c0f0d21195b09a217ee0629bd0a08a7eb1f28a77ac8f958f07ba9",
+      "id": "service:execution-broker-saas",
+      "kind": "Variant",
+      "title": "Managed agent task broker"
+    },
+    {
+      "entity_hash": "sha256:39d09d45ce887cb444f9e7ad7d2d2a95494a8cd77f3aaea4e7f693457322b4b9",
+      "id": "service:human-approval-aws",
+      "kind": "Variant",
+      "title": "AWS Step Functions callback approval"
+    },
+    {
+      "entity_hash": "sha256:3a38c1b67ca503ea0710b076e8ee312ebe6309572f2c099863c9b492e210fcfc",
+      "id": "service:human-approval-byop",
+      "kind": "Variant",
+      "title": "Customer approval workflow adapter"
+    },
+    {
+      "entity_hash": "sha256:ef43c86fcd10b30e6a56e1829e3baea8862e719997793543dc89ebf5225cc7ad",
+      "id": "service:human-approval-oss",
+      "kind": "Variant",
+      "title": "Temporal signal-based approval"
+    },
+    {
+      "entity_hash": "sha256:60478c044199dbfb8933a9c2cf854cb893a05b6b986617de697217da3b5868ed",
+      "id": "service:human-approval-saas",
+      "kind": "Variant",
+      "title": "Managed human approval workflow"
+    },
+    {
+      "entity_hash": "sha256:8d18bde9b42abbb36be0032324751ef7778d923be53c284e6c6516f753d251d5",
+      "id": "service:kubernetes-runtime-aws",
+      "kind": "Variant",
+      "title": "Amazon EKS"
+    },
+    {
+      "entity_hash": "sha256:ffd30ac104f8c99d32747b744df1872ec726bde82ab80f91d4c9e35e9f21152b",
+      "id": "service:kubernetes-runtime-byop",
+      "kind": "Variant",
+      "title": "Customer Kubernetes adapter"
+    },
+    {
+      "entity_hash": "sha256:9b0097be80bc0970cc363dd4352af91a09696f3a67b61c20f38a73f129db5817",
+      "id": "service:kubernetes-runtime-oss",
+      "kind": "Variant",
+      "title": "Upstream Kubernetes"
+    },
+    {
+      "entity_hash": "sha256:95efeffa5816755228dcd88fc1d61af94cca0ab34279e5f5634754a5dd8b6a94",
+      "id": "service:kubernetes-runtime-saas",
+      "kind": "Variant",
+      "title": "Managed Kubernetes service"
+    },
+    {
+      "entity_hash": "sha256:96d9692e6f1154afab4da8401fdc949a9ac92bf37c4f625a74f005ca5b9896b8",
+      "id": "service:local-runtime-aws",
+      "kind": "Variant",
+      "title": "Enterprise-managed local runtime with AWS control"
+    },
+    {
+      "entity_hash": "sha256:2424466199896f379d02421b0ffcb5bba38b76e5b50f33cf0bae469409578b9b",
+      "id": "service:local-runtime-byop",
+      "kind": "Variant",
+      "title": "Customer local runtime adapter"
+    },
+    {
+      "entity_hash": "sha256:7d0ea6583cb8a2ae91ed184e90758d3ee4814441aa1e30adcb8f6e592312c280",
+      "id": "service:local-runtime-oss",
+      "kind": "Variant",
+      "title": "Dev Container local runtime"
+    },
+    {
+      "entity_hash": "sha256:f3a54d857584bf48c5178953f1cc66fede77538bf524f1003d27ec277d261a91",
+      "id": "service:local-runtime-saas",
+      "kind": "Variant",
+      "title": "Managed endpoint agent runtime"
+    },
+    {
+      "entity_hash": "sha256:08ad5988de98f8a29214c5b5a97a6e07582a552ad1cf604c67974903d24339ab",
+      "id": "service:managed-model-provider-aws",
+      "kind": "Variant",
+      "title": "Amazon Bedrock managed inference"
+    },
+    {
+      "entity_hash": "sha256:459b4605c60f9886878bb65dbe372bb16d27128429cffaadd6989662cbbfaa68",
+      "id": "service:managed-model-provider-byop",
+      "kind": "Variant",
+      "title": "Customer managed-provider adapter"
+    },
+    {
+      "entity_hash": "sha256:ec77c861e23888be63c4c6478b0a92033e262180f44f2321bff69d5bb5eb90df",
+      "id": "service:managed-model-provider-oss",
+      "kind": "Variant",
+      "title": "vLLM on customer compute"
+    },
+    {
+      "entity_hash": "sha256:614f8f5f231c7b886860af9827341113738adb845b38c5f3ce1cf6b77cc2422f",
+      "id": "service:managed-model-provider-saas",
+      "kind": "Variant",
+      "title": "Anthropic API"
+    },
+    {
+      "entity_hash": "sha256:0d4f05c7bbaa14c6ad586776d4d06ddd278ed69ca684f46715cf41398968d3b1",
+      "id": "service:model-catalog-aws",
+      "kind": "Variant",
+      "title": "Amazon Bedrock model catalog"
+    },
+    {
+      "entity_hash": "sha256:08e2e4007751388efee44c1b5818d61478a5949003d13505dbd14b1ffd0e7acb",
+      "id": "service:model-catalog-byop",
+      "kind": "Variant",
+      "title": "Customer model catalog adapter"
+    },
+    {
+      "entity_hash": "sha256:d8414a9b6ca48cc27f7fbd80fa987949b6b99c79c0a0d8e79b0fc55007274bd6",
+      "id": "service:model-catalog-oss",
+      "kind": "Variant",
+      "title": "Open model metadata catalog"
+    },
+    {
+      "entity_hash": "sha256:c73377d618c461e1515028834f2c4d110c6c6e93b4071675fce4c04f5429ee5a",
+      "id": "service:model-catalog-saas",
+      "kind": "Variant",
+      "title": "Managed model catalog"
+    },
+    {
+      "entity_hash": "sha256:567d8254d85ba78869db599ca513b31efca8e92c4b372bbe2082df69cc27ef93",
+      "id": "service:model-fallback-aws",
+      "kind": "Variant",
+      "title": "Amazon Bedrock model fallback policy"
+    },
+    {
+      "entity_hash": "sha256:77a0645f22fbcb38d4cb40c0596b8126811707952468379d701ed4f35a4b90eb",
+      "id": "service:model-fallback-byop",
+      "kind": "Variant",
+      "title": "Customer model fallback adapter"
+    },
+    {
+      "entity_hash": "sha256:650ea656635d2f2acd772fd1257e2dc7aa57fd79fe6ff1c6de05f60bdddb8f50",
+      "id": "service:model-fallback-oss",
+      "kind": "Variant",
+      "title": "LiteLLM fallback policy"
+    },
+    {
+      "entity_hash": "sha256:2ac4e9720903880938253032154980ae784f333978b8756682d26871cfe3adff",
+      "id": "service:model-fallback-saas",
+      "kind": "Variant",
+      "title": "Managed model fallback service"
+    },
+    {
+      "entity_hash": "sha256:37563b4fc04a184aa739494232dfcdee70e9d81d3f92cef7339aea6db48b9e01",
+      "id": "service:model-gateway-aws",
+      "kind": "Variant",
+      "title": "Amazon Bedrock governed model gateway"
+    },
+    {
+      "entity_hash": "sha256:4a75e871623938661d461dd6381c907f666729f3273f3ca0196d59c716a776fc",
+      "id": "service:model-gateway-byop",
+      "kind": "Variant",
+      "title": "Customer model gateway adapter"
+    },
+    {
+      "entity_hash": "sha256:607dc45f334ef475cbba8d521f546fcc3b7c204c1dbc21fa42dcd8fb4da5fd06",
+      "id": "service:model-gateway-oss",
+      "kind": "Variant",
+      "title": "LiteLLM model gateway"
+    },
+    {
+      "entity_hash": "sha256:cc65b3cc15d7860c14d7ebb4be14d9a41b20465a28b015cd23c205866c5be4fe",
+      "id": "service:model-gateway-saas",
+      "kind": "Variant",
+      "title": "Managed AI model gateway"
+    },
+    {
+      "entity_hash": "sha256:812128a6d50685fe3ef5711f3ee6e44fad99e1540da6060fbbfac5d60613f303",
+      "id": "service:model-router-aws",
+      "kind": "Variant",
+      "title": "AWS policy-based model router"
+    },
+    {
+      "entity_hash": "sha256:3be684ef8fb24541a10c796f41f3f9499605ff5efcd941db8edb97e716e56d16",
+      "id": "service:model-router-byop",
+      "kind": "Variant",
+      "title": "Customer model router adapter"
+    },
+    {
+      "entity_hash": "sha256:37381a21754b7df1b2b1dc90faf404dc0e1ae7b19ed71af770c1ac459c450df7",
+      "id": "service:model-router-oss",
+      "kind": "Variant",
+      "title": "LiteLLM policy router"
+    },
+    {
+      "entity_hash": "sha256:af96cf173bc35ad5a58ac24df645c83fd8eaea143be59a404f7b1a55db08506c",
+      "id": "service:model-router-saas",
+      "kind": "Variant",
+      "title": "Managed AI gateway router"
+    },
+    {
+      "entity_hash": "sha256:e7098c3df925574990bc1280620087684f13bf497c417d45c0b5b2599d98c46d",
+      "id": "service:multi-agent-supervisor-aws",
+      "kind": "Variant",
+      "title": "AWS multi-agent supervisor runtime"
+    },
+    {
+      "entity_hash": "sha256:7cf472b1c42e7cb1708ccf98866a597f58db886242b814ffce1924f94212fb8c",
+      "id": "service:multi-agent-supervisor-byop",
+      "kind": "Variant",
+      "title": "Customer supervisor adapter"
+    },
+    {
+      "entity_hash": "sha256:594809f75b8e0f1cc0aad68f61e9cb5f0bbf1285de5fe2bfd9e5cffb5edeaa26",
+      "id": "service:multi-agent-supervisor-oss",
+      "kind": "Variant",
+      "title": "LangGraph multi-agent supervisor"
+    },
+    {
+      "entity_hash": "sha256:7a0435242d2b1ea49380294b6ec1db4b7822e43947a09672d85b86dcf6eab8c3",
+      "id": "service:multi-agent-supervisor-saas",
+      "kind": "Variant",
+      "title": "Managed multi-agent supervisor"
+    },
+    {
+      "entity_hash": "sha256:7825cd7a42fcb2b872e65ac0ff5e98a16cc7ab7fd5ea0abd1199a6ff67640d40",
+      "id": "service:multi-region-aws",
+      "kind": "Variant",
+      "title": "AWS multi-region service deployment"
+    },
+    {
+      "entity_hash": "sha256:687c8220d30fa7d5721c65de0c08ed0c24cc830db1b5476e61b1cf1eda020411",
+      "id": "service:multi-region-byop",
+      "kind": "Variant",
+      "title": "Customer multi-region adapter"
+    },
+    {
+      "entity_hash": "sha256:9be7beb588c00ee9b0dd4422645e4c32161555d36700cf0099faf4c0df8c95dc",
+      "id": "service:multi-region-oss",
+      "kind": "Variant",
+      "title": "Multi-cluster Kubernetes deployment"
+    },
+    {
+      "entity_hash": "sha256:a4c1ea141037572bbcae336c3bb7b810f5acd39667a44ab3a0a97b5d372fec00",
+      "id": "service:multi-region-saas",
+      "kind": "Variant",
+      "title": "Managed multi-region service"
+    },
+    {
+      "entity_hash": "sha256:8034a9fb278b5251acd62e474b286be07a0bdc1219a67b62c48d1565b7345696",
+      "id": "service:orchestration-runtime-aws",
+      "kind": "Variant",
+      "title": "Amazon Bedrock AgentCore Runtime"
+    },
+    {
+      "entity_hash": "sha256:b4ebc4a17ad814ba6d80a350cabc10be87c196c4719ebf37443587fdc86053c7",
+      "id": "service:orchestration-runtime-byop",
+      "kind": "Variant",
+      "title": "Customer orchestration runtime adapter"
+    },
+    {
+      "entity_hash": "sha256:5c7b7a0ab3a500d0f352d0f93f9d6ee6f426b3b0cf9e494ddb91ec8e71ec2a0d",
+      "id": "service:orchestration-runtime-oss",
+      "kind": "Variant",
+      "title": "LangGraph and Temporal orchestration"
+    },
+    {
+      "entity_hash": "sha256:7c220e9a12e6aead77752f301497b22e29ae7950dc530e2dc02ff957ac0ccbfe",
+      "id": "service:orchestration-runtime-saas",
+      "kind": "Variant",
+      "title": "Managed agent orchestration service"
+    },
+    {
+      "entity_hash": "sha256:84e121b4c48da90eba14c307428802fe9f3d6a3ee49986d6f5924dbcdef6ad60",
+      "id": "service:outcome-correlator-aws",
+      "kind": "Variant",
+      "title": "AWS event-driven outcome correlator"
+    },
+    {
+      "entity_hash": "sha256:10a905fe5ab2ba6ef6795aa1b6ca6ba8384dc374cefd6cfbebb5f1fa395a0477",
+      "id": "service:outcome-correlator-byop",
+      "kind": "Variant",
+      "title": "Customer outcome correlator adapter"
+    },
+    {
+      "entity_hash": "sha256:6b262dcfe898a8d890a5c8eb627777c41711decd8512f3a6ffee01d5001f00cc",
+      "id": "service:outcome-correlator-oss",
+      "kind": "Variant",
+      "title": "OpenTelemetry and GitLab outcome correlator"
+    },
+    {
+      "entity_hash": "sha256:3e9cf37543289ccaf3c16401d03534d35eaed992ebc9e1cd4a2e1e96ba606790",
+      "id": "service:outcome-correlator-saas",
+      "kind": "Variant",
+      "title": "Managed engineering outcome analytics"
+    },
+    {
+      "entity_hash": "sha256:72c92a79ed9d95ce477c9d456a0e7d5b5e88493b6a5fb01d5c529616d4a190f2",
+      "id": "service:package-access-aws",
+      "kind": "Variant",
+      "title": "AWS CodeArtifact"
+    },
+    {
+      "entity_hash": "sha256:58c066c3cf436a3d6ed2b3d91ca16f52f01e6dc27e3c5aadaee460fcf6a69ff9",
+      "id": "service:package-access-byop",
+      "kind": "Variant",
+      "title": "Customer package registry adapter"
+    },
+    {
+      "entity_hash": "sha256:45e136ef26f02e6f4cd6a02023c9e1a409d1774e6ea5b1773a416f31c6a59d01",
+      "id": "service:package-access-oss",
+      "kind": "Variant",
+      "title": "Sonatype Nexus Repository"
+    },
+    {
+      "entity_hash": "sha256:42ada11d051f7e87a1ff4758ab57e6d568599aa4e2d54dc5e401c0c1d28e5624",
+      "id": "service:package-access-saas",
+      "kind": "Variant",
+      "title": "GitLab SaaS package registry"
+    },
+    {
+      "entity_hash": "sha256:f2071ae6679c36cf2c341a1f8b4ad200d870fcb107df47b459eaff936a66ea15",
+      "id": "service:parallel-reviewer-aws",
+      "kind": "Variant",
+      "title": "AWS parallel reviewer workflow"
+    },
+    {
+      "entity_hash": "sha256:6d7f5813bc6334f949f8bf0c3572571d60dbd24e1454358800e6436c7526d6a8",
+      "id": "service:parallel-reviewer-byop",
+      "kind": "Variant",
+      "title": "Customer parallel reviewer adapter"
+    },
+    {
+      "entity_hash": "sha256:9e8a6099e8404f8070dfd6dbb9843d528db82b895cacb20f2ce17837b51ddb81",
+      "id": "service:parallel-reviewer-oss",
+      "kind": "Variant",
+      "title": "Temporal parallel reviewer workflow"
+    },
+    {
+      "entity_hash": "sha256:6b604b5181f616c731c81b51bc97584009e1733918d7fc54cf340d33b119af0c",
+      "id": "service:parallel-reviewer-saas",
+      "kind": "Variant",
+      "title": "Managed parallel reviewer"
+    },
+    {
+      "entity_hash": "sha256:9c99f17fc1662d262602b6234a9d6a9d3cb039926a45b17b98cd441b6c6f44d8",
+      "id": "service:persistent-workspace-aws",
+      "kind": "Variant",
+      "title": "Amazon EC2 and EBS developer workspace"
+    },
+    {
+      "entity_hash": "sha256:b19e0f5075ed33995f3c8cd73733d83b495ff74b5ea0876adf8061bb4aa4479b",
+      "id": "service:persistent-workspace-byop",
+      "kind": "Variant",
+      "title": "Customer persistent workspace adapter"
+    },
+    {
+      "entity_hash": "sha256:564c04301e0c509b758046ff15c29f3fa0424a5a2bf0e94d4cdeae56ba7fdc5e",
+      "id": "service:persistent-workspace-oss",
+      "kind": "Variant",
+      "title": "Coder persistent workspace"
+    },
+    {
+      "entity_hash": "sha256:788c35f191c13a8bf40721b833da76c5a86236bc241f9bfa128407fb3cb383c6",
+      "id": "service:persistent-workspace-saas",
+      "kind": "Variant",
+      "title": "Managed cloud development workspace"
+    },
+    {
+      "entity_hash": "sha256:6f78f07247a481472beb8ce2efa0c9056536b654e22508869ce5f37f451ef20f",
+      "id": "service:policy-engine-aws",
+      "kind": "Variant",
+      "title": "Amazon Verified Permissions and Cedar"
+    },
+    {
+      "entity_hash": "sha256:a8429b00e5076ee46104fd71324968dacbbf9c7766aaa50733d7f0fbab71fd27",
+      "id": "service:policy-engine-byop",
+      "kind": "Variant",
+      "title": "Customer policy engine adapter"
+    },
+    {
+      "entity_hash": "sha256:ba43d4f31ea7c91c1c5b80ad9aef68c19c94dc4c21d8ba6998db2a9181dbeaa6",
+      "id": "service:policy-engine-oss",
+      "kind": "Variant",
+      "title": "Open Policy Agent"
+    },
+    {
+      "entity_hash": "sha256:3715da2843b8951d57086d99214b8179ff1de04c6663457d449d22ef3846fad0",
+      "id": "service:policy-engine-saas",
+      "kind": "Variant",
+      "title": "Managed policy decision service"
+    },
+    {
+      "entity_hash": "sha256:8bc2b476e48f3a26fb4402b7e66e1ba2bca99552e23037fb33b9312b887e3553",
+      "id": "service:private-connectivity-aws",
+      "kind": "Variant",
+      "title": "AWS PrivateLink and VPC endpoints"
+    },
+    {
+      "entity_hash": "sha256:ea1f16c363d0e96c04307e62091fbac547a600af00862b764b897e787e9c28d6",
+      "id": "service:private-connectivity-byop",
+      "kind": "Variant",
+      "title": "Customer private network adapter"
+    },
+    {
+      "entity_hash": "sha256:a531ead4ad1b5891147f846010608669c255cab82f028a18d1c7a7d517583ca6",
+      "id": "service:private-connectivity-oss",
+      "kind": "Variant",
+      "title": "Service mesh private connectivity"
+    },
+    {
+      "entity_hash": "sha256:db0fa44d9ac83a87fb35ca7c5a65f672887f6b247c5bc68ad8cb576b88829342",
+      "id": "service:private-connectivity-saas",
+      "kind": "Variant",
+      "title": "SaaS private connectivity add-on"
+    },
+    {
+      "entity_hash": "sha256:0e373283de120b69ff4a422d2aa6f9eca2839b8be2ab99efa3025e5a8e9cddd9",
+      "id": "service:quota-manager-aws",
+      "kind": "Variant",
+      "title": "AWS quota and budget control service"
+    },
+    {
+      "entity_hash": "sha256:c5e94c36de0807414892a8c02317c628bf864bb03a3505433a4c05ba039881e8",
+      "id": "service:quota-manager-byop",
+      "kind": "Variant",
+      "title": "Customer quota manager adapter"
+    },
+    {
+      "entity_hash": "sha256:a75126582899ed161ff5b5a44c63343342398f50b91860fbaac8404bc83ccacd",
+      "id": "service:quota-manager-oss",
+      "kind": "Variant",
+      "title": "Envoy rate-limit service"
+    },
+    {
+      "entity_hash": "sha256:eab0803a7a57c4128e322377589d62083fe758c7db99d8424dc9bbd2555bf878",
+      "id": "service:quota-manager-saas",
+      "kind": "Variant",
+      "title": "Managed AI quota and budget service"
+    },
+    {
+      "entity_hash": "sha256:2cd74805b85fbdd369b3c56b4036d9955f25af4bd61e08180e986f72653804a9",
+      "id": "service:restricted-egress-aws",
+      "kind": "Variant",
+      "title": "AWS Network Firewall and VPC endpoints"
+    },
+    {
+      "entity_hash": "sha256:4eb91c16bc17de09de360078a9fad1c87fa6436a3a1c9a1e89ea41e5bc374e4c",
+      "id": "service:restricted-egress-byop",
+      "kind": "Variant",
+      "title": "Customer egress control adapter"
+    },
+    {
+      "entity_hash": "sha256:43acfc336c8ad13dc5db94801601f0355e69e1906893751f42c9ccaafd8c9a2a",
+      "id": "service:restricted-egress-oss",
+      "kind": "Variant",
+      "title": "Cilium egress policy"
+    },
+    {
+      "entity_hash": "sha256:e8895ecd18995b4c519f417d49f2e3618804f73ae98f1054e0f00ddfdba858cb",
+      "id": "service:restricted-egress-saas",
+      "kind": "Variant",
+      "title": "Managed sandbox egress policy"
+    },
+    {
+      "entity_hash": "sha256:56b68ba3baf71b31e0d252a66a23133e40e88e722bf1385657bbc9840d3dd32c",
+      "id": "service:secrets-broker-aws",
+      "kind": "Variant",
+      "title": "AWS Secrets Manager"
+    },
+    {
+      "entity_hash": "sha256:a5c009e25d5215c9238031faf0f0044307d3bc4808e4fc67f0221f08399bc84b",
+      "id": "service:secrets-broker-byop",
+      "kind": "Variant",
+      "title": "Customer secrets broker adapter"
+    },
+    {
+      "entity_hash": "sha256:bce2f3af20581b7d2f9241898a75cacfd0feec9a7aeecdda37d99bb05c76b767",
+      "id": "service:secrets-broker-oss",
+      "kind": "Variant",
+      "title": "HashiCorp Vault"
+    },
+    {
+      "entity_hash": "sha256:61f2768c28229ea3876de34a20f846a4b727514db887c1bf6417244b269673da",
+      "id": "service:secrets-broker-saas",
+      "kind": "Variant",
+      "title": "Managed secrets broker"
+    },
+    {
+      "entity_hash": "sha256:9a5d8f0806a8c726fac79651cb9a2b2ebac59155cb1a7d410cb6c02e67378f45",
+      "id": "service:self-hosted-inference-aws",
+      "kind": "Variant",
+      "title": "Bedrock Custom Model Import / EC2 GPU inference"
+    },
+    {
+      "entity_hash": "sha256:d35d8273c171e4621678d3a3389b9d26f278310125d59d7fbdfbe7553fd32286",
+      "id": "service:self-hosted-inference-byop",
+      "kind": "Variant",
+      "title": "Customer self-hosted inference stack"
+    },
+    {
+      "entity_hash": "sha256:a81685386828136d6de142a1e40430a8704767c66b280da51364b6cc2ba3c6cd",
+      "id": "service:self-hosted-inference-oss",
+      "kind": "Variant",
+      "title": "vLLM / TGI in-VPC inference"
+    },
+    {
+      "entity_hash": "sha256:6d1bf9a2c119ed4d07cf5cb3981f0f194431050fd3416f1448b1b9e9e30d4098",
+      "id": "service:self-hosted-inference-saas",
+      "kind": "Variant",
+      "title": "Dedicated single-tenant inference endpoint"
+    },
+    {
+      "entity_hash": "sha256:448d49d8f33ca59a9498a1a58828b8f7f2e870fb9399106e40ec04b1d6482862",
+      "id": "service:sequential-handoff-aws",
+      "kind": "Variant",
+      "title": "AWS sequential agent workflow"
+    },
+    {
+      "entity_hash": "sha256:cb6e3cffeda1cc708fce5067582864aca5f18ad9628567235e66218a612364c9",
+      "id": "service:sequential-handoff-byop",
+      "kind": "Variant",
+      "title": "Customer handoff adapter"
+    },
+    {
+      "entity_hash": "sha256:b78b959bf765084d3e6e29e4c65a7642db4abe9c7c38d381e8ba9ea116f8c3e6",
+      "id": "service:sequential-handoff-oss",
+      "kind": "Variant",
+      "title": "LangGraph sequential handoff"
+    },
+    {
+      "entity_hash": "sha256:9331df886c1daddde6d015f7deed642f9c02ffcea1363f11e735286d944128bc",
+      "id": "service:sequential-handoff-saas",
+      "kind": "Variant",
+      "title": "Managed sequential agent handoff"
+    },
+    {
+      "entity_hash": "sha256:8f53e54f119178172d418ac40e0d61f376f187312b7aeac997b04b581d326c13",
+      "id": "service:source-control-integration-aws",
+      "kind": "Variant",
+      "title": "AWS event-driven GitLab integration"
+    },
+    {
+      "entity_hash": "sha256:cb7c36a5c4ac6d0a7e47e48584014b756e977433fd17beb54da22eeea1eb02af",
+      "id": "service:source-control-integration-byop",
+      "kind": "Variant",
+      "title": "Customer source-control adapter"
+    },
+    {
+      "entity_hash": "sha256:6fc28c263c970f5a80a5d9670fc8c637d300fedb1bd8d5dbb664a73bc7a125d5",
+      "id": "service:source-control-integration-oss",
+      "kind": "Variant",
+      "title": "GitLab webhook and API integration"
+    },
+    {
+      "entity_hash": "sha256:bcb0784438638b47f5d9e66ff37c04df14b4ee3aca296390c192ea6bb33c3386",
+      "id": "service:source-control-integration-saas",
+      "kind": "Variant",
+      "title": "Managed GitLab SaaS connector"
+    },
+    {
+      "entity_hash": "sha256:4d76102e13c988bfef951105ee9f4c0b5eab31e529a2916232117b52ec227f90",
+      "id": "service:static-model-binding-aws",
+      "kind": "Variant",
+      "title": "Amazon Bedrock inference profile binding"
+    },
+    {
+      "entity_hash": "sha256:714f47f9bb4c148779af34a76a5928f55d6879c2e20f75bfe8fb6e10fa448e98",
+      "id": "service:static-model-binding-byop",
+      "kind": "Variant",
+      "title": "Customer model binding adapter"
+    },
+    {
+      "entity_hash": "sha256:b2c38160917203910a3281d9551b01277284b168ba5855d2450c4c52659bfc5e",
+      "id": "service:static-model-binding-oss",
+      "kind": "Variant",
+      "title": "LiteLLM model alias binding"
+    },
+    {
+      "entity_hash": "sha256:e693e4a233344b19c3c51f09e1a5ca9a53582fbe1c53629f65a149cdb5c83793",
+      "id": "service:static-model-binding-saas",
+      "kind": "Variant",
+      "title": "Managed static model binding"
+    },
+    {
+      "entity_hash": "sha256:2a5dddaa76107e29294f0aa1a599d67f8567310676f7e3cff032fbfa61420ea2",
+      "id": "service:team-workspaces-aws",
+      "kind": "Variant",
+      "title": "DynamoDB-backed team workspace registry"
+    },
+    {
+      "entity_hash": "sha256:3eda63232c89fbb541dda112952ed7542fa7a6ec5c8ad15b7c0af28333fcb4ba",
+      "id": "service:team-workspaces-byop",
+      "kind": "Variant",
+      "title": "Customer team workspace adapter"
+    },
+    {
+      "entity_hash": "sha256:51c887e2ee700c7789635a94b4940e0bec724febaf03fd47cad56cb17e524352",
+      "id": "service:team-workspaces-oss",
+      "kind": "Variant",
+      "title": "Backstage team workspace catalog"
+    },
+    {
+      "entity_hash": "sha256:6bb61c8b3774d2953fe53a80ccd0096772370551f88a0da65b4800131d40a341",
+      "id": "service:team-workspaces-saas",
+      "kind": "Variant",
+      "title": "Managed team workspace service"
+    },
+    {
+      "entity_hash": "sha256:c0b5335880373e3d9feeb9c12f386aed06792753e329e467cf62ef75b9467ced",
+      "id": "service:telemetry-pipeline-aws",
+      "kind": "Variant",
+      "title": "AWS Distro for OpenTelemetry and Amazon CloudWatch"
+    },
+    {
+      "entity_hash": "sha256:27d500c085144d8a5d33cbeab49468ce8b78f37d3e7f10c44f81a7af0aab6b31",
+      "id": "service:telemetry-pipeline-byop",
+      "kind": "Variant",
+      "title": "Customer telemetry pipeline adapter"
+    },
+    {
+      "entity_hash": "sha256:89c31f855a048f1e839970b1f26cb6be79735633ebde916182699c4d0207dfdd",
+      "id": "service:telemetry-pipeline-oss",
+      "kind": "Variant",
+      "title": "OpenTelemetry Collector pipeline"
+    },
+    {
+      "entity_hash": "sha256:b22ded6bf4b5159b5c58cc9dadaf2da94ee2dab01893a32d8bb574f9828e9298",
+      "id": "service:telemetry-pipeline-saas",
+      "kind": "Variant",
+      "title": "Managed agent observability pipeline"
+    },
+    {
+      "entity_hash": "sha256:338c057b7d933dbe8c199027ff05a86ce9c26a77fe8d527ec3305fdb903c41ef",
+      "id": "service:tool-gateway-aws",
+      "kind": "Variant",
+      "title": "Amazon Bedrock AgentCore Gateway"
+    },
+    {
+      "entity_hash": "sha256:e768f2456f29db59f72c0773d29f7390caf4ab0f77ebbb8360b8ccb58a0d9284",
+      "id": "service:tool-gateway-byop",
+      "kind": "Variant",
+      "title": "Customer tool gateway adapter"
+    },
+    {
+      "entity_hash": "sha256:733203d0d80cf843f0f075b8f1182647772864bc909cad1e3402991f1c3f5002",
+      "id": "service:tool-gateway-oss",
+      "kind": "Variant",
+      "title": "Open-source MCP gateway"
+    },
+    {
+      "entity_hash": "sha256:91677ed0cba92d1be63251a1d796d7a5463953853f92083bca38f661fc050d49",
+      "id": "service:tool-gateway-saas",
+      "kind": "Variant",
+      "title": "Managed MCP and API gateway"
+    },
+    {
+      "entity_hash": "sha256:4ae58d8c18a625c4e2483befce7b405324010e0d746ab81b8576a41f7217c78f",
+      "id": "service:warm-runtime-pool-aws",
+      "kind": "Variant",
+      "title": "AWS warm isolated runtime pool"
+    },
+    {
+      "entity_hash": "sha256:d664850b11a413d1a710cd234c5b86a68e17dbb2a6757e52e74ebe6f9fda6dd6",
+      "id": "service:warm-runtime-pool-byop",
+      "kind": "Variant",
+      "title": "Customer warm runtime adapter"
+    },
+    {
+      "entity_hash": "sha256:62c7e8ee312aa11d8b845d136a1d48c71e9911db43be1419fd51d0920a419cef",
+      "id": "service:warm-runtime-pool-oss",
+      "kind": "Variant",
+      "title": "Kubernetes warm worker pool"
+    },
+    {
+      "entity_hash": "sha256:12130efb59814ab1f376268f5bb482a87147348ee2c1ae96549cec92ec9b20ef",
+      "id": "service:warm-runtime-pool-saas",
+      "kind": "Variant",
+      "title": "Managed warm sandbox pool"
+    },
+    {
+      "entity_hash": "sha256:cb93098d28699323ba8d037bcb77d5783f69177984138efe7d434f32beea661e",
+      "id": "service:workflow-definitions-aws",
+      "kind": "Variant",
+      "title": "Amazon S3 versioned workflow catalog"
+    },
+    {
+      "entity_hash": "sha256:87d91adc2f5f34e10894582a153e781c2fe96662df1b90bc960ed5070c445239",
+      "id": "service:workflow-definitions-byop",
+      "kind": "Variant",
+      "title": "Customer workflow catalog adapter"
+    },
+    {
+      "entity_hash": "sha256:da145ea1d4149497ff82bf903adf17dee3feff68042d509fdd999ef23ccd65fc",
+      "id": "service:workflow-definitions-oss",
+      "kind": "Variant",
+      "title": "Git-backed workflow definitions"
+    },
+    {
+      "entity_hash": "sha256:935150dbb109fddf46f3890301accb0ec6c7e66ec3d8673c5275a3900769de8a",
+      "id": "service:workflow-definitions-saas",
+      "kind": "Variant",
+      "title": "Managed workflow definition service"
+    },
+    {
+      "entity_hash": "sha256:e2c6c91c578e888007f029b9e72861548c1f838950a2b5e01725ea6c38d1ab6e",
+      "id": "service:workforce-identity-aws",
+      "kind": "Variant",
+      "title": "AWS IAM Identity Center federation"
+    },
+    {
+      "entity_hash": "sha256:a70bb83ed5368bc60e0d50d75caf89b3abdc7c23618e11e24d97205c81cb91de",
+      "id": "service:workforce-identity-byop",
+      "kind": "Variant",
+      "title": "Customer OIDC identity adapter"
+    },
+    {
+      "entity_hash": "sha256:76ab05e1d881e936f23db372e328d597515103381c0c6db280532d3fa9367644",
+      "id": "service:workforce-identity-oss",
+      "kind": "Variant",
+      "title": "Keycloak workforce identity"
+    },
+    {
+      "entity_hash": "sha256:58ab3855ba9b96f54fbd60a1d79d74122978f164620bf37b428c5e8debdd7cf5",
+      "id": "service:workforce-identity-saas",
+      "kind": "Variant",
+      "title": "Microsoft Entra ID or Okta federation"
+    },
+    {
+      "entity_hash": "sha256:115ed3f5a64d78ecd0555f493fb01cb1a7eb77b552d8c07f605b32b0255ee951",
+      "id": "service:workload-identity-aws",
+      "kind": "Variant",
+      "title": "AWS IAM roles and STS"
+    },
+    {
+      "entity_hash": "sha256:2067196d76273ee0ade57d9fe56cc25a695b45166d3fecfe251e29f519ae8604",
+      "id": "service:workload-identity-byop",
+      "kind": "Variant",
+      "title": "Customer workload identity adapter"
+    },
+    {
+      "entity_hash": "sha256:1d7a10bb76da5716de095e3c5d094526d442a57021dd62a0fe1dee5d960b4868",
+      "id": "service:workload-identity-oss",
+      "kind": "Variant",
+      "title": "SPIFFE and SPIRE workload identity"
+    },
+    {
+      "entity_hash": "sha256:b9aaab7f4da37abdf31de65f66ec3afb6a6a927b7174674dd3c2fb97b0b47546",
+      "id": "service:workload-identity-saas",
+      "kind": "Variant",
+      "title": "Managed workload identity broker"
+    }
+  ],
+  "outgoing": [
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:advisor-workspace-requires-workforce-identity",
+          "neighbor_id": "component:workforce-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:advisor-workspace"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:agent-registry-requires-workload-identity",
+          "neighbor_id": "component:workload-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:agent-registry"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:architecture-knowledge-supported-by-architecture-first-authority",
+          "neighbor_id": "claim:architecture-first-authority",
+          "relationship_type": "SUPPORTED_BY"
+        }
+      ],
+      "node_id": "component:architecture-knowledge"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:audit-ledger-requires-workforce-identity",
+          "neighbor_id": "component:workforce-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:audit-ledger"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:connector-registry-requires-tool-gateway",
+          "neighbor_id": "component:tool-gateway",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:connector-registry"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:container-runtime-requires-execution-broker",
+          "neighbor_id": "component:execution-broker",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:container-runtime"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:economics-ledger-requires-telemetry-pipeline",
+          "neighbor_id": "component:telemetry-pipeline",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:economics-ledger"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:enterprise-api-access-requires-connector-registry",
+          "neighbor_id": "component:connector-registry",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:enterprise-api-access"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:ephemeral-runtime-requires-execution-broker",
+          "neighbor_id": "component:execution-broker",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:ephemeral-runtime"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:evaluation-service-requires-telemetry-pipeline",
+          "neighbor_id": "component:telemetry-pipeline",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:evaluation-service"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:evidence-catalog-requires-architecture-knowledge",
+          "neighbor_id": "component:architecture-knowledge",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:evidence-catalog-supported-by-architecture-first-authority",
+          "neighbor_id": "claim:architecture-first-authority",
+          "relationship_type": "SUPPORTED_BY"
+        }
+      ],
+      "node_id": "component:evidence-catalog"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:execution-broker-requires-workload-identity",
+          "neighbor_id": "component:workload-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:execution-broker"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:human-approval-requires-audit-ledger",
+          "neighbor_id": "component:audit-ledger",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:human-approval-requires-policy-engine",
+          "neighbor_id": "component:policy-engine",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:human-approval"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:kubernetes-runtime-requires-container-runtime",
+          "neighbor_id": "component:container-runtime",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:kubernetes-runtime"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:local-runtime-requires-execution-broker",
+          "neighbor_id": "component:execution-broker",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:local-runtime"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:managed-model-provider-requires-model-gateway",
+          "neighbor_id": "component:model-gateway",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:managed-model-provider-supported-by-bedrock-managed-inference",
+          "neighbor_id": "claim:bedrock-managed-inference",
+          "relationship_type": "SUPPORTED_BY"
+        }
+      ],
+      "node_id": "component:managed-model-provider"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:model-catalog-requires-model-gateway",
+          "neighbor_id": "component:model-gateway",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:model-catalog"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:model-fallback-requires-model-router",
+          "neighbor_id": "component:model-router",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:model-fallback"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:model-gateway-requires-workload-identity",
+          "neighbor_id": "component:workload-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:model-gateway"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:model-router-requires-model-catalog",
+          "neighbor_id": "component:model-catalog",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:model-router"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:multi-agent-supervisor-requires-orchestration-runtime",
+          "neighbor_id": "component:orchestration-runtime",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:multi-agent-supervisor"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:multi-region-requires-telemetry-pipeline",
+          "neighbor_id": "component:telemetry-pipeline",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:multi-region"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:orchestration-runtime-requires-workflow-definitions",
+          "neighbor_id": "component:workflow-definitions",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:orchestration-runtime"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:outcome-correlator-requires-evaluation-service",
+          "neighbor_id": "component:evaluation-service",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:outcome-correlator-requires-source-control-integration",
+          "neighbor_id": "component:source-control-integration",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:outcome-correlator"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:package-access-requires-tool-gateway",
+          "neighbor_id": "component:tool-gateway",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:package-access"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:parallel-reviewer-requires-multi-agent-supervisor",
+          "neighbor_id": "component:multi-agent-supervisor",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:parallel-reviewer"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:persistent-workspace-requires-execution-broker",
+          "neighbor_id": "component:execution-broker",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:persistent-workspace"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:policy-engine-requires-workload-identity",
+          "neighbor_id": "component:workload-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:policy-engine"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:private-connectivity-requires-workload-identity",
+          "neighbor_id": "component:workload-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:private-connectivity"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:quota-manager-requires-team-workspaces",
+          "neighbor_id": "component:team-workspaces",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:quota-manager"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:restricted-egress-requires-execution-broker",
+          "neighbor_id": "component:execution-broker",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:restricted-egress-requires-policy-engine",
+          "neighbor_id": "component:policy-engine",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:restricted-egress"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:secrets-broker-requires-policy-engine",
+          "neighbor_id": "component:policy-engine",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:secrets-broker"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:self-hosted-inference-requires-model-gateway",
+          "neighbor_id": "component:model-gateway",
+          "relationship_type": "REQUIRES"
+        },
+        {
+          "edge_id": "relationship:self-hosted-inference-supported-by-self-hosted-residency",
+          "neighbor_id": "claim:self-hosted-residency",
+          "relationship_type": "SUPPORTED_BY"
+        }
+      ],
+      "node_id": "component:self-hosted-inference"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:sequential-handoff-requires-orchestration-runtime",
+          "neighbor_id": "component:orchestration-runtime",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:sequential-handoff"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:source-control-integration-requires-tool-gateway",
+          "neighbor_id": "component:tool-gateway",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:source-control-integration"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:static-model-binding-requires-model-catalog",
+          "neighbor_id": "component:model-catalog",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:static-model-binding"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:team-workspaces-requires-workforce-identity",
+          "neighbor_id": "component:workforce-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:team-workspaces"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:telemetry-pipeline-requires-workload-identity",
+          "neighbor_id": "component:workload-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:telemetry-pipeline"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:tool-gateway-requires-workload-identity",
+          "neighbor_id": "component:workload-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:tool-gateway"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:warm-runtime-pool-requires-ephemeral-runtime",
+          "neighbor_id": "component:ephemeral-runtime",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:warm-runtime-pool"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:workflow-definitions-requires-agent-registry",
+          "neighbor_id": "component:agent-registry",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:workflow-definitions"
+    },
+    {
+      "arcs": [
+        {
+          "edge_id": "relationship:workload-identity-requires-workforce-identity",
+          "neighbor_id": "component:workforce-identity",
+          "relationship_type": "REQUIRES"
+        }
+      ],
+      "node_id": "component:workload-identity"
+    }
+  ],
+  "relationship_indexes": [
+    {
+      "incoming": [],
+      "outgoing": [],
+      "relationship_type": "IMPLEMENTS"
+    },
+    {
+      "incoming": [
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:workflow-definitions-requires-agent-registry",
+              "neighbor_id": "component:workflow-definitions",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:agent-registry"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:evidence-catalog-requires-architecture-knowledge",
+              "neighbor_id": "component:evidence-catalog",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:architecture-knowledge"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:human-approval-requires-audit-ledger",
+              "neighbor_id": "component:human-approval",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:audit-ledger"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:enterprise-api-access-requires-connector-registry",
+              "neighbor_id": "component:enterprise-api-access",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:connector-registry"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:kubernetes-runtime-requires-container-runtime",
+              "neighbor_id": "component:kubernetes-runtime",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:container-runtime"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:warm-runtime-pool-requires-ephemeral-runtime",
+              "neighbor_id": "component:warm-runtime-pool",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:ephemeral-runtime"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:outcome-correlator-requires-evaluation-service",
+              "neighbor_id": "component:outcome-correlator",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:evaluation-service"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:container-runtime-requires-execution-broker",
+              "neighbor_id": "component:container-runtime",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:ephemeral-runtime-requires-execution-broker",
+              "neighbor_id": "component:ephemeral-runtime",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:local-runtime-requires-execution-broker",
+              "neighbor_id": "component:local-runtime",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:persistent-workspace-requires-execution-broker",
+              "neighbor_id": "component:persistent-workspace",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:restricted-egress-requires-execution-broker",
+              "neighbor_id": "component:restricted-egress",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:execution-broker"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:model-router-requires-model-catalog",
+              "neighbor_id": "component:model-router",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:static-model-binding-requires-model-catalog",
+              "neighbor_id": "component:static-model-binding",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:model-catalog"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:managed-model-provider-requires-model-gateway",
+              "neighbor_id": "component:managed-model-provider",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:model-catalog-requires-model-gateway",
+              "neighbor_id": "component:model-catalog",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:self-hosted-inference-requires-model-gateway",
+              "neighbor_id": "component:self-hosted-inference",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:model-gateway"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:model-fallback-requires-model-router",
+              "neighbor_id": "component:model-fallback",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:model-router"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:parallel-reviewer-requires-multi-agent-supervisor",
+              "neighbor_id": "component:parallel-reviewer",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:multi-agent-supervisor"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:multi-agent-supervisor-requires-orchestration-runtime",
+              "neighbor_id": "component:multi-agent-supervisor",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:sequential-handoff-requires-orchestration-runtime",
+              "neighbor_id": "component:sequential-handoff",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:orchestration-runtime"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:human-approval-requires-policy-engine",
+              "neighbor_id": "component:human-approval",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:restricted-egress-requires-policy-engine",
+              "neighbor_id": "component:restricted-egress",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:secrets-broker-requires-policy-engine",
+              "neighbor_id": "component:secrets-broker",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:policy-engine"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:outcome-correlator-requires-source-control-integration",
+              "neighbor_id": "component:outcome-correlator",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:source-control-integration"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:quota-manager-requires-team-workspaces",
+              "neighbor_id": "component:quota-manager",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:team-workspaces"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:economics-ledger-requires-telemetry-pipeline",
+              "neighbor_id": "component:economics-ledger",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:evaluation-service-requires-telemetry-pipeline",
+              "neighbor_id": "component:evaluation-service",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:multi-region-requires-telemetry-pipeline",
+              "neighbor_id": "component:multi-region",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:telemetry-pipeline"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:connector-registry-requires-tool-gateway",
+              "neighbor_id": "component:connector-registry",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:package-access-requires-tool-gateway",
+              "neighbor_id": "component:package-access",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:source-control-integration-requires-tool-gateway",
+              "neighbor_id": "component:source-control-integration",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:tool-gateway"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:orchestration-runtime-requires-workflow-definitions",
+              "neighbor_id": "component:orchestration-runtime",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:workflow-definitions"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:advisor-workspace-requires-workforce-identity",
+              "neighbor_id": "component:advisor-workspace",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:audit-ledger-requires-workforce-identity",
+              "neighbor_id": "component:audit-ledger",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:team-workspaces-requires-workforce-identity",
+              "neighbor_id": "component:team-workspaces",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:workload-identity-requires-workforce-identity",
+              "neighbor_id": "component:workload-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:workforce-identity"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:agent-registry-requires-workload-identity",
+              "neighbor_id": "component:agent-registry",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:execution-broker-requires-workload-identity",
+              "neighbor_id": "component:execution-broker",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:model-gateway-requires-workload-identity",
+              "neighbor_id": "component:model-gateway",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:policy-engine-requires-workload-identity",
+              "neighbor_id": "component:policy-engine",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:private-connectivity-requires-workload-identity",
+              "neighbor_id": "component:private-connectivity",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:telemetry-pipeline-requires-workload-identity",
+              "neighbor_id": "component:telemetry-pipeline",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:tool-gateway-requires-workload-identity",
+              "neighbor_id": "component:tool-gateway",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:workload-identity"
+        }
+      ],
+      "outgoing": [
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:advisor-workspace-requires-workforce-identity",
+              "neighbor_id": "component:workforce-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:advisor-workspace"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:agent-registry-requires-workload-identity",
+              "neighbor_id": "component:workload-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:agent-registry"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:audit-ledger-requires-workforce-identity",
+              "neighbor_id": "component:workforce-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:audit-ledger"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:connector-registry-requires-tool-gateway",
+              "neighbor_id": "component:tool-gateway",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:connector-registry"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:container-runtime-requires-execution-broker",
+              "neighbor_id": "component:execution-broker",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:container-runtime"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:economics-ledger-requires-telemetry-pipeline",
+              "neighbor_id": "component:telemetry-pipeline",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:economics-ledger"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:enterprise-api-access-requires-connector-registry",
+              "neighbor_id": "component:connector-registry",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:enterprise-api-access"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:ephemeral-runtime-requires-execution-broker",
+              "neighbor_id": "component:execution-broker",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:ephemeral-runtime"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:evaluation-service-requires-telemetry-pipeline",
+              "neighbor_id": "component:telemetry-pipeline",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:evaluation-service"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:evidence-catalog-requires-architecture-knowledge",
+              "neighbor_id": "component:architecture-knowledge",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:evidence-catalog"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:execution-broker-requires-workload-identity",
+              "neighbor_id": "component:workload-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:execution-broker"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:human-approval-requires-audit-ledger",
+              "neighbor_id": "component:audit-ledger",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:human-approval-requires-policy-engine",
+              "neighbor_id": "component:policy-engine",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:human-approval"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:kubernetes-runtime-requires-container-runtime",
+              "neighbor_id": "component:container-runtime",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:kubernetes-runtime"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:local-runtime-requires-execution-broker",
+              "neighbor_id": "component:execution-broker",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:local-runtime"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:managed-model-provider-requires-model-gateway",
+              "neighbor_id": "component:model-gateway",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:managed-model-provider"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:model-catalog-requires-model-gateway",
+              "neighbor_id": "component:model-gateway",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:model-catalog"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:model-fallback-requires-model-router",
+              "neighbor_id": "component:model-router",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:model-fallback"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:model-gateway-requires-workload-identity",
+              "neighbor_id": "component:workload-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:model-gateway"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:model-router-requires-model-catalog",
+              "neighbor_id": "component:model-catalog",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:model-router"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:multi-agent-supervisor-requires-orchestration-runtime",
+              "neighbor_id": "component:orchestration-runtime",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:multi-agent-supervisor"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:multi-region-requires-telemetry-pipeline",
+              "neighbor_id": "component:telemetry-pipeline",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:multi-region"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:orchestration-runtime-requires-workflow-definitions",
+              "neighbor_id": "component:workflow-definitions",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:orchestration-runtime"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:outcome-correlator-requires-evaluation-service",
+              "neighbor_id": "component:evaluation-service",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:outcome-correlator-requires-source-control-integration",
+              "neighbor_id": "component:source-control-integration",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:outcome-correlator"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:package-access-requires-tool-gateway",
+              "neighbor_id": "component:tool-gateway",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:package-access"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:parallel-reviewer-requires-multi-agent-supervisor",
+              "neighbor_id": "component:multi-agent-supervisor",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:parallel-reviewer"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:persistent-workspace-requires-execution-broker",
+              "neighbor_id": "component:execution-broker",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:persistent-workspace"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:policy-engine-requires-workload-identity",
+              "neighbor_id": "component:workload-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:policy-engine"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:private-connectivity-requires-workload-identity",
+              "neighbor_id": "component:workload-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:private-connectivity"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:quota-manager-requires-team-workspaces",
+              "neighbor_id": "component:team-workspaces",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:quota-manager"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:restricted-egress-requires-execution-broker",
+              "neighbor_id": "component:execution-broker",
+              "relationship_type": "REQUIRES"
+            },
+            {
+              "edge_id": "relationship:restricted-egress-requires-policy-engine",
+              "neighbor_id": "component:policy-engine",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:restricted-egress"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:secrets-broker-requires-policy-engine",
+              "neighbor_id": "component:policy-engine",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:secrets-broker"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:self-hosted-inference-requires-model-gateway",
+              "neighbor_id": "component:model-gateway",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:self-hosted-inference"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:sequential-handoff-requires-orchestration-runtime",
+              "neighbor_id": "component:orchestration-runtime",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:sequential-handoff"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:source-control-integration-requires-tool-gateway",
+              "neighbor_id": "component:tool-gateway",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:source-control-integration"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:static-model-binding-requires-model-catalog",
+              "neighbor_id": "component:model-catalog",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:static-model-binding"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:team-workspaces-requires-workforce-identity",
+              "neighbor_id": "component:workforce-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:team-workspaces"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:telemetry-pipeline-requires-workload-identity",
+              "neighbor_id": "component:workload-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:telemetry-pipeline"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:tool-gateway-requires-workload-identity",
+              "neighbor_id": "component:workload-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:tool-gateway"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:warm-runtime-pool-requires-ephemeral-runtime",
+              "neighbor_id": "component:ephemeral-runtime",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:warm-runtime-pool"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:workflow-definitions-requires-agent-registry",
+              "neighbor_id": "component:agent-registry",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:workflow-definitions"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:workload-identity-requires-workforce-identity",
+              "neighbor_id": "component:workforce-identity",
+              "relationship_type": "REQUIRES"
+            }
+          ],
+          "node_id": "component:workload-identity"
+        }
+      ],
+      "relationship_type": "REQUIRES"
+    },
+    {
+      "incoming": [],
+      "outgoing": [],
+      "relationship_type": "COMPATIBLE_WITH"
+    },
+    {
+      "incoming": [],
+      "outgoing": [],
+      "relationship_type": "INCOMPATIBLE_WITH"
+    },
+    {
+      "incoming": [],
+      "outgoing": [],
+      "relationship_type": "ALTERNATIVE_TO"
+    },
+    {
+      "incoming": [],
+      "outgoing": [],
+      "relationship_type": "INTEGRATES_WITH"
+    },
+    {
+      "incoming": [],
+      "outgoing": [],
+      "relationship_type": "RECOMMENDED_WHEN"
+    },
+    {
+      "incoming": [],
+      "outgoing": [],
+      "relationship_type": "AVOID_WHEN"
+    },
+    {
+      "incoming": [
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:architecture-knowledge-supported-by-architecture-first-authority",
+              "neighbor_id": "component:architecture-knowledge",
+              "relationship_type": "SUPPORTED_BY"
+            },
+            {
+              "edge_id": "relationship:evidence-catalog-supported-by-architecture-first-authority",
+              "neighbor_id": "component:evidence-catalog",
+              "relationship_type": "SUPPORTED_BY"
+            }
+          ],
+          "node_id": "claim:architecture-first-authority"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:managed-model-provider-supported-by-bedrock-managed-inference",
+              "neighbor_id": "component:managed-model-provider",
+              "relationship_type": "SUPPORTED_BY"
+            }
+          ],
+          "node_id": "claim:bedrock-managed-inference"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:self-hosted-inference-supported-by-self-hosted-residency",
+              "neighbor_id": "component:self-hosted-inference",
+              "relationship_type": "SUPPORTED_BY"
+            }
+          ],
+          "node_id": "claim:self-hosted-residency"
+        }
+      ],
+      "outgoing": [
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:architecture-knowledge-supported-by-architecture-first-authority",
+              "neighbor_id": "claim:architecture-first-authority",
+              "relationship_type": "SUPPORTED_BY"
+            }
+          ],
+          "node_id": "component:architecture-knowledge"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:evidence-catalog-supported-by-architecture-first-authority",
+              "neighbor_id": "claim:architecture-first-authority",
+              "relationship_type": "SUPPORTED_BY"
+            }
+          ],
+          "node_id": "component:evidence-catalog"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:managed-model-provider-supported-by-bedrock-managed-inference",
+              "neighbor_id": "claim:bedrock-managed-inference",
+              "relationship_type": "SUPPORTED_BY"
+            }
+          ],
+          "node_id": "component:managed-model-provider"
+        },
+        {
+          "arcs": [
+            {
+              "edge_id": "relationship:self-hosted-inference-supported-by-self-hosted-residency",
+              "neighbor_id": "claim:self-hosted-residency",
+              "relationship_type": "SUPPORTED_BY"
+            }
+          ],
+          "node_id": "component:self-hosted-inference"
+        }
+      ],
+      "relationship_type": "SUPPORTED_BY"
+    },
+    {
+      "incoming": [],
+      "outgoing": [],
+      "relationship_type": "SUPERSEDES"
+    }
+  ],
+  "schema_version": "1.0"
+}

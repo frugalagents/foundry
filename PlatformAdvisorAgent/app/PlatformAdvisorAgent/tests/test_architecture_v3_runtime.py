@@ -8,6 +8,7 @@ from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import ClientError
 
 import architecture_v3_runtime
+from advisor_core.knowledge import contextualize_decision_guidance
 from advisor_core.v3.models import content_hash
 from advisor_core.v3.projection import build_frontend_projection
 from advisor_core.v3.runtime import build_runtime_workspace
@@ -212,6 +213,10 @@ def test_get_matches_shared_projection_and_atomically_pins_initial_revision():
         workspace,
         release.logical_catalog,
         deployable_catalog=release.deployable_catalog,
+    )
+    expected["decision_guidance"] = contextualize_decision_guidance(
+        expected,
+        release.decision_guidance,
     )
     expected["knowledge_release"] = {
         "release_id": release.manifest.release_id,

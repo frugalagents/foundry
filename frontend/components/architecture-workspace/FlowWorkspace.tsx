@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   AlertCircle,
+  BookOpenCheck,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -20,6 +21,7 @@ import {
 import type {
   ArchitectureRequirement,
   ArchitectureWorkspaceProjection,
+  CandidateDecisionGuidance,
   EvidenceClaim,
   NextArchitectureQuestion,
   RequirementValue,
@@ -130,6 +132,9 @@ export function FlowWorkspace({
   const selectedCandidate = projection.deployable_solution?.candidates.find(
     (candidate) => candidate.bundle_id === recommendation?.candidate_id,
   ) ?? projection.deployable_solution?.candidates[0];
+  const selectedDecisionGuidance = projection.decision_guidance?.find(
+    (item) => item.candidate_id === selectedCandidate?.bundle_id,
+  );
   const canvas = useMemo(
     () => buildProjectionCanvas(projection, viewMode, selectedCandidate),
     [projection, selectedCandidate, viewMode],
@@ -194,6 +199,13 @@ export function FlowWorkspace({
       selectedComponentIds.has(componentId)),
   );
   const canDownload = canMutate && guidance.readiness === 'publishable';
+  const candidateIsProvisional = Boolean(
+    selectedCandidate
+    && (
+      guidance.readiness !== 'publishable'
+      || selectedCandidate.compatibility_status !== 'compatible'
+    ),
+  );
 
   useEffect(() => {
     if (!reviewOpen) return;
@@ -373,10 +385,12 @@ export function FlowWorkspace({
           className="fw-package-button"
           type="button"
           onClick={() => setReviewOpen(true)}
-          title={nextQuestion ? 'Complete guided discovery before reviewing the package' : undefined}
+          title={nextQuestion ? 'Review the current draft while guided discovery continues' : undefined}
         >
           <Sparkles size={14} />
-          {nextQuestion ? `Review package (${guidance.openRequirements.length} left)` : 'Review package'}
+          {guidance.readiness === 'publishable'
+            ? 'Review package'
+            : `Review draft (${guidance.openRequirements.length} decisions)`}
         </button>
       </header>
 
@@ -400,7 +414,13 @@ export function FlowWorkspace({
       <main className="fw-main">
         <section className="fw-canvas-wrap" aria-label={`${viewMode} architecture diagram`}>
           <div className="fw-view-caption">
-            <b>{viewMode === 'logical' ? 'Provider-neutral logical architecture' : selectedCandidate?.name}</b>
+            <b>
+              {viewMode === 'logical'
+                ? 'Provider-neutral logical architecture'
+                : candidateIsProvisional
+                  ? `Provisional pattern: ${selectedCandidate?.name}`
+                  : selectedCandidate?.name}
+            </b>
             <span>{canvas.blocks.length} {viewMode === 'logical' ? 'capabilities' : 'services'} | {canvas.wires.length} relationships</span>
           </div>
           <FlowCanvas
@@ -503,6 +523,7 @@ export function FlowWorkspace({
                 projection={projection}
                 guidance={guidance}
                 nextQuestion={nextQuestion}
+                decisionGuidance={selectedDecisionGuidance}
                 applying={!canMutate}
                 pendingPatch={pendingPatch}
                 onPropose={(requirementId, answer) => {
@@ -536,6 +557,9 @@ export function FlowWorkspace({
                     </div>
                   )) : <p className="fw-muted">This is a baseline component of the selected logical pattern.</p>}
                 </InspectorSection>
+                {selectedDecisionGuidance && viewMode === 'deployable' && (
+                  <FitGuidance guidance={selectedDecisionGuidance} detailed />
+                )}
                 {selectedRequirements.length > 0 && (
                   <InspectorSection title="Customer requirements">
                     {selectedRequirements.map((requirement) => (
@@ -595,7 +619,11 @@ export function FlowWorkspace({
           <div className="fw-dialog" role="dialog" aria-modal="true" aria-labelledby="architecture-package-title">
             <header>
               <div>
-                <span>Customer architecture package</span>
+                <span>
+                  {guidance.readiness === 'publishable'
+                    ? 'Customer architecture package'
+                    : 'Customer architecture draft'}
+                </span>
                 <h2 id="architecture-package-title">{blueprint?.name ?? 'Coding Agent Platform'}</h2>
                 <small>Revision {projection.meta.revision_number} | catalog {projection.meta.catalog_version}</small>
               </div>
@@ -855,10 +883,97 @@ function DecisionTracePanel({
   );
 }
 
+function FitGuidance({
+  guidance,
+  detailed = false,
+}: {
+  guidance: CandidateDecisionGuidance;
+  detailed?: boolean;
+}) {
+  const statusLabel = {
+    compatible: 'Fits current constraints',
+    conditional: 'Conditional fit',
+    incompatible: 'Does not fit',
+  }[guidance.fit.status];
+  const evidence = guidance.evidence.filter(
+    (item, index, items) => items.findIndex(
+      (candidate) => candidate.claim_id === item.claim_id
+        && candidate.source_snapshot_id === item.source_snapshot_id,
+    ) === index,
+  );
+
+  return (
+    <section className={`fw-fit-guidance ${detailed ? 'detailed' : ''}`}>
+      <header>
+        <span>
+          <BookOpenCheck size={14} />
+          {guidance.fit.status === 'compatible'
+            ? 'Reviewed architecture guidance'
+            : 'Provisional reviewed guidance'}
+        </span>
+        <i className={guidance.fit.status}>{statusLabel}</i>
+      </header>
+      <h3>{guidance.title}</h3>
+      <p>{guidance.fit.summary}</p>
+      <div className="fw-fit-decision">
+        <b>Design decision</b>
+        <span>{guidance.decision}</span>
+      </div>
+      {detailed ? (
+        <>
+          <div className="fw-guidance-columns">
+            <div>
+              <b>Use when</b>
+              <ul>{guidance.recommended_when.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
+            <div>
+              <b>Avoid when</b>
+              <ul>{guidance.avoid_when.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
+          </div>
+          <div className="fw-guidance-tradeoffs">
+            <b>Trade-offs</b>
+            <ul>{guidance.tradeoffs.map((item) => <li key={item}>{item}</li>)}</ul>
+          </div>
+          {evidence.length > 0 && (
+            <div className="fw-guidance-evidence">
+              <b>Reviewed evidence</b>
+              {evidence.map((item) => (
+                <a
+                  key={`${item.claim_id}-${item.source_snapshot_id}`}
+                  href={item.source_uri}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span>{item.statement}</span>
+                  <small>{item.source_name} | {item.source_locator}</small>
+                </a>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <details>
+          <summary>Use conditions and trade-offs</summary>
+          <b>Use when</b>
+          <ul>{guidance.recommended_when.map((item) => <li key={item}>{item}</li>)}</ul>
+          <b>Avoid when</b>
+          <ul>{guidance.avoid_when.map((item) => <li key={item}>{item}</li>)}</ul>
+        </details>
+      )}
+      <footer>
+        {guidance.fit.status === 'compatible' ? 'Advisory pattern' : 'Provisional advisory pattern'}
+        {' | '}reviewed {guidance.reviewed_at.slice(0, 10)}
+      </footer>
+    </section>
+  );
+}
+
 function WorkspaceSummary({
   projection,
   guidance,
   nextQuestion,
+  decisionGuidance,
   applying,
   pendingPatch,
   onPropose,
@@ -869,6 +984,7 @@ function WorkspaceSummary({
   projection: ArchitectureWorkspaceProjection;
   guidance: ReturnType<typeof deriveWorkspaceGuidance>;
   nextQuestion: NextArchitectureQuestion | null;
+  decisionGuidance?: CandidateDecisionGuidance;
   applying: boolean;
   pendingPatch: Record<string, RequirementValue> | null;
   onPropose: (requirementId: string, answer: RequirementValue) => void;
@@ -949,6 +1065,9 @@ function WorkspaceSummary({
       <div className="fw-discovery-progress" aria-label={`${guidance.coveredPercent}% complete`}>
         <i style={{ width: `${guidance.coveredPercent}%` }} />
       </div>
+      {decisionGuidance && (
+        <FitGuidance guidance={decisionGuidance} />
+      )}
       {nextQuestion ? (
         <div className="fw-next">
           <span>Question {Math.min(questionNumber, questionCount)} of {questionCount}</span>
@@ -1147,7 +1266,8 @@ function WorkspaceSummary({
                   <p>All requirements are confirmed. The engine has all the information it needs.</p>
                 )}
                 <button type="button" className="fw-review-cta" onClick={onOpenReview}>
-                  <Sparkles size={14} /> Review package
+                  <Sparkles size={14} />
+                  {guidance.readiness === 'publishable' ? 'Review package' : 'Review draft'}
                 </button>
               </>
             ) : (
@@ -1439,6 +1559,7 @@ function WorkspaceStyles() {
 .fw-engine-done{margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:10px;background:#ffffff04;display:flex;flex-direction:column;gap:8px}.fw-engine-done-icon{color:var(--green)}.fw-engine-blocked .fw-engine-done-icon,.fw-engine-unresolved .fw-engine-done-icon{color:var(--amber)}.fw-engine-unresolved{border-color:#f0a85033 !important;background:#1a150904 !important}.fw-engine-conflict .fw-engine-done-icon{color:var(--red)}.fw-engine-conflict{border-color:#f8717133 !important;background:#1f0f1012 !important}.fw-engine-conflict .fw-review-cta{border-color:var(--red);background:#fb718512;color:var(--red)}.fw-engine-conflict .fw-review-cta:hover{background:#fb718522}.fw-engine-done b{font-size:12px}.fw-engine-done p{font-size:10.5px;color:var(--dim);margin:0;line-height:1.5}.fw-engine-done-next{color:var(--muted) !important;font-size:10px !important}.fw-engine-blocked-hint{color:var(--muted) !important;font-size:9.5px !important;font-style:italic}.fw-engine-done ul{margin:4px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:5px}.fw-engine-done li{font-size:10px;color:var(--muted);line-height:1.5}.fw-engine-done li b{color:var(--ink)}.fw-open-req-item{display:flex;flex-direction:column;gap:6px;padding:9px 10px;border:1px solid #f0a85033;border-radius:7px;background:#1a150a}.fw-open-req-label{font-size:10px;font-weight:600;color:var(--ink);line-height:1.4}.fw-review-cta{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;padding:10px;border:1px solid var(--green);border-radius:7px;background:#37dd7d18;color:var(--green);font:650 11px inherit;cursor:pointer}.fw-review-cta:hover{background:#37dd7d28}
 .fw-conflict-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}.fw-conflict-item{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid #f8717122;border-radius:7px;background:#1a0d0f}.fw-conflict-item-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.fw-conflict-req-name{font-size:10.5px;font-weight:600;line-height:1.4;color:var(--ink)}.fw-conflict-current{font-size:9px;color:var(--red);white-space:nowrap;flex-shrink:0;margin-top:2px}.fw-conflict-current i{font-style:normal;color:var(--amber)}.fw-conflict-rationale{font-size:9px;color:var(--muted);margin:0;font-style:italic;border-left:2px solid #f8717144;padding-left:6px;line-height:1.45}.fw-conflict-options{display:flex;flex-direction:column;gap:5px}.fw-conflict-options>small{font-size:8.5px;text-transform:uppercase;font-weight:700;color:var(--muted)}.fw-conflict-choices{display:flex;flex-wrap:wrap;gap:5px}.fw-conflict-choices>button{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--dim);padding:4px 8px;font:600 9.5px inherit;cursor:pointer}.fw-conflict-choices>button:hover:not(:disabled){border-color:#47576c;background:#151c26}.fw-conflict-choices>button.selected{border-color:var(--green);background:#102019;color:var(--green)}.fw-conflict-choices>button:disabled{opacity:.4;cursor:default}.fw-conflict-assumption-note{font-size:8.5px;color:var(--amber);font-style:italic}
 .fw-discovery-progress{height:4px;margin:12px 0 27px;border-radius:2px;overflow:hidden;background:var(--line)}.fw-discovery-progress i{display:block;height:100%;background:var(--green)}
+.fw-fit-guidance{margin:0 0 20px;padding:13px 14px;border-left:3px solid #4cc4f5;background:#0d1922}.fw-fit-guidance.detailed{margin:0;padding:17px 20px;border-bottom:1px solid var(--soft)}.fw-fit-guidance>header{display:flex;align-items:center;justify-content:space-between;gap:8px}.fw-fit-guidance>header>span{display:flex;align-items:center;gap:6px;font-size:8.5px;text-transform:uppercase;color:#7dd3fc;font-weight:750}.fw-fit-guidance>header>i{font-style:normal;font-size:8px;padding:2px 6px;border-radius:4px;text-transform:uppercase;color:var(--amber);background:#f0a85016}.fw-fit-guidance>header>i.compatible{color:var(--green);background:#37dd7d14}.fw-fit-guidance>header>i.incompatible{color:var(--red);background:#fb718514}.fw-fit-guidance h3{font-size:14px;margin:9px 0 4px}.fw-fit-guidance>p{font-size:10px;color:var(--dim);margin:0 0 9px}.fw-fit-decision{display:flex;flex-direction:column;gap:2px;padding-top:8px;border-top:1px solid #4cc4f522}.fw-fit-decision b,.fw-guidance-columns b,.fw-guidance-tradeoffs>b,.fw-guidance-evidence>b,.fw-fit-guidance details>b{font-size:8px;text-transform:uppercase;color:#7dd3fc}.fw-fit-decision span{font-size:10px;color:var(--ink);line-height:1.45}.fw-fit-guidance details{margin-top:10px}.fw-fit-guidance summary{font-size:9px;color:#7dd3fc;cursor:pointer}.fw-fit-guidance ul{margin:5px 0 8px;padding-left:16px}.fw-fit-guidance li{font-size:9.5px;color:var(--dim);margin:3px 0;line-height:1.4}.fw-fit-guidance>footer{margin-top:9px;font-size:8px;color:var(--muted)}.fw-guidance-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:13px}.fw-guidance-tradeoffs{margin-top:5px}.fw-guidance-evidence{display:flex;flex-direction:column;gap:6px;margin-top:12px}.fw-guidance-evidence>a{display:flex;flex-direction:column;padding:8px;border-left:2px solid #2dd4bf;background:#0f201d;text-decoration:none}.fw-guidance-evidence>a span{font-size:9.5px;color:var(--dim)}.fw-guidance-evidence>a small{font-size:8px;color:var(--muted);margin-top:2px}.fw-guidance-evidence>a:hover span{color:var(--ink)}
 .fw-next>span,.fw-proposal>span{font-size:8.5px;text-transform:uppercase;color:var(--muted);font-weight:750}.fw-next h2{font-size:18px;line-height:1.35;margin:8px 0}.fw-next>p{font-size:10.5px;color:var(--muted);margin:0 0 17px}.fw-why-it-matters{font-size:10.5px;color:var(--dim);margin:0 0 17px;padding:9px 10px;border-left:2px solid var(--green);background:#37dd7d0a}.fw-answer-list small+small.fw-watch-out{color:var(--amber);margin-top:4px;font-style:italic}.fw-answer-list{display:flex;flex-direction:column;gap:7px}.fw-answer-list>button{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;border:1px solid var(--line);border-radius:7px;background:#11161e;color:var(--ink);padding:10px 11px;cursor:pointer}.fw-answer-list>button:hover{border-color:#47576c;background:#151c26}.fw-answer-list>button.selected{border-color:var(--green);background:#102019}.fw-answer-list>button:disabled{opacity:.45}.fw-answer-list>button>i{width:17px;height:17px;display:grid;place-items:center;flex:none;margin-top:1px;border:1px solid #4b596d;border-radius:50%;color:#07130c;font-style:normal}.fw-answer-list>button.selected>i{border-color:var(--green);background:var(--green)}.fw-answer-list>button>span{display:flex;flex-direction:column}.fw-answer-list b{font-size:11.5px}.fw-answer-list small{font-size:9.5px;line-height:1.4;color:var(--muted);margin-top:2px}
 .fw-answer-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:16px;padding-top:13px;border-top:1px solid var(--soft)}.fw-answer-actions button{border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--dim);padding:7px 10px;font:650 10px inherit}.fw-answer-actions button.primary{border-color:var(--green);background:var(--green);color:#07130c}.fw-answer-actions button:disabled{opacity:.45}
 .fw-open-req-number{width:100%;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);padding:6px 8px;font:11px inherit}

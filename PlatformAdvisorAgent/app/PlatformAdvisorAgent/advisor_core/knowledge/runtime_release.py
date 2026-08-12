@@ -18,13 +18,14 @@ from .release_artifacts import (
     KnowledgeReleaseManifest,
     ReleaseArtifactFile,
 )
+from .decision_guidance import DecisionGuidanceProjection
 
 
 DEFAULT_RELEASE_ID = "release:coding-platform-knowledge"
 DEFAULT_RELEASE_PLATFORM = "coding-platform"
-DEFAULT_RELEASE_VERSION = "1.3.0"
+DEFAULT_RELEASE_VERSION = "1.4.0"
 DEFAULT_RELEASE_MANIFEST_HASH = (
-    "sha256:dcfd1f4d77bd43b92dd2bf06beccbdb11eaacac901da7b16df5f2bb3d46ae9ab"
+    "sha256:4621d4bf5543b81eda9de0b5c4f437cf684026e4cf34ac0584445cf5941a63dd"
 )
 RELEASE_ROOT_ENV = "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_ROOT"
 RELEASE_PLATFORM_ENV = "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_PLATFORM"
@@ -44,6 +45,7 @@ class LoadedKnowledgeRelease:
     manifest: KnowledgeReleaseManifest
     logical_catalog: CatalogRelease
     deployable_catalog: DeployableCatalogRelease
+    decision_guidance: DecisionGuidanceProjection
 
 
 def _sha256(value: bytes) -> str:
@@ -173,6 +175,9 @@ def load_pinned_knowledge_release(
         deployable = DeployableCatalogRelease.model_validate(
             payloads["deployable-catalog.json"]
         )
+        decision_guidance = DecisionGuidanceProjection.model_validate(
+            payloads["decision-guidance.json"]
+        )
     except (KeyError, ValidationError, ValueError) as exc:
         raise KnowledgeReleaseLoadError(
             f"knowledge release runtime catalogs are invalid: {exc}"
@@ -220,6 +225,12 @@ def load_pinned_knowledge_release(
         field="projection_hash",
         expected=manifest.vector_projection_hash,
     )
+    _validate_internal_hash(
+        payloads,
+        path="decision-guidance.json",
+        field="projection_hash",
+        expected=manifest.decision_guidance_hash,
+    )
     benchmark = payloads.get("benchmark-report.json")
     benchmark_results = (
         benchmark.get("results", [])
@@ -250,6 +261,7 @@ def load_pinned_knowledge_release(
         manifest=manifest,
         logical_catalog=logical,
         deployable_catalog=deployable,
+        decision_guidance=decision_guidance,
     )
 
 

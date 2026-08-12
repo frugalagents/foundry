@@ -12,6 +12,10 @@ from advisor_core.v3.deployable.models import DeployableCatalogRelease
 from advisor_core.v3.models import CatalogRelease, SemanticVersion
 
 from .legacy_migration import LegacyKnowledgeMigration
+from .decision_guidance import (
+    DecisionGuidanceProjection,
+    compile_decision_guidance,
+)
 from .models import FrozenModel, StableId, content_hash
 from .release_scenarios import (
     ReleaseScenarioResult,
@@ -82,6 +86,7 @@ class KnowledgeReleaseManifestPayload(FrozenModel):
     runtime_graph_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     search_projection_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     vector_projection_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    decision_guidance_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     scenario_suite_id: StableId
     scenario_suite_version: SemanticVersion
     scenario_count: int = Field(ge=1)
@@ -185,6 +190,12 @@ def build_knowledge_release_artifacts(
             "vector projection does not target the supplied search projection"
         )
 
+    decision_guidance = compile_decision_guidance(
+        entities=migration.entities,
+        source_registry=migration.source_registry,
+        snapshots=migration.snapshots,
+        as_of=validation.as_of,
+    )
     result_by_id = {
         result.scenario_id: result for result in scenario_results
     }
@@ -284,6 +295,10 @@ def build_knowledge_release_artifacts(
                     "vector-projection.json",
                     vector_projection.model_dump(mode="json"),
                 ),
+                _json_artifact(
+                    "decision-guidance.json",
+                    decision_guidance.model_dump(mode="json"),
+                ),
                 _json_artifact("source-inventory.json", source_inventory),
                 _json_artifact("benchmark-report.json", benchmark),
             ),
@@ -315,6 +330,7 @@ def build_knowledge_release_artifacts(
         runtime_graph_hash=runtime_graph.graph_hash,
         search_projection_hash=search_projection.projection_hash,
         vector_projection_hash=vector_projection.projection_hash,
+        decision_guidance_hash=decision_guidance.projection_hash,
         scenario_suite_id=scenario_suite.id,
         scenario_suite_version=scenario_suite.version,
         scenario_count=len(benchmark_rows),

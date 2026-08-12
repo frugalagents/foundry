@@ -45,7 +45,7 @@ def main() -> int:
             / "knowledge"
             / "releases"
             / "coding-platform"
-            / "1.3.0"
+            / "1.4.0"
         ),
     )
     args = parser.parse_args()
@@ -60,7 +60,7 @@ def main() -> int:
     migration_document = json.loads(
         migration_path.read_text(encoding="utf-8")
     )
-    as_of = date(2026, 8, 11)
+    as_of = date(2026, 8, 12)
     logical = compile_knowledge_catalog(
         entities=migration.entities,
         relationships=migration.relationships,
@@ -119,8 +119,8 @@ def main() -> int:
     results = run_release_scenarios(suite, migration)
     artifacts = build_knowledge_release_artifacts(
         release_id="release:coding-platform-knowledge",
-        release_version="1.3.0",
-        built_at=datetime.fromisoformat("2026-08-11T12:00:00+00:00"),
+        release_version="1.4.0",
+        built_at=datetime.fromisoformat("2026-08-12T12:00:00+00:00"),
         compiler_version="1.0.0",
         migration_bundle_hash=migration_document["bundle_hash"],
         migration=migration,

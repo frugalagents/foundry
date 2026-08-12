@@ -42,9 +42,9 @@ RELEASE_ROOT = (
     / "knowledge"
     / "releases"
     / "coding-platform"
-    / "1.3.0"
+    / "1.4.0"
 )
-AS_OF = date(2026, 8, 11)
+AS_OF = date(2026, 8, 12)
 
 
 def build_current_release() -> KnowledgeReleaseArtifacts:
@@ -104,8 +104,8 @@ def build_current_release() -> KnowledgeReleaseArtifacts:
     suite = load_release_scenario_suite(SCENARIO_PATH)
     return build_knowledge_release_artifacts(
         release_id="release:coding-platform-knowledge",
-        release_version="1.3.0",
-        built_at=datetime.fromisoformat("2026-08-11T12:00:00+00:00"),
+        release_version="1.4.0",
+        built_at=datetime.fromisoformat("2026-08-12T12:00:00+00:00"),
         compiler_version="1.0.0",
         migration_bundle_hash=migration_document["bundle_hash"],
         migration=migration,

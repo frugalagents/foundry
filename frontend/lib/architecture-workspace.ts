@@ -147,6 +147,7 @@ export interface DeployableSelection {
 
 export interface DeployableCandidate {
   bundle_id: string;
+  template_id: string;
   name: string;
   deployment_family_id: string;
   compatibility_status: 'compatible' | 'conditional' | 'incompatible';
@@ -171,6 +172,51 @@ export interface DeployableCandidate {
   }[];
   rank: number;
   pareto_optimal: boolean;
+}
+
+export interface DecisionGuidanceEvidence {
+  claim_id: string;
+  statement: string;
+  review_status: string;
+  effective_from: string;
+  stale_after: string;
+  source_snapshot_id: string;
+  source_id: string;
+  source_name: string;
+  source_publisher: string;
+  source_uri: string;
+  source_locator: string;
+  authority_tier: string;
+}
+
+export interface CandidateDecisionGuidance {
+  candidate_id: string;
+  template_id: string;
+  pattern_id: string;
+  title: string;
+  summary: string;
+  decision: string;
+  fit: {
+    status: 'compatible' | 'conditional' | 'incompatible';
+    summary: string;
+    matched_requirements: {
+      requirement_id: string;
+      name?: string;
+      value: RequirementValue;
+    }[];
+    conditional_requirements: {
+      requirement_id: string;
+      name?: string;
+      value: RequirementValue;
+    }[];
+  };
+  recommended_when: string[];
+  avoid_when: string[];
+  tradeoffs: string[];
+  reviewed_at: string;
+  reviewer_ids: string[];
+  evidence: DecisionGuidanceEvidence[];
+  advisory: true;
 }
 
 export interface DeployableDecisionMatrix {
@@ -318,6 +364,7 @@ export interface ArchitectureWorkspaceProjection {
   architecture: ArchitectureProjection;
   feasibility: DeploymentFeasibility[];
   deployable_solution?: DeployableDecisionMatrix;
+  decision_guidance?: CandidateDecisionGuidance[];
   assurance?: AssurancePacket;
   next_question: NextArchitectureQuestion | null;
   decision_trace: DecisionTraceEntry[];

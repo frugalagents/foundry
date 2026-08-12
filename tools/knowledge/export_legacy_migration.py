@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 import sys
 from datetime import date
 from pathlib import Path
@@ -18,6 +19,7 @@ PACKAGE_ROOT = (
 sys.path.insert(0, str(PACKAGE_ROOT))
 
 from advisor_core.knowledge import (  # noqa: E402
+    load_okf_corpus,
     migrate_legacy_catalogs,
     write_legacy_migration_bundle,
 )
@@ -30,7 +32,7 @@ def main() -> int:
     parser.add_argument(
         "--as-of",
         type=date.fromisoformat,
-        default=date(2026, 8, 11),
+        default=date(2026, 8, 12),
     )
     parser.add_argument(
         "--output",
@@ -55,6 +57,24 @@ def main() -> int:
         as_of=args.as_of,
     )
     migration = migrate_legacy_catalogs(logical, deployable)
+    decision_patterns = load_okf_corpus(
+        REPOSITORY_ROOT / "knowledge" / "decision-patterns"
+    )
+    migration = replace(
+        migration,
+        entities=tuple(
+            sorted(
+                (*migration.entities, *decision_patterns.entities),
+                key=lambda entity: entity.id,
+            )
+        ),
+        relationships=tuple(
+            sorted(
+                (*migration.relationships, *decision_patterns.relationships),
+                key=lambda relationship: relationship.id,
+            )
+        ),
+    )
     bundle_hash = write_legacy_migration_bundle(
         args.output,
         migration,

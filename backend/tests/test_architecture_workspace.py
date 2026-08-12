@@ -985,7 +985,7 @@ def test_workspace_export_is_complete_deterministic_and_revision_pinned():
     assert package["pinned_versions"]["catalog_content_hash"].startswith(
         "sha256:"
     )
-    assert package["pinned_versions"]["knowledge_release_version"] == "1.3.0"
+    assert package["pinned_versions"]["knowledge_release_version"] == "1.4.0"
     assert package["pinned_versions"][
         "knowledge_release_manifest_hash"
     ].startswith("sha256:")

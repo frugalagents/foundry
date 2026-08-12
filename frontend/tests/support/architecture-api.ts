@@ -6,6 +6,40 @@ export type ProjectionDocument = typeof baselineProjection & {
     persistence_revision?: number;
     persistence_hash?: string;
   };
+  decision_guidance?: {
+    candidate_id: string;
+    template_id: string;
+    pattern_id: string;
+    title: string;
+    summary: string;
+    decision: string;
+    fit: {
+      status: 'compatible' | 'conditional' | 'incompatible';
+      summary: string;
+      matched_requirements: unknown[];
+      conditional_requirements: unknown[];
+    };
+    recommended_when: string[];
+    avoid_when: string[];
+    tradeoffs: string[];
+    reviewed_at: string;
+    reviewer_ids: string[];
+    evidence: {
+      claim_id: string;
+      statement: string;
+      review_status: string;
+      effective_from: string;
+      stale_after: string;
+      source_snapshot_id: string;
+      source_id: string;
+      source_name: string;
+      source_publisher: string;
+      source_uri: string;
+      source_locator: string;
+      authority_tier: string;
+    }[];
+    advisory: true;
+  }[];
 };
 
 export interface RecordedArchitectureRequest {
@@ -48,6 +82,47 @@ export function projectionAtRevision(
   projection.revision.revision_number = revisionNumber;
   projection.revision.revision_id = `revision:r-${revisionNumber}`;
   projection.revision.state_hash = `sha256:state-${revisionNumber}`;
+  projection.decision_guidance = [{
+    candidate_id: 'bundle:byop-portable-r2',
+    template_id: 'bundle-template:byop-portable',
+    pattern_id: 'decision-pattern:byop-portable',
+    title: 'BYOP portable platform',
+    summary: 'Preserve replaceable provider boundaries through governed contracts.',
+    decision: 'Use explicit platform contracts and adapters around customer-selected services.',
+    fit: {
+      status: 'conditional',
+      summary: 'Potential fit, but customer decisions or implementation conditions remain unresolved.',
+      matched_requirements: [],
+      conditional_requirements: [],
+    },
+    recommended_when: [
+      'Long-running or durable remote workspaces are required.',
+      'Provider portability is a strategic requirement.',
+    ],
+    avoid_when: [
+      'Fastest initial delivery is the dominant objective.',
+    ],
+    tradeoffs: [
+      'Portability increases integration and conformance work.',
+    ],
+    reviewed_at: '2026-08-11T12:00:00+00:00',
+    reviewer_ids: ['person:principal-platform-architect'],
+    evidence: [{
+      claim_id: 'claim:architecture-first-authority',
+      statement: 'Provider-neutral architecture and deterministic constraints precede named service selection.',
+      review_status: 'approved',
+      effective_from: '2026-07-30',
+      stale_after: '2036-07-27',
+      source_snapshot_id: 'source:platform-advisor-vision',
+      source_id: 'source:platform-advisor-vision',
+      source_name: 'Platform Advisor product vision',
+      source_publisher: 'Platform Advisor',
+      source_uri: 'https://example.invalid/platform-advisor-vision',
+      source_locator: 'Vision and Product Principles',
+      authority_tier: 'tier_a_decision_authority',
+    }],
+    advisory: true,
+  }];
 
   for (const requirement of projection.requirements) {
     if (!(requirement.requirement_id in answers)) continue;

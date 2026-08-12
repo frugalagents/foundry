@@ -13,6 +13,9 @@ from advisor_core.knowledge.runtime_release import (
     KnowledgeReleaseLoadError,
     get_configured_knowledge_release,
 )
+from advisor_core.knowledge.decision_guidance import (
+    contextualize_decision_guidance,
+)
 from advisor_core.v3.models import content_hash
 from advisor_core.v3.projection import build_frontend_projection
 from advisor_core.v3.runtime import build_runtime_workspace
@@ -112,6 +115,10 @@ def _projection(
             workspace,
             release.logical_catalog,
             deployable_catalog=release.deployable_catalog,
+        )
+        projection["decision_guidance"] = contextualize_decision_guidance(
+            projection,
+            release.decision_guidance,
         )
     except KnowledgeReleaseLoadError as exc:
         raise HTTPException(

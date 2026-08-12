@@ -26,7 +26,7 @@ RELEASE_ROOT = (
     / "knowledge"
     / "releases"
     / "coding-platform"
-    / "1.3.0"
+    / "1.4.0"
 )
 SIGNED_AT = datetime.fromisoformat("2026-08-11T13:00:00+00:00")
 
@@ -149,7 +149,7 @@ def test_s3_publication_is_immutable_and_idempotent():
     assert first == second
     assert len(first.objects) == len(artifacts.files) + 2
     assert first.prefix.endswith(
-        "/release/coding-platform-knowledge/1.3.0"
+        "/release/coding-platform-knowledge/1.4.0"
     )
 
     signature_key = next(

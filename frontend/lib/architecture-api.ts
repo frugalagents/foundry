@@ -137,6 +137,9 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
       blocking_requirement_ids: refs(family.blocking_requirements, 'requirement_id'),
     })),
     deployable_solution: raw.deployable_solution as ArchitectureWorkspaceProjection['deployable_solution'],
+    decision_guidance: (
+      raw.decision_guidance as ArchitectureWorkspaceProjection['decision_guidance']
+    ) ?? [],
     assurance: raw.assurance as ArchitectureWorkspaceProjection['assurance'],
     next_question: raw.next_question ? (() => {
       const question = object(raw.next_question);

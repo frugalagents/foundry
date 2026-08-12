@@ -18,7 +18,7 @@ KNOWLEDGE_RELEASE_MANIFEST_PATH = (
     / "knowledge"
     / "releases"
     / "coding-platform"
-    / "1.3.0"
+    / "1.4.0"
     / "manifest.json"
 )
 

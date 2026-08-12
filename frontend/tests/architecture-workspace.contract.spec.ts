@@ -17,6 +17,9 @@ test('logical and deployable views are explicit, keyboard operable, and preserve
   const logical = page.getByRole('button', { name: 'Logical', exact: true });
   const deployable = page.getByRole('button', { name: 'Deployable', exact: true });
   await expect(logical).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('Provisional reviewed guidance')).toBeVisible();
+  await expect(page.getByText('BYOP portable platform')).toBeVisible();
+  await expect(page.getByText(/Potential fit, but customer decisions/i)).toBeVisible();
   await expect(page.getByText('10 capabilities | 12 relationships')).toBeVisible();
   await expect(page.getByRole('button', { name: /Coding agent runtime:/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Code context & task memory:/i })).toBeVisible();
@@ -24,9 +27,9 @@ test('logical and deployable views are explicit, keyboard operable, and preserve
   await deployable.focus();
   await page.keyboard.press('Enter');
   await expect(deployable).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText('AWS governed managed stack').first()).toBeVisible();
+  await expect(page.getByText('Provisional pattern: BYOP portable stack').first()).toBeVisible();
 
-  await page.getByRole('button', { name: 'Review package' }).click();
+  await page.getByRole('button', { name: /Review draft/ }).click();
   await expect(page.getByRole('dialog')).toContainText('Revision 2 | catalog 3.0.0');
 });
 
@@ -38,7 +41,7 @@ test('offline mode disables mutations and immutable package export', async ({ pa
     .toContainText(/Read-only snapshot/);
   await page.getByRole('tab', { name: 'Ask advisor' }).click();
   await expect(page.getByLabel('Customer discovery message')).toBeDisabled();
-  await page.getByRole('button', { name: 'Review package' }).click();
+  await page.getByRole('button', { name: /Review draft/ }).click();
   await expect(page.getByRole('button', { name: 'Download immutable package' })).toBeDisabled();
 });
 
@@ -68,13 +71,13 @@ test('canvas decisions and package dialog are fully keyboard accessible', async 
   await expect(page.getByText(/Multi-agent workflows require orchestration and supervision/i))
     .toBeVisible();
 
-  await page.getByRole('button', { name: 'Review package' }).click();
+  await page.getByRole('button', { name: /Review draft/ }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   await expect(page.getByRole('button', { name: 'Close package review' })).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole('button', { name: 'Review package' })).toBeFocused();
+  await expect(page.getByRole('button', { name: /Review draft/ })).toBeFocused();
 });
 
 test('publishable package downloads with pinned revision and state hash', async ({ page }) => {

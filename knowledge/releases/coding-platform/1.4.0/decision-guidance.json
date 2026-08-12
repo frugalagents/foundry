@@ -1,0 +1,245 @@
+{
+  "as_of": "2026-08-12",
+  "patterns": [
+    {
+      "avoid_when": [
+        "A vendor-managed-only service boundary is mandatory.",
+        "Provider portability is a dominant requirement.",
+        "The team cannot own cloud platform integration and lifecycle operations."
+      ],
+      "decision": "Place the primary coding-agent control, execution, identity, policy, evidence, and observability boundaries in customer-governed AWS services.",
+      "evidence": [
+        {
+          "authority_tier": "tier_a_decision_authority",
+          "claim_id": "claim:architecture-first-authority",
+          "effective_from": "2026-07-30",
+          "review_status": "approved",
+          "source_id": "source:platform-advisor-vision",
+          "source_locator": "Vision and Product Principles",
+          "source_name": "Platform Advisor Product Vision",
+          "source_publisher": "Platform Advisor",
+          "source_snapshot_id": "source:platform-advisor-vision",
+          "source_uri": "repo:docs/platform-advisor-product-vision.md",
+          "stale_after": "2036-07-27",
+          "statement": "Provider-neutral architecture and deterministic constraints precede named service selection."
+        },
+        {
+          "authority_tier": "tier_a_decision_authority",
+          "claim_id": "claim:bedrock-managed-inference",
+          "effective_from": "2026-07-30",
+          "review_status": "approved",
+          "source_id": "source:aws-bedrock-docs",
+          "source_locator": "What is Amazon Bedrock",
+          "source_name": "Amazon Bedrock Documentation",
+          "source_publisher": "Amazon Web Services",
+          "source_snapshot_id": "source:aws-bedrock-docs",
+          "source_uri": "https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html",
+          "stale_after": "2036-07-27",
+          "statement": "Amazon Bedrock provides managed, region-scoped access to frontier models with private connectivity via VPC endpoints, removing the need to operate inference infrastructure."
+        }
+      ],
+      "pattern_id": "decision-pattern:aws-governed",
+      "recommended_when": [
+        "Customer-managed or hybrid execution is required.",
+        "Security controls, auditability, and operational integration outweigh fastest initial delivery.",
+        "The organization already operates AWS identity, networking, security, and observability controls."
+      ],
+      "reviewed_at": "2026-08-11T12:00:00+00:00",
+      "reviewer_ids": [
+        "person:principal-platform-architect"
+      ],
+      "summary": "Use AWS-managed governance, execution, model access, observability, and security services as the primary coding-agent platform boundary.",
+      "template_id": "bundle-template:aws-governed",
+      "title": "AWS governed managed platform",
+      "tradeoffs": [
+        "Delivery is usually slower than a SaaS-first launch and faster than a fully self-hosted platform.",
+        "Managed AWS services reduce infrastructure ownership but retain AWS service coupling.",
+        "Strong governance and operational integration increase platform engineering work."
+      ]
+    },
+    {
+      "avoid_when": [
+        "A single managed service already satisfies the required control boundary.",
+        "Fastest initial delivery is the dominant objective.",
+        "The organization lacks capacity to maintain integration contracts across providers."
+      ],
+      "decision": "Use explicit platform contracts and adapters so customers can select or replace model, execution, tool, memory, and governance implementations.",
+      "evidence": [
+        {
+          "authority_tier": "tier_a_decision_authority",
+          "claim_id": "claim:architecture-first-authority",
+          "effective_from": "2026-07-30",
+          "review_status": "approved",
+          "source_id": "source:platform-advisor-vision",
+          "source_locator": "Vision and Product Principles",
+          "source_name": "Platform Advisor Product Vision",
+          "source_publisher": "Platform Advisor",
+          "source_snapshot_id": "source:platform-advisor-vision",
+          "source_uri": "repo:docs/platform-advisor-product-vision.md",
+          "stale_after": "2036-07-27",
+          "statement": "Provider-neutral architecture and deterministic constraints precede named service selection."
+        }
+      ],
+      "pattern_id": "decision-pattern:byop-portable",
+      "recommended_when": [
+        "Long-running or durable remote workspaces are required.",
+        "Provider portability and replaceable implementation boundaries are strategic requirements.",
+        "The platform team can own adapter contracts, conformance tests, and lifecycle management."
+      ],
+      "reviewed_at": "2026-08-11T12:00:00+00:00",
+      "reviewer_ids": [
+        "person:principal-platform-architect"
+      ],
+      "summary": "Preserve replaceable provider boundaries through contracts and adapters around customer-selected platform services.",
+      "template_id": "bundle-template:byop-portable",
+      "title": "BYOP portable platform",
+      "tradeoffs": [
+        "Common contracts can limit access to provider-specific features unless extensions are governed.",
+        "Durable workspaces improve continuity while expanding state, isolation, patching, and recovery responsibilities.",
+        "Portability reduces provider coupling but increases integration and conformance work."
+      ]
+    },
+    {
+      "avoid_when": [
+        "Cross-provider identity, networking, telemetry, and incident operations cannot be owned.",
+        "Data transfer across the SaaS and customer boundary is prohibited.",
+        "The organization requires a single-provider support and failure domain."
+      ],
+      "decision": "Keep sensitive execution, identity, policy, evidence, and telemetry in customer-governed services while using SaaS where it materially improves developer experience or delivery speed.",
+      "evidence": [
+        {
+          "authority_tier": "tier_a_decision_authority",
+          "claim_id": "claim:architecture-first-authority",
+          "effective_from": "2026-07-30",
+          "review_status": "approved",
+          "source_id": "source:platform-advisor-vision",
+          "source_locator": "Vision and Product Principles",
+          "source_name": "Platform Advisor Product Vision",
+          "source_publisher": "Platform Advisor",
+          "source_snapshot_id": "source:platform-advisor-vision",
+          "source_uri": "repo:docs/platform-advisor-product-vision.md",
+          "stale_after": "2036-07-27",
+          "statement": "Provider-neutral architecture and deterministic constraints precede named service selection."
+        }
+      ],
+      "pattern_id": "decision-pattern:hybrid-governed",
+      "recommended_when": [
+        "Customer-managed or hybrid execution is required but a SaaS developer experience is acceptable.",
+        "Identity, policy, telemetry, and incident ownership can span provider boundaries.",
+        "The organization needs stronger portability than a single-provider managed stack."
+      ],
+      "reviewed_at": "2026-08-11T12:00:00+00:00",
+      "reviewer_ids": [
+        "person:principal-platform-architect"
+      ],
+      "summary": "Combine customer-governed execution and controls with selected SaaS experience or orchestration services.",
+      "template_id": "bundle-template:hybrid-governed",
+      "title": "Hybrid governed platform",
+      "tradeoffs": [
+        "Portability improves only where contracts and evidence remain provider-neutral.",
+        "Split ownership requires explicit responsibility, telemetry correlation, and failure handling.",
+        "The pattern balances experience and control at the cost of cross-provider operational complexity."
+      ]
+    },
+    {
+      "avoid_when": [
+        "Fastest time to value or minimal platform operations is the primary objective.",
+        "Managed-service certifications or support obligations are mandatory.",
+        "The organization cannot sustain patching, upgrades, capacity, recovery, and incident response."
+      ],
+      "decision": "Run the primary coding-agent control, execution, model, tool, evidence, and observability boundaries on customer-operated open-source infrastructure.",
+      "evidence": [
+        {
+          "authority_tier": "tier_a_decision_authority",
+          "claim_id": "claim:architecture-first-authority",
+          "effective_from": "2026-07-30",
+          "review_status": "approved",
+          "source_id": "source:platform-advisor-vision",
+          "source_locator": "Vision and Product Principles",
+          "source_name": "Platform Advisor Product Vision",
+          "source_publisher": "Platform Advisor",
+          "source_snapshot_id": "source:platform-advisor-vision",
+          "source_uri": "repo:docs/platform-advisor-product-vision.md",
+          "stale_after": "2036-07-27",
+          "statement": "Provider-neutral architecture and deterministic constraints precede named service selection."
+        },
+        {
+          "authority_tier": "tier_a_decision_authority",
+          "claim_id": "claim:self-hosted-residency",
+          "effective_from": "2026-07-30",
+          "review_status": "approved",
+          "source_id": "source:aws-well-architected",
+          "source_locator": "Security Pillar - Data Protection",
+          "source_name": "AWS Well-Architected Framework",
+          "source_publisher": "Amazon Web Services",
+          "source_snapshot_id": "source:aws-well-architected",
+          "source_uri": "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html",
+          "stale_after": "2036-07-27",
+          "statement": "Self-hosted, in-VPC or air-gapped inference keeps model traffic and data within a controlled boundary, satisfying data-residency and sovereignty constraints at the cost of operating the serving stack."
+        }
+      ],
+      "pattern_id": "decision-pattern:oss-sovereign",
+      "recommended_when": [
+        "Customer control, sovereignty, customization, or air-gapped operation is mandatory.",
+        "Operational ownership is an accepted strategic cost.",
+        "The organization has mature Kubernetes, security, supply-chain, and SRE capabilities."
+      ],
+      "reviewed_at": "2026-08-11T12:00:00+00:00",
+      "reviewer_ids": [
+        "person:principal-platform-architect"
+      ],
+      "summary": "Operate the coding-agent control and execution planes on customer-managed open-source infrastructure.",
+      "template_id": "bundle-template:oss-sovereign",
+      "title": "Open-source sovereign platform",
+      "tradeoffs": [
+        "Maximum control and customization create the largest operational and security ownership surface.",
+        "Software license savings do not imply lower total platform cost.",
+        "Sovereignty improves only when model, telemetry, artifact, and support paths remain inside the required boundary."
+      ]
+    },
+    {
+      "avoid_when": [
+        "Customer-controlled execution or strict workload sovereignty is mandatory.",
+        "Provider portability and replaceability are dominant requirements.",
+        "Required controls depend on evidence the vendor cannot expose."
+      ],
+      "decision": "Use vendor-managed coding-agent services for the primary experience and execution path while governing enterprise identity, repositories, tools, data, and audit integrations.",
+      "evidence": [
+        {
+          "authority_tier": "tier_a_decision_authority",
+          "claim_id": "claim:architecture-first-authority",
+          "effective_from": "2026-07-30",
+          "review_status": "approved",
+          "source_id": "source:platform-advisor-vision",
+          "source_locator": "Vision and Product Principles",
+          "source_name": "Platform Advisor Product Vision",
+          "source_publisher": "Platform Advisor",
+          "source_snapshot_id": "source:platform-advisor-vision",
+          "source_uri": "repo:docs/platform-advisor-product-vision.md",
+          "stale_after": "2036-07-27",
+          "statement": "Provider-neutral architecture and deterministic constraints precede named service selection."
+        }
+      ],
+      "pattern_id": "decision-pattern:saas-composable",
+      "recommended_when": [
+        "Delivery speed and low platform operating effort are dominant objectives.",
+        "Product controls, data handling, regional availability, and audit integration satisfy customer policy.",
+        "Vendor-managed or hybrid execution is acceptable."
+      ],
+      "reviewed_at": "2026-08-11T12:00:00+00:00",
+      "reviewer_ids": [
+        "person:principal-platform-architect"
+      ],
+      "summary": "Use vendor-managed coding-agent control and execution capabilities with governed enterprise integrations.",
+      "template_id": "bundle-template:saas-composable",
+      "title": "Composable SaaS platform",
+      "tradeoffs": [
+        "Enterprise integration remains necessary even when the core service is managed.",
+        "Exit planning, data portability, audit access, and service lifecycle must be governed explicitly.",
+        "Rapid delivery and low operational burden increase product and vendor dependency."
+      ]
+    }
+  ],
+  "projection_hash": "sha256:0e11671fe991116d93e005426bf052e8007a9d71572b3c0adf3335bb0ac9dc1f",
+  "schema_version": "1.0"
+}
