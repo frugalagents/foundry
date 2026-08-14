@@ -1,0 +1,87 @@
+{
+  "advisory_corpus_hash": "sha256:e5028082bb097d067ef8a1b4f557ba8b421816616f16d336332d3722180f1f66",
+  "built_at": "2026-08-13T12:00:00Z",
+  "compiler_version": "1.1.0",
+  "decision_guidance_hash": "sha256:f5420b698930978680efb2dad51475fe9e1ed153192840949cdcb9d30e76a310",
+  "deployable_catalog_hash": "sha256:a8b6f30a781d113970baafce67560ec8bde05739ca5bf2699f039e398d3e8671",
+  "deployable_catalog_id": "deployable-catalog:coding-platform",
+  "deployable_catalog_version": "0.2.0",
+  "files": [
+    {
+      "content_hash": "sha256:1c403146b72c16216f4833b4b5bec8669695c7c0d74a959c7fdbf27f6fbf7b46",
+      "media_type": "application/json",
+      "path": "advisory-corpus.json",
+      "size_bytes": 208086
+    },
+    {
+      "content_hash": "sha256:9a23886f5eec11d99be29d08acb37b4602f2a40692e185427386c96d02899470",
+      "media_type": "application/json",
+      "path": "benchmark-report.json",
+      "size_bytes": 2847
+    },
+    {
+      "content_hash": "sha256:c8f19fb7a209244f2dfdc7eae72f166dca791ac495839fea014e219984477eb7",
+      "media_type": "application/json",
+      "path": "decision-guidance.json",
+      "size_bytes": 13354
+    },
+    {
+      "content_hash": "sha256:390d4ea5dc88b50d7c60a32607f3d1d9dd442813e243d98be1fc6869459f5c1b",
+      "media_type": "application/json",
+      "path": "deployable-catalog.json",
+      "size_bytes": 147166
+    },
+    {
+      "content_hash": "sha256:05020437c36c9649bc52f12a2c6d2bfbc6cfdf5b8b4b57ebbc9d0a744c018437",
+      "media_type": "application/json",
+      "path": "logical-catalog.json",
+      "size_bytes": 64223
+    },
+    {
+      "content_hash": "sha256:5739106968a96d74e105b9ff4ff1155459b93101b653434971c0d4bed222b07d",
+      "media_type": "application/json",
+      "path": "runtime-graph.json",
+      "size_bytes": 182194
+    },
+    {
+      "content_hash": "sha256:df5cbdb0b3b1702a39f26ff51142290a66bc2eeac86bb4fe571976a919b13f0c",
+      "media_type": "application/json",
+      "path": "search-projection.json",
+      "size_bytes": 837594
+    },
+    {
+      "content_hash": "sha256:749f146e665e749d0164ddc4781b70739f364a920e15455728ccc98e7609fde1",
+      "media_type": "application/json",
+      "path": "semantic-validation.json",
+      "size_bytes": 235
+    },
+    {
+      "content_hash": "sha256:3d7e53c354648a44248a4c8f42af3325d6a75a8565a46f60d9c3e1c5b35e07de",
+      "media_type": "application/json",
+      "path": "source-inventory.json",
+      "size_bytes": 2060
+    },
+    {
+      "content_hash": "sha256:caddf145ad42c1f42b73cece4c303efc527c921b73f6b088e79282b8e15231c8",
+      "media_type": "application/json",
+      "path": "vector-projection.json",
+      "size_bytes": 249698
+    }
+  ],
+  "logical_catalog_hash": "sha256:11163b71cab05bf05658b26320fec87e59a662f59bd71bd350d930a0ace574f8",
+  "logical_catalog_id": "catalog:coding-platform",
+  "logical_catalog_version": "3.0.0",
+  "manifest_hash": "sha256:0fbe1f63d216fd46ab80beed9e9f0a51d724f283974563430f98753366afef60",
+  "migration_bundle_hash": "sha256:19cc45e8cf09419bdf2c72bc9a4930f7568a583072bb8722c1eef1fdd2373ccb",
+  "release_id": "release:coding-platform-knowledge",
+  "release_version": "1.5.0",
+  "runtime_graph_hash": "sha256:70222868729b1ce4b4d10dfb46da7228b250f7987cf59303e9c141581d6c3e5a",
+  "scenario_count": 6,
+  "scenario_pass_count": 6,
+  "scenario_suite_id": "scenario-suite:knowledge-release-safety",
+  "scenario_suite_version": "1.0.0",
+  "schema_version": "1.0",
+  "search_projection_hash": "sha256:817928fbc44593f7b3c660557ddcdaa2acd14bcc285ee5c73432b9c5ee2c5c89",
+  "semantic_validation_hash": "sha256:3406f570eb9c73d6ac7b8a52e6ab6ab8ba39dd7d4908142031617980f148e3a2",
+  "vector_projection_hash": "sha256:7beb166b4f05b552b9492406a9d7582dce8fad6a86f5ae17230cb74ba1515fe7"
+}

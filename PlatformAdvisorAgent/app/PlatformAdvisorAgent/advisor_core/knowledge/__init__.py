@@ -1,5 +1,11 @@
 """Provider-neutral contracts for the living architecture knowledge system."""
 
+from .advisory import (
+    AdvisoryCorpus,
+    AdvisoryDocument,
+    AdvisoryMigrationManifest,
+    compile_advisory_corpus,
+)
 from .candidates import (
     ClaimCandidate,
     ExtractionWarning,

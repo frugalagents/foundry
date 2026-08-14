@@ -34,11 +34,11 @@
         },
         {
           "name": "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_VERSION",
-          "value": "1.4.0"
+          "value": "1.5.0"
         },
         {
           "name": "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_MANIFEST_HASH",
-          "value": "sha256:4621d4bf5543b81eda9de0b5c4f437cf684026e4cf34ac0584445cf5941a63dd"
+          "value": "sha256:0fbe1f63d216fd46ab80beed9e9f0a51d724f283974563430f98753366afef60"
         },
         {
           "name": "AWS_DOCS_MCP_ENDPOINT",

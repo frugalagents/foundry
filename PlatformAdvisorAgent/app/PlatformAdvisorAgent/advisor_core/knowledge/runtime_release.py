@@ -19,13 +19,14 @@ from .release_artifacts import (
     ReleaseArtifactFile,
 )
 from .decision_guidance import DecisionGuidanceProjection
+from .advisory import AdvisoryCorpus
 
 
 DEFAULT_RELEASE_ID = "release:coding-platform-knowledge"
 DEFAULT_RELEASE_PLATFORM = "coding-platform"
-DEFAULT_RELEASE_VERSION = "1.4.0"
+DEFAULT_RELEASE_VERSION = "1.5.0"
 DEFAULT_RELEASE_MANIFEST_HASH = (
-    "sha256:4621d4bf5543b81eda9de0b5c4f437cf684026e4cf34ac0584445cf5941a63dd"
+    "sha256:0fbe1f63d216fd46ab80beed9e9f0a51d724f283974563430f98753366afef60"
 )
 RELEASE_ROOT_ENV = "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_ROOT"
 RELEASE_PLATFORM_ENV = "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_PLATFORM"
@@ -46,6 +47,7 @@ class LoadedKnowledgeRelease:
     logical_catalog: CatalogRelease
     deployable_catalog: DeployableCatalogRelease
     decision_guidance: DecisionGuidanceProjection
+    advisory_corpus: AdvisoryCorpus | None
 
 
 def _sha256(value: bytes) -> str:
@@ -178,6 +180,11 @@ def load_pinned_knowledge_release(
         decision_guidance = DecisionGuidanceProjection.model_validate(
             payloads["decision-guidance.json"]
         )
+        advisory_corpus = (
+            AdvisoryCorpus.model_validate(payloads["advisory-corpus.json"])
+            if "advisory-corpus.json" in payloads
+            else None
+        )
     except (KeyError, ValidationError, ValueError) as exc:
         raise KnowledgeReleaseLoadError(
             f"knowledge release runtime catalogs are invalid: {exc}"
@@ -231,6 +238,17 @@ def load_pinned_knowledge_release(
         field="projection_hash",
         expected=manifest.decision_guidance_hash,
     )
+    if manifest.advisory_corpus_hash is not None:
+        _validate_internal_hash(
+            payloads,
+            path="advisory-corpus.json",
+            field="corpus_hash",
+            expected=manifest.advisory_corpus_hash,
+        )
+    elif advisory_corpus is not None:
+        raise KnowledgeReleaseLoadError(
+            "advisory corpus is present without a manifest hash"
+        )
     benchmark = payloads.get("benchmark-report.json")
     benchmark_results = (
         benchmark.get("results", [])
@@ -262,6 +280,7 @@ def load_pinned_knowledge_release(
         logical_catalog=logical,
         deployable_catalog=deployable,
         decision_guidance=decision_guidance,
+        advisory_corpus=advisory_corpus,
     )
 
 

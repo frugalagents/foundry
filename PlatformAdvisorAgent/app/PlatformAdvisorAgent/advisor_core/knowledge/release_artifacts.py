@@ -12,6 +12,7 @@ from advisor_core.v3.deployable.models import DeployableCatalogRelease
 from advisor_core.v3.models import CatalogRelease, SemanticVersion
 
 from .legacy_migration import LegacyKnowledgeMigration
+from .advisory import AdvisoryCorpus
 from .decision_guidance import (
     DecisionGuidanceProjection,
     compile_decision_guidance,
@@ -87,6 +88,10 @@ class KnowledgeReleaseManifestPayload(FrozenModel):
     search_projection_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     vector_projection_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
     decision_guidance_hash: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    advisory_corpus_hash: str | None = Field(
+        default=None,
+        pattern=r"^sha256:[0-9a-f]{64}$",
+    )
     scenario_suite_id: StableId
     scenario_suite_version: SemanticVersion
     scenario_count: int = Field(ge=1)
@@ -99,7 +104,11 @@ class KnowledgeReleaseManifest(KnowledgeReleaseManifestPayload):
 
     @model_validator(mode="after")
     def manifest_hash_matches_content(self) -> "KnowledgeReleaseManifest":
-        payload = self.model_dump(mode="json", exclude={"manifest_hash"})
+        payload = self.model_dump(
+            mode="json",
+            exclude={"manifest_hash"},
+            exclude_none=True,
+        )
         if self.manifest_hash != content_hash(payload):
             raise ValueError("release manifest hash does not match content")
         if self.scenario_pass_count > self.scenario_count:
@@ -161,6 +170,7 @@ def build_knowledge_release_artifacts(
     vector_projection: KnowledgeVectorProjection,
     scenario_suite: ReleaseScenarioSuite,
     scenario_results: tuple[ReleaseScenarioResult, ...],
+    advisory_corpus: AdvisoryCorpus | None = None,
 ) -> KnowledgeReleaseArtifacts:
     if deployable_catalog.logical_catalog_id != logical_catalog.id:
         raise KnowledgeReleaseBuildError(
@@ -268,40 +278,46 @@ def build_knowledge_release_artifacts(
         "pass_count": pass_count,
         "results": benchmark_rows,
     }
+    artifact_files = [
+        _json_artifact(
+            "logical-catalog.json",
+            logical_catalog.model_dump(mode="json"),
+        ),
+        _json_artifact(
+            "deployable-catalog.json",
+            deployable_catalog.model_dump(mode="json"),
+        ),
+        _json_artifact(
+            "semantic-validation.json",
+            validation.model_dump(mode="json"),
+        ),
+        _json_artifact(
+            "runtime-graph.json",
+            runtime_graph.model_dump(mode="json"),
+        ),
+        _json_artifact(
+            "search-projection.json",
+            search_projection.model_dump(mode="json"),
+        ),
+        _json_artifact(
+            "vector-projection.json",
+            vector_projection.model_dump(mode="json"),
+        ),
+        _json_artifact(
+            "decision-guidance.json",
+            decision_guidance.model_dump(mode="json"),
+        ),
+        _json_artifact("source-inventory.json", source_inventory),
+        _json_artifact("benchmark-report.json", benchmark),
+    ]
+    if advisory_corpus is not None:
+        artifact_files.append(_json_artifact(
+            "advisory-corpus.json",
+            advisory_corpus.model_dump(mode="json"),
+        ))
     files = tuple(
         sorted(
-            (
-                _json_artifact(
-                    "logical-catalog.json",
-                    logical_catalog.model_dump(mode="json"),
-                ),
-                _json_artifact(
-                    "deployable-catalog.json",
-                    deployable_catalog.model_dump(mode="json"),
-                ),
-                _json_artifact(
-                    "semantic-validation.json",
-                    validation.model_dump(mode="json"),
-                ),
-                _json_artifact(
-                    "runtime-graph.json",
-                    runtime_graph.model_dump(mode="json"),
-                ),
-                _json_artifact(
-                    "search-projection.json",
-                    search_projection.model_dump(mode="json"),
-                ),
-                _json_artifact(
-                    "vector-projection.json",
-                    vector_projection.model_dump(mode="json"),
-                ),
-                _json_artifact(
-                    "decision-guidance.json",
-                    decision_guidance.model_dump(mode="json"),
-                ),
-                _json_artifact("source-inventory.json", source_inventory),
-                _json_artifact("benchmark-report.json", benchmark),
-            ),
+            artifact_files,
             key=lambda file: file.path,
         )
     )
@@ -331,13 +347,21 @@ def build_knowledge_release_artifacts(
         search_projection_hash=search_projection.projection_hash,
         vector_projection_hash=vector_projection.projection_hash,
         decision_guidance_hash=decision_guidance.projection_hash,
+        advisory_corpus_hash=(
+            advisory_corpus.corpus_hash
+            if advisory_corpus is not None
+            else None
+        ),
         scenario_suite_id=scenario_suite.id,
         scenario_suite_version=scenario_suite.version,
         scenario_count=len(benchmark_rows),
         scenario_pass_count=pass_count,
         files=records,
     )
-    normalized_manifest_payload = manifest_payload.model_dump(mode="json")
+    normalized_manifest_payload = manifest_payload.model_dump(
+        mode="json",
+        exclude_none=True,
+    )
     manifest = KnowledgeReleaseManifest(
         **normalized_manifest_payload,
         manifest_hash=content_hash(normalized_manifest_payload),

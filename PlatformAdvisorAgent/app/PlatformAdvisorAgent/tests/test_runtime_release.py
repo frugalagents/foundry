@@ -23,7 +23,7 @@ RELEASE_ROOT = (
     / "knowledge"
     / "releases"
     / "coding-platform"
-    / "1.4.0"
+    / "1.5.0"
 )
 AS_OF = date(2026, 8, 11)
 
@@ -83,7 +83,7 @@ def test_configured_release_resolution_supports_packaged_root(
     monkeypatch,
     tmp_path: Path,
 ):
-    packaged = tmp_path / "coding-platform" / "1.4.0"
+    packaged = tmp_path / "coding-platform" / "1.5.0"
     shutil.copytree(RELEASE_ROOT, packaged)
     monkeypatch.setenv(
         "PLATFORM_ADVISOR_KNOWLEDGE_RELEASE_ROOT",

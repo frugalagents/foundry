@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import snapshot from '@/data/architecture-workspace.json';
 import {
   ArchitectureApiError,
+  applyArchitectureProposal,
   evaluateArchitectureWorkspace,
   getArchitectureWorkspace,
   normalizeArchitectureProjection,
   type ArchitectureWorkspaceScope,
+  type ArchitectureChangeProposal,
 } from '@/lib/architecture-api';
 import type { RequirementValue } from '@/lib/architecture-workspace';
 import { FlowWorkspace } from './FlowWorkspace';
@@ -113,6 +115,31 @@ export function ArchitectureWorkspaceLive() {
     }
   }
 
+  async function applyProposal(
+    proposal: ArchitectureChangeProposal,
+  ): Promise<boolean> {
+    if (connectionState !== 'live') return false;
+    setApplying(true);
+    try {
+      setProjection(await applyArchitectureProposal(
+        proposal,
+        crypto.randomUUID(),
+        scope ?? undefined,
+      ));
+      setConnectionState('live');
+      return true;
+    } catch (error) {
+      setConnectionState(
+        error instanceof ArchitectureApiError && error.status === 409
+          ? 'stale'
+          : 'snapshot',
+      );
+      return false;
+    } finally {
+      setApplying(false);
+    }
+  }
+
   if (!platformType) {
     return (
       <PlatformTypeGate
@@ -154,6 +181,7 @@ export function ArchitectureWorkspaceLive() {
         projection={projection}
         blueprint={blueprint}
         onApplyPatch={applyAnswers}
+        onApplyProposal={applyProposal}
         scope={scope ?? undefined}
         applying={applying}
         connectionState={connectionState}

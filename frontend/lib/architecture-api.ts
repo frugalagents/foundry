@@ -201,6 +201,8 @@ export function normalizeArchitectureProjection(input: unknown): ArchitectureWor
       source_publisher: claim.source_publisher ? String(claim.source_publisher) : undefined,
     })),
     decision_history: raw.decision_history as ArchitectureWorkspaceProjection['decision_history'],
+    advisory_knowledge: raw.advisory_knowledge as ArchitectureWorkspaceProjection['advisory_knowledge'],
+    architecture_intent: raw.architecture_intent as ArchitectureWorkspaceProjection['architecture_intent'],
   };
 }
 
@@ -267,10 +269,56 @@ export interface ChatResult {
   reply: string;
   proposed_answers: Record<string, RequirementValue>;
   source: string;
+  proposal?: ArchitectureChangeProposal;
 }
 
-// Chat proposes a typed requirement patch. Only the workspace evaluate command
-// can commit an accepted proposal.
+export type ArchitectureChangeOperation =
+  | {
+    operation: 'set_requirement';
+    requirement_id: string;
+    value: RequirementValue;
+  }
+  | {
+    operation: 'set_component_intent';
+    component_id: string;
+    intent: 'engine_managed' | 'required' | 'excluded';
+  }
+  | {
+    operation: 'select_offering';
+    component_id: string;
+    offering_id: string;
+  }
+  | {
+    operation: 'clear_intent';
+    component_id: string;
+  }
+  | {
+    operation: 'record_override_request';
+    rule_id: string;
+    rationale: string;
+  };
+
+export interface ArchitectureChangeProposal {
+  base_revision_number: number;
+  base_state_hash: string;
+  original_message: string;
+  operations: ArchitectureChangeOperation[];
+  advisory_evidence: {
+    advisory_id: string;
+    title: string;
+    status: 'stable' | 'candidate';
+    component_id?: string;
+    source_path: string;
+  }[];
+  confidence: number;
+  unresolved_terms: string[];
+  predicted_effects: string[];
+  hard_conflicts: string[];
+  publication_blockers: string[];
+  source: string;
+  proposal_hash: string;
+}
+
 export async function chatArchitecture(
   message: string,
   scope?: ArchitectureWorkspaceScope,
@@ -279,6 +327,38 @@ export async function chatArchitecture(
     method: 'POST',
     body: JSON.stringify({ message }),
   }) as ChatResult;
+}
+
+export async function proposeArchitectureChange(
+  payload: {
+    message: string;
+    operations?: ArchitectureChangeOperation[];
+    base_revision_number?: number;
+    base_state_hash?: string;
+  },
+  scope?: ArchitectureWorkspaceScope,
+): Promise<ArchitectureChangeProposal> {
+  return await request(scopedPath('/architecture/workspace/proposals', scope), {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }) as ArchitectureChangeProposal;
+}
+
+export async function applyArchitectureProposal(
+  proposal: ArchitectureChangeProposal,
+  idempotencyKey: string,
+  scope?: ArchitectureWorkspaceScope,
+): Promise<ArchitectureWorkspaceProjection> {
+  return normalizeArchitectureProjection(await request(
+    scopedPath('/architecture/workspace/proposals/apply', scope),
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        proposal,
+        idempotency_key: idempotencyKey,
+      }),
+    },
+  ));
 }
 
 // Reference-only retrieval. This never changes a decision — it surfaces

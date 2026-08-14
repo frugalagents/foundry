@@ -297,6 +297,23 @@ REQUIREMENT_INTERPRET_SYSTEM = (
     "\"reply\":\"<one short proposal summary>\"}."
 )
 
+ARCHITECTURE_CHANGE_SYSTEM = (
+    "You translate free-form coding-platform requests into reviewable typed "
+    "operations. Use only IDs and values from the supplied catalogs. Never "
+    "invent a component, offering, requirement, or rule. Candidate advisory "
+    "documents may help interpret names but are not decision authority. Reply "
+    "as JSON only: {\"operations\":[{\"operation\":\"set_requirement\","
+    "\"requirement_id\":\"...\",\"value\":...}|{\"operation\":"
+    "\"set_component_intent\",\"component_id\":\"...\",\"intent\":"
+    "\"required|excluded|engine_managed\"}|{\"operation\":\"select_offering\","
+    "\"component_id\":\"...\",\"offering_id\":\"...\"}|{\"operation\":"
+    "\"clear_intent\",\"component_id\":\"...\"}],\"unresolved_terms\":[],"
+    "\"confidence\":0.0,\"reply\":\"one short proposal summary\"}. "
+    "A request to replace or use a named product should select its exact "
+    "offering. A request to remove a capability should exclude its mapped "
+    "component. Do not apply changes."
+)
+
 
 def _valid_requirement_value(
     definition: RequirementDefinition,
@@ -367,6 +384,138 @@ def interpret_requirements(
             else "I prepared a requirement proposal for review."
         ),
         "source": "agent" if answers else "none",
+    }
+
+
+def interpret_architecture_changes(
+    message: str,
+    requirements: tuple[RequirementDefinition, ...],
+    components: tuple[object, ...],
+    service_variants: tuple[object, ...],
+    advisory_documents: tuple[object, ...] = (),
+) -> dict:
+    """Extract catalog-bound change operations without mutating the workspace."""
+
+    requirement_menu = {
+        requirement.id: {
+            "name": requirement.name,
+            "value_type": requirement.value_type.value,
+            "allowed_values": list(requirement.allowed_values),
+        }
+        for requirement in requirements
+    }
+    component_menu = {
+        component.id: component.name for component in components
+    }
+    offering_menu = {
+        offering.id: {
+            "component_id": offering.component_id,
+            "name": offering.name,
+            "provider_class": offering.provider_class.value,
+            "delivery_model": offering.delivery_model.value,
+        }
+        for offering in service_variants
+    }
+    advisory_menu = [
+        {
+            "title": item.title,
+            "component_id": item.component_id,
+            "status": item.status,
+        }
+        for item in advisory_documents
+        if item.document_type == "platform-component" and item.component_id
+    ]
+    user = (
+        f"Customer statement: {message}\n\n"
+        f"Requirements: {json.dumps(requirement_menu, sort_keys=True)}\n\n"
+        f"Components: {json.dumps(component_menu, sort_keys=True)}\n\n"
+        f"Offerings: {json.dumps(offering_menu, sort_keys=True)}\n\n"
+        f"Advisory aliases: {json.dumps(advisory_menu, sort_keys=True)}\n\n"
+        "Return only catalog-supported operations."
+    )
+    output = converse_json(ARCHITECTURE_CHANGE_SYSTEM, user, max_tokens=1000)
+    if output and isinstance(output.get("operations"), list):
+        return {
+            "operations": output["operations"],
+            "unresolved_terms": (
+                output.get("unresolved_terms", [])
+                if isinstance(output.get("unresolved_terms", []), list)
+                else []
+            ),
+            "confidence": output.get("confidence", 0.8),
+            "reply": output.get("reply", "I prepared a change proposal."),
+            "source": "agent",
+        }
+
+    # Deterministic product/component matching keeps common requests useful
+    # when Bedrock is unavailable. The server still validates every ID.
+    lowered = message.casefold()
+    operations: list[dict] = []
+    matched_terms: set[str] = set()
+    for offering in service_variants:
+        aliases = {
+            offering.name.casefold(),
+            offering.id.split(":", 1)[-1].replace("-", " ").casefold(),
+        }
+        if any(alias in lowered for alias in aliases):
+            operations.append({
+                "operation": "select_offering",
+                "component_id": offering.component_id,
+                "offering_id": offering.id,
+            })
+            matched_terms.update(alias for alias in aliases if alias in lowered)
+            break
+    verbs = {
+        "excluded": ("remove", "exclude", "without", "do not allow", "no "),
+        "required": ("add", "require", "include", "use "),
+    }
+    aliases_by_component: dict[str, set[str]] = {
+        component.id: {
+            component.name.casefold(),
+            component.id.split(":", 1)[-1].replace("-", " ").casefold(),
+        }
+        for component in components
+    }
+    for item in advisory_documents:
+        if item.component_id in aliases_by_component:
+            aliases_by_component[item.component_id].add(item.title.casefold())
+    selected_components = {
+        operation["component_id"] for operation in operations
+    }
+    for component_id, aliases in aliases_by_component.items():
+        if component_id in selected_components:
+            continue
+        for alias in sorted(aliases, key=len, reverse=True):
+            position = lowered.find(alias)
+            if position < 0:
+                continue
+            context = lowered[max(0, position - 28) : position]
+            intent = next(
+                (
+                    value
+                    for value, markers in verbs.items()
+                    if any(marker in context for marker in markers)
+                ),
+                None,
+            )
+            if intent:
+                operations.append({
+                    "operation": "set_component_intent",
+                    "component_id": component_id,
+                    "intent": intent,
+                })
+                matched_terms.add(alias)
+            break
+    return {
+        "operations": operations,
+        "unresolved_terms": [] if operations else [message],
+        "confidence": 0.65 if operations else 0.0,
+        "reply": (
+            "I prepared a catalog-bound architecture change for review."
+            if operations
+            else "I could not map that request to the approved catalog."
+        ),
+        "source": "deterministic-fallback" if operations else "none",
     }
 
 

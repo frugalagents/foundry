@@ -20,6 +20,7 @@ sys.path.insert(0, str(PACKAGE_ROOT))
 
 from advisor_core.knowledge import (  # noqa: E402
     build_knowledge_release_artifacts,
+    compile_advisory_corpus,
     compile_knowledge_catalog,
     compile_knowledge_deployable_catalog,
     compile_runtime_graph,
@@ -45,7 +46,7 @@ def main() -> int:
             / "knowledge"
             / "releases"
             / "coding-platform"
-            / "1.4.0"
+            / "1.5.0"
         ),
     )
     args = parser.parse_args()
@@ -60,7 +61,19 @@ def main() -> int:
     migration_document = json.loads(
         migration_path.read_text(encoding="utf-8")
     )
-    as_of = date(2026, 8, 12)
+    as_of = date(2026, 8, 13)
+    advisory_root = (
+        REPOSITORY_ROOT / "knowledge" / "advisory" / "coding-agent-platform"
+    )
+    component_mappings = json.loads(
+        (advisory_root / "component-mappings.json").read_text(encoding="utf-8")
+    )
+    advisory_corpus = compile_advisory_corpus(
+        advisory_root,
+        source_root="blueprints/coding-agent-platform-designer/knowledge",
+        component_mappings=component_mappings,
+        compiled_on=as_of,
+    )
     logical = compile_knowledge_catalog(
         entities=migration.entities,
         relationships=migration.relationships,
@@ -119,9 +132,9 @@ def main() -> int:
     results = run_release_scenarios(suite, migration)
     artifacts = build_knowledge_release_artifacts(
         release_id="release:coding-platform-knowledge",
-        release_version="1.4.0",
-        built_at=datetime.fromisoformat("2026-08-12T12:00:00+00:00"),
-        compiler_version="1.0.0",
+        release_version="1.5.0",
+        built_at=datetime.fromisoformat("2026-08-13T12:00:00+00:00"),
+        compiler_version="1.1.0",
         migration_bundle_hash=migration_document["bundle_hash"],
         migration=migration,
         logical_catalog=logical,
@@ -132,6 +145,7 @@ def main() -> int:
         vector_projection=vector_projection,
         scenario_suite=suite,
         scenario_results=results,
+        advisory_corpus=advisory_corpus,
     )
     write_knowledge_release_artifacts(args.output, artifacts)
     print(f"{args.output}: {artifacts.manifest.manifest_hash}")

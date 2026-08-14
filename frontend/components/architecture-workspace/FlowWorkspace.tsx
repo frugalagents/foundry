@@ -28,8 +28,10 @@ import type {
 } from '@/lib/architecture-workspace';
 import { deriveWorkspaceGuidance } from '@/lib/architecture-workspace';
 import {
-  chatArchitecture,
   downloadArchitecturePackage,
+  proposeArchitectureChange,
+  type ArchitectureChangeOperation,
+  type ArchitectureChangeProposal,
   type ArchitectureWorkspaceScope,
 } from '@/lib/architecture-api';
 import { FlowCanvas } from './FlowCanvas';
@@ -51,6 +53,7 @@ interface Props {
   projection: ArchitectureWorkspaceProjection;
   blueprint?: BlueprintContext | null;
   onApplyPatch?: (answers: Record<string, RequirementValue>) => Promise<boolean> | boolean;
+  onApplyProposal?: (proposal: ArchitectureChangeProposal) => Promise<boolean> | boolean;
   scope?: ArchitectureWorkspaceScope;
   applying?: boolean;
   connectionState: 'live' | 'snapshot' | 'stale';
@@ -106,6 +109,7 @@ export function FlowWorkspace({
   projection,
   blueprint,
   onApplyPatch,
+  onApplyProposal,
   scope,
   applying = false,
   connectionState,
@@ -113,12 +117,13 @@ export function FlowWorkspace({
 }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ArchitectureViewMode>('logical');
-  const [asideView, setAsideView] = useState<'questions' | 'chat' | 'trace'>('questions');
+  const [asideView, setAsideView] = useState<'questions' | 'chat' | 'trace'>('chat');
   const [reviewOpen, setReviewOpen] = useState(false);
   const [chatLog, setChatLog] = useState<{ role: 'user' | 'agent'; text: string }[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatBusy, setChatBusy] = useState(false);
   const [pendingPatch, setPendingPatch] = useState<Record<string, RequirementValue> | null>(null);
+  const [pendingProposal, setPendingProposal] = useState<ArchitectureChangeProposal | null>(null);
   const [proposalEditing, setProposalEditing] = useState(false);
   const [downloadBusy, setDownloadBusy] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -239,12 +244,42 @@ export function FlowWorkspace({
     };
   }, [reviewOpen]);
 
-  function proposePatch(
+  async function createProposal(
+    message: string,
+    operations?: ArchitectureChangeOperation[],
+  ): Promise<ArchitectureChangeProposal | null> {
+    if (!canMutate) return null;
+    try {
+      return await proposeArchitectureChange({
+        message,
+        operations,
+        base_revision_number: projection.meta.persistence_revision,
+        base_state_hash: projection.meta.persistence_hash,
+      }, scope);
+    } catch {
+      setChatLog((log) => [...log, {
+        role: 'agent',
+        text: 'The proposal service is unavailable. No architecture changes were made.',
+      }]);
+      return null;
+    }
+  }
+
+  async function proposePatch(
     answers: Record<string, RequirementValue>,
     message = 'Review the proposed requirement change before applying it.',
   ) {
     if (!canMutate) return;
+    const proposal = await createProposal(message, Object.entries(answers).map(
+      ([requirementId, value]) => ({
+        operation: 'set_requirement' as const,
+        requirement_id: requirementId,
+        value,
+      }),
+    ));
+    if (!proposal) return;
     setPendingPatch(answers);
+    setPendingProposal(proposal);
     setProposalEditing(false);
     setChatLog((log) => [...log, { role: 'agent', text: message }]);
   }
@@ -256,13 +291,23 @@ export function FlowWorkspace({
     setChatLog((log) => [...log, { role: 'user', text: message }]);
     setChatBusy(true);
     try {
-      const result = await chatArchitecture(message, scope);
-      if (Object.keys(result.proposed_answers).length) {
-        proposePatch(result.proposed_answers, result.reply || 'Review the extracted customer requirements.');
+      const proposal = await createProposal(message);
+      if (proposal?.operations.length) {
+        setPendingProposal(proposal);
+        setPendingPatch(Object.fromEntries(
+          proposal.operations
+            .filter((operation) => operation.operation === 'set_requirement')
+            .map((operation) => [operation.requirement_id, operation.value]),
+        ));
+        setProposalEditing(false);
+        setChatLog((log) => [...log, {
+          role: 'agent',
+          text: 'Review the proposed architecture changes before applying them.',
+        }]);
       } else {
         setChatLog((log) => [...log, {
           role: 'agent',
-          text: result.reply || 'I could not map that to a decision. Name a concrete customer constraint.',
+          text: 'I could not map that to an approved requirement, component, or offering.',
         }]);
       }
     } catch {
@@ -277,11 +322,36 @@ export function FlowWorkspace({
 
   async function acceptPatch(explicitPatch?: Record<string, RequirementValue>) {
     const thePatch = explicitPatch ?? pendingPatch;
-    if (!thePatch || !canMutate) return;
-    const committed = await onApplyPatch?.(thePatch);
+    if (!canMutate) return;
+    let proposal = pendingProposal;
+    if (explicitPatch) {
+      proposal = await createProposal(
+        'Apply the reviewed structured requirement changes.',
+        Object.entries(explicitPatch).map(([requirementId, value]) => ({
+          operation: 'set_requirement' as const,
+          requirement_id: requirementId,
+          value,
+        })),
+      );
+    }
+    if (!proposal && thePatch) {
+      proposal = await createProposal(
+        'Apply the reviewed requirement changes.',
+        Object.entries(thePatch).map(([requirementId, value]) => ({
+          operation: 'set_requirement' as const,
+          requirement_id: requirementId,
+          value,
+        })),
+      );
+    }
+    if (!proposal) return;
+    const committed = onApplyProposal
+      ? await onApplyProposal(proposal)
+      : thePatch ? await onApplyPatch?.(thePatch) : false;
     if (committed === true) {
-      const count = Object.keys(thePatch).length;
+      const count = proposal.operations.length;
       setPendingPatch(null);
+      setPendingProposal(null);
       setProposalEditing(false);
       setChatLog((log) => [...log, {
         role: 'agent',
@@ -297,6 +367,7 @@ export function FlowWorkspace({
 
   function rejectPatch() {
     setPendingPatch(null);
+    setPendingProposal(null);
     setProposalEditing(false);
     setChatLog((log) => [...log, {
       role: 'agent',
@@ -306,17 +377,48 @@ export function FlowWorkspace({
 
   function clearGuidedAnswer() {
     setPendingPatch(null);
+    setPendingProposal(null);
     setProposalEditing(false);
   }
 
-  function updateProposal(requirement: ArchitectureRequirement, rawValue: string) {
-    if (!pendingPatch) return;
+  async function updateProposal(requirement: ArchitectureRequirement, rawValue: string) {
+    if (!pendingPatch || !pendingProposal) return;
     let value: RequirementValue = rawValue;
     if (typeof requirement.value === 'number') value = Number(rawValue);
     if (rawValue === 'true') value = true;
     if (rawValue === 'false') value = false;
     if (rawValue === 'null') value = null;
-    setPendingPatch({ ...pendingPatch, [requirement.id]: value });
+    const nextPatch = { ...pendingPatch, [requirement.id]: value };
+    const proposal = await createProposal(
+      pendingProposal.original_message,
+      pendingProposal.operations.map((operation) => (
+        operation.operation === 'set_requirement'
+          && operation.requirement_id === requirement.id
+          ? { ...operation, value }
+          : operation
+      )),
+    );
+    if (proposal) {
+      setPendingPatch(nextPatch);
+      setPendingProposal(proposal);
+    }
+  }
+
+  async function queueStructuredProposal(
+    message: string,
+    operations: ArchitectureChangeOperation[],
+  ) {
+    const proposal = await createProposal(message, operations);
+    if (!proposal) return;
+    setPendingProposal(proposal);
+    setPendingPatch(Object.fromEntries(
+      proposal.operations
+        .filter((operation) => operation.operation === 'set_requirement')
+        .map((operation) => [operation.requirement_id, operation.value]),
+    ));
+    setProposalEditing(false);
+    setAsideView('chat');
+    setChatLog((log) => [...log, { role: 'agent', text: message }]);
   }
 
   async function downloadPackage() {
@@ -486,9 +588,9 @@ export function FlowWorkspace({
                   ))}
                   {chatBusy && <div className="fw-message agent">Interpreting requirements...</div>}
                 </div>
-                {pendingPatch && (
+                {pendingProposal && (
                   <ProposalPreview
-                    patch={pendingPatch}
+                    proposal={pendingProposal}
                     requirementsById={requirementsById}
                     editing={proposalEditing}
                     disabled={!canMutate}
@@ -527,8 +629,10 @@ export function FlowWorkspace({
                 applying={!canMutate}
                 pendingPatch={pendingPatch}
                 onPropose={(requirementId, answer) => {
-                  setPendingPatch({ [requirementId]: answer });
-                  setProposalEditing(false);
+                  void proposePatch(
+                    { [requirementId]: answer },
+                    'Review the proposed requirement change before applying it.',
+                  );
                 }}
                 onChangeAnswer={clearGuidedAnswer}
                 onApplyAnswer={acceptPatch}
@@ -549,6 +653,82 @@ export function FlowWorkspace({
                     </div>
                   )}
                 </div>
+                {selectedComponent && (
+                  <InspectorSection title="Architecture intent">
+                    <div className="fw-intent-controls">
+                      <div className="fw-intent-segment" role="group" aria-label={`${selectedComponent.name} intent`}>
+                        {([
+                          ['engine_managed', 'Automatic'],
+                          ['required', 'Require'],
+                          ['excluded', 'Exclude'],
+                        ] as const).map(([intent, label]) => {
+                          const currentIntent = projection.architecture_intent?.component_intents[selectedComponent.id]
+                            ?? 'engine_managed';
+                          return (
+                            <button
+                              key={intent}
+                              type="button"
+                              className={currentIntent === intent ? 'active' : ''}
+                              disabled={!canMutate}
+                              onClick={() => void queueStructuredProposal(
+                                `Review ${label.toLowerCase()} intent for ${selectedComponent.name}.`,
+                                [{
+                                  operation: 'set_component_intent',
+                                  component_id: selectedComponent.id,
+                                  intent,
+                                }],
+                              )}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <label>
+                        <span>Offering</span>
+                        <select
+                          value={projection.architecture_intent?.offering_selections[selectedComponent.id] ?? ''}
+                          disabled={!canMutate}
+                          onChange={(event) => {
+                            const offeringId = event.target.value;
+                            void queueStructuredProposal(
+                              `Review the offering selection for ${selectedComponent.name}.`,
+                              offeringId
+                                ? [{
+                                  operation: 'select_offering',
+                                  component_id: selectedComponent.id,
+                                  offering_id: offeringId,
+                                }]
+                                : [{
+                                  operation: 'select_offering',
+                                  component_id: selectedComponent.id,
+                                  offering_id: 'auto',
+                                }],
+                            );
+                          }}
+                        >
+                          <option value="">Automatic selection</option>
+                          {(projection.architecture_intent?.available_offerings ?? [])
+                            .filter((offering) => offering.component_id === selectedComponent.id)
+                            .map((offering) => (
+                              <option key={offering.offering_id} value={offering.offering_id}>
+                                {offering.name}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+                      {projection.advisory_knowledge?.documents
+                        .filter((document) => document.component_id === selectedComponent.id)
+                        .slice(0, 2)
+                        .map((document) => (
+                          <div className="fw-advisory-note" key={document.advisory_id}>
+                            <span className={document.status}>{document.status}</span>
+                            <p><b>{document.title}</b><small>{document.description || document.source_path}</small></p>
+                          </div>
+                        ))}
+                    </div>
+                  </InspectorSection>
+                )}
                 <InspectorSection title="Decision rationale">
                   {selectedTrace.length ? selectedTrace.map((entry) => (
                     <div className="fw-rationale-item" key={entry.evaluation_id}>
@@ -1474,7 +1654,7 @@ function InspectorSection({ title, children }: { title: string; children: React.
 }
 
 function ProposalPreview({
-  patch,
+  proposal,
   requirementsById,
   editing,
   disabled,
@@ -1484,7 +1664,7 @@ function ProposalPreview({
   onReject,
   onAccept,
 }: {
-  patch: Record<string, RequirementValue>;
+  proposal: ArchitectureChangeProposal;
   requirementsById: Map<string, ArchitectureRequirement>;
   editing: boolean;
   disabled: boolean;
@@ -1494,10 +1674,19 @@ function ProposalPreview({
   onReject: () => void;
   onAccept: () => void;
 }) {
+  const requirementOperations = proposal.operations.filter(
+    (operation): operation is Extract<ArchitectureChangeOperation, { operation: 'set_requirement' }> =>
+      operation.operation === 'set_requirement',
+  );
+  const otherEffects = proposal.predicted_effects.filter(
+    (effect) => !requirementOperations.some(
+      (operation) => effect === `Set ${operation.requirement_id}`,
+    ),
+  );
   return (
     <div className="fw-proposal">
-      <span>Review proposed answers</span>
-      {Object.entries(patch).map(([requirementId, value]) => {
+      <span>Review architecture proposal</span>
+      {requirementOperations.map(({ requirement_id: requirementId, value }) => {
         const requirement = requirementsById.get(requirementId) ?? {
           id: requirementId,
           name: shortId(requirementId),
@@ -1523,8 +1712,25 @@ function ProposalPreview({
           </label>
         );
       })}
-      <div>
-        <button type="button" onClick={onEdit} disabled={disabled}><Pencil size={13} />{editing ? 'Done' : 'Edit'}</button>
+      {otherEffects.map((effect) => (
+        <div className="fw-proposal-effect" key={effect}>{effect}</div>
+      ))}
+      {proposal.advisory_evidence.map((evidence) => (
+        <div className="fw-proposal-evidence" key={evidence.advisory_id}>
+          <span className={evidence.status}>{evidence.status}</span>
+          <b>{evidence.title}</b>
+        </div>
+      ))}
+      {proposal.publication_blockers.length > 0 && (
+        <div className="fw-proposal-conflicts">
+          <b>Publication will be blocked</b>
+          {proposal.publication_blockers.map((blocker) => <span key={blocker}>{blocker}</span>)}
+        </div>
+      )}
+      <div className="fw-proposal-actions">
+        {requirementOperations.length > 0 && (
+          <button type="button" onClick={onEdit} disabled={disabled}><Pencil size={13} />{editing ? 'Done' : 'Edit'}</button>
+        )}
         <button type="button" onClick={onReject} disabled={disabled}><X size={13} />Reject</button>
         <button type="button" className="accept" onClick={onAccept} disabled={disabled}>
           <Check size={13} />{applying ? 'Applying...' : 'Accept'}
@@ -1570,7 +1776,8 @@ function WorkspaceStyles() {
 .fw-practices{list-style:none;margin:0;padding:0}.fw-practices li{display:flex;flex-direction:column;padding:7px 0;border-top:1px solid var(--soft)}.fw-practices li:first-child{border:0}.fw-practices b{font-size:10.5px}.fw-practices span{font-size:10px;color:var(--dim)}.fw-control{display:flex;gap:8px;margin-top:8px}.fw-control>span{font-size:8px;text-transform:uppercase;color:var(--amber);width:45px}.fw-control>span.verified{color:var(--green)}.fw-control p{display:flex;flex-direction:column;margin:0}.fw-control b{font-size:10.5px}.fw-control small{font-size:9px;color:var(--muted)}.fw-claim{padding:8px;border-left:2px solid #2dd4bf;background:#0f201d;margin-top:7px}.fw-claim p{font-size:10px;margin:0;color:var(--dim)}.fw-claim small{font-size:8px;color:var(--muted)}
 .fw-chat{min-height:100%;display:flex;flex-direction:column;background:#0d1119}.fw-chat-intro{display:flex;flex-direction:column;padding:22px 20px 15px}.fw-chat-intro b{font-size:14px}.fw-chat-intro span{max-width:300px;margin-top:3px;color:var(--muted);font-size:10.5px}.fw-chat-log{flex:1;min-height:110px;overflow:auto;display:flex;flex-direction:column;gap:7px;padding:8px 14px}.fw-message{max-width:92%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:#161d27;color:var(--dim);font-size:10.5px}.fw-message.user{align-self:flex-end;background:#173022;border-color:#37dd7d44}
 .fw-chat-input{display:flex;gap:6px;padding:10px 12px 12px;border-top:1px solid var(--soft)}.fw-chat-input input{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);padding:9px;font:11px inherit}.fw-chat-input button{width:36px;border:0;border-radius:7px;background:var(--green);color:#07130c;display:grid;place-items:center}.fw-chat-input button:disabled,.fw-proposal button:disabled{opacity:.4}
-.fw-proposal{margin:5px 12px 8px;padding:10px;border:1px solid #7d9bff55;border-radius:7px;background:#111a29}.fw-proposal label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:10px}.fw-proposal label>b{color:#aebeff}.fw-proposal input,.fw-proposal select{width:130px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);padding:4px;font-size:10px}.fw-proposal>div{display:flex;justify-content:flex-end;gap:5px;margin-top:9px}.fw-proposal button{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--dim);padding:5px 7px;font:600 9px inherit}.fw-proposal button.accept{color:#77e5a5;border-color:#37dd7d66;background:#37dd7d12}
+.fw-proposal{margin:5px 12px 8px;padding:10px;border:1px solid #7d9bff55;border-radius:7px;background:#111a29}.fw-proposal label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:10px}.fw-proposal label>b{color:#aebeff}.fw-proposal input,.fw-proposal select{width:130px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);padding:4px;font-size:10px}.fw-proposal-actions{display:flex;justify-content:flex-end;gap:5px;margin-top:9px}.fw-proposal-effect{margin-top:6px;padding:6px 7px;border-left:2px solid #7d9bff;color:var(--dim);font-size:9.5px;background:#0d1420}.fw-proposal-evidence{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:9px}.fw-proposal-evidence>span,.fw-advisory-note>span{padding:1px 5px;border-radius:4px;background:#f0a85018;color:var(--amber);text-transform:uppercase;font-size:7.5px}.fw-proposal-evidence>span.stable,.fw-advisory-note>span.stable{background:#37dd7d16;color:var(--green)}.fw-proposal-conflicts{display:flex;flex-direction:column;gap:3px;margin-top:8px;padding:7px;border:1px solid #fb718544;background:#2a1116;color:var(--red);font-size:9px}.fw-proposal button{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--dim);padding:5px 7px;font:600 9px inherit}.fw-proposal button.accept{color:#77e5a5;border-color:#37dd7d66;background:#37dd7d12}
+.fw-intent-controls{display:flex;flex-direction:column;gap:9px}.fw-intent-segment{display:grid;grid-template-columns:repeat(3,1fr);padding:2px;border:1px solid var(--line);border-radius:6px;background:#0b0f15}.fw-intent-segment button{border:0;border-radius:4px;background:transparent;color:var(--muted);padding:6px 4px;font:600 9px inherit}.fw-intent-segment button.active{background:#26303e;color:var(--ink)}.fw-intent-controls>label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:9px;color:var(--muted)}.fw-intent-controls select{max-width:240px;min-width:0;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);padding:6px;font-size:9px}.fw-advisory-note{display:flex;align-items:flex-start;gap:7px;padding:7px;border-left:2px solid #4cc4f5;background:#0d1922}.fw-advisory-note p{display:flex;flex-direction:column;margin:0}.fw-advisory-note b{font-size:9.5px}.fw-advisory-note small{font-size:8px;color:var(--muted)}
 .fw-dialog-scrim{position:fixed;z-index:60;inset:0;display:grid;place-items:center;padding:24px;background:#060a0fdd;backdrop-filter:blur(3px)}.fw-dialog{display:flex;flex-direction:column;width:min(940px,100%);max-height:calc(100vh - 48px);border:1px solid #2a3446;border-radius:8px;background:#10151d;box-shadow:0 30px 80px #000;overflow:hidden}.fw-dialog>header{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 22px;border-bottom:1px solid var(--soft)}.fw-dialog>header span{font-size:9px;text-transform:uppercase;color:var(--green)}.fw-dialog>header h2{font-size:19px;margin:4px 0}.fw-dialog>header small{font-size:9px;color:var(--muted)}.fw-dialog>header button{width:30px;height:30px;border:1px solid var(--line);border-radius:6px;background:#ffffff08;color:var(--dim)}.fw-dialog-body{padding:18px 22px;overflow:auto}.fw-dialog-body section{margin-top:21px}.fw-dialog-copy{font-size:11.5px;color:var(--dim)}
 .fw-verdict{display:flex;gap:10px;padding:12px;border:1px solid var(--amber);border-radius:7px;background:#19170f}.fw-verdict.publishable{border-color:var(--green);background:#102018}.fw-verdict p{display:flex;flex-direction:column;margin:0}.fw-verdict b{font-size:12px}.fw-verdict span{font-size:10px;color:var(--dim)}.fw-gates{padding-left:18px;color:#f6c9d1;font-size:10.5px}
 .fw-stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.fw-stack>div{display:grid;grid-template-columns:110px 1fr;gap:2px 8px;padding:8px;border:1px solid var(--soft);border-radius:6px;background:#ffffff04}.fw-stack span{font-size:8px;text-transform:uppercase;color:var(--muted)}.fw-stack b{font-size:10px}.fw-stack small{grid-column:2;font-size:8px;color:var(--muted)}

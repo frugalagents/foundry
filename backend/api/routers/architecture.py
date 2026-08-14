@@ -19,6 +19,18 @@ from advisor_core.knowledge.decision_guidance import (
 from advisor_core.v3.models import content_hash
 from advisor_core.v3.projection import build_frontend_projection
 from advisor_core.v3.runtime import build_runtime_workspace
+from api.architecture_intent import (
+    ArchitectureChangeOperation,
+    ArchitectureChangeProposal,
+    ArchitectureProposalApplyRequest,
+    accepted_proposal_record,
+    apply_intent_projection,
+    apply_operations,
+    build_proposal,
+    validate_operations,
+    workspace_inputs,
+    workspace_state_hash,
+)
 from api.db import dynamodb as db
 from api.middleware.auth import authorize_owned_resource, get_current_user, get_user_id
 
@@ -67,6 +79,18 @@ class ArchitectureReopenRequest(BaseModel):
     package: dict[str, Any]
 
 
+class ArchitectureProposalRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message: str = Field(min_length=1, max_length=2000)
+    base_revision_number: int | None = Field(default=None, ge=1)
+    base_state_hash: str | None = Field(
+        default=None,
+        pattern=r"^sha256:[0-9a-f]{64}$",
+    )
+    operations: list[ArchitectureChangeOperation] | None = None
+
+
 def _tenant_id(user: dict) -> str:
     for claim in (
         "custom:tenant_id",
@@ -88,8 +112,8 @@ def _workspace_id(tenant_id: str, owner_id: str, scope_id: str) -> str:
     return f"workspace:coding-platform-{digest}"
 
 
-def _persistence_hash(answers: dict[str, Any], as_of: str) -> str:
-    return content_hash({"answers": answers, "as_of": as_of})
+def _persistence_hash(inputs: dict[str, Any], as_of: str) -> str:
+    return workspace_state_hash(inputs, as_of)
 
 
 def _rehash_projection(projection: dict[str, object]) -> None:
@@ -100,6 +124,10 @@ def _rehash_projection(projection: dict[str, object]) -> None:
 def _projection(
     *,
     answers: dict[str, Any],
+    component_intents: dict[str, str] | None = None,
+    offering_selections: dict[str, str] | None = None,
+    override_requests: list[dict[str, Any]] | None = None,
+    accepted_proposals: list[dict[str, Any]] | None = None,
     as_of: date,
     workspace_id: str,
     persistence_revision: int,
@@ -120,6 +148,17 @@ def _projection(
             projection,
             release.decision_guidance,
         )
+        projection = apply_intent_projection(
+            projection,
+            {
+                "answers": answers,
+                "component_intents": component_intents or {},
+                "offering_selections": offering_selections or {},
+                "override_requests": override_requests or [],
+                "accepted_proposals": accepted_proposals or [],
+            },
+            release,
+        )
     except KnowledgeReleaseLoadError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -137,6 +176,11 @@ def _projection(
         "deployable_catalog_id": release.deployable_catalog.id,
         "deployable_catalog_version": release.deployable_catalog.version,
         "deployable_catalog_hash": release.deployable_catalog.content_hash,
+        "advisory_corpus_hash": (
+            release.advisory_corpus.corpus_hash
+            if release.advisory_corpus is not None
+            else None
+        ),
     }
     projection["workspace"]["workspace_id"] = workspace_id
     projection["workspace"]["persistence_revision"] = persistence_revision
@@ -193,12 +237,23 @@ def _load_or_initialize(user: dict, scope_id: str = "standalone") -> dict:
 
     as_of = date.today().isoformat()
     answers: dict[str, Any] = {}
+    inputs = {
+        "answers": answers,
+        "component_intents": {},
+        "offering_selections": {},
+        "override_requests": [],
+        "accepted_proposals": [],
+    }
     return db.initialize_architecture_workspace_state(
         tenant_id=tenant_id,
         owner_id=owner_id,
         workspace_id=_workspace_id(tenant_id, owner_id, scope_id),
         answers=answers,
-        state_hash=_persistence_hash(answers, as_of),
+        component_intents=inputs["component_intents"],
+        offering_selections=inputs["offering_selections"],
+        override_requests=inputs["override_requests"],
+        accepted_proposals=inputs["accepted_proposals"],
+        state_hash=_persistence_hash(inputs, as_of),
         as_of=as_of,
         scope_id=scope_id,
     )
@@ -220,6 +275,10 @@ def _state_projection(state: dict) -> dict[str, object]:
         ) from exc
     return _projection(
         answers=answers,
+        component_intents=state.get("component_intents"),
+        offering_selections=state.get("offering_selections"),
+        override_requests=state.get("override_requests"),
+        accepted_proposals=state.get("accepted_proposals"),
         as_of=as_of,
         workspace_id=state["workspace_id"],
         persistence_revision=int(state["persistence_revision"]),
@@ -239,6 +298,18 @@ def _public_revision(revision: dict) -> dict[str, object]:
         "previous_state_hash": revision.get("previous_state_hash"),
         "state_hash": revision["state_hash"],
         "answers": jsonable_encoder(revision["answers"]),
+        "component_intents": jsonable_encoder(
+            revision.get("component_intents", {})
+        ),
+        "offering_selections": jsonable_encoder(
+            revision.get("offering_selections", {})
+        ),
+        "override_requests": jsonable_encoder(
+            revision.get("override_requests", [])
+        ),
+        "accepted_proposals": jsonable_encoder(
+            revision.get("accepted_proposals", [])
+        ),
         "as_of": revision["as_of"],
         "operation": revision["operation"],
         "created_at": revision["created_at"],
@@ -274,13 +345,34 @@ def _customer_package(
 ) -> dict[str, object]:
     answers = jsonable_encoder(revision["answers"])
     as_of = revision["as_of"]
-    if _persistence_hash(answers, as_of) != revision["state_hash"]:
+    revision_inputs = {
+        "answers": answers,
+        "component_intents": jsonable_encoder(
+            revision.get("component_intents", {})
+        ),
+        "offering_selections": jsonable_encoder(
+            revision.get("offering_selections", {})
+        ),
+        "override_requests": jsonable_encoder(
+            revision.get("override_requests", [])
+        ),
+        "accepted_proposals": jsonable_encoder(
+            revision.get("accepted_proposals", [])
+        ),
+    }
+    modern_hash = _persistence_hash(revision_inputs, as_of)
+    legacy_hash = content_hash({"answers": answers, "as_of": as_of})
+    if revision["state_hash"] not in {modern_hash, legacy_hash}:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Persisted architecture revision failed integrity verification",
         )
     projection = _projection(
         answers=answers,
+        component_intents=revision_inputs["component_intents"],
+        offering_selections=revision_inputs["offering_selections"],
+        override_requests=revision_inputs["override_requests"],
+        accepted_proposals=revision_inputs["accepted_proposals"],
         as_of=date.fromisoformat(as_of),
         workspace_id=revision["workspace_id"],
         persistence_revision=int(revision["revision_number"]),
@@ -337,7 +429,7 @@ def _customer_package(
             "projection_hash": projection["projection_hash"],
         },
         "inputs": {
-            "answers": answers,
+            **revision_inputs,
             "as_of": as_of,
         },
         "solution": projection,
@@ -401,11 +493,28 @@ def _apply(
             detail="Persisted architecture workspace answers are invalid",
         )
     merged_answers = {} if reset else {**current_answers, **answers}
-    new_hash = _persistence_hash(merged_answers, state["as_of"])
+    current_inputs = workspace_inputs(state)
+    next_inputs = {
+        **current_inputs,
+        "answers": merged_answers,
+    }
+    if reset:
+        next_inputs = {
+            "answers": {},
+            "component_intents": {},
+            "offering_selections": {},
+            "override_requests": [],
+            "accepted_proposals": current_inputs["accepted_proposals"],
+        }
+    new_hash = _persistence_hash(next_inputs, state["as_of"])
 
     # Validate the complete merged state before making it durable.
     candidate = _projection(
         answers=merged_answers,
+        component_intents=next_inputs["component_intents"],
+        offering_selections=next_inputs["offering_selections"],
+        override_requests=next_inputs["override_requests"],
+        accepted_proposals=next_inputs["accepted_proposals"],
         as_of=date.fromisoformat(state["as_of"]),
         workspace_id=state["workspace_id"],
         persistence_revision=int(state["persistence_revision"]) + 1,
@@ -421,6 +530,10 @@ def _apply(
             expected_revision=int(state["persistence_revision"]),
             expected_state_hash=state["state_hash"],
             answers=merged_answers,
+            component_intents=next_inputs["component_intents"],
+            offering_selections=next_inputs["offering_selections"],
+            override_requests=next_inputs["override_requests"],
+            accepted_proposals=next_inputs["accepted_proposals"],
             state_hash=new_hash,
             scope_id=scope_id,
             operation="reset" if reset else "evaluate",
@@ -456,6 +569,170 @@ def _apply(
     return candidate
 
 
+def _proposal_for_message(
+    user: dict,
+    *,
+    message: str,
+    base_revision_number: int | None,
+    base_state_hash: str | None,
+    scope_id: str,
+    operations: list[ArchitectureChangeOperation] | None = None,
+) -> ArchitectureChangeProposal:
+    state = _load_or_initialize(user, scope_id)
+    _reject_stale_base(
+        state,
+        base_revision_number=base_revision_number,
+        base_state_hash=base_state_hash,
+    )
+    try:
+        release = get_configured_knowledge_release()
+    except KnowledgeReleaseLoadError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The pinned architecture knowledge release is unavailable",
+        ) from exc
+    try:
+        from api.engine import agents as engine_agents
+    except ImportError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Architecture engine is unavailable",
+        ) from exc
+    extracted = (
+        {
+            "operations": [
+                operation.model_dump(mode="json")
+                for operation in operations
+            ],
+            "unresolved_terms": [],
+            "confidence": 1.0,
+            "source": "structured-control",
+        }
+        if operations is not None
+        else engine_agents.interpret_architecture_changes(
+            message,
+            release.logical_catalog.requirements,
+            release.logical_catalog.components,
+            release.deployable_catalog.service_variants,
+            (
+                release.advisory_corpus.documents
+                if release.advisory_corpus is not None
+                else ()
+            ),
+        )
+    )
+    try:
+        return build_proposal(
+            state=state,
+            message=message,
+            extracted=extracted,
+            release=release,
+            base_projection=_state_projection(state),
+        )
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+
+def _apply_proposal(
+    user: dict,
+    *,
+    request: ArchitectureProposalApplyRequest,
+    scope_id: str,
+) -> dict[str, object]:
+    state = _load_or_initialize(user, scope_id)
+    proposal = request.proposal
+    current_inputs = workspace_inputs(state)
+    for accepted in current_inputs["accepted_proposals"]:
+        if accepted.get("idempotency_key") != request.idempotency_key:
+            continue
+        if accepted.get("proposal_hash") != proposal.proposal_hash:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Idempotency key was already used for another proposal",
+            )
+        return _state_projection(state)
+    _reject_stale_base(
+        state,
+        base_revision_number=proposal.base_revision_number,
+        base_state_hash=proposal.base_state_hash,
+    )
+    if not proposal.operations:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Proposal contains no applicable operations",
+        )
+    try:
+        release = get_configured_knowledge_release()
+        operations = validate_operations(proposal.operations, release)
+    except KnowledgeReleaseLoadError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The pinned architecture knowledge release is unavailable",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+    next_inputs = apply_operations(current_inputs, operations)
+    for index, conflict in enumerate(proposal.hard_conflicts):
+        next_inputs["override_requests"].append({
+            "rule_id": (
+                f"proposal-conflict:{proposal.proposal_hash[7:19]}-{index + 1}"
+            ),
+            "rationale": conflict,
+            "status": "blocked",
+        })
+    next_revision = int(state["persistence_revision"]) + 1
+    next_inputs["accepted_proposals"].append(accepted_proposal_record(
+        proposal,
+        idempotency_key=request.idempotency_key,
+        revision_number=next_revision,
+    ))
+    new_hash = _persistence_hash(next_inputs, state["as_of"])
+    candidate = _projection(
+        answers=next_inputs["answers"],
+        component_intents=next_inputs["component_intents"],
+        offering_selections=next_inputs["offering_selections"],
+        override_requests=next_inputs["override_requests"],
+        accepted_proposals=next_inputs["accepted_proposals"],
+        as_of=date.fromisoformat(state["as_of"]),
+        workspace_id=state["workspace_id"],
+        persistence_revision=next_revision,
+        persistence_hash=new_hash,
+    )
+    try:
+        saved = db.update_architecture_workspace_state(
+            tenant_id=state["tenant_id"],
+            owner_id=state["created_by"],
+            expected_revision=int(state["persistence_revision"]),
+            expected_state_hash=state["state_hash"],
+            answers=next_inputs["answers"],
+            component_intents=next_inputs["component_intents"],
+            offering_selections=next_inputs["offering_selections"],
+            override_requests=next_inputs["override_requests"],
+            accepted_proposals=next_inputs["accepted_proposals"],
+            state_hash=new_hash,
+            scope_id=scope_id,
+            operation="apply_proposal",
+        )
+    except db.ArchitectureWorkspaceConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Architecture workspace changed; reload before retrying",
+        ) from exc
+    candidate["workspace"]["persistence_revision"] = int(
+        saved["persistence_revision"]
+    )
+    candidate["workspace"]["persistence_hash"] = saved["state_hash"]
+    _rehash_projection(candidate)
+    return candidate
+
+
 @router.get("/workspace")
 async def get_architecture_workspace(
     current_user: CurrentUser,
@@ -482,6 +759,36 @@ async def evaluate_architecture_workspace(
         base_state_hash=payload.base_state_hash,
         scope_id=scope_id,
     )
+
+
+@router.post("/workspace/proposals")
+async def propose_architecture_workspace_change(
+    payload: ArchitectureProposalRequest,
+    current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
+) -> dict[str, object]:
+    scope_id = _authorized_scope(current_user, customer_id, session_id)
+    proposal = _proposal_for_message(
+        current_user,
+        message=payload.message,
+        base_revision_number=payload.base_revision_number,
+        base_state_hash=payload.base_state_hash,
+        scope_id=scope_id,
+        operations=payload.operations,
+    )
+    return proposal.model_dump(mode="json")
+
+
+@router.post("/workspace/proposals/apply")
+async def apply_architecture_workspace_proposal(
+    payload: ArchitectureProposalApplyRequest,
+    current_user: CurrentUser,
+    customer_id: str | None = None,
+    session_id: str | None = None,
+) -> dict[str, object]:
+    scope_id = _authorized_scope(current_user, customer_id, session_id)
+    return _apply_proposal(current_user, request=payload, scope_id=scope_id)
 
 
 @router.post("/workspace/reset")
@@ -567,11 +874,21 @@ async def export_architecture_customer_package(
         scope_id,
         revision_number,
     )
-    return _customer_package(
+    package = _customer_package(
         revision,
         customer_id=customer_id,
         session_id=session_id,
     )
+    intent = package["solution"].get("architecture_intent", {})
+    if intent.get("publication_blocked") is True:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": "Architecture has unresolved intent conflicts",
+                "publication_blockers": intent.get("publication_blockers", []),
+            },
+        )
+    return package
 
 
 @router.post("/workspace/reopen")
@@ -700,34 +1017,26 @@ async def chat_architecture(
     deterministic evaluate endpoint, which validates and commits the revision.
     """
     scope_id = _authorized_scope(current_user, customer_id, session_id)
-    state = _load_or_initialize(current_user, scope_id)
-    answers = state.get("answers")
-    if not isinstance(answers, dict):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Persisted architecture workspace answers are invalid",
-        )
-    try:
-        from api.engine import agents as engine_agents
-    except ImportError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Architecture engine is unavailable",
-        ) from exc
-
-    try:
-        catalog = get_configured_knowledge_release().logical_catalog
-    except KnowledgeReleaseLoadError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="The pinned architecture knowledge release is unavailable",
-        ) from exc
-    result = engine_agents.interpret_requirements(
-        payload.message,
-        catalog.requirements,
+    proposal = _proposal_for_message(
+        current_user,
+        message=payload.message,
+        base_revision_number=None,
+        base_state_hash=None,
+        scope_id=scope_id,
     )
+    proposed_answers = {
+        operation.requirement_id: operation.value
+        for operation in proposal.operations
+        if operation.operation == "set_requirement"
+        and operation.requirement_id is not None
+    }
     return {
-        "reply": result["reply"],
-        "proposed_answers": result["answers"],
-        "source": result["source"],
+        "reply": (
+            "I prepared an architecture change proposal for review."
+            if proposal.operations
+            else "I could not map that request to the approved catalog."
+        ),
+        "proposed_answers": proposed_answers,
+        "source": proposal.source,
+        "proposal": proposal.model_dump(mode="json"),
     }

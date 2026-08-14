@@ -9,6 +9,7 @@ export type RuleAuthority =
   | 'preference'
   | 'explanation';
 export type RuleEffect = 'require' | 'recommend' | 'exclude' | 'warn';
+export type ComponentIntent = 'engine_managed' | 'required' | 'excluded';
 
 export interface ArchitectureWorkspaceMeta {
   workspace_id: string;
@@ -386,6 +387,38 @@ export interface ArchitectureWorkspaceProjection {
     }[];
     history_hash: string;
   };
+  advisory_knowledge?: {
+    authority: 'advisory';
+    corpus_hash?: string;
+    documents: {
+      advisory_id: string;
+      title: string;
+      description: string;
+      group: string;
+      status: 'stable' | 'candidate';
+      component_id?: string;
+      source_path: string;
+      source_count: number;
+    }[];
+  };
+  architecture_intent?: {
+    component_intents: Record<string, ComponentIntent>;
+    offering_selections: Record<string, string>;
+    override_requests: {
+      rule_id: string;
+      rationale: string;
+      status: string;
+    }[];
+    available_offerings: {
+      offering_id: string;
+      component_id: string;
+      name: string;
+      provider_class: string;
+      delivery_model: string;
+    }[];
+    publication_blockers: string[];
+    publication_blocked: boolean;
+  };
 }
 
 export type WorkspaceReadinessState = 'needs-information' | 'conditional' | 'publishable';
@@ -462,6 +495,7 @@ export function deriveWorkspaceGuidance(
   }
   const missingEvidenceCount = missingEvidenceIds.size;
   const publicationBlockers: string[] = [];
+  publicationBlockers.push(...(projection.architecture_intent?.publication_blockers ?? []));
   if (feasibleAlternatives === 0) publicationBlockers.push('no confirmed feasible deployment family');
   if (!hasRecommendation) publicationBlockers.push('no recommended deployable solution');
   if (!assurance) publicationBlockers.push('assurance package missing');

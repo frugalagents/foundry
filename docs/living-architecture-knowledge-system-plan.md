@@ -730,7 +730,7 @@ Task IDs are stable so they can be moved into GitHub Issues or another tracker.
   - Retrieve reviewed `recommended_when`, `avoid_when`, trade-offs, and evidence.
   - Depends on KS-051 and KS-052.
   - Verified 2026-08-12: five reviewed coding-platform decision patterns now
-    compile into immutable knowledge release `1.4.0`. FastAPI and AgentCore
+    compile into immutable knowledge release `1.5.0`. FastAPI and AgentCore
     attach deterministic, candidate-specific fit guidance containing use
     conditions, avoid conditions, trade-offs, review metadata, and cited
     evidence. The workspace surfaces the guidance during discovery and in the

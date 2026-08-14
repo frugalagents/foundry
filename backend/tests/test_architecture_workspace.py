@@ -77,6 +77,18 @@ class MemoryArchitectureStore:
                 "created_by": values["owner_id"],
                 "scope_id": values.get("scope_id", "standalone"),
                 "answers": deepcopy(values["answers"]),
+                "component_intents": deepcopy(
+                    values.get("component_intents", {})
+                ),
+                "offering_selections": deepcopy(
+                    values.get("offering_selections", {})
+                ),
+                "override_requests": deepcopy(
+                    values.get("override_requests", [])
+                ),
+                "accepted_proposals": deepcopy(
+                    values.get("accepted_proposals", [])
+                ),
                 "persistence_revision": 1,
                 "state_hash": values["state_hash"],
                 "as_of": values["as_of"],
@@ -107,6 +119,18 @@ class MemoryArchitectureStore:
         revision_number = values["expected_revision"] + 1
         item.update({
             "answers": deepcopy(values["answers"]),
+            "component_intents": deepcopy(
+                values.get("component_intents", {})
+            ),
+            "offering_selections": deepcopy(
+                values.get("offering_selections", {})
+            ),
+            "override_requests": deepcopy(
+                values.get("override_requests", [])
+            ),
+            "accepted_proposals": deepcopy(
+                values.get("accepted_proposals", [])
+            ),
             "persistence_revision": revision_number,
             "state_hash": values["state_hash"],
         })
@@ -117,6 +141,18 @@ class MemoryArchitectureStore:
             "created_by": item["created_by"],
             "scope_id": item["scope_id"],
             "answers": deepcopy(values["answers"]),
+            "component_intents": deepcopy(
+                values.get("component_intents", {})
+            ),
+            "offering_selections": deepcopy(
+                values.get("offering_selections", {})
+            ),
+            "override_requests": deepcopy(
+                values.get("override_requests", [])
+            ),
+            "accepted_proposals": deepcopy(
+                values.get("accepted_proposals", [])
+            ),
             "revision_number": revision_number,
             "parent_revision_number": revision_number - 1,
             "previous_state_hash": values["expected_state_hash"],
@@ -677,6 +713,7 @@ def test_dynamodb_helpers_use_scoped_key_and_conditional_head_update(
 
     table = RecordingTable()
     monkeypatch.setattr(architecture.db, "_get_table", lambda: table)
+    monkeypatch.setattr(architecture.db, "_get_client", lambda: table)
     initial = _INITIALIZE_PERSISTED_STATE(
         tenant_id="tenant-one",
         owner_id="architecture-user",
@@ -794,9 +831,15 @@ def test_chat_proposes_requirements_without_mutating_workspace(
     baseline = client.get("/api/v1/architecture/workspace").json()
     monkeypatch.setattr(
         engine_agents,
-        "interpret_requirements",
-        lambda _message, _requirements: {
-            "answers": {"requirement:private-connectivity": True},
+        "interpret_architecture_changes",
+        lambda *_args: {
+            "operations": [{
+                "operation": "set_requirement",
+                "requirement_id": "requirement:private-connectivity",
+                "value": True,
+            }],
+            "unresolved_terms": [],
+            "confidence": 0.9,
             "reply": "Private connectivity is proposed.",
             "source": "agent",
         },
@@ -850,9 +893,15 @@ def test_scoped_chat_does_not_mutate_workspace(
 
     monkeypatch.setattr(
         engine_agents,
-        "interpret_requirements",
-        lambda _message, _requirements: {
-            "answers": {"requirement:private-connectivity": True},
+        "interpret_architecture_changes",
+        lambda *_args: {
+            "operations": [{
+                "operation": "set_requirement",
+                "requirement_id": "requirement:private-connectivity",
+                "value": True,
+            }],
+            "unresolved_terms": [],
+            "confidence": 0.9,
             "reply": "Private connectivity is proposed.",
             "source": "agent",
         },
@@ -985,7 +1034,7 @@ def test_workspace_export_is_complete_deterministic_and_revision_pinned():
     assert package["pinned_versions"]["catalog_content_hash"].startswith(
         "sha256:"
     )
-    assert package["pinned_versions"]["knowledge_release_version"] == "1.4.0"
+    assert package["pinned_versions"]["knowledge_release_version"] == "1.5.0"
     assert package["pinned_versions"][
         "knowledge_release_manifest_hash"
     ].startswith("sha256:")
@@ -1064,3 +1113,209 @@ def test_workspace_reopen_denies_cross_tenant_and_tampered_packages():
     assert rejected.json()["detail"] == (
         "Customer package does not match its immutable revision"
     )
+
+
+def _structured_proposal(client, initial, operations, message="Structured change"):
+    return client.post(
+        "/api/v1/architecture/workspace/proposals",
+        json={
+            "message": message,
+            "operations": operations,
+            "base_revision_number": initial["workspace"][
+                "persistence_revision"
+            ],
+            "base_state_hash": initial["workspace"]["persistence_hash"],
+        },
+    )
+
+
+def test_advisory_corpus_is_exposed_but_not_decision_authority():
+    projection = _client().get("/api/v1/architecture/workspace").json()
+
+    advisory = projection["advisory_knowledge"]
+    assert advisory["authority"] == "advisory"
+    assert len(advisory["documents"]) == 32
+    assert {item["status"] for item in advisory["documents"]} == {
+        "candidate",
+        "stable",
+    }
+    assert all(
+        item["component_id"].startswith("component:")
+        for item in advisory["documents"]
+    )
+    assert "advisory" not in {
+        item["authority"] for item in projection["decision_trace"]
+    }
+
+
+def test_structured_component_proposal_requires_approval_and_is_idempotent(
+    state_store,
+):
+    client = _client()
+    initial = client.get("/api/v1/architecture/workspace").json()
+    response = _structured_proposal(
+        client,
+        initial,
+        [{
+            "operation": "set_component_intent",
+            "component_id": "component:tool-gateway",
+            "intent": "excluded",
+        }],
+        "Remove the MCP gateway.",
+    )
+
+    assert response.status_code == 200
+    proposal = response.json()
+    assert proposal["hard_conflicts"]
+    before = state_store.get("tenant-one", USER["sub"])
+    assert before["persistence_revision"] == 1
+    assert before["component_intents"] == {}
+
+    applied = client.post(
+        "/api/v1/architecture/workspace/proposals/apply",
+        json={"proposal": proposal, "idempotency_key": "proposal-tool-001"},
+    )
+
+    assert applied.status_code == 200
+    body = applied.json()
+    assert body["workspace"]["persistence_revision"] == 2
+    assert body["architecture_intent"]["component_intents"] == {
+        "component:tool-gateway": "excluded"
+    }
+    assert body["architecture_intent"]["publication_blocked"] is True
+    assert body["architecture_intent"]["override_requests"]
+
+    duplicate = client.post(
+        "/api/v1/architecture/workspace/proposals/apply",
+        json={"proposal": proposal, "idempotency_key": "proposal-tool-001"},
+    )
+    assert duplicate.status_code == 200
+    assert duplicate.json()["workspace"]["persistence_revision"] == 2
+
+
+def test_required_component_adds_catalog_dependency_closure():
+    client = _client()
+    initial = client.get("/api/v1/architecture/workspace").json()
+    response = _structured_proposal(
+        client,
+        initial,
+        [{
+            "operation": "set_component_intent",
+            "component_id": "component:kubernetes-runtime",
+            "intent": "required",
+        }],
+        "Require a Kubernetes runtime.",
+    )
+    assert response.status_code == 200
+    applied = client.post(
+        "/api/v1/architecture/workspace/proposals/apply",
+        json={
+            "proposal": response.json(),
+            "idempotency_key": "proposal-k8s-001",
+        },
+    )
+
+    assert applied.status_code == 200
+    component_ids = {
+        component["component_id"]
+        for plane in applied.json()["architecture"]["planes"]
+        for component in plane["components"]
+    }
+    assert "component:kubernetes-runtime" in component_ids
+    assert "component:container-runtime" in component_ids
+
+
+def test_offering_selection_is_catalog_validated_and_revisioned():
+    client = _client()
+    initial = client.get("/api/v1/architecture/workspace").json()
+    response = _structured_proposal(
+        client,
+        initial,
+        [{
+            "operation": "select_offering",
+            "component_id": "component:model-gateway",
+            "offering_id": "service:model-gateway-oss",
+        }],
+        "Use the LiteLLM model gateway.",
+    )
+    assert response.status_code == 200
+
+    applied = client.post(
+        "/api/v1/architecture/workspace/proposals/apply",
+        json={
+            "proposal": response.json(),
+            "idempotency_key": "proposal-litellm-001",
+        },
+    )
+    assert applied.status_code == 200
+    assert applied.json()["architecture_intent"]["offering_selections"] == {
+        "component:model-gateway": "service:model-gateway-oss"
+    }
+
+    invalid = _structured_proposal(
+        client,
+        applied.json(),
+        [{
+            "operation": "select_offering",
+            "component_id": "component:model-gateway",
+            "offering_id": "service:tool-gateway-oss",
+        }],
+    )
+    assert invalid.status_code == 422
+
+
+def test_proposal_tampering_stale_base_and_export_gate_fail_closed():
+    client = _client()
+    initial = client.get("/api/v1/architecture/workspace").json()
+    response = _structured_proposal(
+        client,
+        initial,
+        [{
+            "operation": "set_component_intent",
+            "component_id": "component:tool-gateway",
+            "intent": "excluded",
+        }],
+    )
+    proposal = response.json()
+    tampered = deepcopy(proposal)
+    tampered["operations"][0]["intent"] = "required"
+    rejected = client.post(
+        "/api/v1/architecture/workspace/proposals/apply",
+        json={"proposal": tampered, "idempotency_key": "proposal-tamper-001"},
+    )
+    assert rejected.status_code == 422
+
+    advanced = client.post(
+        "/api/v1/architecture/workspace/evaluate",
+        json={"answers": {"requirement:private-connectivity": True}},
+    )
+    assert advanced.status_code == 200
+    stale = client.post(
+        "/api/v1/architecture/workspace/proposals/apply",
+        json={"proposal": proposal, "idempotency_key": "proposal-stale-001"},
+    )
+    assert stale.status_code == 409
+
+    fresh = _structured_proposal(
+        client,
+        advanced.json(),
+        [{
+            "operation": "set_component_intent",
+            "component_id": "component:tool-gateway",
+            "intent": "excluded",
+        }],
+    )
+    applied = client.post(
+        "/api/v1/architecture/workspace/proposals/apply",
+        json={
+            "proposal": fresh.json(),
+            "idempotency_key": "proposal-export-block-001",
+        },
+    )
+    assert applied.status_code == 200
+    exported = client.post(
+        "/api/v1/architecture/workspace/exports",
+        json={},
+    )
+    assert exported.status_code == 409
+    assert exported.json()["detail"]["publication_blockers"]
