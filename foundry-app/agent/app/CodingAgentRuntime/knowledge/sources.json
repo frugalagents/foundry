@@ -1,0 +1,957 @@
+{
+  "tierA_monitoring": {
+    "description": "Fixed source list checked on a schedule. High precision, low recall by design. A hit here means an existing pattern changed or a trusted source explicitly announced something new. All URLs below were verified live before being added.",
+    "cadenceCron": "0 9 * * 1",
+    "sources": [
+
+      {
+        "id": "agentcore-docs",
+        "title": "Amazon Bedrock AgentCore docs",
+        "url": "https://docs.aws.amazon.com/bedrock-agentcore/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["access/identity", "exec/microvm", "gateway/mcpgw", "gateway/modelgw", "harness/memory", "external/providers", "harness/loop"]
+      },
+      {
+        "id": "agentcore-observability",
+        "title": "AgentCore — Observability",
+        "url": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["ops/observability", "ops/session-economics"],
+        "note": "Already cited inline in ops/observability.md; formally registered here so schedule checks catch updates. Also covers session-level metrics needed for session-economics node."
+      },
+      {
+        "id": "agentcore-vpc",
+        "title": "AgentCore — VPC configuration",
+        "url": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-vpc.html",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["external/providers"],
+        "note": "Already cited inline in external/providers.md; formally registered here."
+      },
+      {
+        "id": "bedrock-knowledge-bases",
+        "title": "Amazon Bedrock Knowledge Bases",
+        "url": "https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base.html",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["knowledge-layer/code-intelligence"],
+        "note": "Primary backing source for the code-intelligence node. Covers chunking, embedding, retrieval, and namespace isolation for RAG over indexed data sources. Verify URL on first use — AWS docs restructure occasionally."
+      },
+
+      {
+        "id": "claude-code-permissions",
+        "title": "Claude Code — Configure permissions",
+        "url": "https://code.claude.com/docs/en/permissions",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["access/guardrails", "registry/tools", "harness/perms"]
+      },
+      {
+        "id": "claude-code-permission-modes",
+        "title": "Claude Code — Choose a permission mode",
+        "url": "https://code.claude.com/docs/en/permission-modes",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness/loop"]
+      },
+      {
+        "id": "claude-code-security",
+        "title": "Claude Code — Security",
+        "url": "https://code.claude.com/docs/en/security",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["access/identity"]
+      },
+      {
+        "id": "claude-code-hooks-guide",
+        "title": "Claude Code — Automate actions with hooks",
+        "url": "https://code.claude.com/docs/en/hooks-guide",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness/perms"]
+      },
+      {
+        "id": "claude-code-skills",
+        "title": "Claude Code — Extend Claude with skills",
+        "url": "https://code.claude.com/docs/en/skills",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["registry/skills"]
+      },
+      {
+        "id": "claude-code-sub-agents",
+        "title": "Claude Code — Create custom subagents",
+        "url": "https://code.claude.com/docs/en/sub-agents",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["registry/subagents"]
+      },
+      {
+        "id": "claude-code-mcp",
+        "title": "Claude Code — Connect Claude Code to tools via MCP",
+        "url": "https://code.claude.com/docs/en/mcp",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["registry/mcpservers"]
+      },
+      {
+        "id": "claude-code-sandbox-environments",
+        "title": "Claude Code — Choose a sandbox environment",
+        "url": "https://code.claude.com/docs/en/sandbox-environments",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["exec/local", "exec/container", "exec/remote"]
+      },
+      {
+        "id": "claude-code-sandboxing",
+        "title": "Claude Code — Configure the sandboxed Bash tool",
+        "url": "https://code.claude.com/docs/en/sandboxing",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["exec/local"]
+      },
+      {
+        "id": "claude-code-github-actions",
+        "title": "Claude Code GitHub Actions",
+        "url": "https://code.claude.com/docs/en/github-actions",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["surfaces/chat", "surfaces/ci"]
+      },
+      {
+        "id": "claude-code-cli-reference",
+        "title": "Claude Code — CLI reference / print mode",
+        "url": "https://code.claude.com/docs/en/cli-reference",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["surfaces/cli"]
+      },
+      {
+        "id": "claude-code-vs-code",
+        "title": "Claude Code — Use Claude Code in VS Code",
+        "url": "https://code.claude.com/docs/en/vs-code",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["surfaces/ide"]
+      },
+      {
+        "id": "claude-code-costs",
+        "title": "Claude Code — Manage costs effectively",
+        "url": "https://code.claude.com/docs/en/costs",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["ops/cost", "ops/token"]
+      },
+
+      {
+        "id": "claude-code-admin-setup",
+        "title": "Claude Code — Set up Claude Code for your organization",
+        "url": "https://code.claude.com/docs/en/admin-setup",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/saas-products", "access/identity", "access/quota", "access/policy-tiers", "registry/registry"],
+        "note": "Verified live 2026-08-14. Hub page for enterprise deployment. Covers: API provider selection (Anthropic, Bedrock, GCP, Azure), managed settings delivery, policy enforcement (permission rules, sandboxing, MCP control, plugin marketplaces, model restrictions), usage visibility, and data handling. SSO and SCIM provisioning reference the Claude Enterprise Administrator Guide separately."
+      },
+      {
+        "id": "claude-code-server-managed-settings",
+        "title": "Claude Code — Server-managed settings",
+        "url": "https://code.claude.com/docs/en/server-managed-settings",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/saas-products", "access/guardrails", "registry/registry"],
+        "note": "Centralized policy delivery from the claude.ai admin console. Backs the 'org-wide policy overrides individual developer settings' principle in harness-selection and guardrails."
+      },
+      {
+        "id": "claude-code-managed-mcp",
+        "title": "Claude Code — Managed MCP servers",
+        "url": "https://code.claude.com/docs/en/managed-mcp",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["registry/mcpservers", "gateway/mcpgw", "harness-selection/saas-products"],
+        "note": "Covers org-level MCP server allowlists, denylists, and managed-only enforcement — directly backs the MCP server approval model in registry/mcpservers and the catalog governance decision."
+      },
+      {
+        "id": "claude-code-spend-limits",
+        "title": "Claude Code — Claude Apps Gateway spend limits",
+        "url": "https://code.claude.com/docs/en/claude-apps-gateway-spend-limits",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["access/quota", "access/policy-tiers", "ops/session-economics"],
+        "note": "Verified indirectly via admin-setup 2026-08-14. Covers per-user and per-group spend limits through the Claude Apps Gateway — directly backs the alert/throttle/block enforcement model and policy-tier exceptions."
+      },
+      {
+        "id": "claude-code-monitoring-usage",
+        "title": "Claude Code — Monitoring usage",
+        "url": "https://code.claude.com/docs/en/monitoring-usage",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["ops/observability", "ops/cost"],
+        "note": "OpenTelemetry export of sessions, tools, and tokens. All providers. Backs the OTel-compatible telemetry decision in ops/observability."
+      },
+      {
+        "id": "claude-code-analytics",
+        "title": "Claude Code — Analytics",
+        "url": "https://code.claude.com/docs/en/analytics",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["ops/observability", "ops/cost"],
+        "note": "Adoption and contribution metrics dashboard (Teams/Enterprise) and per-user usage/spend (Console). Backs cost attribution and adoption analytics."
+      },
+      {
+        "id": "claude-code-zero-data-retention",
+        "title": "Claude Code — Zero Data Retention",
+        "url": "https://code.claude.com/docs/en/zero-data-retention",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["access/security-posture", "external/providers"],
+        "note": "ZDR option for qualified Claude Enterprise accounts. Nothing stored after request completes. Backs the data-handling decision in security-posture and the model-provider compliance posture."
+      },
+      {
+        "id": "claude-code-legal-and-compliance",
+        "title": "Claude Code — Legal and compliance",
+        "url": "https://code.claude.com/docs/en/legal-and-compliance",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["access/security-posture"],
+        "note": "Regulatory certifications and compliance framework coverage. Backs the compliance-posture decisions in security-posture."
+      },
+      {
+        "id": "claude-code-llm-gateway",
+        "title": "Claude Code — LLM gateway",
+        "url": "https://code.claude.com/docs/en/llm-gateway",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["gateway/modelgw", "harness-selection/saas-products"],
+        "note": "Single endpoint in front of multiple providers with centralized request logging. Backs model gateway decisions and the SaaS product's built-in gateway capability."
+      },
+      {
+        "id": "claude-code-self-hosted-environments",
+        "title": "Claude Code — Self-hosted environments",
+        "url": "https://code.claude.com/docs/en/self-hosted-environments",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/saas-products", "exec/remote"],
+        "note": "Self-hosted deployment option for Claude Code. Relevant to the SaaS-product harness selection for air-gapped or strict-residency environments."
+      },
+
+      {
+        "id": "pydanticai-docs",
+        "title": "PydanticAI — Documentation",
+        "url": "https://pydantic.dev/docs/ai/overview/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/oss-frameworks"],
+        "note": "Canonical URL — ai.pydantic.dev redirects here. Covers agent loop, typed tools, dependency injection, multi-model support, MCP, and the Coder harness (clai CLI). Changelog at pydantic.dev/docs/ai/project/changelog/"
+      },
+      {
+        "id": "autogen-docs",
+        "title": "Microsoft AutoGen — Documentation",
+        "url": "https://microsoft.github.io/autogen/stable/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/oss-frameworks"],
+        "note": "AutoGen 0.4 (agentchat + core + ext). Covers DockerCommandLineCodeExecutor, team patterns (SelectorGroupChat, Swarm, GraphFlow), MCP via autogen-ext. Releases at github.com/microsoft/autogen/releases"
+      },
+      {
+        "id": "crewai-docs",
+        "title": "CrewAI — Documentation",
+        "url": "https://docs.crewai.com/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/oss-frameworks"],
+        "note": "Covers Crews (sequential/hierarchical), Flows (event-driven), MCP via MCPServerAdapter. Note: changelog URL is version-pinned in Mintlify — monitor docs.crewai.com root for current path."
+      },
+      {
+        "id": "smolagents-docs",
+        "title": "Hugging Face smolagents — Documentation",
+        "url": "https://huggingface.co/docs/smolagents/index",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/oss-frameworks"],
+        "note": "Key claim to verify on each check: CodeAgent ~30% fewer steps vs tool-calling. Sandbox options (E2B, Blaxel, Modal, Docker). LocalPythonExecutor is explicitly NOT a security boundary — verify this warning persists in docs."
+      },
+      {
+        "id": "google-adk-docs",
+        "title": "Google ADK — Documentation",
+        "url": "https://adk.dev/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/oss-frameworks"],
+        "note": "Canonical URL — google.github.io/adk-docs/ redirects here. Multi-language SDKs across separate repos: adk-python, adk-js, adk-go, adk-java, adk-kotlin. Release notes at adk.dev/release-notes/"
+      },
+      {
+        "id": "agno-docs",
+        "title": "Agno — Documentation",
+        "url": "https://docs.agno.com/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/oss-frameworks"],
+        "note": "Formerly PhiData. AgentOS runtime — 50+ REST endpoints, JWT RBAC, BYOC. MCPTools class. Monitor for changes to multi-tenant isolation model."
+      },
+      {
+        "id": "openai-agents-sdk-docs",
+        "title": "OpenAI Agents SDK — Documentation",
+        "url": "https://openai.github.io/openai-agents-python/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/oss-frameworks"],
+        "note": "Distinct from openai/codex (the CLI harness). Framework SDK: Agent + Handoff + Guardrail + Session + SandboxAgent. Release notes at openai.github.io/openai-agents-python/release/"
+      },
+      {
+        "id": "ag2-docs",
+        "title": "AG2 — Documentation",
+        "url": "https://docs.ag2.ai/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/oss-frameworks"],
+        "note": "Community AutoGen fork — distinct from Microsoft AutoGen 0.4. Protocol-driven rewrite with Network + Hub + typed Channels architecture. v1.0 stabilized Aug 2026."
+      },
+
+      {
+        "id": "strands-trusted-message-history",
+        "title": "Strands Agents — Trusted message history",
+        "url": "https://strandsagents.com/docs/user-guide/safety-security/trusted-message-history/index.md",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["external/web"]
+      },
+      {
+        "id": "strands-sliding-window-conversation-manager",
+        "title": "Strands Agents — SlidingWindowConversationManager",
+        "url": "https://strandsagents.com/docs/api/python/strands.agent.conversation_manager.sliding_window_conversation_manager/index.md",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness/context"]
+      },
+      {
+        "id": "strands-docs-root",
+        "title": "Strands Agents — User guide",
+        "url": "https://strandsagents.com/docs/user-guide/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/oss-frameworks"],
+        "note": "Added 2026-08-14. Architecture overview and agent lifecycle for the Strands OSS framework. Backs harness-selection/oss-frameworks. Domain known-good (other Strands pages already in Tier A); specific path to verify on first citation use."
+      },
+      {
+        "id": "strands-multi-agent",
+        "title": "Strands Agents — Multi-agent patterns",
+        "url": "https://strandsagents.com/docs/user-guide/multi-agent/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["registry/subagents", "harness-selection/oss-frameworks"],
+        "note": "Added 2026-08-14. Agent-to-agent delegation and fan-out. Corroborates registry/subagents depth/fan-out caps and backs oss-frameworks assembly model. Path to verify on first citation use."
+      },
+
+      {
+        "id": "mcp-spec-repo",
+        "title": "Model Context Protocol spec repo (releases)",
+        "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/releases",
+        "checkMethod": "fetch + diff latest release tag/notes against last-seen",
+        "citedIn": ["registry/mcpservers"]
+      },
+      {
+        "id": "mcp-security-best-practices",
+        "title": "MCP — Security best practices",
+        "url": "https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["access/security-posture", "registry/provenance", "registry/mcpservers", "external/web"],
+        "note": "Verified live 2026-08-14. Versioned URL (spec version 2026-07-28) — update path when MCP spec advances. Covers: confused deputy attacks, token passthrough, SSRF, local MCP server compromise (supply chain), OAuth URL validation (XSS/RCE), stdio transport security, scope minimization. Directly backs security-posture node and strengthens provenance's supply-chain risk framing."
+      },
+
+      {
+        "id": "openai-codex-docs",
+        "title": "OpenAI Codex docs",
+        "url": "https://learn.chatgpt.com/docs",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness/loop", "harness/perms"],
+        "note": "Verified live 2026-08-13 (developers.openai.com/codex redirects here). Candidate for Tier C corroboration on exec/perms/loop — cite once a specific claim is verified against content."
+      },
+      {
+        "id": "github-copilot-docs",
+        "title": "GitHub Copilot docs",
+        "url": "https://docs.github.com/en/copilot",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["surfaces/chat", "registry/registry", "access/quota", "harness-selection/saas-products"],
+        "note": "Verified live 2026-08-13. Candidate for Tier C corroboration on surfaces/chat and registry/registry governance model."
+      },
+      {
+        "id": "cursor-docs",
+        "title": "Cursor docs",
+        "url": "https://cursor.com/docs",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["exec/local", "harness/context", "harness-selection/saas-products"],
+        "note": "Verified live 2026-08-13 (docs.cursor.com redirects here). Candidate for exec/local and harness/context corroboration — cite once specific claims are verified."
+      },
+      {
+        "id": "devin-docs",
+        "title": "Devin (Cognition) docs",
+        "url": "https://docs.devin.ai/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness/rollback", "quality/evals"],
+        "note": "Verified live 2026-08-13. Introduction page had no rollback/eval detail — check deeper subsections before relying on this for Tier C."
+      },
+      {
+        "id": "kiro-docs",
+        "title": "Kiro (AWS) docs",
+        "url": "https://kiro.dev/docs/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness/loop", "registry/skills", "harness/rollback"],
+        "note": "Verified live 2026-08-13. Has dedicated specs/hooks/steering sections — candidate for harness/loop, registry/skills corroboration."
+      },
+
+      {
+        "id": "litellm-docs",
+        "title": "LiteLLM docs",
+        "url": "https://docs.litellm.ai/docs/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": [],
+        "note": "Verified live 2026-08-13. Root docs index — see litellm-routing-docs for the specific subpage actually cited."
+      },
+      {
+        "id": "litellm-routing-docs",
+        "title": "LiteLLM docs — Routing",
+        "url": "https://docs.litellm.ai/docs/routing",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["gateway/modelgw", "gateway/model-tiering"],
+        "note": "Verified live 2026-08-13. Promoted into knowledge/gateway/modelgw.md 2026-08-14. Also cited by gateway/model-tiering for routing strategy options."
+      },
+
+      {
+        "id": "langchain-agents",
+        "title": "LangChain — Agents",
+        "url": "https://docs.langchain.com/oss/python/langchain/agents",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/oss-frameworks", "harness/loop"],
+        "note": "Verified live 2026-08-14 (python.langchain.com/docs/concepts/agents redirects to docs.langchain.com). Explicitly states 'Agent = Model + Harness' and 'an agent is a model calling tools in a loop until a task is complete.' Corroborates the reason-act-observe loop shape independently of Anthropic/AWS sources. Also covers tool use, middleware, guardrails, and human-in-the-loop patterns."
+      },
+
+      {
+        "id": "owasp-llm-top10",
+        "title": "OWASP Top 10 for Large Language Model Applications",
+        "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["access/security-posture", "access/guardrails", "external/web"],
+        "note": "Verified live 2026-08-14. Current version: 2026 (published 2026-08-04). Key categories for this knowledge base: LLM01 (Prompt Injection), LLM05 (Supply Chain Vulnerabilities), LLM07 (Insecure Plugin Design → MCP server risk), LLM08 (Excessive Agency → autonomy mode / guardrails). Note: active development has moved to the OWASP GenAI Security Project — monitor both this page and https://genai.owasp.org for updates."
+      },
+
+      {
+        "id": "anthropic-model-pricing",
+        "title": "Anthropic — Model pricing",
+        "url": "https://www.anthropic.com/pricing",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["gateway/model-tiering", "ops/session-economics", "ops/cost-model-enterprise"],
+        "note": "Concrete per-token costs by model tier (Haiku, Sonnet, Opus classes). Required for model-tiering node's cost-per-tier reasoning and session-economics cost estimates. Prices change — this MUST be checked on schedule, not just at authoring time. Never assert a specific price figure in a component file without noting 'as of <date>'."
+      },
+
+      {
+        "id": "vault-aws-iam-auth",
+        "title": "HashiCorp Vault — AWS IAM auth method",
+        "url": "https://developer.hashicorp.com/vault/docs/auth/aws",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["gateway/vault-integration"],
+        "note": "IAM auth configuration; binding Lambda roles to Vault policies; cross-account trust. Core auth method for the vault-credential-broker pattern."
+      },
+      {
+        "id": "vault-agent",
+        "title": "HashiCorp Vault — Agent",
+        "url": "https://developer.hashicorp.com/vault/docs/agent-and-proxy/agent",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["gateway/vault-integration"],
+        "note": "Sidecar pattern; auto-auth; template rendering; lease renewal. Backs the ECS sidecar deployment option in vault-integration."
+      },
+      {
+        "id": "vault-kv-v2",
+        "title": "HashiCorp Vault — KV v2 secrets engine",
+        "url": "https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["gateway/vault-integration"],
+        "note": "Versioned KV; metadata; read/write API. Primary static secrets pattern in the gateway credential broker."
+      },
+      {
+        "id": "vault-aws-secrets-engine",
+        "title": "HashiCorp Vault — AWS secrets engine",
+        "url": "https://developer.hashicorp.com/vault/docs/secrets/aws",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["gateway/vault-integration"],
+        "note": "Dynamic AWS credentials; STS AssumeRole; lease TTL. Backs the dynamic-secrets recommendation in vault-integration."
+      },
+
+      {
+        "id": "jupyter-server-rest-api",
+        "title": "Jupyter Server REST API",
+        "url": "https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["surfaces/jupyterlab"],
+        "note": "Kernel management, content API, session API. Foundation for the Jupyter MCP server tool definitions."
+      },
+      {
+        "id": "jupyter-client-protocol",
+        "title": "jupyter_client — kernel protocol",
+        "url": "https://jupyter-client.readthedocs.io/en/stable/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["surfaces/jupyterlab"],
+        "note": "ZeroMQ messaging; execute_request; output capture. Required for cell execution capability in the Jupyter MCP server."
+      },
+      {
+        "id": "z2jh-kubernetes",
+        "title": "Zero to JupyterHub on Kubernetes",
+        "url": "https://z2jh.jupyter.org/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["surfaces/jupyterlab"],
+        "note": "JupyterHub on EKS; single-user pod configuration; singleuser.extraContainers for MCP server sidecar. Primary deployment reference for the JupyterLab surface."
+      },
+
+      {
+        "id": "fed-sr-11-7",
+        "title": "Federal Reserve SR 11-7 — Supervisory Guidance on Model Risk Management",
+        "url": "https://www.federalreserve.gov/supervisionreg/srletters/sr1107.htm",
+        "checkMethod": "manual — stable supervisory letter; check annually for updates or successor guidance",
+        "cadenceOverride": "0 9 1 1 *",
+        "citedIn": ["access/model-risk-management"],
+        "note": "2011 guidance; foundation for MRM programs at Fed-supervised institutions. Stable document — annual check sufficient. Do not interpret for AI application without compliance counsel."
+      },
+      {
+        "id": "occ-bulletin-2021-38",
+        "title": "OCC Bulletin 2021-38 — Model Risk Management Principles for Banks Using AI",
+        "url": "https://www.occ.gov/news-issuances/bulletins/2021/bulletin-2021-38.html",
+        "checkMethod": "manual — stable bulletin; check annually for successor guidance",
+        "cadenceOverride": "0 9 1 1 *",
+        "citedIn": ["access/model-risk-management"],
+        "note": "Most directly applicable OCC guidance for AI systems. Published 2021. Explicitly addresses AI model risk. Check annually for successor guidance as AI regulation evolves."
+      },
+      {
+        "id": "finra-rule-4511",
+        "title": "FINRA Rule 4511 — Books and Records",
+        "url": "https://www.finra.org/rules-guidance/rulebooks/finra-rules/4511",
+        "checkMethod": "manual — stable rule text; check annually for amendments",
+        "cadenceOverride": "0 9 1 1 *",
+        "citedIn": ["access/mnpi"],
+        "note": "Record-keeping requirements for broker-dealers. Application to AI session logs requires counsel interpretation. Stable rule text — annual check."
+      },
+
+      {
+        "id": "gcp-cloud-run-docs",
+        "title": "Google Cloud — Cloud Run documentation",
+        "url": "https://cloud.google.com/run/docs",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["exec/gcp-runner"],
+        "note": "Service configuration, VPC connector, minimum instances, Workload Identity. Primary reference for Cloud Run deployment option in gcp-runner."
+      },
+      {
+        "id": "gcp-workload-identity-federation",
+        "title": "Google Cloud — Workload Identity Federation",
+        "url": "https://cloud.google.com/iam/docs/workload-identity-federation",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["exec/gcp-runner"],
+        "note": "Pool and provider configuration; AWS provider setup; token exchange. Core authentication pattern for GCP runner — no static credentials."
+      },
+      {
+        "id": "gcp-cloud-logging-python",
+        "title": "Google Cloud — Cloud Logging structured logging (Python)",
+        "url": "https://cloud.google.com/logging/docs/setup/python",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["exec/gcp-runner"],
+        "note": "LogEntry JSON payload; log name; severity. Required for OCSF-compatible session audit logging from GCP runner."
+      },
+
+      {
+        "id": "cyberark-ccp-api",
+        "title": "CyberArk — Central Credential Provider REST API",
+        "url": "https://docs.cyberark.com/credential-providers/latest/en/content/sdk/cyberark-application-identity-management-api.htm",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["gateway/cyberark-integration"],
+        "note": "AppID authentication; Safe/Object lookup; Reason field. Core API for the cyberark-credential-broker. URL pattern uses 'latest' — monitor for breaking changes on CyberArk version updates."
+      },
+      {
+        "id": "cyberark-conjur-docs",
+        "title": "CyberArk Conjur — documentation",
+        "url": "https://docs.cyberark.com/conjur-enterprise/latest/en/content/home.htm",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["gateway/cyberark-integration"],
+        "note": "JWT authentication; secret retrieval API; OIDC integration. Alternative to legacy CCP for organizations on Conjur cloud-native platform."
+      },
+
+      {
+        "id": "pcaob-as-2201",
+        "title": "PCAOB AS 2201 — An Audit of Internal Control Over Financial Reporting",
+        "url": "https://pcaobus.org/Standards/Auditing/Pages/AS2201.aspx",
+        "checkMethod": "manual — stable auditing standard; check annually for amendments",
+        "cadenceOverride": "0 9 1 1 *",
+        "citedIn": ["access/sox"],
+        "note": "PCAOB standard governing external auditor assessment of ITGC. Stable — annual check. Backs ITGC evidence requirements in sox node."
+      },
+      {
+        "id": "aws-cost-anomaly-detection",
+        "title": "AWS Cost Explorer — Cost Anomaly Detection",
+        "url": "https://docs.aws.amazon.com/cost-management/latest/userguide/getting-started-ad.html",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["ops/cost-model-enterprise"],
+        "note": "Anomaly monitor configuration; alert thresholds; SNS integration. Primary stack option for cost anomaly detection in cost-model-enterprise node."
+      },
+
+      {
+        "id": "pi-docs",
+        "title": "Pi — Documentation",
+        "url": "https://pi.dev/docs/latest",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Canonical docs for Pi harness. URL provided 2026-08-16. GitHub repo confirmed: earendil-works/pi (~91k stars). Docs explicitly state: four default tools (read, write, edit, bash), no built-in sandbox, operator must provide container/VM/microVM isolation."
+      },
+      {
+        "id": "pi-repo",
+        "title": "Pi — GitHub Repository",
+        "url": "https://github.com/earendil-works/pi",
+        "checkMethod": "fetch releases page diff",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Confirmed repo org: earendil-works/pi. ~91k stars as of 2026-08-16. Monitor for MCP integration documentation — currently sparse in docs."
+      },
+      {
+        "id": "opencode-docs",
+        "title": "OpenCode — Documentation",
+        "url": "https://opencode.ai/docs",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "ARCHIVED — active development migrated to charmbracelet/crush. Verified 2026-08-16: actual architecture uses coder/task/title agent roles (no dual-agent read-only planning split). MCP is native (mcpServers config). ~14k stars on archived repo. Monitor charmbracelet/crush for current feature set."
+      },
+      {
+        "id": "opencode-repo",
+        "title": "OpenCode — GitHub Repository (archived)",
+        "url": "https://github.com/opencode-ai/opencode",
+        "checkMethod": "fetch releases page diff",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "ARCHIVED as of verification 2026-08-16. Active development migrated to charmbracelet/crush. Keep monitoring for redirect or final deprecation notice."
+      },
+      {
+        "id": "charmbracelet-crush",
+        "title": "Crush (charmbracelet) — Active OpenCode Successor",
+        "url": "https://github.com/charmbracelet/crush",
+        "checkMethod": "fetch releases page diff",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Active development repo for what was opencode-ai/opencode. Monitor for docs site URL, feature changes, and star count. Add docs site URL when confirmed."
+      },
+      {
+        "id": "cline-docs",
+        "title": "Cline — Documentation",
+        "url": "https://docs.cline.bot/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Root redirects to /cline-overview. Primary source for MCP integration model, approval flows, and IDE extension capabilities."
+      },
+      {
+        "id": "cline-repo",
+        "title": "Cline — GitHub Repository",
+        "url": "https://github.com/cline/cline",
+        "checkMethod": "fetch releases page diff",
+        "citedIn": ["harness-selection/coding-harnesses"]
+      },
+      {
+        "id": "openhands-docs",
+        "title": "OpenHands — Documentation",
+        "url": "https://docs.openhands.dev/overview/introduction",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Canonical docs domain is docs.openhands.dev — project rebranded from All Hands AI. Repo is OpenHands/OpenHands (~84k stars). Covers browser client (Agent Canvas), CLI, REST/WebSocket APIs. Wraps Claude Code, Codex, Gemini, and ACP-compatible agents as substrates. No desktop app — deprecated local GUI only."
+      },
+      {
+        "id": "openhands-repo",
+        "title": "OpenHands — GitHub Repository",
+        "url": "https://github.com/OpenHands/OpenHands",
+        "checkMethod": "fetch releases page diff",
+        "citedIn": ["harness-selection/coding-harnesses"]
+      },
+      {
+        "id": "goose-docs",
+        "title": "Goose — Documentation",
+        "url": "https://goose-docs.ai/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Governance transferred from Block/Square (block/goose) to Agentic AI Foundation (aaif-goose/goose). Canonical docs moved from block.github.io/goose to goose-docs.ai. Update any old block.github.io references."
+      },
+      {
+        "id": "goose-repo",
+        "title": "Goose — GitHub Repository",
+        "url": "https://github.com/aaif-goose/goose",
+        "checkMethod": "fetch releases page diff",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Transferred from github.com/block/goose — old URL redirects but use canonical aaif-goose org."
+      },
+      {
+        "id": "aider-docs",
+        "title": "Aider — Documentation",
+        "url": "https://aider.chat/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Primary docs for Aider. Changelog at aider.chat/HISTORY.html. Coding leaderboard at aider.chat/docs/leaderboards/ — an independent model benchmark maintained by the project, useful for model selection within Aider deployments."
+      },
+      {
+        "id": "aider-repo",
+        "title": "Aider — GitHub Repository",
+        "url": "https://github.com/Aider-AI/aider",
+        "checkMethod": "fetch releases page diff",
+        "citedIn": ["harness-selection/coding-harnesses"]
+      },
+      {
+        "id": "mastra-docs",
+        "title": "Mastra — Documentation",
+        "url": "https://mastra.ai/docs",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "TypeScript-native AI agent framework. Repo is mastra-ai/mastra (~27k stars). License: Apache 2.0 core + proprietary EE (ee/ directories). Studio UI confirmed at localhost:4111. MCP server authoring supported. 'Harness primitive launched June 2026' claim unconfirmed from canonical docs — monitor for official announcement."
+      },
+      {
+        "id": "mastra-repo",
+        "title": "Mastra — GitHub Repository",
+        "url": "https://github.com/mastra-ai/mastra",
+        "checkMethod": "fetch releases page diff",
+        "citedIn": ["harness-selection/coding-harnesses"]
+      },
+      {
+        "id": "swe-agent-docs",
+        "title": "SWE-agent — Documentation",
+        "url": "https://swe-agent.com/latest/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Root swe-agent.com redirects to /latest/. Purpose-built GitHub issue → code fix pipeline. Main repo is in MAINTENANCE MODE as of 2026-08-16 — active development shifted to mini-swe-agent. Monitor mini-swe-agent repo for feature parity and adoption."
+      },
+      {
+        "id": "swe-agent-repo",
+        "title": "SWE-agent — GitHub Repository (maintenance mode)",
+        "url": "https://github.com/SWE-agent/SWE-agent",
+        "checkMethod": "fetch releases page diff",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Main repo in maintenance mode as of 2026-08-16. Monitor for official deprecation or redirect notice."
+      },
+      {
+        "id": "mini-swe-agent-repo",
+        "title": "mini-swe-agent — GitHub Repository",
+        "url": "https://github.com/SWE-agent/mini-swe-agent",
+        "checkMethod": "fetch releases page diff",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Active development successor to SWE-agent. Monitor for own docs site, star growth, and feature parity with original SWE-agent."
+      },
+      {
+        "id": "swebench-leaderboard",
+        "title": "SWE-bench — Leaderboard",
+        "url": "https://www.swebench.com/",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "cadenceOverride": "0 9 * * 1",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "The authoritative benchmark for coding agent harness quality on real GitHub issues. Maintained by Princeton NLP / SWE-agent team. Covers all agents, not just SWE-agent. Weekly check warranted — leaderboard updates frequently as new agents are evaluated."
+      },
+      {
+        "id": "codex-cli-repo",
+        "title": "OpenAI Codex CLI — GitHub Repository",
+        "url": "https://github.com/openai/codex",
+        "checkMethod": "fetch CHANGELOG.md diff",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Distinct from the OpenAI Agents SDK (openai/openai-agents-python). Apache 2.0 license. OpenAI ecosystem only — no multi-provider support confirmed. MCP is native (codex mcp command). ~106k stars. macOS Seatbelt + network-disable sandboxing."
+      },
+      {
+        "id": "codex-cli-docs",
+        "title": "OpenAI Codex CLI — Official Documentation",
+        "url": "https://learn.chatgpt.com/docs/codex/cli",
+        "checkMethod": "fetch + diff against last-seen snapshot",
+        "citedIn": ["harness-selection/coding-harnesses"],
+        "note": "Official CLI docs separate from README. Covers MCP integration (codex mcp command), /permissions model, sandboxing, and supported model options."
+      }
+    ],
+    "notes": "citedIn tracks which knowledge/ files reference this source. Sources with an empty citedIn array are verified-live but not yet used. New nodes added 2026-08-14: harness-selection/*, knowledge-layer/*, access/security-posture, access/policy-tiers, gateway/model-tiering, ops/session-economics. Phase 7 nodes added 2026-08-15: gateway/vault-integration, surfaces/jupyterlab, access/model-risk-management, access/mnpi, quality/safety-critical-eval. Phase 8 nodes added 2026-08-15: exec/gcp-runner, gateway/cyberark-integration, access/sox, ops/cost-model-enterprise. Phase 9 added 2026-08-16: harness-selection/coding-harnesses (new node); oss-frameworks.md expanded to full SDK landscape; harness canonical sources added to Tier A."
+  },
+
+  "tierB_discovery": {
+    "description": "Broader, noisier sweep. Purpose is to find named patterns NOT already represented in the taxonomy. A finding only becomes a candidate if it clears corroborationThreshold below.",
+    "trigger": "on-demand only — run via `node scripts/manage-discovery.mjs run` or an equivalent discovery-sweep skill. Never scheduled/cron'd; the user initiates every run manually.",
+    "corroborationThreshold": {
+      "minIndependentSources": 2,
+      "rule": "A candidate component/pattern must appear, consistently named, across at least this many sources that do not cite each other. Tripwire-only sources never count toward this threshold."
+    },
+    "seedQueries": [
+      "coding agent platform architecture 2026",
+      "agent sandboxing comparison microVM container",
+      "MCP server supply chain security",
+      "agent-to-agent protocol A2A adoption",
+      "coding agent approval workflow async queue",
+      "AI agent browser computer use security",
+      "AI agent data residency VPC deployment",
+      "LLM gateway multi-provider routing pattern",
+      "coding agent platform buy vs build OSS harness",
+      "RAG over codebase code intelligence agent context",
+      "enterprise coding agent policy groups exception model",
+      "LLM prompt injection attack surface coding agent",
+      "coding agent cost per developer token economics",
+      "agent memory team knowledge extraction enterprise",
+      "coding agent platform vendor comparison Cursor Copilot Claude",
+      "open source coding agent harness comparison 2026",
+      "Pi agent OpenCode Cline Goose Aider harness benchmark",
+      "coding harness vs agent framework distinction",
+      "Mastra TypeScript agent harness 2026",
+      "Hermes agent self-hosted coding harness"
+    ],
+    "deferredComponents": {
+      "description": "Components identified during gap audits as medium-confidence — real but less settled. Each discovery-sweep run should check whether these have cleared the corroboration threshold.",
+      "candidates": [
+        {
+          "slug": "a2a-orchestration",
+          "name": "Multi-agent orchestration / A2A protocol",
+          "targetGroup": "registry",
+          "distinctFrom": "registry/subagents"
+        },
+        {
+          "slug": "approval-workflow",
+          "name": "Approval workflow as async queue",
+          "targetGroup": "access",
+          "distinctFrom": "access/guardrails + harness/perms"
+        },
+        {
+          "slug": "browser-surface",
+          "name": "Browser / computer-use as distinct surface",
+          "targetGroup": "surfaces",
+          "distinctFrom": "surfaces/ide, exec/*"
+        },
+        {
+          "slug": "data-residency",
+          "name": "Data residency / VPC placement as its own axis",
+          "targetGroup": "external",
+          "distinctFrom": "external/providers, exec/*"
+        },
+        {
+          "slug": "progressive-trust",
+          "name": "Progressive trust elevation — teams earn relaxed guardrails over time",
+          "targetGroup": "access",
+          "distinctFrom": "access/guardrails",
+          "addedDate": "2026-08-14"
+        },
+        {
+          "slug": "standards-injection",
+          "name": "Org-wide and team-wide standards injection (CLAUDE.md, ADRs) as platform component",
+          "targetGroup": "knowledge-layer",
+          "distinctFrom": "harness/context",
+          "addedDate": "2026-08-14",
+          "note": "claude-code-admin-setup mentions 'Managed policy CLAUDE.md' as an enforcement control — may already have cleared threshold with one source; needs a second independent source."
+        }
+      ]
+    },
+    "tripwireOnly": [
+      "https://news.ycombinator.com/",
+      "https://www.reddit.com/r/LocalLLaMA/",
+      "https://www.reddit.com/r/AI_Agents/"
+    ],
+    "tripwireNote": "Aggregator hits are a signal to look closer, never evidence on their own. Do not count a tripwire hit toward the >=2-source corroboration requirement."
+  },
+
+  "tierC_caseStudies": {
+    "description": "Real org/vendor precedent for a specific ## Decisions option, backfilling components that currently assert a pattern with no citable source. Every Tier C source entry must state 'as of <date>' in its supports text when used in a component file — never presented as current fact, only historical precedent.",
+    "priorityTargets": {
+      "description": "Components at status: candidate with zero real citation — highest-value Tier C targets. Updated 2026-08-14 to include new nodes from gap audit.",
+      "uncitedComponents": [
+        "harness/rollback",
+        "quality/evals",
+        "registry/registry",
+        "external/landscape",
+        "harness/loop",
+        "harness/runtime",
+        "harness-selection/saas-products",
+        "harness-selection/oss-frameworks",
+        "harness-selection/managed-runtime",
+        "knowledge-layer/code-intelligence",
+        "knowledge-layer/org-knowledge",
+        "access/security-posture",
+        "access/policy-tiers",
+        "gateway/model-tiering",
+        "ops/session-economics",
+        "exec/on-prem-runner",
+        "access/hipaa",
+        "access/cmmc",
+        "access/idp-federation",
+        "access/regional-compliance",
+        "access/data-jurisdiction",
+        "quality/model-capability-eval",
+        "ops/federation",
+        "quality/safety-critical-eval",
+        "exec/gcp-runner",
+        "gateway/cyberark-integration",
+        "access/sox",
+        "ops/cost-model-enterprise"
+      ],
+      "note": "Updated 2026-08-15 after Phase 7+8 builds. Nodes listed here have sources cited within the .md files but those sources have NOT been verified live and are NOT registered in Tier A. Tier C work for these nodes = verify the cited sources live, promote confirmed ones to Tier A, remove stale/dead sources."
+    },
+    "sources": [
+      {
+        "id": "devin-case-study",
+        "title": "Devin (Cognition) docs",
+        "url": "https://docs.devin.ai/",
+        "targetComponents": ["harness/rollback", "quality/evals"],
+        "reviewAfterMonths": 6,
+        "lastReviewed": "2026-08-13",
+        "status": "seeded, not yet corroborated — introduction page had no rollback/eval detail; needs a deeper subsection pass before it can back a claim"
+      },
+      {
+        "id": "kiro-case-study",
+        "title": "Kiro (AWS) docs",
+        "url": "https://kiro.dev/docs/",
+        "targetComponents": ["harness/loop", "registry/skills", "harness/rollback"],
+        "reviewAfterMonths": 6,
+        "lastReviewed": "2026-08-13",
+        "status": "seeded, not yet corroborated"
+      },
+      {
+        "id": "codex-case-study",
+        "title": "OpenAI Codex docs",
+        "url": "https://learn.chatgpt.com/docs",
+        "targetComponents": ["harness/perms", "harness/loop"],
+        "reviewAfterMonths": 6,
+        "lastReviewed": "2026-08-13",
+        "status": "seeded, not yet corroborated"
+      },
+      {
+        "id": "copilot-case-study",
+        "title": "GitHub Copilot docs",
+        "url": "https://docs.github.com/en/copilot",
+        "targetComponents": ["surfaces/chat", "registry/registry", "harness-selection/saas-products"],
+        "reviewAfterMonths": 6,
+        "lastReviewed": "2026-08-13",
+        "status": "seeded, not yet corroborated — targetComponents updated 2026-08-14 to include harness-selection/saas-products"
+      },
+      {
+        "id": "cursor-case-study",
+        "title": "Cursor docs",
+        "url": "https://cursor.com/docs",
+        "targetComponents": ["exec/local", "harness/context", "harness-selection/saas-products"],
+        "reviewAfterMonths": 6,
+        "lastReviewed": "2026-08-13",
+        "status": "seeded, not yet corroborated — targetComponents updated 2026-08-14 to include harness-selection/saas-products"
+      },
+      {
+        "id": "litellm-case-study",
+        "title": "LiteLLM docs — Routing",
+        "url": "https://docs.litellm.ai/docs/routing",
+        "targetComponents": ["gateway/modelgw", "gateway/model-tiering"],
+        "reviewAfterMonths": 6,
+        "lastReviewed": "2026-08-13",
+        "status": "promoted 2026-08-14 — live in knowledge/gateway/modelgw.md. Updated targetComponents to include gateway/model-tiering."
+      },
+      {
+        "id": "sec-cybersecurity-rules",
+        "title": "SEC — Cybersecurity Risk Management, Strategy, Governance, and Incident Disclosure (Final Rule 33-11216)",
+        "url": "https://www.sec.gov/rules/final/2023/33-11216.pdf",
+        "targetComponents": ["access/security-posture"],
+        "checkMethod": "manual — stable PDF, check annually for amendments",
+        "cadenceOverride": "0 9 1 1 *",
+        "reviewAfterMonths": 12,
+        "lastReviewed": "2026-08-14",
+        "status": "seeded 2026-08-14 — primary source for SEC 2023 cybersecurity disclosure rules. Backs the claim that immutable audit trail is required for SEC-regulated entities. PDF is stable — annual check is sufficient. Note: URL is a PDF, must state 'as of 2023' when cited."
+      },
+      {
+        "id": "langchain-agents-case-study",
+        "title": "LangChain — Agents",
+        "url": "https://docs.langchain.com/oss/python/langchain/agents",
+        "targetComponents": ["harness-selection/oss-frameworks", "harness/loop"],
+        "reviewAfterMonths": 6,
+        "lastReviewed": "2026-08-14",
+        "status": "verified live 2026-08-14 — page exists, states 'Agent = Model + Harness' and describes reason-act-observe loop. Promoted to Tier A (langchain-agents). Retained here for Tier C tracking of harness-selection/oss-frameworks and harness/loop corroboration."
+      }
+    ]
+  },
+
+  "fallback": [
+    {
+      "url": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.md",
+      "domain": "docs.aws.amazon.com",
+      "fallbackEligible": true,
+      "note": "verified live during Phase 1 authoring of knowledge/gateway/mcpgw.md"
+    },
+    {
+      "url": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.md",
+      "domain": "docs.aws.amazon.com",
+      "fallbackEligible": true,
+      "note": "verified live during Phase 1 authoring of knowledge/access/identity.md"
+    },
+    {
+      "url": "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.md",
+      "domain": "docs.aws.amazon.com",
+      "fallbackEligible": true,
+      "note": "verified live during Phase 1 authoring of knowledge/exec/microvm.md"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/permissions",
+      "domain": "code.claude.com",
+      "fallbackEligible": true,
+      "note": "verified live during Phase 4 batch 2 authoring of knowledge/access/guardrails.md"
+    },
+    {
+      "url": "https://code.claude.com/docs/en/mcp",
+      "domain": "code.claude.com",
+      "fallbackEligible": true,
+      "note": "verified live during Phase 4 batch 3 authoring of knowledge/registry/mcpservers.md"
+    },
+    {
+      "url": "https://docs.litellm.ai/docs/",
+      "domain": "docs.litellm.ai",
+      "fallbackEligible": true,
+      "note": "verified live 2026-08-13, added for Phase 5 gateway/modelgw corroboration"
+    }
+  ]
+}

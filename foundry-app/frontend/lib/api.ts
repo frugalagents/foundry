@@ -1,0 +1,89 @@
+import { authHeaders } from './auth'
+import type { Customer, Session, SessionCreate, Module } from './types'
+
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+
+async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(),
+      ...init?.headers,
+    },
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${path}: ${body}`)
+  }
+  return res.json() as Promise<T>
+}
+
+// ── Customers ─────────────────────────────────────────────────────────────────
+
+export const listCustomers = () =>
+  call<Customer[]>('/api/v1/customers')
+
+export const createCustomer = (name: string) =>
+  call<Customer>('/api/v1/customers', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+
+export const getCustomer = (customerId: string) =>
+  call<Customer>(`/api/v1/customers/${customerId}`)
+
+// ── Sessions ──────────────────────────────────────────────────────────────────
+
+export const listSessions = (customerId: string) =>
+  call<Session[]>(`/api/v1/customers/${customerId}/sessions`)
+
+export const createSession = (customerId: string, body: SessionCreate) =>
+  call<Session>(`/api/v1/customers/${customerId}/sessions`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+
+export const getSession = (customerId: string, sessionId: string) =>
+  call<Session>(`/api/v1/customers/${customerId}/sessions/${sessionId}`)
+
+export const updateSession = (customerId: string, sessionId: string, body: Partial<Session>) =>
+  call<Session>(`/api/v1/customers/${customerId}/sessions/${sessionId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+
+export const deleteSession = (customerId: string, sessionId: string) =>
+  call<void>(`/api/v1/customers/${customerId}/sessions/${sessionId}`, { method: 'DELETE' })
+
+// ── Modules ───────────────────────────────────────────────────────────────────
+
+export const listModules = () =>
+  call<Module[]>('/api/v1/modules')
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Load every session across all of the user's customers, sorted by updated_at desc. */
+export async function listAllSessions() {
+  const customers = await listCustomers()
+  const rows = await Promise.all(
+    customers.map(async (c) => {
+      try {
+        const sessions = await listSessions(c.customer_id)
+        return sessions.map((s) => ({ session: s, customer: c }))
+      } catch {
+        return []
+      }
+    }),
+  )
+  return rows
+    .flat()
+    .sort((a, b) => +new Date(b.session.updated_at) - +new Date(a.session.updated_at))
+}
+
+/** Get or create a default workspace customer for the current user. */
+export async function getOrCreateDefaultCustomer(): Promise<Customer> {
+  const customers = await listCustomers()
+  if (customers.length > 0) return customers[0]
+  return createCustomer('My Workspace')
+}

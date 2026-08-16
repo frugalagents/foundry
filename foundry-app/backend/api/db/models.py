@@ -1,0 +1,72 @@
+"""Pydantic models for API request/response bodies."""
+from __future__ import annotations
+from typing import Optional
+from pydantic import BaseModel, Field
+
+
+# ── Customers ────────────────────────────────────────────────────────────────
+
+class CustomerCreate(BaseModel):
+    name: str
+
+
+class CustomerUpdate(BaseModel):
+    name: Optional[str] = None
+
+
+class Customer(BaseModel):
+    customer_id: str
+    name: str
+    created_by: str
+    created_at: str
+    updated_at: str
+    demo_data: Optional[bool] = None
+
+
+# ── Sessions ──────────────────────────────────────────────────────────────────
+
+class SessionCreate(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=120)
+    description: Optional[str] = Field(default=None, max_length=500)
+    module_id: Optional[str] = None
+
+
+class SessionUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=120)
+    description: Optional[str] = Field(default=None, max_length=500)
+    module_id: Optional[str] = None
+    status: Optional[str] = None
+    current_step: Optional[int] = Field(default=None, ge=0)
+    recommendation: Optional[str] = None
+    evidence_state: Optional[str] = None
+
+
+class Session(BaseModel):
+    session_id: str
+    customer_id: str
+    module_id: Optional[str] = None
+    title: str
+    description: str = ""
+    status: str = "active"
+    current_step: int = 0
+    recommendation: Optional[str] = None
+    evidence_state: Optional[str] = None
+    created_by: str
+    created_at: str
+    updated_at: str
+
+
+# ── Modules ────────────────────────────────────────────────────────────────────
+
+class Module(BaseModel):
+    id: str
+    name: str
+    description: str
+    icon: str
+    color: str
+
+
+# ── Stream ────────────────────────────────────────────────────────────────────
+
+class StreamRequest(BaseModel):
+    message: str

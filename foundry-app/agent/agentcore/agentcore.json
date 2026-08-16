@@ -1,0 +1,86 @@
+{
+  "$schema": "https://schema.agentcore.aws.dev/v1/agentcore.json",
+  "name": "CodingAgentRuntime",
+  "version": 1,
+  "managedBy": "CDK",
+  "tags": {
+    "agentcore:created-by": "agentcore-cli",
+    "agentcore:project-name": "CodingAgentRuntime"
+  },
+  "runtimes": [
+    {
+      "name": "CodingAgentRuntime",
+      "build": "CodeZip",
+      "entrypoint": "main.py",
+      "codeLocation": "app/CodingAgentRuntime/",
+      "runtimeVersion": "PYTHON_3_14",
+      "networkMode": "PUBLIC",
+      "protocol": "HTTP",
+      "requestHeaderAllowlist": [
+        "X-Amzn-Bedrock-AgentCore-Runtime-Custom-Cognito-Id-Token"
+      ],
+      "envVars": [
+        {
+          "name": "DYNAMODB_TABLE",
+          "value": "foundry-app-main"
+        },
+        {
+          "name": "BEDROCK_MODEL_ID",
+          "value": "us.anthropic.claude-sonnet-4-6"
+        },
+        {
+          "name": "MIDWAY_ISSUER",
+          "value": ""
+        },
+        {
+          "name": "OIDC_CLIENT_ID",
+          "value": ""
+        }
+      ]
+    }
+  ],
+  "memories": [
+    {
+      "name": "CodingAgentRuntimeMemory",
+      "eventExpiryDuration": 30,
+      "strategies": [
+        {
+          "type": "SEMANTIC",
+          "namespaceTemplates": [
+            "/users/{actorId}/facts"
+          ]
+        },
+        {
+          "type": "USER_PREFERENCE",
+          "namespaceTemplates": [
+            "/users/{actorId}/preferences"
+          ]
+        },
+        {
+          "type": "SUMMARIZATION",
+          "namespaceTemplates": [
+            "/summaries/{actorId}/{sessionId}"
+          ]
+        },
+        {
+          "type": "EPISODIC",
+          "namespaceTemplates": [
+            "/episodes/{actorId}/{sessionId}"
+          ],
+          "reflectionNamespaceTemplates": [
+            "/episodes/{actorId}"
+          ]
+        }
+      ]
+    }
+  ],
+  "credentials": [],
+  "evaluators": [],
+  "onlineEvalConfigs": [],
+  "agentCoreGateways": [],
+  "policyEngines": [],
+  "configBundles": [],
+  "abTests": [],
+  "harnesses": [],
+  "datasets": []
+}

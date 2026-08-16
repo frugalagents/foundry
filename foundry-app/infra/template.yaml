@@ -1,0 +1,408 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Enterprise AI Foundry — Serverless backend (API Gateway + Cognito + DynamoDB + S3 + CloudFront)
+
+Globals:
+  Function:
+    Timeout: 900
+    MemorySize: 1024
+    Runtime: python3.12
+    Environment:
+      Variables:
+        ENV:                   !Ref Env
+        DYNAMODB_TABLE:        !Ref MainTable
+        ALLOWED_ORIGINS:       !Ref AllowedOrigins
+        DEV_MODE:              !Ref DevMode
+        COGNITO_REGION:        !Ref AWS::Region
+        COGNITO_USER_POOL_ID:  !Ref UserPoolId
+        COGNITO_CLIENT_ID:     !Ref UserPoolClient
+        AGENTCORE_ENDPOINT_CODING_AGENT: !Ref AgentCoreEndpointArn
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+
+  AllowedOrigins:
+    Type: String
+    Default: "http://localhost:3000"
+    Description: "Frontend CloudFront URL for CORS"
+
+  DevMode:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: "true = skip Cognito JWT verification (local dev only)"
+
+  UserPoolId:
+    Type: String
+    Default: "us-east-1_oSEwvKdfd"
+    Description: "Existing Cognito User Pool ID (shared with platform-advisor, has Midway IdP)"
+
+  UserPoolDomain:
+    Type: String
+    Default: "platform-advisor-dev-616627284001"
+    Description: "Existing Cognito hosted UI domain prefix"
+
+  AgentCoreEndpointArn:
+    Type: String
+    Default: ""
+    Description: "CodingAgentRuntime ARN for backend invocation via bedrock-agentcore-runtime"
+
+  AgentCoreRuntimeArn:
+    Type: String
+    Default: "arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/CodingAgentRuntime_CodingAgentRuntime-TOiVHpGwhu"
+    AllowedPattern: "^$|^arn:(aws|aws-us-gov|aws-cn):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:runtime/[A-Za-z0-9][A-Za-z0-9_-]{0,255}$"
+    Description: "CodingAgentRuntime ARN for Identity Pool browser invocation permissions"
+
+Conditions:
+  IsDev: !Equals [!Ref Env, dev]
+  HasAgentCoreRuntimeArn: !Not [!Equals [!Ref AgentCoreRuntimeArn, ""]]
+
+Resources:
+  # ── DynamoDB Table ──────────────────────────────────────────────────────────
+  MainTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !If [IsDev, foundry-app-main, !Sub "foundry-app-main-${Env}"]
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+
+  # ── Cognito App Client in existing shared User Pool ─────────────────────────
+  # Reuses platform-advisor's User Pool (which already has Midway as OIDC IdP).
+  # No need to recreate the User Pool or re-register the Midway client secret.
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPoolId
+      ClientName: !Sub foundry-app-${Env}
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+        - Midway
+      CallbackURLs:
+        - !Sub "${AllowedOrigins}/callback"
+        - "http://localhost:3000/callback"
+      LogoutURLs:
+        - !Sub "${AllowedOrigins}/login"
+        - "http://localhost:3000/login"
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [email, openid, profile]
+      AllowedOAuthFlowsUserPoolClient: true
+
+  # ── Cognito Identity Pool (browser → AgentCore direct invocation) ───────────
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub foundry-app-identity-${Env}
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref UserPoolClient
+          ProviderName: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}"
+
+  IdentityPoolAuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub foundry-app-identity-auth-${Env}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
+              "ForAnyValue:StringLike":
+                "cognito-identity.amazonaws.com:amr": authenticated
+      Policies:
+        - !If
+          - HasAgentCoreRuntimeArn
+          - PolicyName: AgentCoreInvokeOnly
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - bedrock-agentcore:InvokeAgentRuntime
+                    - bedrock-agentcore:InvokeAgentRuntimeForUser
+                  Resource:
+                    - !Ref AgentCoreRuntimeArn
+                    - !Sub "${AgentCoreRuntimeArn}/*"
+          - !Ref AWS::NoValue
+
+  IdentityPoolRoles:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt IdentityPoolAuthRole.Arn
+
+  # ── API Gateway HTTP API (Cognito JWT-secured) ──────────────────────────────
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Description: Enterprise AI Foundry REST API — Cognito JWT at the edge
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            IdentitySource: "$request.header.Authorization"
+            JwtConfiguration:
+              audience:
+                - !Ref UserPoolClient
+              issuer: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}"
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AllowedOrigins
+          - "http://localhost:3000"
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        AllowCredentials: false
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 100
+        ThrottlingRateLimit: 50
+
+  # ── Lambda — FastAPI backend ────────────────────────────────────────────────
+  FoundryApiFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      SkipBuild: true
+    Properties:
+      FunctionName: !Sub foundry-api-${Env}
+      CodeUri: .lambda-src/
+      Handler: api.main.handler
+      Description: Enterprise AI Foundry FastAPI backend
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock-agentcore:InvokeAgentRuntime
+                - bedrock-agentcore:InvokeAgentRuntimeForUser
+              Resource: "*"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: "*"
+      Events:
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+        HealthCheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        CorsPreflight:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+
+  FoundryApiErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "foundry-api-${Env}-errors"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref FoundryApiFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 2
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  # ── Frontend: S3 + CloudFront ───────────────────────────────────────────────
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "foundry-app-frontend-${Env}-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  FrontendOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub foundry-app-frontend-oac-${Env}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
+
+  FrontendRouterFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub foundry-app-spa-router-${Env}
+      AutoPublish: true
+      FunctionConfig:
+        Comment: "SPA routing for Next.js static export"
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+          var lastSeg = uri.split('/').pop();
+          if (lastSeg && lastSeg.indexOf('.') !== -1) return request;
+          if (uri.charAt(uri.length - 1) !== '/') uri = uri + '/';
+          request.uri = uri + 'index.html';
+          return request;
+        }
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "Enterprise AI Foundry Frontend (${Env})"
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+            OriginAccessControlId: !GetAtt FrontendOAC.Id
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt FrontendRouterFunction.FunctionMetadata.FunctionARN
+        CacheBehaviors:
+          - PathPattern: "_next/static/*"
+            TargetOriginId: S3Origin
+            ViewerProtocolPolicy: redirect-to-https
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL — set as NEXT_PUBLIC_API_URL in frontend"
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiUrl"
+
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref MainTable
+
+  UserPoolClientId:
+    Description: "Cognito App Client ID — set as NEXT_PUBLIC_COGNITO_CLIENT_ID in frontend"
+    Value: !Ref UserPoolClient
+    Export:
+      Name: !Sub "${AWS::StackName}-UserPoolClientId"
+
+  CognitoDomain:
+    Description: "Cognito hosted UI full domain — set as NEXT_PUBLIC_COGNITO_DOMAIN in frontend"
+    Value: !Sub "${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com"
+    Export:
+      Name: !Sub "${AWS::StackName}-CognitoDomain"
+
+  IdentityPoolId:
+    Description: "Cognito Identity Pool ID — set as NEXT_PUBLIC_IDENTITY_POOL_ID in frontend"
+    Value: !Ref IdentityPool
+    Export:
+      Name: !Sub "${AWS::StackName}-IdentityPoolId"
+
+  UserPoolLoginUrl:
+    Description: "Cognito Hosted UI login URL for testing"
+    Value: !Sub "https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=code&scope=email+openid+profile&redirect_uri=${AllowedOrigins}/callback"
+
+  FrontendBucketName:
+    Description: S3 bucket for frontend assets
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-FrontendBucketName"
+
+  FrontendDistributionId:
+    Description: CloudFront distribution ID (for cache invalidation)
+    Value: !Ref FrontendDistribution
+    Export:
+      Name: !Sub "${AWS::StackName}-FrontendDistributionId"
+
+  FrontendURL:
+    Description: "CloudFront URL — use as AllowedOrigins in next deploy"
+    Value: !Sub "https://${FrontendDistribution.DomainName}"
+    Export:
+      Name: !Sub "${AWS::StackName}-FrontendURL"
