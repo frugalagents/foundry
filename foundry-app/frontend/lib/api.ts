@@ -1,5 +1,5 @@
 import { authHeaders } from './auth'
-import type { Customer, Session, SessionCreate, Module } from './types'
+import type { Customer, Session, SessionCreate, SessionHistory, Module } from './types'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
@@ -55,6 +55,9 @@ export const updateSession = (customerId: string, sessionId: string, body: Parti
 
 export const deleteSession = (customerId: string, sessionId: string) =>
   call<void>(`/api/v1/customers/${customerId}/sessions/${sessionId}`, { method: 'DELETE' })
+
+export const getSessionHistory = (customerId: string, sessionId: string) =>
+  call<SessionHistory>(`/api/v1/customers/${customerId}/sessions/${sessionId}/history`)
 
 // ── Modules ───────────────────────────────────────────────────────────────────
 

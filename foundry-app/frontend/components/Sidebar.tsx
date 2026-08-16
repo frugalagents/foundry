@@ -1,10 +1,11 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { nanoid } from 'nanoid'
 import { useStore } from '@/store'
 import { clearToken } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
-import { listAllSessions, createSession, getOrCreateDefaultCustomer, deleteSession } from '@/lib/api'
+import { listAllSessions, createSession, getOrCreateDefaultCustomer, deleteSession, getSessionHistory } from '@/lib/api'
 import type { ConversationRow } from '@/lib/types'
 
 const MODULE_COLORS: Record<string, string> = {
@@ -36,22 +37,38 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
     conversations, setConversations,
     activeSessionId,
     setActiveSession, clearMessages, setStreaming,
+    appendMessage, setCanvas, hideCanvas,
     userName, isAdmin,
   } = useStore()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleSelect = useCallback(
-    (row: ConversationRow) => {
+    async (row: ConversationRow) => {
       clearMessages()
+      hideCanvas()
       setActiveSession(row.customer.customer_id, row.session.session_id, row.session.module_id)
       history.pushState(
         null,
         '',
         `/sessions/${row.session.session_id}`,
       )
+      try {
+        const { messages, canvas } = await getSessionHistory(
+          row.customer.customer_id,
+          row.session.session_id,
+        )
+        for (const m of messages) {
+          appendMessage({ id: nanoid(), role: m.role, content: m.content })
+        }
+        if (canvas && canvas.nodes.length > 0) {
+          setCanvas(canvas.nodes, canvas.edges)
+        }
+      } catch {
+        // non-fatal — chat just starts empty
+      }
     },
-    [clearMessages, setActiveSession],
+    [clearMessages, hideCanvas, setActiveSession, appendMessage, setCanvas],
   )
 
   const handleNewChat = useCallback(async () => {

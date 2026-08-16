@@ -241,7 +241,7 @@ export class AgentCoreStack extends Stack {
     }
 
     // Grant AgentCore Runtime roles DynamoDB access for inter-phase context persistence
-    const dynamoTableArn = `arn:aws:dynamodb:${this.region}:${this.account}:table/platform-advisor-main`;
+    const dynamoTableArn = `arn:aws:dynamodb:${this.region}:${this.account}:table/foundry-app-main`;
     for (const env of this.application.environments.values()) {
       env.runtime.role.addToPrincipalPolicy(
         new iam.PolicyStatement({

@@ -66,6 +66,26 @@ export interface ConversationRow {
   customer: Customer
 }
 
+// ── History (persisted messages + canvas, GET /sessions/{id}/history) ────────
+
+export interface MessageOut {
+  role: 'user' | 'agent'
+  content: string
+  created_at: string
+}
+
+export interface CanvasOut {
+  nodes: ArchNode[]
+  edges: ArchEdge[]
+  stage: string
+  updated_at?: string
+}
+
+export interface SessionHistory {
+  messages: MessageOut[]
+  canvas?: CanvasOut | null
+}
+
 // ── SSE event payloads ────────────────────────────────────────────────────────
 
 export interface ChatStreamEvent {

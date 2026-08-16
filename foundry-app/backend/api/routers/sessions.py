@@ -1,5 +1,6 @@
 """Session CRUD endpoints."""
 from __future__ import annotations
+import json
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Depends, status
@@ -11,7 +12,14 @@ from api.middleware.auth import (
     is_admin,
 )
 from api.db import dynamodb as db
-from api.db.models import Session, SessionCreate, SessionUpdate
+from api.db.models import (
+    CanvasOut,
+    MessageOut,
+    Session,
+    SessionCreate,
+    SessionHistory,
+    SessionUpdate,
+)
 
 router = APIRouter(prefix="/customers/{customer_id}/sessions", tags=["sessions"])
 
@@ -83,6 +91,32 @@ async def delete_session(customer_id: str, session_id: str, user: CurrentUser):
     _get_session(customer_id, session_id, user, write=True)
     if not db.delete_session(customer_id, session_id, owner_id=get_user_id(user)):
         raise HTTPException(status_code=404, detail="Session not found")
+
+
+@router.get("/{session_id}/history", response_model=SessionHistory)
+async def get_session_history(customer_id: str, session_id: str, user: CurrentUser):
+    _get_session(customer_id, session_id, user)
+    messages = db.list_messages(customer_id, session_id)
+    canvas_item = db.get_canvas(customer_id, session_id)
+    canvas = None
+    if canvas_item:
+        canvas = CanvasOut(
+            nodes=json.loads(canvas_item.get("nodes_json") or "[]"),
+            edges=json.loads(canvas_item.get("edges_json") or "[]"),
+            stage=canvas_item.get("stage") or "",
+            updated_at=canvas_item.get("updated_at"),
+        )
+    return SessionHistory(
+        messages=[
+            MessageOut(
+                role=m.get("role", ""),
+                content=m.get("content", ""),
+                created_at=m.get("created_at", ""),
+            )
+            for m in messages
+        ],
+        canvas=canvas,
+    )
 
 
 def _to_session(item: dict) -> Session:

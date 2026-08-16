@@ -253,3 +253,27 @@ def delete_session(
         if _is_conditional_failure(exc):
             return False
         raise
+
+
+# ── Messages & canvas (written by the CodingAgentRuntime agent) ───────────────
+
+def list_messages(customer_id: str, session_id: str) -> list[dict]:
+    table = _get_table()
+    resp = table.query(
+        KeyConditionExpression="PK = :pk AND begins_with(SK, :sk_prefix)",
+        ExpressionAttributeValues={
+            ":pk": f"CUSTOMER#{customer_id}",
+            ":sk_prefix": f"MSG#{session_id}#",
+        },
+    )
+    items = resp.get("Items", [])
+    items.sort(key=lambda i: i.get("created_at", ""))
+    return items
+
+
+def get_canvas(customer_id: str, session_id: str) -> dict | None:
+    table = _get_table()
+    resp = table.get_item(
+        Key={"PK": f"CUSTOMER#{customer_id}", "SK": f"CANVAS#{session_id}"}
+    )
+    return resp.get("Item")

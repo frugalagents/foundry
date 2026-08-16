@@ -70,3 +70,23 @@ class Module(BaseModel):
 
 class StreamRequest(BaseModel):
     message: str
+
+
+# ── History (messages + canvas persisted by the agent runtime) ────────────────
+
+class MessageOut(BaseModel):
+    role: str
+    content: str
+    created_at: str
+
+
+class CanvasOut(BaseModel):
+    nodes: list = Field(default_factory=list)
+    edges: list = Field(default_factory=list)
+    stage: str = ""
+    updated_at: Optional[str] = None
+
+
+class SessionHistory(BaseModel):
+    messages: list[MessageOut]
+    canvas: Optional[CanvasOut] = None

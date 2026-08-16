@@ -27,6 +27,7 @@ from strands import Agent, tool
 from strands.models import BedrockModel
 
 from knowledge_loader import KnowledgeBase, load_knowledge_base
+from store import put_canvas_snapshot, put_message
 
 app = BedrockAgentCoreApp()
 log = app.logger
@@ -36,6 +37,7 @@ log = app.logger
 _REGION    = os.environ.get("AWS_REGION", "us-east-1")
 _MODEL_ID  = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-6")
 _TABLE     = os.environ.get("DYNAMODB_TABLE", "foundry-app-main")
+_MEMORY_ID = os.environ.get("MEMORY_CODINGAGENTRUNTIMEMEMORY_ID", "")
 
 # Midway / OIDC — identical env vars as the FastAPI backend
 _MIDWAY_ISSUER   = os.environ.get("MIDWAY_ISSUER", "")
@@ -146,22 +148,21 @@ def _error_event(message: str) -> str:
 
 # ── Stream merge ──────────────────────────────────────────────────────────────
 
-def _sse_from_strands_event(ev) -> str | None:
+def _text_from_strands_event(ev) -> str | None:
     if isinstance(ev, dict):
         text = ev.get("data", "")
-        if isinstance(text, str) and text:
-            return _chat_stream(text)
-        return None
+        return text if isinstance(text, str) and text else None
     if isinstance(ev, str) and ev:
-        return _chat_stream(ev)
+        return ev
     if hasattr(ev, "delta") and hasattr(ev.delta, "text") and ev.delta.text:
-        return _chat_stream(ev.delta.text)
+        return ev.delta.text
     return None
 
 
 async def _merge_streams(
     agent_gen: AsyncIterator,
     panel_queue: asyncio.Queue,
+    on_text: "callable[[str], None] | None" = None,
 ) -> AsyncIterator[str]:
     out: asyncio.Queue[str] = asyncio.Queue()
     done = asyncio.Event()
@@ -169,9 +170,11 @@ async def _merge_streams(
     async def _agent_pump():
         try:
             async for ev in agent_gen:
-                sse = _sse_from_strands_event(ev)
-                if sse:
-                    await out.put(sse)
+                text = _text_from_strands_event(ev)
+                if text:
+                    if on_text:
+                        on_text(text)
+                    await out.put(_chat_stream(text))
         except Exception as exc:
             log.exception("Agent stream error")
             await out.put(_error_event(str(exc)))
@@ -239,6 +242,12 @@ async def invoke(payload: dict, context):
         log.info("Dev mode: actor_id=%s", actor_id)
 
     log.info("invoke: session=%s customer=%s msg=%.120s", session_id, customer_id, user_message)
+
+    if customer_id and session_id:
+        try:
+            put_message(customer_id, session_id, "user", user_message)
+        except Exception:
+            log.exception("Failed to persist user message")
 
     # Emit module_detected so the frontend sidebar can label this session
     yield _module_detected_event("coding-agent")
@@ -311,20 +320,35 @@ async def invoke(payload: dict, context):
         panel_queue.put_nowait(event)
         log.info("Architecture update emitted: stage=%s nodes=%d edges=%d",
                  stage, len(nodes), len(edges))
+        if customer_id and session_id:
+            try:
+                put_canvas_snapshot(customer_id, session_id, nodes, edges, stage)
+            except Exception:
+                log.exception("Failed to persist canvas snapshot")
         return f"Architecture canvas updated ({stage or 'update'}: {len(nodes)} nodes, {len(edges)} edges)."
 
     tools = [query_knowledge, load_mandate_knowledge, update_architecture]
 
     # ── AC Memory session manager ─────────────────────────────────────────────
-    try:
-        from strands.agent.memory import BedrockAgentCoreMemoryManager
-        agentcore_session_id = getattr(context, "session_id", None) or session_id
-        session_manager = BedrockAgentCoreMemoryManager(
-            session_id=agentcore_session_id,
-            actor_id=actor_id,
-        )
-    except Exception:
-        session_manager = None
+    session_manager = None
+    if _MEMORY_ID:
+        try:
+            from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig
+            from bedrock_agentcore.memory.integrations.strands.session_manager import (
+                AgentCoreMemorySessionManager,
+            )
+            agentcore_session_id = getattr(context, "session_id", None) or session_id
+            session_manager = AgentCoreMemorySessionManager(
+                AgentCoreMemoryConfig(
+                    memory_id=_MEMORY_ID,
+                    session_id=agentcore_session_id,
+                    actor_id=actor_id,
+                ),
+                region_name=_REGION,
+            )
+        except Exception:
+            log.exception("Failed to initialize AgentCore memory session manager")
+            session_manager = None
 
     # ── Build Strands Agent ───────────────────────────────────────────────────
     model = BedrockModel(model_id=_MODEL_ID, streaming=True)
@@ -339,11 +363,19 @@ async def invoke(payload: dict, context):
     agent = Agent(**agent_kwargs)
 
     # ── Stream merged output ──────────────────────────────────────────────────
+    reply_parts: list[str] = []
     try:
-        async for sse_event in _merge_streams(agent.stream_async(user_message), panel_queue):
+        async for sse_event in _merge_streams(
+            agent.stream_async(user_message), panel_queue, on_text=reply_parts.append
+        ):
             yield sse_event
     finally:
         log.info("Stream complete: session=%s", session_id)
+        if customer_id and session_id and reply_parts:
+            try:
+                put_message(customer_id, session_id, "agent", "".join(reply_parts))
+            except Exception:
+                log.exception("Failed to persist agent message")
 
     yield _complete_event(session_id)
 
