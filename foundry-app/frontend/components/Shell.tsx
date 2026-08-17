@@ -4,86 +4,49 @@ import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import Sidebar from './Sidebar'
 import Chat from './Chat'
-import { useStore } from '@/store'
+import TopBar from './TopBar'
 
-// Dynamically import Canvas (ReactFlow) to avoid SSR issues
 const Canvas = dynamic(() => import('./Canvas'), { ssr: false })
 
 export default function Shell() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const canvasVisible = useStore((s) => s.canvasVisible || s.canvasNodes.length > 0)
 
-  const handleNewChat = useCallback(() => {
-    // clearMessages and clearActiveSession are called inside Sidebar
-    // Nothing extra needed here — just keep Shell re-renderable
-  }, [])
+  const handleNewChat = useCallback(() => {}, [])
 
   return (
-    <div style={{
-      height: '100vh',
-      display: 'flex',
-      overflow: 'hidden',
-      background: 'var(--bg)',
-    }}>
-      {/* Sidebar */}
-      {sidebarOpen && (
-        <Sidebar onNewChat={handleNewChat} />
-      )}
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+      <TopBar />
 
-      {/* Toggle sidebar button */}
-      <button
-        onClick={() => setSidebarOpen((v) => !v)}
-        title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-        style={{
-          position: 'absolute',
-          top: 14,
-          left: sidebarOpen ? 248 : 8,
-          zIndex: 50,
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border)',
-          borderRadius: 6,
-          width: 24, height: 24,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer',
-          color: 'var(--text-muted)',
-          transition: 'left 200ms ease',
-        }}
-      >
-        {sidebarOpen ? (
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        ) : (
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        )}
-      </button>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+        {sidebarOpen && <Sidebar onNewChat={handleNewChat} />}
 
-      {/* Chat panel */}
-      <div style={{
-        flex: canvasVisible ? '0 0 55%' : '1',
-        minWidth: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'flex 300ms ease',
-      }}>
-        <Chat />
-      </div>
-
-      {/* Canvas panel */}
-      {canvasVisible && (
-        <div
-          className="animate-slide-in"
+        <button
+          onClick={() => setSidebarOpen((v) => !v)}
+          title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           style={{
-            flex: '0 0 45%',
-            borderLeft: '1px solid var(--border)',
-            overflow: 'hidden',
+            position: 'absolute', top: 12,
+            left: sidebarOpen ? 248 : 8,
+            zIndex: 50, width: 22, height: 22, borderRadius: 6,
+            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+            color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', cursor: 'pointer', transition: 'left 200ms ease',
           }}
         >
-          <Canvas />
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <polyline points={sidebarOpen ? '15 18 9 12 15 6' : '9 18 15 12 9 6'} />
+          </svg>
+        </button>
+
+        {/* Chat panel — always 50% */}
+        <div style={{ flex: '1 1 50%', minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Chat />
         </div>
-      )}
+
+        <div style={{ width: 1, background: 'var(--border)', flexShrink: 0 }} />
+
+        {/* Canvas panel — always 50%, shows placeholder when empty */}
+        <Canvas />
+      </div>
     </div>
   )
 }

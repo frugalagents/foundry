@@ -43,6 +43,9 @@ interface AppState {
   // ── Streaming state ─────────────────────────────────────────────────────────
   streaming: boolean
   setStreaming: (v: boolean) => void
+
+  // ── UI module override ───────────────────────────────────────────────────────
+  setActiveModule: (module: string) => void
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -107,4 +110,7 @@ export const useStore = create<AppState>((set) => ({
   // ── Streaming state ─────────────────────────────────────────────────────────
   streaming: false,
   setStreaming: (v) => set({ streaming: v }),
+
+  // ── UI module override ───────────────────────────────────────────────────────
+  setActiveModule: (module) => set({ activeModule: module }),
 }))

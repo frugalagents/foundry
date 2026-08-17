@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { nanoid } from 'nanoid'
 import { useStore } from '@/store'
 import { clearToken } from '@/lib/auth'
@@ -31,6 +31,16 @@ function relativeTime(iso: string): string {
   return `${d}d ago`
 }
 
+function groupByCustomer(conversations: ConversationRow[]) {
+  const groups = new Map<string, ConversationRow[]>()
+  for (const row of conversations) {
+    const key = row.customer.name
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(row)
+  }
+  return Array.from(groups.entries()).map(([name, sessions]) => ({ name, sessions }))
+}
+
 export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
   const router = useRouter()
   const {
@@ -44,6 +54,17 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+
+  const grouped = useMemo(() => {
+    const filtered = search.trim()
+      ? conversations.filter((r) =>
+          r.session.title.toLowerCase().includes(search.toLowerCase()) ||
+          r.customer.name.toLowerCase().includes(search.toLowerCase()),
+        )
+      : conversations
+    return groupByCustomer(filtered)
+  }, [conversations, search])
 
   const handleSelect = useCallback(
     async (row: ConversationRow) => {
@@ -157,8 +178,30 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
         </button>
       </div>
 
-      {/* New chat button */}
+      {/* Search */}
       <div style={{ padding: '10px 10px 6px' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: 'var(--bg)', border: '1px solid var(--border)',
+          borderRadius: 8, padding: '7px 10px',
+        }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search sessions…"
+            style={{
+              background: 'none', border: 'none', outline: 'none',
+              color: 'var(--text)', fontSize: 12.5, width: '100%',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* New chat button */}
+      <div style={{ padding: '0 10px 6px' }}>
         <button
           onClick={handleNewChat}
           style={{
@@ -193,95 +236,96 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
             {loadError}
           </p>
         )}
-        {conversations.length === 0 ? (
+        {grouped.length === 0 ? (
           <p style={{ padding: '16px 14px', fontSize: 12, color: 'var(--text-faint)', textAlign: 'center' }}>
-            No conversations yet
+            {search ? 'No matches' : 'No conversations yet'}
           </p>
         ) : (
-          conversations.map((row) => {
-            const isActive = row.session.session_id === activeSessionId
-            const mod      = row.session.module_id
-            const modColor = mod ? (MODULE_COLORS[mod] ?? '#888') : '#888'
-            return (
-              <div
-                key={row.session.session_id}
-                onMouseEnter={() => setHoveredId(row.session.session_id)}
-                onMouseLeave={() => setHoveredId(null)}
-                style={{ position: 'relative' }}
-              >
-                <button
-                  onClick={() => handleSelect(row)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 14px',
-                    background: isActive ? 'var(--bg-hover)' : 'transparent',
-                    border: 'none',
-                    borderLeft: isActive ? `2px solid var(--accent)` : '2px solid transparent',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2,
-                    transition: 'background var(--transition)',
-                  }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                    <span style={{
-                      fontSize: 13, fontWeight: 500, color: 'var(--text)',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      maxWidth: 130,
-                    }}>
-                      {row.session.title}
-                    </span>
-                    {mod && (
-                      <span style={{
-                        fontSize: 10, fontWeight: 600, color: modColor,
-                        background: `${modColor}18`,
-                        padding: '1px 5px', borderRadius: 4,
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {MODULE_LABELS[mod] ?? mod}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
-                      {row.customer.name}
-                    </span>
-                    {loadingId === row.session.session_id ? (
-                      <span style={{
-                        width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-                        border: '1.5px solid var(--accent)', borderTopColor: 'transparent',
-                        display: 'inline-block', animation: 'spin 0.7s linear infinite',
-                      }} />
-                    ) : (
-                      <span style={{ fontSize: 10, color: 'var(--text-faint)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                        {relativeTime(row.session.updated_at)}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                {hoveredId === row.session.session_id && (
-                  <button
-                    onClick={(e) => handleDelete(e, row)}
-                    disabled={deletingId === row.session.session_id}
-                    title="Delete session"
-                    style={{
-                      position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-                      background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                      borderRadius: 4, cursor: 'pointer', padding: '2px 4px',
-                      color: 'var(--text-muted)', fontSize: 11, lineHeight: 1,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    {deletingId === row.session.session_id ? '…' : '×'}
-                  </button>
-                )}
+          grouped.map((group) => (
+            <div key={group.name}>
+              <div style={{
+                padding: '12px 14px 4px', fontSize: 10.5, fontWeight: 600,
+                letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)',
+              }}>
+                {group.name}
               </div>
-            )
-          })
+              {group.sessions.map((row) => {
+                const isActive = row.session.session_id === activeSessionId
+                const mod      = row.session.module_id
+                const modColor = mod ? (MODULE_COLORS[mod] ?? '#888') : '#888'
+                return (
+                  <div
+                    key={row.session.session_id}
+                    onMouseEnter={() => setHoveredId(row.session.session_id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    style={{ position: 'relative' }}
+                  >
+                    <button
+                      onClick={() => handleSelect(row)}
+                      style={{
+                        width: '100%', padding: '8px 14px',
+                        background: isActive ? 'var(--bg-hover)' : 'transparent',
+                        border: 'none',
+                        borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+                        cursor: 'pointer', textAlign: 'left',
+                        display: 'flex', flexDirection: 'column', gap: 2,
+                        transition: 'background var(--transition)',
+                      }}
+                      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                      onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                        <span style={{
+                          fontSize: 13, fontWeight: 500, color: 'var(--text)',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130,
+                        }}>
+                          {row.session.title}
+                        </span>
+                        {mod && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 600, color: modColor,
+                            background: `${modColor}18`, padding: '1px 5px', borderRadius: 4,
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {MODULE_LABELS[mod] ?? mod}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        {loadingId === row.session.session_id ? (
+                          <span style={{
+                            width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                            border: '1.5px solid var(--accent)', borderTopColor: 'transparent',
+                            display: 'inline-block', animation: 'spin 0.7s linear infinite',
+                          }} />
+                        ) : (
+                          <span style={{ fontSize: 10, color: 'var(--text-faint)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            {relativeTime(row.session.updated_at)}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                    {hoveredId === row.session.session_id && (
+                      <button
+                        onClick={(e) => handleDelete(e, row)}
+                        disabled={deletingId === row.session.session_id}
+                        title="Delete session"
+                        style={{
+                          position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                          background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                          borderRadius: 4, cursor: 'pointer', padding: '2px 4px',
+                          color: 'var(--text-muted)', fontSize: 11, lineHeight: 1,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        {deletingId === row.session.session_id ? '…' : '×'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))
         )}
       </div>
 

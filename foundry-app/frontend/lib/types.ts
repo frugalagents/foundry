@@ -115,6 +115,14 @@ export type SSEEvent =
 
 // ── Architecture canvas ───────────────────────────────────────────────────────
 
+export type NodeComment = {
+  initials: string
+  author: string
+  text: string
+}
+
+export type ArchLayer = 'control' | 'model' | 'data' | 'observability'
+
 export interface ArchNode {
   id: string
   type: 'arch' | 'zone'
@@ -126,6 +134,10 @@ export interface ArchNode {
   y: number
   width?: number
   height?: number
+  cost?: string
+  size?: string
+  layer?: ArchLayer
+  comments?: NodeComment[]
 }
 
 export interface ArchEdge {
@@ -135,4 +147,12 @@ export interface ArchEdge {
   animated?: boolean
   color?: string
   dashed?: boolean
+}
+
+export interface ArchDraft {
+  id: string
+  name: string
+  costLabel: string
+  nodes: ArchNode[]
+  edges: ArchEdge[]
 }
