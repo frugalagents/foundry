@@ -43,27 +43,6 @@ export default function TopBar() {
           </span>
         </div>
 
-        <div style={{ width: 1, height: 20, background: 'var(--border)', flexShrink: 0 }} />
-
-        <div style={{
-          display: 'flex', gap: 2, background: 'var(--bg-elevated)',
-          border: '1px solid var(--border)', borderRadius: 9, padding: 2, flexShrink: 0,
-        }}>
-          {MODULES.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setActiveModule(m.id)}
-              style={{
-                padding: '6px 13px', borderRadius: 7, border: 'none', fontSize: 12,
-                fontWeight: 500, cursor: 'pointer',
-                background: currentModule === m.id ? 'var(--bg-hover)' : 'none',
-                color: currentModule === m.id ? 'var(--text)' : 'var(--text-muted)',
-              }}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Right: export + user avatar */}
