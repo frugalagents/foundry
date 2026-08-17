@@ -328,7 +328,21 @@ async def invoke(payload: dict, context):
         Call this after gathering enough information about the customer's
         platform to meaningfully visualize the architecture.
 
-        Each node: {id, type ("arch"|"zone"), label, sublabel, icon, color, x, y, width?, height?}
+        Each node must have:
+          id, type ("arch"), label, sublabel, icon, color, x=0, y=0
+        Optional but strongly recommended:
+          layer   — zone band for the node (see below)
+          cost    — monthly cost string e.g. "$180/mo"
+          size    — sizing string e.g. "2 vCPU · 4 GB · ALB"
+
+        ALWAYS set `layer` on every node so it lands in the correct zone band:
+          "control"       → Control Plane:   API gateway, load balancer, auth/IAM, orchestration
+          "model"         → Model Layer:     LLM endpoints, model gateway, Bedrock, token routing
+          "data"          → Data Plane:      code execution, containers, sandboxes, storage, DBs, VCS
+          "observability" → Observability:   logging, tracing, metrics, audit trail, cost dashboard
+
+        Set x=0, y=0 on all nodes — the frontend positions them inside the correct zone band automatically.
+
         Each edge: {id, source, target, animated?, color?, dashed?}
 
         Call at these stages:

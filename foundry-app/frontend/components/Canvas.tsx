@@ -27,28 +27,66 @@ const LAYERS = [
 
 // ── Auto-layout (when agent outputs identical coordinates) ────────────────────
 
-const COL_WIDTH  = 180
-const ROW_HEIGHT = 176
-const COLS       = 3
-const START_X    = 30
-const START_Y    = 30
+const COL_WIDTH = 180
+const COL_GAP   = 40
+const COLS      = 3
+const START_X   = 30
+// Y offset within each zone band (leave room for the band label at top)
+const BAND_PAD  = 38
+
+// Maps layer id → the y-start of its zone band (must match LAYERS above)
+const LAYER_BAND_Y: Record<string, number> = {
+  control:       0   + BAND_PAD,   // band y:0,   height:160  → node at ~38
+  model:         176 + BAND_PAD,   // band y:176, height:160  → node at ~214
+  data:          352 + BAND_PAD,   // band y:352, height:288  → node at ~390
+  observability: 656 + BAND_PAD,   // band y:656, height:120  → node at ~694
+}
 
 function autoLayout(nodes: ArchNode[]): ArchNode[] {
   const archNodes = nodes.filter((n) => n.type !== 'zone')
+
+  // If the agent has set real, distinct positions respect them
   const allSame =
     archNodes.length > 1 &&
     archNodes.every((n) => n.x === archNodes[0].x && n.y === archNodes[0].y)
   if (!allSame) return nodes
 
-  let col = 0
-  let row = 0
+  // Group arch nodes by layer
+  const byLayer: Record<string, ArchNode[]> = {}
+  const unassigned: ArchNode[] = []
+  for (const n of archNodes) {
+    if (n.layer && LAYER_BAND_Y[n.layer] !== undefined) {
+      if (!byLayer[n.layer]) byLayer[n.layer] = []
+      byLayer[n.layer].push(n)
+    } else {
+      unassigned.push(n)
+    }
+  }
+
+  const positioned = new Map<string, { x: number; y: number }>()
+
+  // Place layered nodes in a horizontal row within their band
+  for (const [layer, layerNodes] of Object.entries(byLayer)) {
+    const bandY = LAYER_BAND_Y[layer]
+    layerNodes.forEach((n, col) => {
+      positioned.set(n.id, { x: START_X + col * (COL_WIDTH + COL_GAP), y: bandY })
+    })
+  }
+
+  // Fallback: place unassigned nodes below all zone bands
+  const fallbackBaseY = 800
+  unassigned.forEach((n, i) => {
+    const col = i % COLS
+    const row = Math.floor(i / COLS)
+    positioned.set(n.id, {
+      x: START_X + col * (COL_WIDTH + COL_GAP),
+      y: fallbackBaseY + row * 160,
+    })
+  })
+
   return nodes.map((n) => {
-    if (n.type === 'zone') return n
-    const x = START_X + col * (COL_WIDTH + 40)
-    const y = START_Y + row * ROW_HEIGHT
-    col++
-    if (col >= COLS) { col = 0; row++ }
-    return { ...n, x, y }
+    const pos = positioned.get(n.id)
+    return pos ? { ...n, ...pos } : n
   })
 }
 
