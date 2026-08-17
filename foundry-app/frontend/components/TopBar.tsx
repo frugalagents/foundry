@@ -39,7 +39,7 @@ export default function TopBar() {
             </svg>
           </div>
           <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text)' }}>
-            Platform Advisor
+            Enterprise AI Foundry
           </span>
         </div>
 
