@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 import boto3
+from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
@@ -260,11 +261,10 @@ def delete_session(
 def list_messages(customer_id: str, session_id: str) -> list[dict]:
     table = _get_table()
     resp = table.query(
-        KeyConditionExpression="PK = :pk AND begins_with(SK, :sk_prefix)",
-        ExpressionAttributeValues={
-            ":pk": f"CUSTOMER#{customer_id}",
-            ":sk_prefix": f"MSG#{session_id}#",
-        },
+        KeyConditionExpression=(
+            Key("PK").eq(f"CUSTOMER#{customer_id}") &
+            Key("SK").begins_with(f"MSG#{session_id}#")
+        ),
     )
     items = resp.get("Items", [])
     items.sort(key=lambda i: i.get("created_at", ""))
@@ -275,11 +275,10 @@ def get_canvas(customer_id: str, session_id: str) -> dict | None:
     """Return the most recent canvas snapshot for this session."""
     table = _get_table()
     resp = table.query(
-        KeyConditionExpression="PK = :pk AND begins_with(SK, :sk_prefix)",
-        ExpressionAttributeValues={
-            ":pk": f"CUSTOMER#{customer_id}",
-            ":sk_prefix": f"CANVAS#{session_id}#",
-        },
+        KeyConditionExpression=(
+            Key("PK").eq(f"CUSTOMER#{customer_id}") &
+            Key("SK").begins_with(f"CANVAS#{session_id}#")
+        ),
         ScanIndexForward=False,  # newest first
         Limit=1,
     )

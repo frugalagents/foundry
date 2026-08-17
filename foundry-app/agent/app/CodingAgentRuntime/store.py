@@ -65,6 +65,7 @@ def put_canvas_snapshot(
         "edges_json": json.dumps(edges),
         "stage": stage,
         "created_at": now,
+        "updated_at": now,
     }
     _get_table().put_item(Item=item)
 

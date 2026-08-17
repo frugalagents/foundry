@@ -42,17 +42,17 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
   } = useStore()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const handleSelect = useCallback(
     async (row: ConversationRow) => {
       clearMessages()
       hideCanvas()
+      setLoadError(null)
       setActiveSession(row.customer.customer_id, row.session.session_id, row.session.module_id)
-      history.pushState(
-        null,
-        '',
-        `/sessions/${row.session.session_id}`,
-      )
+      history.pushState(null, '', `/sessions/${row.session.session_id}`)
+      setLoadingId(row.session.session_id)
       try {
         const { messages, canvas } = await getSessionHistory(
           row.customer.customer_id,
@@ -64,8 +64,11 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
         if (canvas && canvas.nodes.length > 0) {
           setCanvas(canvas.nodes, canvas.edges)
         }
-      } catch {
-        // non-fatal — chat just starts empty
+      } catch (err) {
+        console.error('[Sidebar] Failed to load session history:', err)
+        setLoadError('Could not load history')
+      } finally {
+        setLoadingId(null)
       }
     },
     [clearMessages, hideCanvas, setActiveSession, appendMessage, setCanvas],
@@ -185,6 +188,11 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
 
       {/* Conversation list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+        {loadError && (
+          <p style={{ padding: '6px 14px', fontSize: 11, color: 'var(--red)', textAlign: 'center' }}>
+            {loadError}
+          </p>
+        )}
         {conversations.length === 0 ? (
           <p style={{ padding: '16px 14px', fontSize: 12, color: 'var(--text-faint)', textAlign: 'center' }}>
             No conversations yet
@@ -242,9 +250,17 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
                       {row.customer.name}
                     </span>
-                    <span style={{ fontSize: 10, color: 'var(--text-faint)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                      {relativeTime(row.session.updated_at)}
-                    </span>
+                    {loadingId === row.session.session_id ? (
+                      <span style={{
+                        width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                        border: '1.5px solid var(--accent)', borderTopColor: 'transparent',
+                        display: 'inline-block', animation: 'spin 0.7s linear infinite',
+                      }} />
+                    ) : (
+                      <span style={{ fontSize: 10, color: 'var(--text-faint)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        {relativeTime(row.session.updated_at)}
+                      </span>
+                    )}
                   </div>
                 </button>
                 {hoveredId === row.session.session_id && (
