@@ -27,7 +27,7 @@ from strands import Agent, tool
 from strands.models import BedrockModel
 
 from knowledge_loader import KnowledgeBase, load_knowledge_base
-from store import put_canvas_snapshot, put_message
+from store import put_canvas_snapshot, put_message, put_session_note
 
 app = BedrockAgentCoreApp()
 log = app.logger
@@ -189,6 +189,7 @@ async def _merge_streams(
     done = asyncio.Event()
 
     async def _agent_pump():
+        sent_any_text = False
         try:
             async for ev in agent_gen:
                 text = _text_from_strands_event(ev)
@@ -196,8 +197,11 @@ async def _merge_streams(
                     if on_text:
                         on_text(text)
                     await out.put(_chat_stream(text))
+                    sent_any_text = True
         except Exception as exc:
             log.exception("Agent stream error")
+            if sent_any_text:
+                await out.put(_chat_stream("\n\n⚠️ *Response interrupted — the above may be incomplete.*"))
             await out.put(_error_event(str(exc)))
         finally:
             done.set()
@@ -348,7 +352,28 @@ async def invoke(payload: dict, context):
                 log.exception("Failed to persist canvas snapshot")
         return f"Architecture canvas updated ({stage or 'update'}: {len(nodes)} nodes, {len(edges)} edges)."
 
-    tools = [query_knowledge, load_mandate_knowledge, update_architecture]
+    @tool
+    def save_session_note(note: str) -> str:
+        """
+        Save a structured note about this session — key decisions, constraints,
+        or open questions discovered during the conversation.
+        Use this to capture important architectural decisions or customer
+        requirements that should be remembered alongside the conversation.
+
+        Args:
+            note: The note text to save (e.g. "Customer is HIPAA-regulated;
+                  chosen harness: managed-runtime; exec: container")
+        """
+        if customer_id and session_id:
+            try:
+                put_session_note(customer_id, session_id, note)
+                return "Note saved."
+            except Exception:
+                log.exception("Failed to save session note")
+                return "Note could not be saved."
+        return "No session context — note not persisted."
+
+    tools = [query_knowledge, load_mandate_knowledge, update_architecture, save_session_note]
 
     # ── AC Memory session manager ─────────────────────────────────────────────
     session_manager = None

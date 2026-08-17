@@ -53,14 +53,32 @@ def put_canvas_snapshot(
     edges: list,
     stage: str = "",
 ) -> None:
+    now = _now()
     item = {
         "PK": f"CUSTOMER#{customer_id}",
-        "SK": f"CANVAS#{session_id}",
+        # Timestamped SK preserves every intermediate stage (skeleton →
+        # compliance → full) instead of overwriting a single row.
+        "SK": f"CANVAS#{session_id}#{now}",
         "session_id": session_id,
         "customer_id": customer_id,
         "nodes_json": json.dumps(nodes),
         "edges_json": json.dumps(edges),
         "stage": stage,
-        "updated_at": _now(),
+        "created_at": now,
+    }
+    _get_table().put_item(Item=item)
+
+
+def put_session_note(customer_id: str, session_id: str, note: str) -> None:
+    if not note:
+        return
+    now = _now()
+    item = {
+        "PK": f"CUSTOMER#{customer_id}",
+        "SK": f"NOTE#{session_id}#{now}#{uuid.uuid4().hex[:8]}",
+        "session_id": session_id,
+        "customer_id": customer_id,
+        "note": note,
+        "created_at": now,
     }
     _get_table().put_item(Item=item)

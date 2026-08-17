@@ -272,8 +272,16 @@ def list_messages(customer_id: str, session_id: str) -> list[dict]:
 
 
 def get_canvas(customer_id: str, session_id: str) -> dict | None:
+    """Return the most recent canvas snapshot for this session."""
     table = _get_table()
-    resp = table.get_item(
-        Key={"PK": f"CUSTOMER#{customer_id}", "SK": f"CANVAS#{session_id}"}
+    resp = table.query(
+        KeyConditionExpression="PK = :pk AND begins_with(SK, :sk_prefix)",
+        ExpressionAttributeValues={
+            ":pk": f"CUSTOMER#{customer_id}",
+            ":sk_prefix": f"CANVAS#{session_id}#",
+        },
+        ScanIndexForward=False,  # newest first
+        Limit=1,
     )
-    return resp.get("Item")
+    items = resp.get("Items", [])
+    return items[0] if items else None

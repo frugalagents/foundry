@@ -117,18 +117,32 @@ class KnowledgeBase:
         return [n for p, n in self._nodes.items() if p in MANDATE_NODES]
 
     def query(self, keywords: str, max_results: int = 4) -> list[KnowledgeNode]:
-        """Keyword search across all nodes, returning most relevant results."""
+        """Search across all nodes using multi-signal scoring."""
         terms = [t.lower().strip() for t in re.split(r"[,\s]+", keywords) if t.strip()]
         if not terms:
             return self.mandate_nodes()[:max_results]
 
         scored: list[tuple[float, KnowledgeNode]] = []
         for node in self._nodes.values():
-            text = (node.title + " " + node.content).lower()
-            score = sum(1.0 for t in terms if t in text)
-            # Boost exact path matches
+            body = node.content.lower()
+            title = node.title.lower()
+            combined = title + " " + body
+
+            score = 0.0
+            for t in terms:
+                if t in combined:
+                    score += 1.0                                    # substring hit
+                if re.search(r"\b" + re.escape(t) + r"\b", combined):
+                    score += 1.0                                    # whole-word bonus
+                if t in title:
+                    score += 1.5                                    # title hit bonus
+            # Phrase bonus — all terms appear contiguously
+            if len(terms) > 1 and " ".join(terms) in combined:
+                score += 3.0
+            # Path match bonus
             if any(t in node.path for t in terms):
                 score += 2.0
+
             if score > 0:
                 scored.append((score, node))
 
