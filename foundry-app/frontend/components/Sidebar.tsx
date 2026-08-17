@@ -148,30 +148,17 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
     }}>
       {/* Header */}
       <div style={{
-        padding: '16px 14px 12px',
+        padding: '12px 14px 10px',
         borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 26, height: 26, borderRadius: 7,
-            background: 'var(--accent)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13,
-          }}>⚡</div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-            AI Foundry
-          </span>
-        </div>
-        <button
-          onClick={handleRefresh}
-          title="Refresh"
-          style={iconBtn}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
+          Sessions
+        </span>
+        <button onClick={handleRefresh} title="Refresh" style={iconBtn}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="1 4 1 10 7 10" /><polyline points="23 20 23 14 17 14" />
             <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" />
           </svg>
