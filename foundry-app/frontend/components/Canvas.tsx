@@ -92,23 +92,38 @@ function autoLayout(nodes: ArchNode[]): ArchNode[] {
 
 // ── Custom node: arch component ───────────────────────────────────────────────
 
-type ArchNodeData = ArchNode & { onSelect: (id: string) => void }
+type ArchNodeData = ArchNode & { onSelect: (id: string) => void; isNew?: boolean }
 
 function ArchNodeComponent({ data, id }: NodeProps<ArchNodeData>) {
   return (
     <div
       onClick={() => data.onSelect?.(id)}
       style={{
-        background: 'var(--bg-elevated)',
-        border: `1.5px solid ${data.color ?? '#333'}`,
+        background: data.isNew ? 'rgba(99,102,241,0.07)' : 'var(--bg-elevated)',
+        border: `1.5px solid ${data.isNew ? 'var(--accent)' : (data.color ?? '#333')}`,
         borderRadius: 11,
         padding: '11px 13px',
         width: 138,
         minHeight: 80,
         cursor: 'pointer',
-        boxShadow: `0 0 0 1px ${data.color}22, 0 2px 10px rgba(0,0,0,0.4)`,
+        boxShadow: data.isNew
+          ? `0 0 0 1px var(--accent)44, 0 2px 10px rgba(0,0,0,0.4)`
+          : `0 0 0 1px ${data.color}22, 0 2px 10px rgba(0,0,0,0.4)`,
+        position: 'relative',
       }}
     >
+      {data.isNew && (
+        <span style={{
+          position: 'absolute', top: -5, right: -5,
+          background: 'var(--accent)', borderRadius: 4,
+          padding: '1px 4px', fontSize: 8, fontWeight: 700,
+          color: '#fff', letterSpacing: '0.04em',
+          border: '1.5px solid var(--bg-elevated)',
+          lineHeight: 1.4,
+        }}>
+          NEW
+        </span>
+      )}
       <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: 'none' }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         {data.icon && (
@@ -197,12 +212,12 @@ const LAYER_BAND_NODES: Node[] = LAYERS.map((l) => ({
 
 // ── Type converters ───────────────────────────────────────────────────────────
 
-function toRFNode(n: ArchNode, onSelect: (id: string) => void): Node<ArchNodeData> {
+function toRFNode(n: ArchNode, onSelect: (id: string) => void, isNew: boolean): Node<ArchNodeData> {
   return {
     id: n.id,
     type: n.type ?? 'arch',
     position: { x: n.x, y: n.y },
-    data: { ...n, onSelect },
+    data: { ...n, onSelect, isNew },
     style: n.type === 'zone'
       ? { width: n.width ?? 220, height: n.height ?? 160, zIndex: -1, pointerEvents: 'none' }
       : undefined,
@@ -264,10 +279,12 @@ function segBtn(active: boolean): React.CSSProperties {
 // ── Main Canvas ───────────────────────────────────────────────────────────────
 
 export default function Canvas() {
-  const { canvasNodes, canvasEdges } = useStore()
+  const { canvasNodes, canvasEdges, baselineNodeIds } = useStore()
   const [viewMode, setViewMode] = useState<'single' | 'compare'>('single')
   const [annotationsOn, setAnnotationsOn] = useState(true)
   const [selected, setSelected] = useState<DrawerNode | null>(null)
+
+  const baselineSet = useMemo(() => new Set(baselineNodeIds), [baselineNodeIds])
 
   const hasNodes = canvasNodes.length > 0
 
@@ -288,10 +305,11 @@ export default function Canvas() {
 
   const laidOut = useMemo(() => autoLayout(canvasNodes), [canvasNodes])
 
+  // A node is a "customer addition" if it wasn't in the baseline (first) update
   const rfNodes: Node[] = useMemo(() => [
     ...LAYER_BAND_NODES,
-    ...laidOut.map((n) => toRFNode(n, onSelect)),
-  ], [laidOut, onSelect])
+    ...laidOut.map((n) => toRFNode(n, onSelect, baselineSet.size > 0 && !baselineSet.has(n.id))),
+  ], [laidOut, onSelect, baselineSet])
 
   const rfEdges: Edge[] = useMemo(() => canvasEdges.map(toRFEdge), [canvasEdges])
 

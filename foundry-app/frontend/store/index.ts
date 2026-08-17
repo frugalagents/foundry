@@ -26,6 +26,7 @@ interface AppState {
   canvasVisible: boolean
   canvasNodes: ArchNode[]
   canvasEdges: ArchEdge[]
+  baselineNodeIds: string[]   // IDs from the first canvas update — everything else is a customer addition
   setCanvas: (nodes: ArchNode[], edges: ArchEdge[]) => void
   showCanvas: () => void
   hideCanvas: () => void
@@ -79,15 +80,24 @@ export const useStore = create<AppState>((set) => ({
         m.id === id ? { ...m, streaming: false } : m,
       ),
     })),
-  clearMessages: () => set({ messages: [] }),
+  clearMessages: () => set({ messages: [], baselineNodeIds: [] }),
 
   // ── Architecture canvas ─────────────────────────────────────────────────────
   canvasVisible: false,
   canvasNodes: [],
   canvasEdges: [],
-  setCanvas: (nodes, edges) => set({ canvasNodes: nodes, canvasEdges: edges, canvasVisible: true }),
+  baselineNodeIds: [],
+  setCanvas: (nodes, edges) => set((s) => {
+    const isFirst = s.baselineNodeIds.length === 0
+    return {
+      canvasNodes: nodes,
+      canvasEdges: edges,
+      canvasVisible: true,
+      baselineNodeIds: isFirst ? nodes.map((n) => n.id) : s.baselineNodeIds,
+    }
+  }),
   showCanvas: () => set({ canvasVisible: true }),
-  hideCanvas: () => set({ canvasVisible: false }),
+  hideCanvas: () => set({ canvasVisible: false, baselineNodeIds: [] }),
 
   // ── Sidebar conversations ───────────────────────────────────────────────────
   conversations: [],
