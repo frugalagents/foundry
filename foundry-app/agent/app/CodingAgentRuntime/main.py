@@ -78,6 +78,27 @@ def _load_system_prompt() -> str:
     )
 
 
+def augment_system_prompt_with_conditional_knowledge(
+    base_prompt: str, kb: KnowledgeBase, user_message: str
+) -> str:
+    """Auto-load OKF nodes whose signal keywords appear in the user's message.
+
+    The skill file documents a three-tier traversal model (mandate/conditional/
+    probe) where conditional nodes should load automatically when a matching
+    signal appears in discovery — this is the wiring that makes that automatic,
+    rather than relying on the model to guess the right query_knowledge keywords.
+    """
+    nodes = kb.conditional_nodes_for(user_message)
+    if not nodes:
+        return base_prompt
+    log.info("Conditional knowledge triggered: %s", [n.path for n in nodes])
+    block = "\n\n---\n\n".join(f"### {n.title} ({n.path})\n\n{n.content}" for n in nodes)
+    return (
+        f"{base_prompt}\n\n"
+        f"## Signals Detected This Turn — Relevant Knowledge Already Loaded\n\n{block}"
+    )
+
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @lru_cache(maxsize=1)
@@ -351,11 +372,14 @@ async def invoke(payload: dict, context):
             session_manager = None
 
     # ── Build Strands Agent ───────────────────────────────────────────────────
+    system_prompt = augment_system_prompt_with_conditional_knowledge(
+        _load_system_prompt(), kb, user_message
+    )
     model = BedrockModel(model_id=_MODEL_ID, streaming=True)
     agent_kwargs: dict = dict(
         model=model,
         tools=tools,
-        system_prompt=_load_system_prompt(),
+        system_prompt=system_prompt,
     )
     if session_manager:
         agent_kwargs["session_manager"] = session_manager
