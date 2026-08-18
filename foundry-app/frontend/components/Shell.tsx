@@ -5,11 +5,14 @@ import dynamic from 'next/dynamic'
 import Sidebar from './Sidebar'
 import Chat from './Chat'
 import TopBar from './TopBar'
+import AdminSessionsView from './AdminSessionsView'
+import { useStore } from '@/store'
 
 const Canvas = dynamic(() => import('./Canvas'), { ssr: false })
 
 export default function Shell() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const showAdminView = useStore((s) => s.showAdminView)
 
   const handleNewChat = useCallback(() => {}, [])
 
@@ -37,15 +40,21 @@ export default function Shell() {
           </svg>
         </button>
 
-        {/* Chat panel — always 50% */}
-        <div style={{ flex: '1 1 50%', minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <Chat />
-        </div>
+        {showAdminView ? (
+          <AdminSessionsView />
+        ) : (
+          <>
+            {/* Chat panel — always 50% */}
+            <div style={{ flex: '1 1 50%', minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <Chat />
+            </div>
 
-        <div style={{ width: 1, background: 'var(--border)', flexShrink: 0 }} />
+            <div style={{ width: 1, background: 'var(--border)', flexShrink: 0 }} />
 
-        {/* Canvas panel — always 50%, shows placeholder when empty */}
-        <Canvas />
+            {/* Canvas panel — always 50%, shows placeholder when empty */}
+            <Canvas />
+          </>
+        )}
       </div>
     </div>
   )

@@ -1,11 +1,11 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { nanoid } from 'nanoid'
 import { useStore } from '@/store'
 import { clearToken } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
-import { listAllSessions, createSession, getOrCreateDefaultCustomer, deleteSession, getSessionHistory } from '@/lib/api'
+import { listAllSessions, createSession, getOrCreateDefaultCustomer, deleteSession } from '@/lib/api'
+import { loadSessionIntoView } from '@/lib/session-actions'
 import type { ConversationRow } from '@/lib/types'
 
 const MODULE_COLORS: Record<string, string> = {
@@ -46,9 +46,9 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
   const {
     conversations, setConversations,
     activeSessionId,
-    setActiveSession, clearMessages, setStreaming,
-    appendMessage, setCanvas, hideCanvas,
+    clearMessages, setStreaming,
     userName, isAdmin,
+    showAdminView, setShowAdminView,
   } = useStore()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -68,23 +68,11 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
 
   const handleSelect = useCallback(
     async (row: ConversationRow) => {
-      clearMessages()
-      hideCanvas()
       setLoadError(null)
-      setActiveSession(row.customer.customer_id, row.session.session_id, row.session.module_id)
       history.pushState(null, '', `/sessions/${row.session.session_id}`)
       setLoadingId(row.session.session_id)
       try {
-        const { messages, canvas } = await getSessionHistory(
-          row.customer.customer_id,
-          row.session.session_id,
-        )
-        for (const m of messages) {
-          appendMessage({ id: nanoid(), role: m.role, content: m.content })
-        }
-        if (canvas && canvas.nodes.length > 0) {
-          setCanvas(canvas.nodes, canvas.edges)
-        }
+        await loadSessionIntoView(row.customer.customer_id, row.session.session_id, row.session.module_id)
       } catch (err) {
         console.error('[Sidebar] Failed to load session history:', err)
         setLoadError('Could not load history')
@@ -92,7 +80,7 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
         setLoadingId(null)
       }
     },
-    [clearMessages, hideCanvas, setActiveSession, appendMessage, setCanvas],
+    [],
   )
 
   const handleNewChat = useCallback(async () => {
@@ -157,12 +145,28 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
         <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
           Sessions
         </span>
-        <button onClick={handleRefresh} title="Refresh" style={iconBtn}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="1 4 1 10 7 10" /><polyline points="23 20 23 14 17 14" />
-            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" />
-          </svg>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {isAdmin && (
+            <button
+              onClick={() => setShowAdminView(!showAdminView)}
+              title="All sessions (admin)"
+              style={{ ...iconBtn, color: showAdminView ? 'var(--amber)' : 'var(--text-muted)' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </button>
+          )}
+          <button onClick={handleRefresh} title="Refresh" style={iconBtn}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="1 4 1 10 7 10" /><polyline points="23 20 23 14 17 14" />
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Search */}

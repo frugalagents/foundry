@@ -335,11 +335,15 @@ async def invoke(payload: dict, context):
           cost    — monthly cost string e.g. "$180/mo"
           size    — sizing string e.g. "2 vCPU · 4 GB · ALB"
 
-        ALWAYS set `layer` on every node so it lands in the correct zone band:
-          "control"       → Control Plane:   API gateway, load balancer, auth/IAM, orchestration
-          "model"         → Model Layer:     LLM endpoints, model gateway, Bedrock, token routing
-          "data"          → Data Plane:      code execution, containers, sandboxes, storage, DBs, VCS
-          "observability" → Observability:   logging, tracing, metrics, audit trail, cost dashboard
+        ALWAYS set `layer` on every node so it lands in the correct zone band —
+        these match the platform stack used throughout this conversation:
+          "surface"   → Surface:   IDE, CLI, chat/PR bot, CI integration
+          "harness"   → Harness:   SaaS product, AgentCore runtime, OSS harness, framework SDK
+          "execution" → Execution: local, container, microVM, remote runner
+          "gateway"   → Gateway:   MCP tool gateway, model gateway, credential injection, tiering
+          "model"     → Model:     LLM provider + tier (Haiku/Sonnet/Opus)
+          "ops"       → Ops:       observability, cost tracking, resilience
+          "access"    → Access:    identity, guardrails, quota, compliance controls
 
         Set x=0, y=0 on all nodes — the frontend positions them inside the correct zone band automatically.
 

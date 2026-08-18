@@ -121,7 +121,7 @@ export type NodeComment = {
   text: string
 }
 
-export type ArchLayer = 'control' | 'model' | 'data' | 'observability'
+export type ArchLayer = 'surface' | 'harness' | 'execution' | 'gateway' | 'model' | 'ops' | 'access'
 
 export interface ArchNode {
   id: string

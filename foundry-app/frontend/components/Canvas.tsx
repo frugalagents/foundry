@@ -19,10 +19,13 @@ import NodeDetailDrawer, { type DrawerNode } from './NodeDetailDrawer'
 // ── Zone layer definitions ────────────────────────────────────────────────────
 
 const LAYERS = [
-  { id: 'control',       label: 'Control Plane',        color: '#6366f1', y: 0,   height: 160 },
-  { id: 'model',         label: 'Model Layer',           color: '#818cf8', y: 176, height: 160 },
-  { id: 'data',          label: 'Data Plane',            color: '#22c55e', y: 352, height: 288 },
-  { id: 'observability', label: 'Observability & Audit', color: '#f59e0b', y: 656, height: 120 },
+  { id: 'surface',   label: 'Surface',   color: '#6366f1', y: 0,   height: 140 },
+  { id: 'harness',   label: 'Harness',   color: '#8b5cf6', y: 156, height: 140 },
+  { id: 'execution', label: 'Execution', color: '#22c55e', y: 312, height: 140 },
+  { id: 'gateway',   label: 'Gateway',   color: '#06b6d4', y: 468, height: 140 },
+  { id: 'model',     label: 'Model',     color: '#818cf8', y: 624, height: 140 },
+  { id: 'ops',       label: 'Ops',       color: '#f59e0b', y: 780, height: 140 },
+  { id: 'access',    label: 'Access',    color: '#ef4444', y: 936, height: 140 },
 ]
 
 // ── Auto-layout (when agent outputs identical coordinates) ────────────────────
@@ -35,12 +38,9 @@ const START_X   = 30
 const BAND_PAD  = 38
 
 // Maps layer id → the y-start of its zone band (must match LAYERS above)
-const LAYER_BAND_Y: Record<string, number> = {
-  control:       0   + BAND_PAD,   // band y:0,   height:160  → node at ~38
-  model:         176 + BAND_PAD,   // band y:176, height:160  → node at ~214
-  data:          352 + BAND_PAD,   // band y:352, height:288  → node at ~390
-  observability: 656 + BAND_PAD,   // band y:656, height:120  → node at ~694
-}
+const LAYER_BAND_Y: Record<string, number> = Object.fromEntries(
+  LAYERS.map((l) => [l.id, l.y + BAND_PAD]),
+)
 
 function autoLayout(nodes: ArchNode[]): ArchNode[] {
   const archNodes = nodes.filter((n) => n.type !== 'zone')
@@ -74,7 +74,8 @@ function autoLayout(nodes: ArchNode[]): ArchNode[] {
   }
 
   // Fallback: place unassigned nodes below all zone bands
-  const fallbackBaseY = 800
+  const lastLayer = LAYERS[LAYERS.length - 1]
+  const fallbackBaseY = lastLayer.y + lastLayer.height + 40
   unassigned.forEach((n, i) => {
     const col = i % COLS
     const row = Math.floor(i / COLS)

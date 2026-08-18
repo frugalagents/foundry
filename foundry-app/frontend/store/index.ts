@@ -47,6 +47,10 @@ interface AppState {
 
   // ── UI module override ───────────────────────────────────────────────────────
   setActiveModule: (module: string) => void
+
+  // ── Admin ────────────────────────────────────────────────────────────────────
+  showAdminView: boolean
+  setShowAdminView: (v: boolean) => void
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -123,4 +127,8 @@ export const useStore = create<AppState>((set) => ({
 
   // ── UI module override ───────────────────────────────────────────────────────
   setActiveModule: (module) => set({ activeModule: module }),
+
+  // ── Admin ────────────────────────────────────────────────────────────────────
+  showAdminView: false,
+  setShowAdminView: (v) => set({ showAdminView: v }),
 }))
