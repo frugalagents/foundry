@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { isAuthenticated, setToken, createDevToken } from '@/lib/auth'
+import { isAuthenticated, setToken, createDevToken, navigateToHome } from '@/lib/auth'
 
 const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN ?? ''
 const CLIENT_ID      = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID ?? ''
@@ -42,23 +41,22 @@ async function redirectToCognito() {
 }
 
 export default function LoginPage() {
-  const router = useRouter()
   const [devId,    setDevId]    = useState('dev-user-01')
   const [devName,  setDevName]  = useState('Developer')
   const [devAdmin, setDevAdmin] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated()) { router.replace('/'); return }
+    if (isAuthenticated()) { navigateToHome(); return }
     // In production, auto-redirect to Cognito (→ Midway) — no button click needed
     if (!IS_DEV) {
       redirectToCognito()
     }
-  }, [router])
+  }, [])
 
   function handleDevLogin() {
     const token = createDevToken(devId.trim() || 'dev-user', devName.trim() || 'Developer', devAdmin)
     setToken(token)
-    router.replace('/')
+    navigateToHome()
   }
 
   return (

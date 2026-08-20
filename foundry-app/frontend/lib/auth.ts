@@ -17,6 +17,16 @@ export function clearToken(): void {
   document.cookie = 'id_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
 }
 
+export function navigateToHome(): void {
+  if (typeof window === 'undefined') return
+  window.location.replace('/')
+}
+
+export function navigateToLogin(): void {
+  if (typeof window === 'undefined') return
+  window.location.replace('/login/')
+}
+
 export function getAccessToken(): string | null {
   if (typeof document === 'undefined') return null
   const match = document.cookie.match(/(?:^|; )access_token=([^;]*)/)
@@ -134,7 +144,7 @@ export function logout(): void {
     const params = new URLSearchParams({ client_id: clientId, logout_uri: `${appUrl}/login` })
     window.location.href = `https://${domain}/logout?${params}`
   } else {
-    window.location.href = '/login'
+    navigateToLogin()
   }
 }
 

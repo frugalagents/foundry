@@ -84,6 +84,7 @@ export interface CanvasOut {
 export interface SessionHistory {
   messages: MessageOut[]
   canvas?: CanvasOut | null
+  workspace?: ConsultingWorkspace | null
 }
 
 // ── SSE event payloads ────────────────────────────────────────────────────────
@@ -107,11 +108,30 @@ export interface ModuleDetectedEvent {
   data: { module: string }
 }
 
+export interface WorkspaceUpdateEvent {
+  type: 'workspace_update'
+  data: ConsultingWorkspace
+}
+
 export type SSEEvent =
   | ChatStreamEvent
   | ArchitectureUpdateEvent
   | ModuleDetectedEvent
+  | WorkspaceUpdateEvent
   | { type: string; data: unknown }
+
+// ── Consulting workspace ──────────────────────────────────────────────────────
+
+export interface ConsultingWorkspace {
+  stage?: string
+  recommendation: string
+  facts: string[]
+  open_questions: string[]
+  decisions: string[]
+  risks: string[]
+  implementation_plan: string[]
+  updated_at?: string
+}
 
 // ── Architecture canvas ───────────────────────────────────────────────────────
 

@@ -14,6 +14,7 @@ from api.middleware.auth import (
 from api.db import dynamodb as db
 from api.db.models import (
     CanvasOut,
+    ConsultingWorkspaceOut,
     MessageOut,
     Session,
     SessionCreate,
@@ -98,13 +99,26 @@ async def get_session_history(customer_id: str, session_id: str, user: CurrentUs
     _get_session(customer_id, session_id, user)
     messages = db.list_messages(customer_id, session_id)
     canvas_item = db.get_canvas(customer_id, session_id)
+    workspace_item = db.get_workspace(customer_id, session_id)
     canvas = None
+    workspace = None
     if canvas_item:
         canvas = CanvasOut(
             nodes=json.loads(canvas_item.get("nodes_json") or "[]"),
             edges=json.loads(canvas_item.get("edges_json") or "[]"),
             stage=canvas_item.get("stage") or "",
             updated_at=canvas_item.get("updated_at"),
+        )
+    if workspace_item:
+        workspace = ConsultingWorkspaceOut(
+            stage=workspace_item.get("stage") or "",
+            recommendation=workspace_item.get("recommendation") or "",
+            facts=workspace_item.get("facts") or [],
+            open_questions=workspace_item.get("open_questions") or [],
+            decisions=workspace_item.get("decisions") or [],
+            risks=workspace_item.get("risks") or [],
+            implementation_plan=workspace_item.get("implementation_plan") or [],
+            updated_at=workspace_item.get("updated_at"),
         )
     return SessionHistory(
         messages=[
@@ -116,6 +130,7 @@ async def get_session_history(customer_id: str, session_id: str, user: CurrentUs
             for m in messages
         ],
         canvas=canvas,
+        workspace=workspace,
     )
 
 

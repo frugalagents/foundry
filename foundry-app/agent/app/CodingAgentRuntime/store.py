@@ -83,3 +83,33 @@ def put_session_note(customer_id: str, session_id: str, note: str) -> None:
         "created_at": now,
     }
     _get_table().put_item(Item=item)
+
+
+def put_workspace_snapshot(
+    customer_id: str,
+    session_id: str,
+    *,
+    stage: str = "",
+    recommendation: str = "",
+    facts: list[str] | None = None,
+    open_questions: list[str] | None = None,
+    decisions: list[str] | None = None,
+    risks: list[str] | None = None,
+    implementation_plan: list[str] | None = None,
+) -> None:
+    now = _now()
+    item = {
+        "PK": f"CUSTOMER#{customer_id}",
+        "SK": f"WORKSPACE#{session_id}",
+        "session_id": session_id,
+        "customer_id": customer_id,
+        "stage": stage,
+        "recommendation": recommendation,
+        "facts": facts or [],
+        "open_questions": open_questions or [],
+        "decisions": decisions or [],
+        "risks": risks or [],
+        "implementation_plan": implementation_plan or [],
+        "updated_at": now,
+    }
+    _get_table().put_item(Item=item)

@@ -16,7 +16,50 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     const body = await res.text().catch(() => '')
     throw new Error(`${res.status} ${path}: ${body}`)
   }
-  return res.json() as Promise<T>
+
+  if (res.status === 204) {
+    return undefined as T
+  }
+
+  const body = await res.text()
+  if (!body.trim()) {
+    return undefined as T
+  }
+
+  const contentType = res.headers.get('content-type') ?? ''
+  if (contentType.includes('application/json')) {
+    return JSON.parse(body) as T
+  }
+
+  return body as T
+}
+
+export async function streamSession(
+  customerId: string,
+  sessionId: string,
+  message: string,
+  signal?: AbortSignal,
+): Promise<ReadableStream<Uint8Array>> {
+  const res = await fetch(`${BASE}/api/v1/customers/${customerId}/sessions/${sessionId}/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ message }),
+    signal,
+  })
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status} /api/v1/customers/${customerId}/sessions/${sessionId}/stream: ${body}`)
+  }
+
+  if (!res.body) {
+    throw new Error('Streaming response body was empty')
+  }
+
+  return res.body
 }
 
 // ── Customers ─────────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 'use client'
 
 import type { NodeComment } from '@/lib/types'
+import IconGlyph from './IconGlyph'
 
 export interface DrawerNode {
   id: string
@@ -10,6 +11,9 @@ export interface DrawerNode {
   color: string
   cost: string
   size: string
+  layerLabel?: string
+  rationale?: string
+  isNew?: boolean
   comments: NodeComment[]
 }
 
@@ -36,10 +40,27 @@ export default function NodeDetailDrawer({
             width: 32, height: 32, borderRadius: 8, background: `${node.color}22`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 14, color: node.color, flexShrink: 0,
-          }}>{node.icon}</span>
+          }}>
+            <IconGlyph icon={node.icon} color={node.color} size={16} fallbackText />
+          </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{node.label}</div>
             <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{node.sublabel}</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 7 }}>
+              {node.layerLabel && (
+                <span style={metaBadge}>
+                  {node.layerLabel}
+                </span>
+              )}
+              <span style={{
+                ...metaBadge,
+                borderColor: node.isNew ? 'rgba(99,102,241,0.35)' : 'var(--border)',
+                color: node.isNew ? 'var(--accent-strong)' : 'var(--text-muted)',
+                background: node.isNew ? 'var(--accent-dim)' : 'var(--bg-elevated-2)',
+              }}>
+                {node.isNew ? 'Added for this org' : 'Standard baseline'}
+              </span>
+            </div>
           </div>
         </div>
         <button
@@ -71,6 +92,20 @@ export default function NodeDetailDrawer({
           </span>
         </div>
       </div>
+
+      {node.rationale && (
+        <div style={{ padding: 16, borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <span style={{
+            fontSize: 11, fontWeight: 600, letterSpacing: '0.05em',
+            textTransform: 'uppercase', color: 'var(--text-faint)',
+          }}>
+            Why It Exists
+          </span>
+          <p style={{ fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-2)' }}>
+            {node.rationale}
+          </p>
+        </div>
+      )}
 
       {/* Comments */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -112,4 +147,14 @@ export default function NodeDetailDrawer({
       </div>
     </div>
   )
+}
+
+const metaBadge: React.CSSProperties = {
+  padding: '3px 7px',
+  borderRadius: 999,
+  border: '1px solid var(--border)',
+  background: 'var(--bg-elevated-2)',
+  color: 'var(--text-muted)',
+  fontSize: 10.5,
+  lineHeight: 1.2,
 }

@@ -3,8 +3,14 @@
 import { useCallback, useRef } from 'react'
 import { nanoid } from 'nanoid'
 import { useStore } from '@/store'
+import {
+  buildRuntimeSessionId,
+  invokeAgentCore,
+  isDirectModeEnabled,
+  readSSEEvents,
+} from '@/lib/agentcore'
+import { streamSession } from '@/lib/api'
 import { getToken } from '@/lib/auth'
-import { isDirectModeEnabled, buildRuntimeSessionId, invokeAgentCore, readSSEEvents } from '@/lib/agentcore'
 
 export function useStream() {
   const abortRef = useRef<AbortController | null>(null)
@@ -13,7 +19,7 @@ export function useStream() {
     appendChunk,
     finalizeMessage,
     setCanvas,
-    setActiveSession,
+    setWorkspace,
     setStreaming,
   } = useStore()
 
@@ -30,16 +36,7 @@ export function useStream() {
       setStreaming(true)
 
       try {
-        const idToken          = getToken() ?? ''
-        const runtimeSessionId = buildRuntimeSessionId(customerId, sessionId)
-        const payload          = {
-          user_message: text,
-          session_id:   sessionId,
-          customer_id:  customerId,
-          module_id:    'coding-agent',
-        }
-
-        const stream = await invokeAgentCore(payload, runtimeSessionId, idToken, ctrl.signal)
+        const stream = await openStream(customerId, sessionId, text, ctrl.signal)
 
         for await (const evt of readSSEEvents(stream)) {
           if (ctrl.signal.aborted) break
@@ -52,6 +49,23 @@ export function useStream() {
           } else if (type === 'architecture_update') {
             const d = data as { nodes?: never[]; edges?: never[] }
             setCanvas(d.nodes ?? [], d.edges ?? [])
+          } else if (type === 'workspace_update') {
+            setWorkspace({
+              stage: typeof data.stage === 'string' ? data.stage : '',
+              recommendation: typeof data.recommendation === 'string' ? data.recommendation : '',
+              facts: Array.isArray(data.facts) ? data.facts.filter((v): v is string => typeof v === 'string') : [],
+              open_questions: Array.isArray(data.open_questions)
+                ? data.open_questions.filter((v): v is string => typeof v === 'string')
+                : [],
+              decisions: Array.isArray(data.decisions)
+                ? data.decisions.filter((v): v is string => typeof v === 'string')
+                : [],
+              risks: Array.isArray(data.risks) ? data.risks.filter((v): v is string => typeof v === 'string') : [],
+              implementation_plan: Array.isArray(data.implementation_plan)
+                ? data.implementation_plan.filter((v): v is string => typeof v === 'string')
+                : [],
+              updated_at: typeof data.updated_at === 'string' ? data.updated_at : undefined,
+            })
           } else if (type === 'module_detected') {
             const mod = (data as { module?: string }).module ?? ''
             if (mod) useStore.getState().setActiveSession(customerId, sessionId, mod)
@@ -66,7 +80,7 @@ export function useStream() {
         setStreaming(false)
       }
     },
-    [appendMessage, appendChunk, finalizeMessage, setCanvas, setActiveSession, setStreaming],
+    [appendMessage, appendChunk, finalizeMessage, setCanvas, setWorkspace, setStreaming],
   )
 
   const abort = useCallback(() => {
@@ -75,4 +89,37 @@ export function useStream() {
   }, [setStreaming])
 
   return { send, abort }
+}
+
+async function openStream(
+  customerId: string,
+  sessionId: string,
+  text: string,
+  signal?: AbortSignal,
+): Promise<ReadableStream<Uint8Array>> {
+  if (isDirectModeEnabled()) {
+    try {
+      const idToken = getToken() ?? ''
+      if (!idToken) throw new Error('Missing id token for direct AgentCore invocation')
+
+      const runtimeSessionId = buildRuntimeSessionId(customerId, sessionId)
+      return await invokeAgentCore(
+        {
+          user_message: text,
+          session_id: sessionId,
+          customer_id: customerId,
+          module_id: 'coding-agent',
+        },
+        runtimeSessionId,
+        idToken,
+        signal,
+      )
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') throw err
+      // Fallback path for local/dev deployments that still rely on the backend proxy.
+      return streamSession(customerId, sessionId, text, signal)
+    }
+  }
+
+  return streamSession(customerId, sessionId, text, signal)
 }

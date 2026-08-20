@@ -6,11 +6,15 @@ import { useStore } from '@/store'
 export async function loadSessionIntoView(customerId: string, sessionId: string, moduleId?: string) {
   const store = useStore.getState()
   store.clearMessages()
+  store.clearWorkspace()
   store.hideCanvas()
   store.setActiveSession(customerId, sessionId, moduleId)
-  const { messages, canvas } = await getSessionHistory(customerId, sessionId)
+  const { messages, canvas, workspace } = await getSessionHistory(customerId, sessionId)
   for (const m of messages) {
     store.appendMessage({ id: nanoid(), role: m.role, content: m.content })
+  }
+  if (workspace) {
+    store.setWorkspace(workspace)
   }
   if (canvas && canvas.nodes.length > 0) {
     store.setCanvas(canvas.nodes, canvas.edges)

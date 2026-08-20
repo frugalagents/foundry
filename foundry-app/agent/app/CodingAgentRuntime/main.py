@@ -27,7 +27,7 @@ from strands import Agent, tool
 from strands.models import BedrockModel
 
 from knowledge_loader import KnowledgeBase, load_knowledge_base
-from store import put_canvas_snapshot, put_message, put_session_note
+from store import put_canvas_snapshot, put_message, put_session_note, put_workspace_snapshot
 
 app = BedrockAgentCoreApp()
 log = app.logger
@@ -159,6 +159,10 @@ def _module_detected_event(module: str) -> str:
     return f"data: {json.dumps({'type': 'module_detected', 'data': {'module': module}})}\n\n"
 
 
+def _workspace_event(workspace: dict) -> str:
+    return f"data: {json.dumps({'type': 'workspace_update', 'data': workspace})}\n\n"
+
+
 def _complete_event(session_id: str) -> str:
     return f"data: {json.dumps({'type': 'complete', 'data': {'session_id': session_id}})}\n\ndata: [DONE]\n\n"
 
@@ -178,6 +182,44 @@ def _text_from_strands_event(ev) -> str | None:
     if hasattr(ev, "delta") and hasattr(ev.delta, "text") and ev.delta.text:
         return ev.delta.text
     return None
+
+
+def _workspace_tool_instructions() -> str:
+    return """
+## Workspace State Contract
+
+Maintain a live consulting workspace alongside the chat. Use the
+`update_consulting_state` tool throughout the session, not just at the end.
+
+Update it whenever you:
+- learn a concrete customer fact
+- identify an unresolved question
+- commit to an architecture decision
+- surface a delivery/compliance risk
+- can state the current recommended direction
+
+Tool rules:
+- Keep every list concise and specific. Prefer short bullets, not paragraphs.
+- `facts`: only confirmed customer facts or explicit constraints.
+- `open_questions`: unanswered questions blocking or materially shaping the recommendation.
+- `decisions`: architecture choices already made, phrased as decisions.
+- `risks`: unresolved risks, tradeoffs, or external dependencies.
+- `implementation_plan`: near-term rollout steps in order.
+- `recommendation`: 1-3 sentences describing the current direction.
+- `stage`: one of discovery, solutioning, blueprint.
+
+Execution rules:
+- Always set `stage` explicitly on every workspace update.
+- `discovery`: use while gathering constraints, context, and unresolved questions.
+- `solutioning`: use once you are actively recommending a direction or locking in architecture decisions.
+- `blueprint`: use only when the recommendation is materially coherent, major decisions are captured, and rollout steps are present.
+- If you ask the customer for input, call `update_consulting_state` in the same turn and put those prompts in `open_questions`.
+- If the customer answers a previous question, remove or replace it in `open_questions` on your next call.
+- If you make a concrete architecture choice, add it to `decisions` in the same turn; do not leave decisions only in prose.
+- If you surface a blocker, ambiguity, or control concern, add it to `risks` in the same turn.
+- If the architecture changes, update both `update_architecture` and `update_consulting_state` in that same turn.
+- Every meaningful recommendation turn should call `update_consulting_state` before you finish your response so the workspace stays current.
+"""
 
 
 async def _merge_streams(
@@ -391,7 +433,57 @@ async def invoke(payload: dict, context):
                 return "Note could not be saved."
         return "No session context — note not persisted."
 
-    tools = [query_knowledge, load_mandate_knowledge, update_architecture, save_session_note]
+    @tool
+    def update_consulting_state(
+        recommendation: str = "",
+        facts: list[str] | None = None,
+        open_questions: list[str] | None = None,
+        decisions: list[str] | None = None,
+        risks: list[str] | None = None,
+        implementation_plan: list[str] | None = None,
+        stage: str = "",
+    ) -> str:
+        """
+        Persist and publish the current consulting workspace state.
+
+        Keep each list short and specific. This tool updates the workspace
+        panels in the UI so the customer can track facts, questions, decisions,
+        risks, and next steps outside the chat transcript.
+        """
+        workspace = {
+            "stage": stage,
+            "recommendation": recommendation,
+            "facts": facts or [],
+            "open_questions": open_questions or [],
+            "decisions": decisions or [],
+            "risks": risks or [],
+            "implementation_plan": implementation_plan or [],
+        }
+        panel_queue.put_nowait(_workspace_event(workspace))
+        if customer_id and session_id:
+            try:
+                put_workspace_snapshot(
+                    customer_id,
+                    session_id,
+                    stage=stage,
+                    recommendation=recommendation,
+                    facts=facts or [],
+                    open_questions=open_questions or [],
+                    decisions=decisions or [],
+                    risks=risks or [],
+                    implementation_plan=implementation_plan or [],
+                )
+            except Exception:
+                log.exception("Failed to persist workspace snapshot")
+        return "Consulting workspace updated."
+
+    tools = [
+        query_knowledge,
+        load_mandate_knowledge,
+        update_architecture,
+        save_session_note,
+        update_consulting_state,
+    ]
 
     # ── AC Memory session manager ─────────────────────────────────────────────
     session_manager = None
@@ -418,6 +510,7 @@ async def invoke(payload: dict, context):
     system_prompt = augment_system_prompt_with_conditional_knowledge(
         _load_system_prompt(), kb, user_message
     )
+    system_prompt = f"{system_prompt}\n\n{_workspace_tool_instructions()}"
     model = BedrockModel(model_id=_MODEL_ID, streaming=True)
     agent_kwargs: dict = dict(
         model=model,

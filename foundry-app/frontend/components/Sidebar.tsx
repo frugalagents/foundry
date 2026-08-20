@@ -2,8 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { useStore } from '@/store'
-import { clearToken } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
+import { clearToken, navigateToLogin } from '@/lib/auth'
 import { listAllSessions, createSession, getOrCreateDefaultCustomer, deleteSession } from '@/lib/api'
 import { loadSessionIntoView } from '@/lib/session-actions'
 import type { ConversationRow } from '@/lib/types'
@@ -42,11 +41,10 @@ function groupByCustomer(conversations: ConversationRow[]) {
 }
 
 export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
-  const router = useRouter()
   const {
     conversations, setConversations,
     activeSessionId,
-    clearMessages, setStreaming,
+    clearMessages, clearWorkspace, hideCanvas, setStreaming,
     userName, isAdmin,
     showAdminView, setShowAdminView,
   } = useStore()
@@ -85,10 +83,12 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
 
   const handleNewChat = useCallback(async () => {
     clearMessages()
+    clearWorkspace()
+    hideCanvas()
     useStore.getState().clearActiveSession()
     onNewChat()
     history.pushState(null, '', '/')
-  }, [clearMessages, onNewChat])
+  }, [clearMessages, clearWorkspace, hideCanvas, onNewChat])
 
   const handleRefresh = useCallback(async () => {
     try {
@@ -108,6 +108,8 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
         setConversations(updated)
         if (activeSessionId === row.session.session_id) {
           clearMessages()
+          clearWorkspace()
+          hideCanvas()
           useStore.getState().clearActiveSession()
           history.pushState(null, '', '/')
         }
@@ -115,12 +117,12 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
         setDeletingId(null)
       }
     },
-    [conversations, setConversations, activeSessionId, clearMessages],
+    [conversations, setConversations, activeSessionId, clearMessages, clearWorkspace, hideCanvas],
   )
 
   function handleSignOut() {
     clearToken()
-    router.replace('/login')
+    navigateToLogin()
   }
 
   return (

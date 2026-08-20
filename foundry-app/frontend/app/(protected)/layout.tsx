@@ -1,13 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { isAuthenticated, getUserId, getUserName, isAdmin as getIsAdmin } from '@/lib/auth'
+import { isAuthenticated, getUserId, getUserName, isAdmin as getIsAdmin, navigateToLogin } from '@/lib/auth'
 import { listAllSessions, listModules } from '@/lib/api'
 import { useStore } from '@/store'
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const router   = useRouter()
   const setUser  = useStore((s) => s.setUser)
   const setConvs = useStore((s) => s.setConversations)
   const setMods  = useStore((s) => s.setModules)
@@ -15,7 +13,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.replace('/login')
+      navigateToLogin()
       return
     }
 
@@ -31,7 +29,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       })
       .catch(() => {/* non-fatal — sidebar will be empty */})
       .finally(() => setReady(true))
-  }, [router, setUser, setConvs, setMods])
+  }, [setUser, setConvs, setMods])
 
   if (!ready) {
     return (

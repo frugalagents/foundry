@@ -15,6 +15,7 @@ import 'reactflow/dist/style.css'
 import { useStore } from '@/store'
 import type { ArchNode, ArchEdge } from '@/lib/types'
 import NodeDetailDrawer, { type DrawerNode } from './NodeDetailDrawer'
+import IconGlyph from './IconGlyph'
 
 // ── Zone layer definitions ────────────────────────────────────────────────────
 
@@ -27,6 +28,16 @@ const LAYERS = [
   { id: 'ops',       label: 'Ops',       color: '#f59e0b', y: 780, height: 140 },
   { id: 'access',    label: 'Access',    color: '#ef4444', y: 936, height: 140 },
 ]
+
+const LAYER_META: Record<string, { label: string; rationale: string }> = {
+  surface: { label: 'Surface', rationale: 'Defines how developers and leaders interact with the platform day to day.' },
+  harness: { label: 'Harness', rationale: 'Sets the coding environment, workflow control points, and developer operating model.' },
+  execution: { label: 'Execution', rationale: 'Determines where agent work runs and the trust boundary for code execution.' },
+  gateway: { label: 'Gateway', rationale: 'Controls model routing, policy enforcement, and enterprise integrations.' },
+  model: { label: 'Model', rationale: 'Specifies the model tiering and reasoning capability used across the platform.' },
+  ops: { label: 'Ops', rationale: 'Covers observability, reliability, and cost control required to run the platform safely.' },
+  access: { label: 'Access', rationale: 'Defines the identity, governance, and compliance controls that shape enterprise rollout.' },
+}
 
 // ── Auto-layout (when agent outputs identical coordinates) ────────────────────
 
@@ -133,7 +144,7 @@ function ArchNodeComponent({ data, id }: NodeProps<ArchNodeData>) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 11, color: data.color, flexShrink: 0,
           }}>
-            {data.icon}
+            <IconGlyph icon={data.icon} color={data.color} size={12} />
           </span>
         )}
         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3 }}>
@@ -277,10 +288,87 @@ function segBtn(active: boolean): React.CSSProperties {
   }
 }
 
+function inferNodeReason(node: ArchNode): string {
+  if (node.sublabel?.trim()) return node.sublabel.trim()
+  if (node.comments?.[0]?.text?.trim()) return node.comments[0].text.trim()
+  if (node.layer && LAYER_META[node.layer]) return LAYER_META[node.layer].rationale
+  return 'Included to complete the platform architecture for this operating model.'
+}
+
+function summarizeByLayer(nodes: ArchNode[]) {
+  return LAYERS
+    .map((layer) => ({
+      ...layer,
+      nodes: nodes.filter((node) => node.layer === layer.id),
+    }))
+    .filter((group) => group.nodes.length > 0)
+}
+
+function SummaryCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle: string
+  children: React.ReactNode
+}) {
+  return (
+    <div style={{
+      border: '1px solid var(--border)',
+      background: 'var(--bg-elevated)',
+      borderRadius: 12,
+      padding: 14,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10,
+      minHeight: 0,
+    }}>
+      <div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>{title}</div>
+        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
+          {subtitle}
+        </p>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function CanvasFlow({
+  nodes,
+  edges,
+}: {
+  nodes: Node[]
+  edges: Edge[]
+}) {
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={NODE_TYPES}
+      fitView
+      fitViewOptions={{ padding: 0.2 }}
+      proOptions={{ hideAttribution: true }}
+      nodesDraggable={false}
+      nodesConnectable={false}
+      elementsSelectable={false}
+      panOnDrag
+      zoomOnScroll
+      minZoom={0.25}
+      maxZoom={2}
+      style={{ background: 'var(--bg-elevated-2)' }}
+    >
+      <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1c1c20" />
+      <Controls showInteractive={false} />
+    </ReactFlow>
+  )
+}
+
 // ── Main Canvas ───────────────────────────────────────────────────────────────
 
 export default function Canvas() {
-  const { canvasNodes, canvasEdges, baselineNodeIds } = useStore()
+  const { canvasNodes, canvasEdges, baselineNodeIds, workspace } = useStore()
   const [viewMode, setViewMode] = useState<'single' | 'compare'>('single')
   const [annotationsOn, setAnnotationsOn] = useState(true)
   const [selected, setSelected] = useState<DrawerNode | null>(null)
@@ -292,6 +380,7 @@ export default function Canvas() {
   const onSelect = useCallback((id: string) => {
     const n = canvasNodes.find((node) => node.id === id)
     if (!n) return
+    const isNew = baselineSet.size > 0 && !baselineSet.has(n.id)
     setSelected({
       id: n.id,
       label: n.label,
@@ -300,19 +389,46 @@ export default function Canvas() {
       color: n.color ?? '#6366f1',
       cost: n.cost ?? '—',
       size: n.size ?? '—',
+      layerLabel: n.layer ? (LAYER_META[n.layer]?.label ?? n.layer) : undefined,
+      rationale: inferNodeReason(n),
+      isNew,
       comments: annotationsOn ? (n.comments ?? []) : [],
     })
-  }, [canvasNodes, annotationsOn])
+  }, [canvasNodes, annotationsOn, baselineSet])
 
   const laidOut = useMemo(() => autoLayout(canvasNodes), [canvasNodes])
+  const baselineNodes = useMemo(
+    () => laidOut.filter((node) => baselineSet.size === 0 || baselineSet.has(node.id)),
+    [laidOut, baselineSet],
+  )
+  const customNodes = useMemo(
+    () => laidOut.filter((node) => baselineSet.size > 0 && !baselineSet.has(node.id)),
+    [laidOut, baselineSet],
+  )
+  const baselineNodeIdsMemo = useMemo(() => new Set(baselineNodes.map((node) => node.id)), [baselineNodes])
+  const baselineEdges = useMemo(
+    () => canvasEdges.filter((edge) => baselineNodeIdsMemo.has(edge.source) && baselineNodeIdsMemo.has(edge.target)),
+    [canvasEdges, baselineNodeIdsMemo],
+  )
+  const baselineLayerGroups = useMemo(() => summarizeByLayer(baselineNodes), [baselineNodes])
+  const rationaleLines = useMemo(() => {
+    if (workspace?.decisions?.length) return workspace.decisions.slice(0, 3)
+    if (workspace?.risks?.length) return workspace.risks.slice(0, 3)
+    return customNodes.slice(0, 3).map((node) => `${node.label}: ${inferNodeReason(node)}`)
+  }, [workspace, customNodes])
 
   // A node is a "customer addition" if it wasn't in the baseline (first) update
   const rfNodes: Node[] = useMemo(() => [
     ...LAYER_BAND_NODES,
     ...laidOut.map((n) => toRFNode(n, onSelect, baselineSet.size > 0 && !baselineSet.has(n.id))),
   ], [laidOut, onSelect, baselineSet])
+  const baselineRfNodes: Node[] = useMemo(() => [
+    ...LAYER_BAND_NODES,
+    ...baselineNodes.map((n) => toRFNode(n, onSelect, false)),
+  ], [baselineNodes, onSelect])
 
   const rfEdges: Edge[] = useMemo(() => canvasEdges.map(toRFEdge), [canvasEdges])
+  const baselineRfEdges: Edge[] = useMemo(() => baselineEdges.map(toRFEdge), [baselineEdges])
 
   const totalCostLabel = useMemo(() => {
     const amounts = canvasNodes
@@ -382,39 +498,134 @@ export default function Canvas() {
         </div>
       </div>
 
+      {hasNodes && (
+        <div style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border)',
+          display: 'grid',
+          gridTemplateColumns: '1.15fr 1fr 1fr',
+          gap: 10,
+          background: 'var(--bg-elevated-2)',
+          flexShrink: 0,
+        }}>
+          <SummaryCard
+            title="Standard Baseline"
+            subtitle={`${baselineNodes.length} standard component${baselineNodes.length === 1 ? '' : 's'} across ${baselineLayerGroups.length} layer${baselineLayerGroups.length === 1 ? '' : 's'}`}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {baselineLayerGroups.map((group) => (
+                <div key={group.id} style={{ display: 'grid', gridTemplateColumns: '82px 1fr', gap: 8, alignItems: 'start' }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: group.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {group.label}
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>
+                    {group.nodes.map((node) => node.label).join(' · ')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </SummaryCard>
+
+          <SummaryCard
+            title="Added For This Org"
+            subtitle={customNodes.length > 0
+              ? `${customNodes.length} component${customNodes.length === 1 ? '' : 's'} were added beyond the baseline`
+              : 'No org-specific additions have been introduced yet'}
+          >
+            {customNodes.length === 0 ? (
+              <p style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+                The current architecture is still the standard baseline.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {customNodes.slice(0, 4).map((node) => (
+                  <div key={node.id} style={{
+                    padding: '9px 10px',
+                    borderRadius: 9,
+                    border: '1px solid var(--border)',
+                    background: 'rgba(99,102,241,0.06)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>{node.label}</span>
+                      <span style={{ fontSize: 10.5, color: 'var(--accent-strong)' }}>
+                        {node.layer ? (LAYER_META[node.layer]?.label ?? node.layer) : 'Custom'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 4 }}>
+                      {inferNodeReason(node)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SummaryCard>
+
+          <SummaryCard
+            title="Why It Changed"
+            subtitle="Executive rationale for the current architecture direction"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {rationaleLines.length > 0 ? rationaleLines.map((line, index) => (
+                <div key={`${line}-${index}`} style={{
+                  padding: '8px 10px',
+                  borderRadius: 9,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg)',
+                  fontSize: 12,
+                  color: 'var(--text-2)',
+                  lineHeight: 1.55,
+                }}>
+                  {line}
+                </div>
+              )) : (
+                <p style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+                  Once the advisor introduces tailored architecture changes, the rationale will be summarized here.
+                </p>
+              )}
+            </div>
+          </SummaryCard>
+        </div>
+      )}
+
       {/* Canvas body */}
       {!hasNodes ? (
         <CanvasEmpty />
       ) : viewMode === 'single' ? (
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-          <ReactFlow
-            nodes={rfNodes}
-            edges={rfEdges}
-            nodeTypes={NODE_TYPES}
-            fitView
-            fitViewOptions={{ padding: 0.2 }}
-            proOptions={{ hideAttribution: true }}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={false}
-            panOnDrag
-            zoomOnScroll
-            minZoom={0.25}
-            maxZoom={2}
-            style={{ background: 'var(--bg-elevated-2)' }}
-          >
-            <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1c1c20" />
-            <Controls showInteractive={false} />
-          </ReactFlow>
+          <CanvasFlow nodes={rfNodes} edges={rfEdges} />
         </div>
       ) : (
         <div style={{
-          flex: 1, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', background: 'var(--bg-elevated-2)',
+          flex: 1,
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 1,
+          background: 'var(--border)',
+          minHeight: 0,
         }}>
-          <p style={{ fontSize: 12, color: 'var(--text-faint)' }}>
-            Compare mode — coming soon
-          </p>
+          <div style={{ minWidth: 0, background: 'var(--bg-elevated-2)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>Standard baseline</div>
+              <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
+                The reference architecture before any organization-specific tailoring.
+              </p>
+            </div>
+            <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+              <CanvasFlow nodes={baselineRfNodes} edges={baselineRfEdges} />
+            </div>
+          </div>
+
+          <div style={{ minWidth: 0, background: 'var(--bg-elevated-2)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>Tailored for this organization</div>
+              <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
+                Full architecture with org-specific additions highlighted in blue.
+              </p>
+            </div>
+            <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+              <CanvasFlow nodes={rfNodes} edges={rfEdges} />
+            </div>
+          </div>
         </div>
       )}
 

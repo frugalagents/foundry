@@ -284,3 +284,11 @@ def get_canvas(customer_id: str, session_id: str) -> dict | None:
     )
     items = resp.get("Items", [])
     return items[0] if items else None
+
+
+def get_workspace(customer_id: str, session_id: str) -> dict | None:
+    table = _get_table()
+    resp = table.get_item(
+        Key={"PK": f"CUSTOMER#{customer_id}", "SK": f"WORKSPACE#{session_id}"}
+    )
+    return resp.get("Item")

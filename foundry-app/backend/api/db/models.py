@@ -87,6 +87,18 @@ class CanvasOut(BaseModel):
     updated_at: Optional[str] = None
 
 
+class ConsultingWorkspaceOut(BaseModel):
+    stage: str = ""
+    recommendation: str = ""
+    facts: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    decisions: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    implementation_plan: list[str] = Field(default_factory=list)
+    updated_at: Optional[str] = None
+
+
 class SessionHistory(BaseModel):
     messages: list[MessageOut]
     canvas: Optional[CanvasOut] = None
+    workspace: Optional[ConsultingWorkspaceOut] = None

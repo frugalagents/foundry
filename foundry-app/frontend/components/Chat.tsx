@@ -1,69 +1,27 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback, KeyboardEvent } from 'react'
-import { nanoid } from 'nanoid'
+import { useEffect, useRef, useState, useCallback, KeyboardEvent, useMemo } from 'react'
 import { useStore } from '@/store'
 import { useStream } from '@/hooks/useStream'
 import { getOrCreateDefaultCustomer, createSession } from '@/lib/api'
 import type { Message } from '@/lib/types'
-
-// ── Minimal markdown renderer ─────────────────────────────────────────────────
-
-function renderMarkdown(text: string): string {
-  const html = text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/```[\s\S]*?```/g, (m) => {
-      const inner = m.slice(3, -3).replace(/^[^\n]*\n/, '')
-      return `<pre><code>${inner}</code></pre>`
-    })
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^---+$/gm, '<hr />')
-    .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-    .replace(/^(?!<[huplo]|<li|<pre|<blockquote|<hr)(.+)$/gm, '<p>$1</p>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-
-  const parts = html.split(/(<h2>.*?<\/h2>)/g)
-  if (parts.length < 5) return html
-
-  let result = parts[0]
-  for (let i = 1; i < parts.length; i += 2) {
-    const title   = parts[i].replace(/<\/?h2>/g, '')
-    const content = parts[i + 1] ?? ''
-    const open    = i === 1 ? ' open' : ''
-    result += `<details${open}><summary>${title}</summary><div class="details-body">${content}</div></details>`
-  }
-  return result
-}
-
-// ── Message type detection ────────────────────────────────────────────────────
-// "question" = agent is asking for user input; "observation" = agent is informing
-
-type AgentMsgType = 'question' | 'observation'
-
-function detectAgentMsgType(content: string): AgentMsgType {
-  if (!content.trim()) return 'observation'
-  const lines = content.trim().split('\n').filter((l) => l.trim())
-  const lastLine = lines[lines.length - 1] ?? ''
-  const questionCount = (content.match(/\?/g) ?? []).length
-  // Short message ending in a question, or several questions in compact text
-  if (lastLine.endsWith('?') && content.length < 600) return 'question'
-  if (questionCount >= 2 && content.length < 700) return 'question'
-  return 'observation'
-}
+import { analyzeAgentMessage, extractOpenQuestions } from '@/lib/message-analysis'
+import { renderMarkdown } from '@/lib/render-markdown'
+import {
+  buildStrategicBriefPrompt,
+  EMPTY_STRATEGIC_BRIEF,
+  STRATEGIC_BRIEF_FIELDS,
+  type StrategicBrief,
+} from '@/lib/strategic-brief'
 
 // ── Phase detection ───────────────────────────────────────────────────────────
 
 type Phase = 'discovery' | 'solutioning' | 'blueprint'
 
-function detectPhase(messages: Message[], hasCanvas: boolean): Phase {
+function detectPhase(messages: Message[], hasCanvas: boolean, workspaceStage?: string | null): Phase {
+  if (workspaceStage === 'discovery' || workspaceStage === 'solutioning' || workspaceStage === 'blueprint') {
+    return workspaceStage
+  }
   if (hasCanvas) return 'blueprint'
   const agentMsgs = messages.filter((m) => m.role === 'agent' && m.content.length > 0)
   if (agentMsgs.length >= 3) return 'solutioning'
@@ -148,8 +106,12 @@ function ThinkingDots() {
 function MessageBubble({ msg }: { msg: Message }) {
   const isUser = msg.role === 'user'
   const isEmpty = !msg.content.trim()
-  const msgType: AgentMsgType = (!isUser && !isEmpty) ? detectAgentMsgType(msg.content) : 'observation'
+  const analysis = (!isUser && !isEmpty)
+    ? analyzeAgentMessage(msg.content)
+    : { type: 'observation' as const, questions: [] }
+  const msgType = analysis.type
   const isQuestion = !isUser && msgType === 'question'
+  const isMixed = !isUser && msgType === 'mixed'
 
   return (
     <div
@@ -160,14 +122,14 @@ function MessageBubble({ msg }: { msg: Message }) {
         <div style={{
           width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
           marginRight: 10, marginTop: 2,
-          background: isQuestion ? 'rgba(245,158,11,0.15)' : 'var(--accent-dim)',
-          border: `1px solid ${isQuestion ? 'rgba(245,158,11,0.4)' : 'var(--accent-glow)'}`,
+          background: (isQuestion || isMixed) ? 'rgba(245,158,11,0.15)' : 'var(--accent-dim)',
+          border: `1px solid ${(isQuestion || isMixed) ? 'rgba(245,158,11,0.4)' : 'var(--accent-glow)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: isQuestion ? 13 : 13,
-          color: isQuestion ? 'var(--amber)' : 'var(--accent)',
+          color: (isQuestion || isMixed) ? 'var(--amber)' : 'var(--accent)',
           fontWeight: 700,
         }}>
-          {isQuestion ? '?' : '⚡'}
+          {(isQuestion || isMixed) ? '?' : '⚡'}
         </div>
       )}
 
@@ -177,30 +139,35 @@ function MessageBubble({ msg }: { msg: Message }) {
           ? 'var(--accent)'
           : isQuestion
             ? 'rgba(245,158,11,0.06)'
-            : 'var(--bg-elevated)',
+            : isMixed
+              ? 'rgba(245,158,11,0.03)'
+              : 'var(--bg-elevated)',
         border: isUser
           ? 'none'
           : isQuestion
             ? '1px solid rgba(245,158,11,0.3)'
-            : '1px solid var(--border)',
+            : isMixed
+              ? '1px solid rgba(245,158,11,0.18)'
+              : '1px solid var(--border)',
         borderRadius: isUser ? '14px 14px 4px 14px' : '4px 14px 14px 14px',
         padding: isUser ? '10px 14px' : '12px 14px',
         color: isUser ? '#fff' : 'var(--text)',
         fontSize: 14,
         lineHeight: 1.65,
       }}>
-        {/* Question label */}
-        {isQuestion && (
+        {!isUser && !isEmpty && (
           <div style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: 'var(--amber)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5,
+            color: (isQuestion || isMixed) ? 'var(--amber)' : 'var(--text-faint)',
+            marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5,
           }}>
             <span style={{
-              width: 14, height: 14, borderRadius: 4, background: 'rgba(245,158,11,0.15)',
-              border: '1px solid rgba(245,158,11,0.3)',
+              width: 14, height: 14, borderRadius: 4,
+              background: (isQuestion || isMixed) ? 'rgba(245,158,11,0.15)' : 'var(--bg-hover)',
+              border: `1px solid ${(isQuestion || isMixed) ? 'rgba(245,158,11,0.3)' : 'var(--border)'}`,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9,
-            }}>?</span>
-            Needs your input
+            }}>{(isQuestion || isMixed) ? '?' : 'i'}</span>
+            {isQuestion ? 'Needs your input' : isMixed ? 'Observation + open questions' : 'Observation'}
           </div>
         )}
 
@@ -276,6 +243,168 @@ function EmptyState({ onStarter }: { onStarter: (text: string) => void }) {
   )
 }
 
+function StrategicBriefBuilder({
+  brief,
+  openQuestionCount,
+  onPick,
+  onAdditionalContextChange,
+  onDraft,
+  onSend,
+}: {
+  brief: StrategicBrief
+  openQuestionCount: number
+  onPick: (key: keyof Omit<StrategicBrief, 'additionalContext'>, value: string) => void
+  onAdditionalContextChange: (value: string) => void
+  onDraft: () => void
+  onSend: () => void
+}) {
+  const selectedCount = STRATEGIC_BRIEF_FIELDS.filter((field) => brief[field.key]).length
+
+  return (
+    <div style={{
+      maxWidth: 720,
+      margin: '0 auto 10px',
+      border: '1px solid rgba(99,102,241,0.28)',
+      background: 'linear-gradient(180deg, rgba(99,102,241,0.1), rgba(99,102,241,0.04))',
+      borderRadius: 14,
+      padding: 14,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 12,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 10.5,
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--accent-strong)',
+          }}>
+            Strategic Brief
+          </span>
+          <span style={{
+            padding: '3px 8px',
+            borderRadius: 999,
+            background: 'var(--accent-dim)',
+            border: '1px solid var(--accent-glow)',
+            color: 'var(--accent-strong)',
+            fontSize: 11,
+          }}>
+            {selectedCount} of {STRATEGIC_BRIEF_FIELDS.length} set
+          </span>
+          {openQuestionCount > 0 && (
+            <span style={{
+              padding: '3px 8px',
+              borderRadius: 999,
+              background: 'rgba(245,158,11,0.12)',
+              border: '1px solid rgba(245,158,11,0.24)',
+              color: 'var(--amber)',
+              fontSize: 11,
+            }}>
+              {openQuestionCount} open question{openQuestionCount === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={onDraft} style={secondaryBriefButton}>
+            Draft recommendation brief
+          </button>
+          <button onClick={onSend} style={primaryBriefButton}>
+            Send brief now
+          </button>
+        </div>
+      </div>
+
+      <p style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.6 }}>
+        Fill the operating brief once. The advisor should use this to produce a recommendation, not keep drilling into generic setup questions.
+      </p>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        gap: 10,
+      }}>
+        {STRATEGIC_BRIEF_FIELDS.map((field) => (
+          <div
+            key={field.key}
+            style={{
+              padding: 10,
+              borderRadius: 10,
+              border: '1px solid var(--border)',
+              background: 'rgba(10,10,10,0.24)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
+              {field.label}
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {field.options.map((option) => {
+                const selected = brief[field.key] === option.value
+                return (
+                  <button
+                    key={option.label}
+                    onClick={() => onPick(field.key, option.value)}
+                    style={{
+                      padding: '7px 9px',
+                      borderRadius: 999,
+                      border: `1px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
+                      background: selected ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                      color: selected ? 'var(--accent-strong)' : 'var(--text-muted)',
+                      fontSize: 11.5,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{
+        padding: 10,
+        borderRadius: 10,
+        border: '1px solid var(--border)',
+        background: 'rgba(10,10,10,0.24)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
+          Additional context
+        </span>
+        <textarea
+          rows={3}
+          value={brief.additionalContext}
+          onChange={(e) => onAdditionalContextChange(e.target.value)}
+          placeholder="Anything the advisor should assume or optimize for?"
+          style={{
+            width: '100%',
+            resize: 'vertical',
+            background: 'var(--bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            color: 'var(--text)',
+            fontSize: 12.5,
+            lineHeight: 1.55,
+            padding: '10px 12px',
+            outline: 'none',
+            fontFamily: 'inherit',
+            minHeight: 88,
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
 // ── Main Chat ─────────────────────────────────────────────────────────────────
 
 export default function Chat() {
@@ -284,17 +413,24 @@ export default function Chat() {
     activeCustomerId, activeSessionId,
     setActiveSession, prependConversation, updateConversation,
     canvasNodes,
+    workspace,
   } = useStore()
 
   const { send, abort } = useStream()
   const [input, setInput] = useState('')
   const [creating, setCreating] = useState(false)
+  const [brief, setBrief] = useState<StrategicBrief>(EMPTY_STRATEGIC_BRIEF)
   const bottomRef   = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const hasCanvas = canvasNodes.length > 0
-  const phase = detectPhase(messages, hasCanvas)
+  const phase = detectPhase(messages, hasCanvas, workspace?.stage)
   const hasMessages = messages.length > 0
+  const openQuestions = useMemo(() => {
+    const workspaceQuestions = workspace?.open_questions ?? []
+    if (workspaceQuestions.length > 0) return workspaceQuestions
+    return extractOpenQuestions(messages).map((q) => q.text)
+  }, [messages, workspace])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -337,6 +473,18 @@ export default function Chat() {
   }, [streaming, activeCustomerId, activeSessionId, send, setActiveSession, prependConversation, updateConversation])
 
   const handleSend = useCallback(() => doSend(input.trim()), [doSend, input])
+  const setBriefField = useCallback((key: keyof Omit<StrategicBrief, 'additionalContext'>, value: string) => {
+    setBrief((current) => ({ ...current, [key]: current[key] === value ? '' : value }))
+  }, [])
+  const draftBrief = useCallback(() => {
+    const template = buildStrategicBriefPrompt(brief, openQuestions)
+    setInput(template)
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }, [brief, openQuestions])
+  const sendBrief = useCallback(() => {
+    const template = buildStrategicBriefPrompt(brief, openQuestions)
+    void doSend(template)
+  }, [brief, doSend, openQuestions])
 
   const handleKey = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
@@ -366,6 +514,17 @@ export default function Chat() {
 
       {/* Input bar */}
       <div style={{ borderTop: '1px solid var(--border)', padding: '12px 20px 16px', background: 'var(--bg)' }}>
+        {!streaming && (
+          <StrategicBriefBuilder
+            brief={brief}
+            openQuestionCount={openQuestions.length}
+            onPick={setBriefField}
+            onAdditionalContextChange={(value) => setBrief((current) => ({ ...current, additionalContext: value }))}
+            onDraft={draftBrief}
+            onSend={sendBrief}
+          />
+        )}
+
         <div
           style={{
             maxWidth: 720, margin: '0 auto',
@@ -435,4 +594,26 @@ export default function Chat() {
       </div>
     </div>
   )
+}
+
+const primaryBriefButton: React.CSSProperties = {
+  padding: '7px 10px',
+  borderRadius: 8,
+  border: '1px solid var(--accent)',
+  background: 'var(--accent)',
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: 600,
+  cursor: 'pointer',
+}
+
+const secondaryBriefButton: React.CSSProperties = {
+  padding: '7px 10px',
+  borderRadius: 8,
+  border: '1px solid var(--border)',
+  background: 'var(--bg-elevated)',
+  color: 'var(--text)',
+  fontSize: 12,
+  fontWeight: 600,
+  cursor: 'pointer',
 }

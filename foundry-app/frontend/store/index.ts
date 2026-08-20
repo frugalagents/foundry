@@ -1,5 +1,12 @@
 import { create } from 'zustand'
-import type { Message, ConversationRow, ArchNode, ArchEdge, Module } from '@/lib/types'
+import type {
+  Message,
+  ConversationRow,
+  ArchNode,
+  ArchEdge,
+  Module,
+  ConsultingWorkspace,
+} from '@/lib/types'
 
 interface AppState {
   // ── Auth ────────────────────────────────────────────────────────────────────
@@ -21,6 +28,11 @@ interface AppState {
   appendChunk: (id: string, chunk: string) => void
   finalizeMessage: (id: string) => void
   clearMessages: () => void
+
+  // ── Consulting workspace ────────────────────────────────────────────────────
+  workspace: ConsultingWorkspace | null
+  setWorkspace: (workspace: ConsultingWorkspace | null) => void
+  clearWorkspace: () => void
 
   // ── Architecture canvas ─────────────────────────────────────────────────────
   canvasVisible: boolean
@@ -85,6 +97,11 @@ export const useStore = create<AppState>((set) => ({
       ),
     })),
   clearMessages: () => set({ messages: [], baselineNodeIds: [] }),
+
+  // ── Consulting workspace ────────────────────────────────────────────────────
+  workspace: null,
+  setWorkspace: (workspace) => set({ workspace }),
+  clearWorkspace: () => set({ workspace: null }),
 
   // ── Architecture canvas ─────────────────────────────────────────────────────
   canvasVisible: false,
