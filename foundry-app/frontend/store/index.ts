@@ -6,6 +6,7 @@ import type {
   ArchEdge,
   Module,
   ConsultingWorkspace,
+  ArchitectureArtifact,
 } from '@/lib/types'
 
 interface AppState {
@@ -34,12 +35,17 @@ interface AppState {
   setWorkspace: (workspace: ConsultingWorkspace | null) => void
   clearWorkspace: () => void
 
+  // ── Architecture artifact ──────────────────────────────────────────────────
+  architectureArtifact: ArchitectureArtifact | null
+  setArchitectureArtifact: (artifact: ArchitectureArtifact | null) => void
+  clearArchitectureArtifact: () => void
+
   // ── Architecture canvas ─────────────────────────────────────────────────────
   canvasVisible: boolean
   canvasNodes: ArchNode[]
   canvasEdges: ArchEdge[]
   baselineNodeIds: string[]   // IDs from the first canvas update — everything else is a customer addition
-  setCanvas: (nodes: ArchNode[], edges: ArchEdge[]) => void
+  setCanvas: (nodes: ArchNode[], edges: ArchEdge[], baselineNodeIds?: string[]) => void
   showCanvas: () => void
   hideCanvas: () => void
 
@@ -103,22 +109,40 @@ export const useStore = create<AppState>((set) => ({
   setWorkspace: (workspace) => set({ workspace }),
   clearWorkspace: () => set({ workspace: null }),
 
+  // ── Architecture artifact ──────────────────────────────────────────────────
+  architectureArtifact: null,
+  setArchitectureArtifact: (architectureArtifact) => set({ architectureArtifact }),
+  clearArchitectureArtifact: () => set({ architectureArtifact: null }),
+
   // ── Architecture canvas ─────────────────────────────────────────────────────
   canvasVisible: false,
   canvasNodes: [],
   canvasEdges: [],
   baselineNodeIds: [],
-  setCanvas: (nodes, edges) => set((s) => {
+  setCanvas: (nodes, edges, baselineNodeIds) => set((s) => {
+    const nextBaselineNodeIds = baselineNodeIds && baselineNodeIds.length > 0
+      ? baselineNodeIds
+      : s.baselineNodeIds.length === 0
+        ? nodes.map((n) => n.id)
+        : s.baselineNodeIds
     const isFirst = s.baselineNodeIds.length === 0
     return {
       canvasNodes: nodes,
       canvasEdges: edges,
       canvasVisible: true,
-      baselineNodeIds: isFirst ? nodes.map((n) => n.id) : s.baselineNodeIds,
+      baselineNodeIds: isFirst || (baselineNodeIds && baselineNodeIds.length > 0)
+        ? nextBaselineNodeIds
+        : s.baselineNodeIds,
     }
   }),
   showCanvas: () => set({ canvasVisible: true }),
-  hideCanvas: () => set({ canvasVisible: false, baselineNodeIds: [] }),
+  hideCanvas: () => set({
+    canvasVisible: false,
+    canvasNodes: [],
+    canvasEdges: [],
+    baselineNodeIds: [],
+    architectureArtifact: null,
+  }),
 
   // ── Sidebar conversations ───────────────────────────────────────────────────
   conversations: [],

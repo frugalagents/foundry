@@ -151,8 +151,14 @@ def _chat_stream(text: str) -> str:
     return f"data: {json.dumps({'type': 'chat_stream', 'data': {'text': text}})}\n\n"
 
 
-def _architecture_event(nodes: list, edges: list) -> str:
-    return f"data: {json.dumps({'type': 'architecture_update', 'data': {'nodes': nodes, 'edges': edges}})}\n\n"
+def _architecture_event(
+    nodes: list,
+    edges: list,
+    stage: str = "",
+    baseline_node_ids: list[str] | None = None,
+    architecture_artifact: dict | None = None,
+) -> str:
+    return f"data: {json.dumps({'type': 'architecture_update', 'data': {'stage': stage, 'nodes': nodes, 'edges': edges, 'baseline_node_ids': baseline_node_ids or [], 'architecture_artifact': architecture_artifact or None}})}\n\n"
 
 
 def _module_detected_event(module: str) -> str:
@@ -206,6 +212,13 @@ Tool rules:
 - `risks`: unresolved risks, tradeoffs, or external dependencies.
 - `implementation_plan`: near-term rollout steps in order.
 - `recommendation`: 1-3 sentences describing the current direction.
+- `blueprint_markdown`: the current technical blueprint artifact in markdown.
+  Use this for the substantial blueprint/plan document instead of dumping it into chat.
+- `assumptions`: non-blocking working defaults the architecture currently relies on.
+  Use this for choices the customer can override later instead of turning every
+  architecture variable into a question.
+  Each item should look like:
+  `{"id","title","assumed","why","impact","confidence","options":[{"id","label","prompt"}]}`
 - `stage`: one of discovery, solutioning, blueprint.
 
 Execution rules:
@@ -213,6 +226,11 @@ Execution rules:
 - `discovery`: use while gathering constraints, context, and unresolved questions.
 - `solutioning`: use once you are actively recommending a direction or locking in architecture decisions.
 - `blueprint`: use only when the recommendation is materially coherent, major decisions are captured, and rollout steps are present.
+- When `stage=blueprint`, keep the chat reply short and point the customer to the blueprint panel.
+  Put the actual blueprint artifact in `blueprint_markdown`.
+- Put only true blockers in `open_questions`.
+- Put non-blocking defaults in `assumptions` with plain-English rationale and
+  1-2 override options the customer can choose from later.
 - If you ask the customer for input, call `update_consulting_state` in the same turn and put those prompts in `open_questions`.
 - If the customer answers a previous question, remove or replace it in `open_questions` on your next call.
 - If you make a concrete architecture choice, add it to `decisions` in the same turn; do not leave decisions only in prose.
@@ -364,6 +382,8 @@ async def invoke(payload: dict, context):
         nodes: list,
         edges: list,
         stage: str = "",
+        baseline_node_ids: list[str] | None = None,
+        architecture_artifact: dict | None = None,
     ) -> str:
         """
         Emit a live architecture canvas update to the frontend.
@@ -380,16 +400,78 @@ async def invoke(payload: dict, context):
         ALWAYS set `layer` on every node so it lands in the correct zone band —
         these match the platform stack used throughout this conversation:
           "surface"   → Surface:   IDE, CLI, chat/PR bot, CI integration
-          "harness"   → Harness:   SaaS product, AgentCore runtime, OSS harness, framework SDK
+          "harness"   → Harness:   SaaS product, managed runtime, pre-built OSS coding harness, framework SDK
           "execution" → Execution: local, container, microVM, remote runner
           "gateway"   → Gateway:   MCP tool gateway, model gateway, credential injection, tiering
           "model"     → Model:     LLM provider + tier (Haiku/Sonnet/Opus)
           "ops"       → Ops:       observability, cost tracking, resilience
           "access"    → Access:    identity, guardrails, quota, compliance controls
 
+        Harness taxonomy is strict:
+          - Strands, LangChain/LangGraph, PydanticAI, AutoGen, CrewAI = framework SDKs
+          - OpenCode, Pi, Cline, Codex CLI, Goose, Aider, OpenHands, Mastra, SWE-agent = pre-built OSS coding harnesses
+        Never call Strands or LangChain an "OSS harness" unless you explicitly
+        mean a custom harness the customer is building on top of that framework.
+
         Set x=0, y=0 on all nodes — the frontend positions them inside the correct zone band automatically.
 
         Each edge: {id, source, target, animated?, color?, dashed?}
+
+        Baseline/customization contract:
+          - `baseline_node_ids`: IDs of the standard reference architecture nodes.
+            Any node not in this list is treated as a customization for this customer.
+          - `architecture_artifact`: executive-facing architecture package with:
+            {
+              "executive_summary": string,
+              "baseline": {
+                "name": string,
+                "layers": [
+                  {
+                    "id": string,
+                    "label": string,
+                    "purpose": string,
+                    "component_ids": [string],
+                    "component_labels": [string]
+                  }
+                ]
+              },
+              "customizations": [
+                {
+                  "id": string,
+                  "title": string,
+                  "layer": string,
+                  "added_component_ids": [string],
+                  "reason": string,
+                  "tradeoff": string,
+                  "triggered_by": [string]
+                }
+              ],
+              "decisions": [
+                {
+                  "decision": string,
+                  "why": string,
+                  "alternatives_rejected": [string]
+                }
+              ],
+              "risks": [
+                {
+                  "risk": string,
+                  "mitigation": string
+                }
+              ],
+              "rollout": [
+                {
+                  "phase": string,
+                  "outcome": string
+                }
+              ]
+            }
+
+        Treat this architecture artifact as mandatory once you have moved past
+        vague discovery. The VP should be able to answer:
+          - what is the standard baseline?
+          - what changed for this org?
+          - why did it change?
 
         Call at these stages:
           - After scale + cloud provider: skeleton (harness + execution zones)
@@ -400,14 +482,30 @@ async def invoke(payload: dict, context):
             nodes: List of architecture node objects
             edges: List of edge objects connecting nodes
             stage: Stage label ("skeleton" | "compliance" | "full")
+            baseline_node_ids: IDs of nodes that belong to the reference baseline
+            architecture_artifact: Executive summary + rationale package
         """
-        event = _architecture_event(nodes, edges)
+        event = _architecture_event(
+            nodes,
+            edges,
+            stage,
+            baseline_node_ids=baseline_node_ids,
+            architecture_artifact=architecture_artifact,
+        )
         panel_queue.put_nowait(event)
         log.info("Architecture update emitted: stage=%s nodes=%d edges=%d",
                  stage, len(nodes), len(edges))
         if customer_id and session_id:
             try:
-                put_canvas_snapshot(customer_id, session_id, nodes, edges, stage)
+                put_canvas_snapshot(
+                    customer_id,
+                    session_id,
+                    nodes,
+                    edges,
+                    stage,
+                    baseline_node_ids=baseline_node_ids,
+                    architecture_artifact=architecture_artifact,
+                )
             except Exception:
                 log.exception("Failed to persist canvas snapshot")
         return f"Architecture canvas updated ({stage or 'update'}: {len(nodes)} nodes, {len(edges)} edges)."
@@ -436,6 +534,8 @@ async def invoke(payload: dict, context):
     @tool
     def update_consulting_state(
         recommendation: str = "",
+        blueprint_markdown: str = "",
+        assumptions: list[dict] | None = None,
         facts: list[str] | None = None,
         open_questions: list[str] | None = None,
         decisions: list[str] | None = None,
@@ -448,11 +548,13 @@ async def invoke(payload: dict, context):
 
         Keep each list short and specific. This tool updates the workspace
         panels in the UI so the customer can track facts, questions, decisions,
-        risks, and next steps outside the chat transcript.
+        risks, assumptions, and next steps outside the chat transcript.
         """
         workspace = {
             "stage": stage,
             "recommendation": recommendation,
+            "blueprint_markdown": blueprint_markdown,
+            "assumptions": assumptions or [],
             "facts": facts or [],
             "open_questions": open_questions or [],
             "decisions": decisions or [],
@@ -467,6 +569,8 @@ async def invoke(payload: dict, context):
                     session_id,
                     stage=stage,
                     recommendation=recommendation,
+                    blueprint_markdown=blueprint_markdown,
+                    assumptions=assumptions or [],
                     facts=facts or [],
                     open_questions=open_questions or [],
                     decisions=decisions or [],

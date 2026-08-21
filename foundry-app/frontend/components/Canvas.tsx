@@ -13,7 +13,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { useStore } from '@/store'
-import type { ArchNode, ArchEdge } from '@/lib/types'
+import type { ArchNode, ArchEdge, ArchitectureArtifact, ArchitectureCustomization } from '@/lib/types'
 import NodeDetailDrawer, { type DrawerNode } from './NodeDetailDrawer'
 import IconGlyph from './IconGlyph'
 
@@ -277,62 +277,29 @@ function CanvasEmpty() {
   )
 }
 
-// ── Segment button style ──────────────────────────────────────────────────────
-
-function segBtn(active: boolean): React.CSSProperties {
-  return {
-    padding: '6px 12px', borderRadius: 6, border: 'none', fontSize: 11.5,
-    fontWeight: 500, cursor: 'pointer',
-    background: active ? 'var(--bg-hover)' : 'none',
-    color: active ? 'var(--text)' : 'var(--text-muted)',
-  }
+function layerLabel(layerId: string): string {
+  return LAYER_META[layerId]?.label ?? layerId
 }
 
-function inferNodeReason(node: ArchNode): string {
+function findCustomizationForNode(
+  artifact: ArchitectureArtifact | null,
+  nodeId: string,
+): ArchitectureCustomization | null {
+  if (!artifact) return null
+  return artifact.customizations.find((item) => item.added_component_ids.includes(nodeId)) ?? null
+}
+
+function inferNodeReason(node: ArchNode, artifact?: ArchitectureArtifact | null): string {
+  const customization = findCustomizationForNode(artifact ?? null, node.id)
+  if (customization?.reason) {
+    return customization.tradeoff
+      ? `${customization.reason} Tradeoff: ${customization.tradeoff}`
+      : customization.reason
+  }
   if (node.sublabel?.trim()) return node.sublabel.trim()
   if (node.comments?.[0]?.text?.trim()) return node.comments[0].text.trim()
   if (node.layer && LAYER_META[node.layer]) return LAYER_META[node.layer].rationale
   return 'Included to complete the platform architecture for this operating model.'
-}
-
-function summarizeByLayer(nodes: ArchNode[]) {
-  return LAYERS
-    .map((layer) => ({
-      ...layer,
-      nodes: nodes.filter((node) => node.layer === layer.id),
-    }))
-    .filter((group) => group.nodes.length > 0)
-}
-
-function SummaryCard({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string
-  subtitle: string
-  children: React.ReactNode
-}) {
-  return (
-    <div style={{
-      border: '1px solid var(--border)',
-      background: 'var(--bg-elevated)',
-      borderRadius: 12,
-      padding: 14,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10,
-      minHeight: 0,
-    }}>
-      <div>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>{title}</div>
-        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
-          {subtitle}
-        </p>
-      </div>
-      {children}
-    </div>
-  )
 }
 
 function CanvasFlow({
@@ -368,10 +335,17 @@ function CanvasFlow({
 // ── Main Canvas ───────────────────────────────────────────────────────────────
 
 export default function Canvas() {
-  const { canvasNodes, canvasEdges, baselineNodeIds, workspace } = useStore()
-  const [viewMode, setViewMode] = useState<'single' | 'compare'>('single')
+  const {
+    activeSessionId,
+    canvasNodes,
+    canvasEdges,
+    baselineNodeIds,
+    workspace,
+    architectureArtifact,
+  } = useStore()
   const [annotationsOn, setAnnotationsOn] = useState(true)
   const [selected, setSelected] = useState<DrawerNode | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const baselineSet = useMemo(() => new Set(baselineNodeIds), [baselineNodeIds])
 
@@ -389,12 +363,12 @@ export default function Canvas() {
       color: n.color ?? '#6366f1',
       cost: n.cost ?? '—',
       size: n.size ?? '—',
-      layerLabel: n.layer ? (LAYER_META[n.layer]?.label ?? n.layer) : undefined,
-      rationale: inferNodeReason(n),
+      layerLabel: n.layer ? layerLabel(n.layer) : undefined,
+      rationale: inferNodeReason(n, architectureArtifact),
       isNew,
       comments: annotationsOn ? (n.comments ?? []) : [],
     })
-  }, [canvasNodes, annotationsOn, baselineSet])
+  }, [canvasNodes, annotationsOn, baselineSet, architectureArtifact])
 
   const laidOut = useMemo(() => autoLayout(canvasNodes), [canvasNodes])
   const baselineNodes = useMemo(
@@ -405,30 +379,14 @@ export default function Canvas() {
     () => laidOut.filter((node) => baselineSet.size > 0 && !baselineSet.has(node.id)),
     [laidOut, baselineSet],
   )
-  const baselineNodeIdsMemo = useMemo(() => new Set(baselineNodes.map((node) => node.id)), [baselineNodes])
-  const baselineEdges = useMemo(
-    () => canvasEdges.filter((edge) => baselineNodeIdsMemo.has(edge.source) && baselineNodeIdsMemo.has(edge.target)),
-    [canvasEdges, baselineNodeIdsMemo],
-  )
-  const baselineLayerGroups = useMemo(() => summarizeByLayer(baselineNodes), [baselineNodes])
-  const rationaleLines = useMemo(() => {
-    if (workspace?.decisions?.length) return workspace.decisions.slice(0, 3)
-    if (workspace?.risks?.length) return workspace.risks.slice(0, 3)
-    return customNodes.slice(0, 3).map((node) => `${node.label}: ${inferNodeReason(node)}`)
-  }, [workspace, customNodes])
 
   // A node is a "customer addition" if it wasn't in the baseline (first) update
   const rfNodes: Node[] = useMemo(() => [
     ...LAYER_BAND_NODES,
     ...laidOut.map((n) => toRFNode(n, onSelect, baselineSet.size > 0 && !baselineSet.has(n.id))),
   ], [laidOut, onSelect, baselineSet])
-  const baselineRfNodes: Node[] = useMemo(() => [
-    ...LAYER_BAND_NODES,
-    ...baselineNodes.map((n) => toRFNode(n, onSelect, false)),
-  ], [baselineNodes, onSelect])
 
   const rfEdges: Edge[] = useMemo(() => canvasEdges.map(toRFEdge), [canvasEdges])
-  const baselineRfEdges: Edge[] = useMemo(() => baselineEdges.map(toRFEdge), [baselineEdges])
 
   const totalCostLabel = useMemo(() => {
     const amounts = canvasNodes
@@ -439,6 +397,41 @@ export default function Canvas() {
     if (amounts.length === 0) return '—'
     return `$${Math.round(amounts.reduce((a, b) => a + b, 0)).toLocaleString()}/mo`
   }, [canvasNodes])
+  const stageLabel = workspace?.stage?.trim() || (hasNodes ? 'blueprint' : '')
+  const baselineLabel = architectureArtifact?.baseline.name || (baselineNodes.length > 0 ? 'Working baseline' : '')
+  const riskCount = architectureArtifact?.risks.length ?? workspace?.risks?.length ?? 0
+  const openQuestionCount = workspace?.open_questions.length ?? 0
+  const architectureExport = useMemo(
+    () => JSON.stringify({
+      session_id: activeSessionId,
+      stage: stageLabel,
+      baseline_node_ids: baselineNodeIds,
+      architecture_artifact: architectureArtifact,
+      nodes: canvasNodes,
+      edges: canvasEdges,
+    }, null, 2),
+    [activeSessionId, architectureArtifact, baselineNodeIds, canvasEdges, canvasNodes, stageLabel],
+  )
+
+  async function handleCopyExport() {
+    if (!hasNodes) return
+    try {
+      await navigator.clipboard.writeText(architectureExport)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch (err) {
+      console.error('Failed to copy architecture export', err)
+    }
+  }
+
+  function handleDownloadExport() {
+    if (!hasNodes) return
+    downloadTextFile(
+      `${activeSessionId ?? 'foundry-architecture'}.json`,
+      architectureExport,
+      'application/json;charset=utf-8',
+    )
+  }
 
   return (
     <div style={{
@@ -456,33 +449,28 @@ export default function Canvas() {
             fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
             textTransform: 'uppercase', color: 'var(--text-muted)',
           }}>
-            Architecture
+            Architecture Canvas
           </span>
-          <div style={{
-            display: 'flex', gap: 2, background: 'var(--bg-elevated)',
-            border: '1px solid var(--border)', borderRadius: 8, padding: 2,
-          }}>
-            <button onClick={() => setViewMode('single')} style={segBtn(viewMode === 'single')}>
-              Single
-            </button>
-            <button onClick={() => setViewMode('compare')} style={segBtn(viewMode === 'compare')}>
-              Compare
-            </button>
-          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <ArtifactButton onClick={handleCopyExport} disabled={!hasNodes}>
+            {copied ? 'Copied' : 'Copy JSON'}
+          </ArtifactButton>
+          <ArtifactButton onClick={handleDownloadExport} disabled={!hasNodes}>
+            Download JSON
+          </ArtifactButton>
           <button
             onClick={() => setAnnotationsOn((v) => !v)}
             title="Toggle comments"
             style={{
               width: 26, height: 26, borderRadius: 7, display: 'flex',
               alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-              background: annotationsOn ? '#191b2e' : 'var(--bg-elevated)',
-              border: `1px solid ${annotationsOn ? '#34386b' : 'var(--border)'}`,
-              color: annotationsOn ? 'var(--accent-strong)' : 'var(--text-muted)',
-            }}
-          >
+                background: annotationsOn ? '#191b2e' : 'var(--bg-elevated)',
+                border: `1px solid ${annotationsOn ? '#34386b' : 'var(--border)'}`,
+                color: annotationsOn ? 'var(--accent-strong)' : 'var(--text-muted)',
+              }}
+            >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
@@ -500,132 +488,43 @@ export default function Canvas() {
 
       {hasNodes && (
         <div style={{
-          padding: '12px 16px',
+          padding: '10px 16px',
           borderBottom: '1px solid var(--border)',
-          display: 'grid',
-          gridTemplateColumns: '1.15fr 1fr 1fr',
-          gap: 10,
-          background: 'var(--bg-elevated-2)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 8,
+          background: 'var(--bg-elevated)',
           flexShrink: 0,
         }}>
-          <SummaryCard
-            title="Standard Baseline"
-            subtitle={`${baselineNodes.length} standard component${baselineNodes.length === 1 ? '' : 's'} across ${baselineLayerGroups.length} layer${baselineLayerGroups.length === 1 ? '' : 's'}`}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {baselineLayerGroups.map((group) => (
-                <div key={group.id} style={{ display: 'grid', gridTemplateColumns: '82px 1fr', gap: 8, alignItems: 'start' }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, color: group.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {group.label}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>
-                    {group.nodes.map((node) => node.label).join(' · ')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </SummaryCard>
-
-          <SummaryCard
-            title="Added For This Org"
-            subtitle={customNodes.length > 0
-              ? `${customNodes.length} component${customNodes.length === 1 ? '' : 's'} were added beyond the baseline`
-              : 'No org-specific additions have been introduced yet'}
-          >
-            {customNodes.length === 0 ? (
-              <p style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.6 }}>
-                The current architecture is still the standard baseline.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {customNodes.slice(0, 4).map((node) => (
-                  <div key={node.id} style={{
-                    padding: '9px 10px',
-                    borderRadius: 9,
-                    border: '1px solid var(--border)',
-                    background: 'rgba(99,102,241,0.06)',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>{node.label}</span>
-                      <span style={{ fontSize: 10.5, color: 'var(--accent-strong)' }}>
-                        {node.layer ? (LAYER_META[node.layer]?.label ?? node.layer) : 'Custom'}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 4 }}>
-                      {inferNodeReason(node)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </SummaryCard>
-
-          <SummaryCard
-            title="Why It Changed"
-            subtitle="Executive rationale for the current architecture direction"
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {rationaleLines.length > 0 ? rationaleLines.map((line, index) => (
-                <div key={`${line}-${index}`} style={{
-                  padding: '8px 10px',
-                  borderRadius: 9,
-                  border: '1px solid var(--border)',
-                  background: 'var(--bg)',
-                  fontSize: 12,
-                  color: 'var(--text-2)',
-                  lineHeight: 1.55,
-                }}>
-                  {line}
-                </div>
-              )) : (
-                <p style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.6 }}>
-                  Once the advisor introduces tailored architecture changes, the rationale will be summarized here.
-                </p>
-              )}
-            </div>
-          </SummaryCard>
+          {baselineLabel && (
+            <StatusChip tone="neutral">{baselineLabel}</StatusChip>
+          )}
+          <StatusChip tone="accent">
+            {customNodes.length} org addition{customNodes.length === 1 ? '' : 's'}
+          </StatusChip>
+          {stageLabel && (
+            <StatusChip tone="neutral">{stageLabel}</StatusChip>
+          )}
+          {openQuestionCount > 0 && (
+            <StatusChip tone="warning">
+              {openQuestionCount} open question{openQuestionCount === 1 ? '' : 's'}
+            </StatusChip>
+          )}
+          {riskCount > 0 && (
+            <StatusChip tone="warning">
+              {riskCount} active risk{riskCount === 1 ? '' : 's'}
+            </StatusChip>
+          )}
         </div>
       )}
 
       {/* Canvas body */}
       {!hasNodes ? (
         <CanvasEmpty />
-      ) : viewMode === 'single' ? (
+      ) : (
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           <CanvasFlow nodes={rfNodes} edges={rfEdges} />
-        </div>
-      ) : (
-        <div style={{
-          flex: 1,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 1,
-          background: 'var(--border)',
-          minHeight: 0,
-        }}>
-          <div style={{ minWidth: 0, background: 'var(--bg-elevated-2)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>Standard baseline</div>
-              <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
-                The reference architecture before any organization-specific tailoring.
-              </p>
-            </div>
-            <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-              <CanvasFlow nodes={baselineRfNodes} edges={baselineRfEdges} />
-            </div>
-          </div>
-
-          <div style={{ minWidth: 0, background: 'var(--bg-elevated-2)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>Tailored for this organization</div>
-              <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.5 }}>
-                Full architecture with org-specific additions highlighted in blue.
-              </p>
-            </div>
-            <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-              <CanvasFlow nodes={rfNodes} edges={rfEdges} />
-            </div>
-          </div>
         </div>
       )}
 
@@ -634,4 +533,85 @@ export default function Canvas() {
       )}
     </div>
   )
+}
+
+function StatusChip({
+  children,
+  tone,
+}: {
+  children: React.ReactNode
+  tone: 'neutral' | 'accent' | 'warning'
+}) {
+  const palette = tone === 'accent'
+    ? {
+        background: 'rgba(99,102,241,0.12)',
+        border: 'rgba(99,102,241,0.24)',
+        color: 'var(--accent-strong)',
+      }
+    : tone === 'warning'
+      ? {
+          background: 'rgba(245,158,11,0.12)',
+          border: 'rgba(245,158,11,0.24)',
+          color: 'var(--amber)',
+        }
+      : {
+          background: 'var(--bg)',
+          border: 'var(--border)',
+          color: 'var(--text-muted)',
+        }
+
+  return (
+    <span style={{
+      padding: '6px 10px',
+      borderRadius: 999,
+      background: palette.background,
+      border: `1px solid ${palette.border}`,
+      color: palette.color,
+      fontSize: 11,
+      fontWeight: 600,
+      lineHeight: 1.3,
+      whiteSpace: 'nowrap',
+    }}>
+      {children}
+    </span>
+  )
+}
+
+function ArtifactButton({
+  children,
+  disabled,
+  onClick,
+}: {
+  children: React.ReactNode
+  disabled?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        padding: '7px 10px',
+        borderRadius: 8,
+        border: '1px solid var(--border)',
+        background: disabled ? 'var(--bg-hover)' : 'var(--bg-elevated)',
+        color: disabled ? 'var(--text-faint)' : 'var(--text)',
+        fontSize: 12,
+        fontWeight: 500,
+        cursor: disabled ? 'default' : 'pointer',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function downloadTextFile(filename: string, text: string, mimeType: string) {
+  const blob = new Blob([text], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
 }

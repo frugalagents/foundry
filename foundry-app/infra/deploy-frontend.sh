@@ -85,17 +85,34 @@ NEXT_PUBLIC_API_URL="$API_URL" \
   NEXT_PUBLIC_AWS_REGION="$REGION" \
   npm run build
 
+SNAPSHOT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/foundry-frontend.XXXXXX")"
+trap 'rm -rf "$SNAPSHOT_DIR"' EXIT
+
+echo "→ Snapshotting export output"
+rsync -a --delete out/ "$SNAPSHOT_DIR"/
+
 echo "→ Syncing to S3"
-aws s3 sync out/ "s3://$BUCKET" \
+aws s3 sync "$SNAPSHOT_DIR"/ "s3://$BUCKET" \
   --delete \
   --cache-control "public, max-age=31536000, immutable" \
   --exclude "*.html" \
+  --exclude "*.txt" \
+  --no-progress \
   --profile "$PROFILE"
 
-aws s3 sync out/ "s3://$BUCKET" \
+aws s3 sync "$SNAPSHOT_DIR"/ "s3://$BUCKET" \
+  --cache-control "no-cache, no-store, must-revalidate" \
+  --exclude "*" \
+  --include "*.txt" \
+  --no-progress \
+  --profile "$PROFILE"
+
+aws s3 sync "$SNAPSHOT_DIR"/ "s3://$BUCKET" \
   --delete \
   --cache-control "no-cache, no-store, must-revalidate" \
+  --exclude "*" \
   --include "*.html" \
+  --no-progress \
   --profile "$PROFILE"
 
 echo "→ Invalidating CloudFront"

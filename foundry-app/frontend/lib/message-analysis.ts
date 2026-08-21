@@ -93,6 +93,8 @@ export function normalizeWorkspace(workspace?: ConsultingWorkspace | null): Cons
   return {
     stage: workspace?.stage ?? '',
     recommendation: workspace?.recommendation ?? '',
+    blueprint_markdown: workspace?.blueprint_markdown ?? '',
+    assumptions: workspace?.assumptions ?? [],
     facts: workspace?.facts ?? [],
     open_questions: workspace?.open_questions ?? [],
     decisions: workspace?.decisions ?? [],

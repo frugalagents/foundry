@@ -11,6 +11,8 @@ import {
 } from '@/lib/agentcore'
 import { streamSession } from '@/lib/api'
 import { getToken } from '@/lib/auth'
+import { normalizeArchitectureArtifact } from '@/lib/architecture-artifact'
+import { normalizeWorkspaceAssumptions } from '@/lib/assumptions'
 
 export function useStream() {
   const abortRef = useRef<AbortController | null>(null)
@@ -19,6 +21,7 @@ export function useStream() {
     appendChunk,
     finalizeMessage,
     setCanvas,
+    setArchitectureArtifact,
     setWorkspace,
     setStreaming,
   } = useStore()
@@ -47,12 +50,20 @@ export function useStream() {
           if (type === 'chat_stream') {
             appendChunk(agentMsgId, (data as { text?: string }).text ?? '')
           } else if (type === 'architecture_update') {
-            const d = data as { nodes?: never[]; edges?: never[] }
-            setCanvas(d.nodes ?? [], d.edges ?? [])
+            const d = data as {
+              nodes?: never[]
+              edges?: never[]
+              baseline_node_ids?: string[]
+              architecture_artifact?: unknown
+            }
+            setCanvas(d.nodes ?? [], d.edges ?? [], Array.isArray(d.baseline_node_ids) ? d.baseline_node_ids : undefined)
+            setArchitectureArtifact(normalizeArchitectureArtifact(d.architecture_artifact))
           } else if (type === 'workspace_update') {
             setWorkspace({
               stage: typeof data.stage === 'string' ? data.stage : '',
               recommendation: typeof data.recommendation === 'string' ? data.recommendation : '',
+              blueprint_markdown: typeof data.blueprint_markdown === 'string' ? data.blueprint_markdown : '',
+              assumptions: normalizeWorkspaceAssumptions(data.assumptions),
               facts: Array.isArray(data.facts) ? data.facts.filter((v): v is string => typeof v === 'string') : [],
               open_questions: Array.isArray(data.open_questions)
                 ? data.open_questions.filter((v): v is string => typeof v === 'string')
@@ -80,7 +91,7 @@ export function useStream() {
         setStreaming(false)
       }
     },
-    [appendMessage, appendChunk, finalizeMessage, setCanvas, setWorkspace, setStreaming],
+    [appendMessage, appendChunk, finalizeMessage, setCanvas, setArchitectureArtifact, setWorkspace, setStreaming],
   )
 
   const abort = useCallback(() => {

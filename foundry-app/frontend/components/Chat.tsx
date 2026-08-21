@@ -1,27 +1,17 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback, KeyboardEvent, useMemo } from 'react'
+import { useEffect, useRef, useState, useCallback, KeyboardEvent } from 'react'
 import { useStore } from '@/store'
-import { useStream } from '@/hooks/useStream'
-import { getOrCreateDefaultCustomer, createSession } from '@/lib/api'
-import type { Message } from '@/lib/types'
-import { analyzeAgentMessage, extractOpenQuestions } from '@/lib/message-analysis'
+import { useConversationSend } from '@/hooks/useConversationSend'
+import { analyzeAgentMessage, type AgentMsgType } from '@/lib/message-analysis'
 import { renderMarkdown } from '@/lib/render-markdown'
-import {
-  buildStrategicBriefPrompt,
-  EMPTY_STRATEGIC_BRIEF,
-  STRATEGIC_BRIEF_FIELDS,
-  type StrategicBrief,
-} from '@/lib/strategic-brief'
+import type { Message } from '@/lib/types'
 
 // ── Phase detection ───────────────────────────────────────────────────────────
 
 type Phase = 'discovery' | 'solutioning' | 'blueprint'
 
-function detectPhase(messages: Message[], hasCanvas: boolean, workspaceStage?: string | null): Phase {
-  if (workspaceStage === 'discovery' || workspaceStage === 'solutioning' || workspaceStage === 'blueprint') {
-    return workspaceStage
-  }
+function detectPhase(messages: Message[], hasCanvas: boolean): Phase {
   if (hasCanvas) return 'blueprint'
   const agentMsgs = messages.filter((m) => m.role === 'agent' && m.content.length > 0)
   if (agentMsgs.length >= 3) return 'solutioning'
@@ -29,9 +19,9 @@ function detectPhase(messages: Message[], hasCanvas: boolean, workspaceStage?: s
 }
 
 const PHASES: { id: Phase; label: string }[] = [
-  { id: 'discovery',   label: 'Discovery'   },
+  { id: 'discovery', label: 'Discovery' },
   { id: 'solutioning', label: 'Solutioning' },
-  { id: 'blueprint',   label: 'Blueprint'   },
+  { id: 'blueprint', label: 'Blueprint' },
 ]
 
 // ── Phase breadcrumb ──────────────────────────────────────────────────────────
@@ -45,8 +35,8 @@ function PhaseBreadcrumb({ phase }: { phase: Phase }) {
       background: 'var(--bg)', flexShrink: 0,
     }}>
       {PHASES.map((p, i) => {
-        const active  = p.id === phase
-        const done    = i < phaseIndex
+        const active = p.id === phase
+        const done = i < phaseIndex
         return (
           <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{
@@ -106,9 +96,7 @@ function ThinkingDots() {
 function MessageBubble({ msg }: { msg: Message }) {
   const isUser = msg.role === 'user'
   const isEmpty = !msg.content.trim()
-  const analysis = (!isUser && !isEmpty)
-    ? analyzeAgentMessage(msg.content)
-    : { type: 'observation' as const, questions: [] }
+  const analysis = !isUser && !isEmpty ? analyzeAgentMessage(msg.content) : { type: 'observation' as AgentMsgType, questions: [] }
   const msgType = analysis.type
   const isQuestion = !isUser && msgType === 'question'
   const isMixed = !isUser && msgType === 'mixed'
@@ -122,14 +110,14 @@ function MessageBubble({ msg }: { msg: Message }) {
         <div style={{
           width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
           marginRight: 10, marginTop: 2,
-          background: (isQuestion || isMixed) ? 'rgba(245,158,11,0.15)' : 'var(--accent-dim)',
-          border: `1px solid ${(isQuestion || isMixed) ? 'rgba(245,158,11,0.4)' : 'var(--accent-glow)'}`,
+          background: isQuestion || isMixed ? 'rgba(245,158,11,0.15)' : 'var(--accent-dim)',
+          border: `1px solid ${isQuestion || isMixed ? 'rgba(245,158,11,0.4)' : 'var(--accent-glow)'}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: isQuestion ? 13 : 13,
-          color: (isQuestion || isMixed) ? 'var(--amber)' : 'var(--accent)',
+          fontSize: 13,
+          color: isQuestion || isMixed ? 'var(--amber)' : 'var(--accent)',
           fontWeight: 700,
         }}>
-          {(isQuestion || isMixed) ? '?' : '⚡'}
+          {isQuestion || isMixed ? '?' : '⚡'}
         </div>
       )}
 
@@ -137,37 +125,31 @@ function MessageBubble({ msg }: { msg: Message }) {
         maxWidth: '78%',
         background: isUser
           ? 'var(--accent)'
-          : isQuestion
+          : isQuestion || isMixed
             ? 'rgba(245,158,11,0.06)'
-            : isMixed
-              ? 'rgba(245,158,11,0.03)'
-              : 'var(--bg-elevated)',
+            : 'var(--bg-elevated)',
         border: isUser
           ? 'none'
-          : isQuestion
+          : isQuestion || isMixed
             ? '1px solid rgba(245,158,11,0.3)'
-            : isMixed
-              ? '1px solid rgba(245,158,11,0.18)'
-              : '1px solid var(--border)',
+            : '1px solid var(--border)',
         borderRadius: isUser ? '14px 14px 4px 14px' : '4px 14px 14px 14px',
         padding: isUser ? '10px 14px' : '12px 14px',
         color: isUser ? '#fff' : 'var(--text)',
         fontSize: 14,
         lineHeight: 1.65,
       }}>
-        {!isUser && !isEmpty && (
+        {(isQuestion || isMixed) && (
           <div style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: (isQuestion || isMixed) ? 'var(--amber)' : 'var(--text-faint)',
-            marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5,
+            color: 'var(--amber)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5,
           }}>
             <span style={{
-              width: 14, height: 14, borderRadius: 4,
-              background: (isQuestion || isMixed) ? 'rgba(245,158,11,0.15)' : 'var(--bg-hover)',
-              border: `1px solid ${(isQuestion || isMixed) ? 'rgba(245,158,11,0.3)' : 'var(--border)'}`,
+              width: 14, height: 14, borderRadius: 4, background: 'rgba(245,158,11,0.15)',
+              border: '1px solid rgba(245,158,11,0.3)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 9,
-            }}>{(isQuestion || isMixed) ? '?' : 'i'}</span>
-            {isQuestion ? 'Needs your input' : isMixed ? 'Observation + open questions' : 'Observation'}
+            }}>?</span>
+            {isMixed ? 'Observation + input needed' : 'Needs your input'}
           </div>
         )}
 
@@ -243,194 +225,22 @@ function EmptyState({ onStarter }: { onStarter: (text: string) => void }) {
   )
 }
 
-function StrategicBriefBuilder({
-  brief,
-  openQuestionCount,
-  onPick,
-  onAdditionalContextChange,
-  onDraft,
-  onSend,
-}: {
-  brief: StrategicBrief
-  openQuestionCount: number
-  onPick: (key: keyof Omit<StrategicBrief, 'additionalContext'>, value: string) => void
-  onAdditionalContextChange: (value: string) => void
-  onDraft: () => void
-  onSend: () => void
-}) {
-  const selectedCount = STRATEGIC_BRIEF_FIELDS.filter((field) => brief[field.key]).length
-
-  return (
-    <div style={{
-      maxWidth: 720,
-      margin: '0 auto 10px',
-      border: '1px solid rgba(99,102,241,0.28)',
-      background: 'linear-gradient(180deg, rgba(99,102,241,0.1), rgba(99,102,241,0.04))',
-      borderRadius: 14,
-      padding: 14,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 12,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{
-            fontSize: 10.5,
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: 'var(--accent-strong)',
-          }}>
-            Strategic Brief
-          </span>
-          <span style={{
-            padding: '3px 8px',
-            borderRadius: 999,
-            background: 'var(--accent-dim)',
-            border: '1px solid var(--accent-glow)',
-            color: 'var(--accent-strong)',
-            fontSize: 11,
-          }}>
-            {selectedCount} of {STRATEGIC_BRIEF_FIELDS.length} set
-          </span>
-          {openQuestionCount > 0 && (
-            <span style={{
-              padding: '3px 8px',
-              borderRadius: 999,
-              background: 'rgba(245,158,11,0.12)',
-              border: '1px solid rgba(245,158,11,0.24)',
-              color: 'var(--amber)',
-              fontSize: 11,
-            }}>
-              {openQuestionCount} open question{openQuestionCount === 1 ? '' : 's'}
-            </span>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={onDraft} style={secondaryBriefButton}>
-            Draft recommendation brief
-          </button>
-          <button onClick={onSend} style={primaryBriefButton}>
-            Send brief now
-          </button>
-        </div>
-      </div>
-
-      <p style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.6 }}>
-        Fill the operating brief once. The advisor should use this to produce a recommendation, not keep drilling into generic setup questions.
-      </p>
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-        gap: 10,
-      }}>
-        {STRATEGIC_BRIEF_FIELDS.map((field) => (
-          <div
-            key={field.key}
-            style={{
-              padding: 10,
-              borderRadius: 10,
-              border: '1px solid var(--border)',
-              background: 'rgba(10,10,10,0.24)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-            }}
-          >
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
-              {field.label}
-            </span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {field.options.map((option) => {
-                const selected = brief[field.key] === option.value
-                return (
-                  <button
-                    key={option.label}
-                    onClick={() => onPick(field.key, option.value)}
-                    style={{
-                      padding: '7px 9px',
-                      borderRadius: 999,
-                      border: `1px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
-                      background: selected ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-                      color: selected ? 'var(--accent-strong)' : 'var(--text-muted)',
-                      fontSize: 11.5,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{
-        padding: 10,
-        borderRadius: 10,
-        border: '1px solid var(--border)',
-        background: 'rgba(10,10,10,0.24)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-      }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
-          Additional context
-        </span>
-        <textarea
-          rows={3}
-          value={brief.additionalContext}
-          onChange={(e) => onAdditionalContextChange(e.target.value)}
-          placeholder="Anything the advisor should assume or optimize for?"
-          style={{
-            width: '100%',
-            resize: 'vertical',
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            color: 'var(--text)',
-            fontSize: 12.5,
-            lineHeight: 1.55,
-            padding: '10px 12px',
-            outline: 'none',
-            fontFamily: 'inherit',
-            minHeight: 88,
-          }}
-        />
-      </div>
-    </div>
-  )
-}
-
 // ── Main Chat ─────────────────────────────────────────────────────────────────
 
 export default function Chat() {
   const {
-    messages, streaming,
-    activeCustomerId, activeSessionId,
-    setActiveSession, prependConversation, updateConversation,
+    messages,
     canvasNodes,
-    workspace,
   } = useStore()
 
-  const { send, abort } = useStream()
+  const { abort, sendMessage, sending } = useConversationSend()
   const [input, setInput] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [brief, setBrief] = useState<StrategicBrief>(EMPTY_STRATEGIC_BRIEF)
-  const bottomRef   = useRef<HTMLDivElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const hasCanvas = canvasNodes.length > 0
-  const phase = detectPhase(messages, hasCanvas, workspace?.stage)
+  const phase = detectPhase(messages, hasCanvas)
   const hasMessages = messages.length > 0
-  const openQuestions = useMemo(() => {
-    const workspaceQuestions = workspace?.open_questions ?? []
-    if (workspaceQuestions.length > 0) return workspaceQuestions
-    return extractOpenQuestions(messages).map((q) => q.text)
-  }, [messages, workspace])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -444,60 +254,26 @@ export default function Chat() {
   }, [input])
 
   const doSend = useCallback(async (text: string) => {
-    if (!text.trim() || streaming) return
+    if (!text.trim() || sending) return
     setInput('')
-
-    let cid = activeCustomerId
-    let sid = activeSessionId
-
-    if (!cid || !sid) {
-      setCreating(true)
-      try {
-        const customer = await getOrCreateDefaultCustomer()
-        cid = customer.customer_id
-        const session = await createSession(cid, { title: text.slice(0, 60) })
-        sid = session.session_id
-        setActiveSession(cid, sid)
-        prependConversation({ session, customer })
-        history.pushState(null, '', `/sessions/${sid}`)
-      } catch (err) {
-        console.error('Failed to create session', err)
-        setCreating(false)
-        return
-      }
-      setCreating(false)
-    }
-
-    await send(text, cid!, sid!)
-    updateConversation(sid!, { updated_at: new Date().toISOString() })
-  }, [streaming, activeCustomerId, activeSessionId, send, setActiveSession, prependConversation, updateConversation])
+    await sendMessage(text)
+  }, [sendMessage, sending])
 
   const handleSend = useCallback(() => doSend(input.trim()), [doSend, input])
-  const setBriefField = useCallback((key: keyof Omit<StrategicBrief, 'additionalContext'>, value: string) => {
-    setBrief((current) => ({ ...current, [key]: current[key] === value ? '' : value }))
-  }, [])
-  const draftBrief = useCallback(() => {
-    const template = buildStrategicBriefPrompt(brief, openQuestions)
-    setInput(template)
-    requestAnimationFrame(() => textareaRef.current?.focus())
-  }, [brief, openQuestions])
-  const sendBrief = useCallback(() => {
-    const template = buildStrategicBriefPrompt(brief, openQuestions)
-    void doSend(template)
-  }, [brief, doSend, openQuestions])
 
   const handleKey = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
   }, [handleSend])
 
-  const canSend = input.trim().length > 0 && !streaming && !creating
+  const canSend = input.trim().length > 0 && !sending
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
-      {/* Phase breadcrumb — only show once conversation has started */}
       {hasMessages && <PhaseBreadcrumb phase={phase} />}
 
-      {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', display: 'flex', flexDirection: 'column' }}>
         {!hasMessages ? (
           <EmptyState onStarter={(s) => doSend(s)} />
@@ -512,19 +288,7 @@ export default function Chat() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input bar */}
       <div style={{ borderTop: '1px solid var(--border)', padding: '12px 20px 16px', background: 'var(--bg)' }}>
-        {!streaming && (
-          <StrategicBriefBuilder
-            brief={brief}
-            openQuestionCount={openQuestions.length}
-            onPick={setBriefField}
-            onAdditionalContextChange={(value) => setBrief((current) => ({ ...current, additionalContext: value }))}
-            onDraft={draftBrief}
-            onSend={sendBrief}
-          />
-        )}
-
         <div
           style={{
             maxWidth: 720, margin: '0 auto',
@@ -533,26 +297,26 @@ export default function Chat() {
             padding: '2px 4px 4px 14px', transition: 'border-color var(--transition)',
           }}
           onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--border-focus)')}
-          onBlur={(e)  => (e.currentTarget.style.borderColor = 'var(--border)')}
+          onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
         >
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder={streaming ? 'Responding…' : 'Ask or reply…'}
-            disabled={streaming}
+            placeholder={sending ? 'Responding…' : 'Ask or reply…'}
+            disabled={sending}
             rows={1}
             style={{
               flex: 1, background: 'none', border: 'none', outline: 'none',
               color: 'var(--text)', fontSize: 14, lineHeight: 1.6,
               resize: 'none', padding: '10px 4px 10px 0', fontFamily: 'inherit',
               overflowY: 'auto', maxHeight: 200,
-              opacity: streaming ? 0.5 : 1,
+              opacity: sending ? 0.5 : 1,
             }}
           />
           <div style={{ display: 'flex', alignItems: 'flex-end', padding: '4px 4px 4px 0', gap: 4 }}>
-            {streaming ? (
+            {sending ? (
               <button
                 onClick={abort}
                 title="Stop"
@@ -579,8 +343,7 @@ export default function Chat() {
                   transition: 'background var(--transition)',
                 }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke={canSend ? '#fff' : 'var(--text-faint)'} strokeWidth="2.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={canSend ? '#fff' : 'var(--text-faint)'} strokeWidth="2.5">
                   <line x1="22" y1="2" x2="11" y2="13" />
                   <polygon points="22 2 15 22 11 13 2 9 22 2" />
                 </svg>
@@ -594,26 +357,4 @@ export default function Chat() {
       </div>
     </div>
   )
-}
-
-const primaryBriefButton: React.CSSProperties = {
-  padding: '7px 10px',
-  borderRadius: 8,
-  border: '1px solid var(--accent)',
-  background: 'var(--accent)',
-  color: '#fff',
-  fontSize: 12,
-  fontWeight: 600,
-  cursor: 'pointer',
-}
-
-const secondaryBriefButton: React.CSSProperties = {
-  padding: '7px 10px',
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-  background: 'var(--bg-elevated)',
-  color: 'var(--text)',
-  fontSize: 12,
-  fontWeight: 600,
-  cursor: 'pointer',
 }

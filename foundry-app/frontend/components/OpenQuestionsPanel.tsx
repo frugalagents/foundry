@@ -1,13 +1,17 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '@/store'
+import { useConversationSend } from '@/hooks/useConversationSend'
 import { extractOpenQuestions } from '@/lib/message-analysis'
 import { renderMarkdown } from '@/lib/render-markdown'
 
 export default function OpenQuestionsPanel() {
   const messages = useStore((s) => s.messages)
   const workspace = useStore((s) => s.workspace)
+  const { sendMessage, sending } = useConversationSend()
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [submittingId, setSubmittingId] = useState<string | null>(null)
   const openQuestions = useMemo(() => {
     const workspaceQuestions = workspace?.open_questions ?? []
     if (workspaceQuestions.length > 0) {
@@ -15,6 +19,22 @@ export default function OpenQuestionsPanel() {
     }
     return extractOpenQuestions(messages)
   }, [messages, workspace])
+
+  async function handleSubmit(questionId: string, questionText: string) {
+    const answer = drafts[questionId]?.trim()
+    if (!answer) return
+    setSubmittingId(questionId)
+    try {
+      const sent = await sendMessage(
+        `Answer this open question and refresh the recommendation if needed.\n\nQuestion: ${questionText}\nMy answer: ${answer}`,
+      )
+      if (sent) {
+        setDrafts((current) => ({ ...current, [questionId]: '' }))
+      }
+    } finally {
+      setSubmittingId(null)
+    }
+  }
 
   return (
     <div style={{
@@ -85,11 +105,52 @@ export default function OpenQuestionsPanel() {
               }}>
                 {index + 1}
               </span>
-              <div
-                className="prose"
-                style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.55 }}
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(question.text) }}
-              />
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div
+                  className="prose"
+                  style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.55 }}
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(question.text) }}
+                />
+                <textarea
+                  value={drafts[question.id] ?? ''}
+                  onChange={(e) => setDrafts((current) => ({ ...current, [question.id]: e.target.value }))}
+                  placeholder="Answer here without typing in the main chat…"
+                  disabled={sending}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    resize: 'vertical',
+                    minHeight: 72,
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 9,
+                    padding: '10px 12px',
+                    color: 'var(--text)',
+                    fontSize: 12.5,
+                    lineHeight: 1.55,
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => handleSubmit(question.id, question.text)}
+                    disabled={sending || !(drafts[question.id] ?? '').trim()}
+                    style={{
+                      padding: '7px 10px',
+                      borderRadius: 8,
+                      border: '1px solid var(--border)',
+                      background: submittingId === question.id ? 'var(--accent-dim)' : 'var(--bg)',
+                      color: submittingId === question.id ? 'var(--accent-strong)' : 'var(--text)',
+                      fontSize: 12,
+                      fontWeight: 500,
+                      cursor: sending || !(drafts[question.id] ?? '').trim() ? 'default' : 'pointer',
+                    }}
+                  >
+                    {submittingId === question.id ? 'Sending…' : 'Send Answer'}
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
         </div>

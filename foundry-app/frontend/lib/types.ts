@@ -78,6 +78,8 @@ export interface CanvasOut {
   nodes: ArchNode[]
   edges: ArchEdge[]
   stage: string
+  baseline_node_ids?: string[]
+  architecture_artifact?: ArchitectureArtifact | null
   updated_at?: string
 }
 
@@ -100,6 +102,8 @@ export interface ArchitectureUpdateEvent {
     stage: string
     nodes: ArchNode[]
     edges: ArchEdge[]
+    baseline_node_ids?: string[]
+    architecture_artifact?: ArchitectureArtifact | null
   }
 }
 
@@ -125,12 +129,76 @@ export type SSEEvent =
 export interface ConsultingWorkspace {
   stage?: string
   recommendation: string
+  blueprint_markdown?: string
+  assumptions?: WorkspaceAssumption[]
   facts: string[]
   open_questions: string[]
   decisions: string[]
   risks: string[]
   implementation_plan: string[]
   updated_at?: string
+}
+
+export interface WorkspaceAssumptionOption {
+  id: string
+  label: string
+  prompt: string
+}
+
+export interface WorkspaceAssumption {
+  id: string
+  title: string
+  assumed: string
+  why: string
+  impact: string
+  confidence: 'default' | 'inferred' | 'confirmed'
+  options: WorkspaceAssumptionOption[]
+}
+
+export interface ArchitectureLayerSummary {
+  id: string
+  label: string
+  purpose: string
+  component_ids: string[]
+  component_labels: string[]
+}
+
+export interface ArchitectureCustomization {
+  id: string
+  title: string
+  layer: string
+  added_component_ids: string[]
+  reason: string
+  tradeoff: string
+  triggered_by: string[]
+}
+
+export interface ArchitectureDecisionRationale {
+  decision: string
+  why: string
+  alternatives_rejected?: string[]
+}
+
+export interface ArchitectureRiskItem {
+  risk: string
+  mitigation: string
+}
+
+export interface ArchitectureRolloutPhase {
+  phase: string
+  outcome: string
+}
+
+export interface ArchitectureArtifact {
+  executive_summary: string
+  baseline: {
+    name: string
+    layers: ArchitectureLayerSummary[]
+  }
+  customizations: ArchitectureCustomization[]
+  decisions: ArchitectureDecisionRationale[]
+  risks: ArchitectureRiskItem[]
+  rollout: ArchitectureRolloutPhase[]
 }
 
 // ── Architecture canvas ───────────────────────────────────────────────────────

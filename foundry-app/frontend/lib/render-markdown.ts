@@ -1,24 +1,60 @@
-export function renderMarkdown(text: string): string {
-  const html = text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/```[\s\S]*?```/g, (m) => {
-      const inner = m.slice(3, -3).replace(/^[^\n]*\n/, '')
-      return `<pre><code>${inner}</code></pre>`
-    })
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+function renderInline(text: string): string {
+  const codeTokens: string[] = []
+  let html = escapeHtml(text)
+
+  html = html.replace(/`([^`]+)`/g, (_, code: string) => {
+    const token = `__CODE_${codeTokens.length}__`
+    codeTokens.push(`<code>${code}</code>`)
+    return token
+  })
+
+  html = html
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^---+$/gm, '<hr />')
-    .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-    .replace(/^(?!<[huplo]|<li|<pre|<blockquote|<hr)(.+)$/gm, '<p>$1</p>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
 
+  return codeTokens.reduce((current, token, index) => (
+    current.replace(token, codeTokens[index])
+  ), html)
+}
+
+function renderList(lines: string[], ordered: boolean): string {
+  const items: string[] = []
+  let current: string[] = []
+
+  function flushCurrent() {
+    if (current.length === 0) return
+    const [head, ...rest] = current
+    const content = [head.trim(), ...rest.map((line) => line.trim())]
+      .filter(Boolean)
+      .map(renderInline)
+      .join('<br />')
+    items.push(`<li>${content}</li>`)
+    current = []
+  }
+
+  for (const line of lines) {
+    if (/^\s{2,}\S/.test(line) && current.length > 0) {
+      current.push(line)
+      continue
+    }
+
+    flushCurrent()
+    current.push(line.replace(ordered ? /^\d+\.\s+/ : /^[-*]\s+/, ''))
+  }
+
+  flushCurrent()
+  return ordered ? `<ol>${items.join('')}</ol>` : `<ul>${items.join('')}</ul>`
+}
+
+function finalizeH2Sections(html: string): string {
   const parts = html.split(/(<h2>.*?<\/h2>)/g)
   if (parts.length < 5) return html
 
@@ -30,4 +66,108 @@ export function renderMarkdown(text: string): string {
     result += `<details${open}><summary>${title}</summary><div class="details-body">${content}</div></details>`
   }
   return result
+}
+
+export function renderMarkdown(text: string): string {
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  const blocks: string[] = []
+
+  for (let index = 0; index < lines.length;) {
+    const line = lines[index]
+    const trimmed = line.trim()
+
+    if (!trimmed) {
+      index += 1
+      continue
+    }
+
+    if (trimmed.startsWith('```')) {
+      const codeLines: string[] = []
+      index += 1
+      while (index < lines.length && !lines[index].trim().startsWith('```')) {
+        codeLines.push(lines[index])
+        index += 1
+      }
+      if (index < lines.length) index += 1
+      blocks.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`)
+      continue
+    }
+
+    if (/^###\s+/.test(trimmed)) {
+      blocks.push(`<h3>${renderInline(trimmed.replace(/^###\s+/, ''))}</h3>`)
+      index += 1
+      continue
+    }
+
+    if (/^##\s+/.test(trimmed)) {
+      blocks.push(`<h2>${renderInline(trimmed.replace(/^##\s+/, ''))}</h2>`)
+      index += 1
+      continue
+    }
+
+    if (/^#\s+/.test(trimmed)) {
+      blocks.push(`<h1>${renderInline(trimmed.replace(/^#\s+/, ''))}</h1>`)
+      index += 1
+      continue
+    }
+
+    if (/^---+$/.test(trimmed)) {
+      blocks.push('<hr />')
+      index += 1
+      continue
+    }
+
+    if (/^>\s?/.test(trimmed)) {
+      const quoteLines: string[] = []
+      while (index < lines.length && /^>\s?/.test(lines[index].trim())) {
+        quoteLines.push(lines[index].trim().replace(/^>\s?/, ''))
+        index += 1
+      }
+      blocks.push(`<blockquote>${quoteLines.map(renderInline).join('<br />')}</blockquote>`)
+      continue
+    }
+
+    if (/^[-*]\s+/.test(trimmed)) {
+      const listLines: string[] = []
+      while (
+        index < lines.length && (
+          /^[-*]\s+/.test(lines[index].trim()) ||
+          /^\s{2,}\S/.test(lines[index])
+        )
+      ) {
+        listLines.push(lines[index])
+        index += 1
+      }
+      blocks.push(renderList(listLines, false))
+      continue
+    }
+
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const listLines: string[] = []
+      while (
+        index < lines.length && (
+          /^\d+\.\s+/.test(lines[index].trim()) ||
+          /^\s{2,}\S/.test(lines[index])
+        )
+      ) {
+        listLines.push(lines[index])
+        index += 1
+      }
+      blocks.push(renderList(listLines, true))
+      continue
+    }
+
+    const paragraphLines: string[] = []
+    while (
+      index < lines.length &&
+      lines[index].trim() &&
+      !/^(```|###\s+|##\s+|#\s+|---+$|>\s?|[-*]\s+|\d+\.\s+)/.test(lines[index].trim())
+    ) {
+      paragraphLines.push(lines[index].trim())
+      index += 1
+    }
+    blocks.push(`<p>${renderInline(paragraphLines.join(' '))}</p>`)
+  }
+
+  return finalizeH2Sections(blocks.join(''))
 }

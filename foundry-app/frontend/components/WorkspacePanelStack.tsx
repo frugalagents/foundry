@@ -1,5 +1,8 @@
 'use client'
 
+import { useMemo } from 'react'
+import { useStore } from '@/store'
+import { normalizeWorkspace } from '@/lib/message-analysis'
 import OpenQuestionsPanel from './OpenQuestionsPanel'
 import RecommendationPanel from './RecommendationPanel'
 import DecisionLogPanel from './DecisionLogPanel'
@@ -7,6 +10,9 @@ import RiskRegisterPanel from './RiskRegisterPanel'
 import ImplementationPlanPanel from './ImplementationPlanPanel'
 
 export default function WorkspacePanelStack() {
+  const workspace = useStore((s) => s.workspace)
+  const view = useMemo(() => normalizeWorkspace(workspace), [workspace])
+
   return (
     <div style={{
       background: 'var(--bg)',
@@ -19,19 +25,24 @@ export default function WorkspacePanelStack() {
       <OpenQuestionsPanel />
       <div style={{ height: 1, background: 'var(--border)' }} />
       <RecommendationPanel />
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-        borderTop: '1px solid var(--border)',
-      }}>
-        <div style={{ borderRight: '1px solid var(--border)' }}>
+      {view.decisions.length > 0 && (
+        <>
+          <div style={{ height: 1, background: 'var(--border)' }} />
           <DecisionLogPanel />
-        </div>
-        <RiskRegisterPanel />
-      </div>
-      <div style={{ borderTop: '1px solid var(--border)' }}>
-        <ImplementationPlanPanel />
-      </div>
+        </>
+      )}
+      {view.risks.length > 0 && (
+        <>
+          <div style={{ height: 1, background: 'var(--border)' }} />
+          <RiskRegisterPanel />
+        </>
+      )}
+      {view.implementation_plan.length > 0 && (
+        <>
+          <div style={{ height: 1, background: 'var(--border)' }} />
+          <ImplementationPlanPanel />
+        </>
+      )}
     </div>
   )
 }

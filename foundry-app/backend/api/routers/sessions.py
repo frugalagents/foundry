@@ -103,16 +103,26 @@ async def get_session_history(customer_id: str, session_id: str, user: CurrentUs
     canvas = None
     workspace = None
     if canvas_item:
+        artifact = None
+        if canvas_item.get("architecture_artifact_json"):
+            artifact = json.loads(canvas_item.get("architecture_artifact_json") or "{}")
         canvas = CanvasOut(
             nodes=json.loads(canvas_item.get("nodes_json") or "[]"),
             edges=json.loads(canvas_item.get("edges_json") or "[]"),
             stage=canvas_item.get("stage") or "",
+            baseline_node_ids=json.loads(canvas_item.get("baseline_node_ids_json") or "[]"),
+            architecture_artifact=artifact,
             updated_at=canvas_item.get("updated_at"),
         )
     if workspace_item:
+        assumptions = []
+        if workspace_item.get("assumptions_json"):
+            assumptions = json.loads(workspace_item.get("assumptions_json") or "[]")
         workspace = ConsultingWorkspaceOut(
             stage=workspace_item.get("stage") or "",
             recommendation=workspace_item.get("recommendation") or "",
+            blueprint_markdown=workspace_item.get("blueprint_markdown") or "",
+            assumptions=assumptions,
             facts=workspace_item.get("facts") or [],
             open_questions=workspace_item.get("open_questions") or [],
             decisions=workspace_item.get("decisions") or [],

@@ -52,6 +52,8 @@ def put_canvas_snapshot(
     nodes: list,
     edges: list,
     stage: str = "",
+    baseline_node_ids: list[str] | None = None,
+    architecture_artifact: dict | None = None,
 ) -> None:
     now = _now()
     item = {
@@ -64,6 +66,8 @@ def put_canvas_snapshot(
         "nodes_json": json.dumps(nodes),
         "edges_json": json.dumps(edges),
         "stage": stage,
+        "baseline_node_ids_json": json.dumps(baseline_node_ids or []),
+        "architecture_artifact_json": json.dumps(architecture_artifact or {}),
         "created_at": now,
         "updated_at": now,
     }
@@ -91,6 +95,8 @@ def put_workspace_snapshot(
     *,
     stage: str = "",
     recommendation: str = "",
+    blueprint_markdown: str = "",
+    assumptions: list[dict] | None = None,
     facts: list[str] | None = None,
     open_questions: list[str] | None = None,
     decisions: list[str] | None = None,
@@ -105,6 +111,8 @@ def put_workspace_snapshot(
         "customer_id": customer_id,
         "stage": stage,
         "recommendation": recommendation,
+        "blueprint_markdown": blueprint_markdown,
+        "assumptions_json": json.dumps(assumptions or []),
         "facts": facts or [],
         "open_questions": open_questions or [],
         "decisions": decisions or [],
