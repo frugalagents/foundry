@@ -15,6 +15,7 @@ import { getToken } from '@/lib/auth'
 import { normalizeArchitectureArtifact } from '@/lib/architecture-artifact'
 import { normalizeWorkspaceAssumptions } from '@/lib/assumptions'
 import { SESSION_NORMALIZATION_MARKER } from '@/lib/session-normalization'
+import type { OperatingModel } from '@/lib/types'
 import type { SendMessageOptions } from './useConversationSend'
 
 function buildOutboundMessage(text: string, options?: SendMessageOptions) {
@@ -48,8 +49,8 @@ function buildOutboundMessage(text: string, options?: SendMessageOptions) {
       `${SESSION_NORMALIZATION_MARKER}`,
       'Re-normalize the current session artifacts under the latest advisory rules.',
       'Refresh the recommendation, advisory brief, architecture, blueprint, assumptions, and open questions as needed.',
-      'For the target-state architecture, converge to exactly one primary harness path unless the customer explicitly asked for scenario comparison.',
-      'If multiple harnesses are currently shown, move non-primary options into alternatives or scenario comparisons instead of the main target-state architecture.',
+      'Preserve the actual target-state operating model. If the target state is governed multi-harness coexistence, keep the approved harness portfolio in the architecture and make the governance model explicit.',
+      'Only move a harness into alternatives if it is rejected, deferred, or part of a true scenario comparison rather than the recommended target-state stack.',
       `If you emit any chat reply, make it exactly: ${SESSION_NORMALIZATION_MARKER} session artifacts refreshed.`,
     ].join('\n')
   }
@@ -116,6 +117,7 @@ export function useStream() {
               blueprint_markdown: typeof data.blueprint_markdown === 'string' ? data.blueprint_markdown : '',
               assumptions: normalizeWorkspaceAssumptions(data.assumptions),
               facts: Array.isArray(data.facts) ? data.facts.filter((v): v is string => typeof v === 'string') : [],
+              operating_model: normalizeOperatingModel(data.operating_model),
               open_questions: Array.isArray(data.open_questions)
                 ? data.open_questions.filter((v): v is string => typeof v === 'string')
                 : [],
@@ -154,6 +156,18 @@ export function useStream() {
   }, [setStreaming])
 
   return { send, abort }
+}
+
+function normalizeOperatingModel(value: unknown): OperatingModel {
+  switch (value) {
+    case 'undecided':
+    case 'single_standard':
+    case 'multi_harness_governed':
+    case 'default_plus_exceptions':
+      return value
+    default:
+      return ''
+  }
 }
 
 async function openStream(

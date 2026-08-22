@@ -1,38 +1,12 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import Sidebar from './Sidebar'
 import Chat from './Chat'
 import TopBar from './TopBar'
 import AdminSessionsView from './AdminSessionsView'
 import WorkspaceTabs from './WorkspaceTabs'
 import { useStore } from '@/store'
-import { useConversationSend } from '@/hooks/useConversationSend'
-import { needsSessionRenormalization } from '@/lib/session-normalization'
-
-function SessionNormalizationManager() {
-  const activeSessionId = useStore((s) => s.activeSessionId)
-  const workspace = useStore((s) => s.workspace)
-  const canvasNodes = useStore((s) => s.canvasNodes)
-  const streaming = useStore((s) => s.streaming)
-  const { sendMessage, sending } = useConversationSend()
-  const attemptedSessionsRef = useRef<Set<string>>(new Set())
-
-  useEffect(() => {
-    if (!activeSessionId || streaming || sending) return
-    if (attemptedSessionsRef.current.has(activeSessionId)) return
-    if (!needsSessionRenormalization(workspace, canvasNodes)) return
-
-    attemptedSessionsRef.current.add(activeSessionId)
-    void sendMessage('Re-normalize current session artifacts.', {
-      action: { kind: 'normalize_session' },
-      appendToTranscript: false,
-      appendResponseToTranscript: false,
-    })
-  }, [activeSessionId, canvasNodes, sendMessage, sending, streaming, workspace])
-
-  return null
-}
 
 export default function Shell() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -43,7 +17,6 @@ export default function Shell() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
-      <SessionNormalizationManager />
       <TopBar />
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden', position: 'relative' }}>

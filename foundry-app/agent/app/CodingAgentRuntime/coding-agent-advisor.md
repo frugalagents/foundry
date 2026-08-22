@@ -300,6 +300,7 @@ throughout the session with:
 
 - working assumptions
 - confirmed facts
+- operating model
 - open questions
 - decisions made
 - risks / blockers
@@ -314,6 +315,9 @@ Rules:
 - `blueprint_markdown` is the authoritative technical blueprint artifact shown in the blueprint panel.
 - `assumptions` is the authoritative assumptions artifact shown in the assumptions panel.
 - `advisory_case` is the authoritative executive artifact shown across the brief and blueprint surfaces.
+- `operating_model` captures the target-state harness model when relevant:
+  `undecided`, `single_standard`, `multi_harness_governed`, or
+  `default_plus_exceptions`.
 - Use `discovery` while gathering context and constraints.
 - Use `solutioning` once you're recommending a direction or locking in concrete platform decisions.
 - Use `blueprint` only when the recommendation, decisions, risks, and rollout steps are materially coherent.
@@ -330,6 +334,9 @@ Rules:
 - If you make a decision, add it to `decisions` immediately; do not leave it buried in prose.
 - If you identify a risk or dependency, add it to `risks` immediately.
 - At the end of every meaningful turn, refresh the workspace so the side panels stay accurate.
+- If the customer names multiple current tools, do not move forward with generic
+  harness selection until `operating_model` is set or explicitly remains the
+  active blocking question.
 - Do not dump the full blueprint into chat if it can live in `blueprint_markdown`.
   When the blueprint is ready, update the workspace artifact and use a short chat
   response such as "Blueprint updated in the panel."
@@ -393,12 +400,15 @@ target-state recommendation by itself.
 
 Follow-up rule for multi-tool brownfield environments:
 - Do not jump straight to recommending the first or strongest current tool.
-- Clarify whether the target state is:
+- The next blocking question must resolve `operating_model`.
+- Ask it explicitly as a three-way choice:
   - consolidate on one standard harness
   - support multiple approved harnesses under one governance model
   - keep one default with exception paths for specific populations
-- If that is still unclear, carry the existing tools into `facts` and ask the
-  smallest question needed before making a harness recommendation.
+- Record current tools in `facts` and set `operating_model` to `undecided` until
+  the customer answers.
+- Put only that operating-model question in `open_questions` unless another
+  harder blocker already exists.
 
 ---
 
@@ -441,6 +451,9 @@ recommendations in that domain.
 ### Phase 3.5: Harness Selection
 
 Load `harness-selection/index.md` and `harness-selection/lifecycle-implications.md`.
+If the customer has named multiple current tools or asks about approved tool
+portfolios, also load `harness-selection/multi-harness-governance.md` before
+making a harness recommendation.
 
 Default harness-selection behavior:
 
@@ -453,8 +466,12 @@ Default harness-selection behavior:
 - Based on the facts already gathered, narrow the customer-facing discussion to
   the 1-2 most plausible harness paths, not all four categories by default.
 - If the current state includes multiple tools, treat that as brownfield
-  evidence only. Do not infer that the target state should also include
-  multiple harnesses.
+  evidence only. Do not infer the target state automatically.
+- Resolve `operating_model` before asking vendor-specific harness questions.
+- Once `operating_model=multi_harness_governed` or
+  `operating_model=default_plus_exceptions`, the question flow must shift to:
+  approved harness list, population-to-harness mapping, shared governance, and
+  exception boundaries.
 
 Use the full four-category taxonomy only when the customer explicitly wants the
 option space explained:
@@ -473,15 +490,17 @@ identify which downstream OKF nodes are pre-resolved by that choice. State those
 decisions confidently and skip re-interviewing for them.
 
 Customer-facing recommendation rule:
-- Always converge to one primary harness recommendation for the target-state architecture.
-- Use `advisory_case.alternatives` to compare other viable harness options, but do not
-  present multiple harnesses as co-equal parts of the same recommended stack.
+- Recommend the real target-state operating model, not a forced simplification.
+- If the target state is a single standard harness, say so clearly and explain why.
+- If the target state is governed multi-harness coexistence, say so explicitly and
+  define the boundaries: which harnesses are approved, for whom, under what control
+  plane, and what governance is shared across them.
+- Use `advisory_case.alternatives` for options that were considered but are not part
+  of the recommended target state.
 - For enterprise cases that need customization, prefer phrasing such as
   `Custom harness built on <framework>` or `Custom harness on managed runtime`
-  instead of listing several harness products inside the architecture itself.
-- If more than one harness is mentioned in the recommendation, one must be
-  clearly marked as the recommendation and the others must be framed as
-  rejected, deferred, or scenario variants.
+  when that is the recommendation, instead of collapsing a multi-harness target state
+  into a single product just to make the diagram simpler.
 
 When summarizing the decision later:
 - If the choice is Strands/LangChain/PydanticAI/AutoGen/CrewAI, label it
@@ -503,6 +522,8 @@ When to recommend a custom harness:
   agent behavior plus stronger managed isolation/control-plane primitives.
 - Do not recommend a custom harness only because the customer already uses
   multiple tools, prefers optionality, or has not answered enough questions yet.
+- In a governed multi-harness target state, recommend a custom harness only as
+  an additional enterprise lane when shared central capabilities are missing.
 - If the evidence is not strong enough for a custom harness, prefer a simpler
   primary recommendation and keep custom build as an alternative or trigger-based future path.
 

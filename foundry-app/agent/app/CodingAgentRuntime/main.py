@@ -93,9 +93,21 @@ def augment_system_prompt_with_conditional_knowledge(
         return base_prompt
     log.info("Conditional knowledge triggered: %s", [n.path for n in nodes])
     block = "\n\n---\n\n".join(f"### {n.title} ({n.path})\n\n{n.content}" for n in nodes)
+    related = kb.related_nodes_for([n.path for n in nodes], max_results=6)
+    related_block = ""
+    if related:
+        bullets = "\n".join(
+            f"- `{n.path}` — {n.decision_question or n.title}"
+            for n in related
+        )
+        related_block = (
+            "\n\n## Graph Follow-On Nodes To Consider Next\n\n"
+            f"{bullets}"
+        )
     return (
         f"{base_prompt}\n\n"
         f"## Signals Detected This Turn — Relevant Knowledge Already Loaded\n\n{block}"
+        f"{related_block}"
     )
 
 
@@ -207,6 +219,9 @@ Update it whenever you:
 Tool rules:
 - Keep every list concise and specific. Prefer short bullets, not paragraphs.
 - `facts`: only confirmed customer facts or explicit constraints.
+- `operating_model`: target-state harness model when relevant.
+  Use one of `undecided`, `single_standard`, `multi_harness_governed`, or
+  `default_plus_exceptions`.
 - `open_questions`: unanswered questions blocking or materially shaping the recommendation.
 - `decisions`: architecture choices already made, phrased as decisions.
 - `risks`: unresolved risks, tradeoffs, or external dependencies.
@@ -239,6 +254,8 @@ Execution rules:
 - When `stage=blueprint`, keep the chat reply short and point the customer to the blueprint panel.
   Put the actual blueprint artifact in `blueprint_markdown`.
 - Put only true blockers in `open_questions`.
+- If the customer names multiple current tools, resolve `operating_model`
+  before continuing with generic harness-selection questions.
 - Put non-blocking defaults in `assumptions` with plain-English rationale and
   1-2 override options the customer can choose from later.
 - If you ask the customer for input, call `update_consulting_state` in the same turn and put those prompts in `open_questions`.
@@ -424,12 +441,17 @@ async def invoke(payload: dict, context):
         mean a custom harness the customer is building on top of that framework.
 
         Target-state architecture rule:
-          - Emit exactly one primary harness path in the architecture for the
-            recommended target state.
-          - Put rejected or deferred harnesses in rationale/alternatives, not as
-            parallel harness nodes in the same target-state architecture.
-          - Only show multiple harness paths in the architecture when the
-            customer explicitly asks for scenario comparison.
+          - Represent the actual target-state operating model. If the customer is
+            standardizing on one harness, emit one primary harness path.
+          - If the target state is governed multi-harness coexistence, show the
+            approved harness portfolio in the architecture and make the control
+            model explicit: shared guardrails, identity boundary, routing rules,
+            approved personas, and exception handling.
+          - Use rationale/alternatives for rejected or deferred harnesses. Do not
+            mix target-state approved harnesses with options that are merely being
+            evaluated.
+          - Only use scenario-comparison framing when the session is genuinely
+            comparing future-state options rather than defining one operating model.
 
         Set x=0, y=0 on all nodes — the frontend positions them inside the correct zone band automatically.
 
@@ -555,6 +577,7 @@ async def invoke(payload: dict, context):
         blueprint_markdown: str = "",
         assumptions: list[dict] | None = None,
         facts: list[str] | None = None,
+        operating_model: str = "",
         open_questions: list[str] | None = None,
         decisions: list[str] | None = None,
         risks: list[str] | None = None,
@@ -575,6 +598,7 @@ async def invoke(payload: dict, context):
             "blueprint_markdown": blueprint_markdown,
             "assumptions": assumptions or [],
             "facts": facts or [],
+            "operating_model": operating_model,
             "open_questions": open_questions or [],
             "decisions": decisions or [],
             "risks": risks or [],
@@ -592,6 +616,7 @@ async def invoke(payload: dict, context):
                     blueprint_markdown=blueprint_markdown,
                     assumptions=assumptions or [],
                     facts=facts or [],
+                    operating_model=operating_model,
                     open_questions=open_questions or [],
                     decisions=decisions or [],
                     risks=risks or [],

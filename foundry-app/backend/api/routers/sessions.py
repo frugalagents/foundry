@@ -127,6 +127,7 @@ async def get_session_history(customer_id: str, session_id: str, user: CurrentUs
             blueprint_markdown=workspace_item.get("blueprint_markdown") or "",
             assumptions=assumptions,
             facts=workspace_item.get("facts") or [],
+            operating_model=workspace_item.get("operating_model") or "",
             open_questions=workspace_item.get("open_questions") or [],
             decisions=workspace_item.get("decisions") or [],
             risks=workspace_item.get("risks") or [],

@@ -7,7 +7,14 @@ import os
 
 import boto3
 import pytest
-from moto import mock_aws
+
+moto = pytest.importorskip("moto")
+try:
+    from moto import mock_aws
+except ImportError:
+    mock_aws = getattr(moto, "mock_dynamodb", None) or getattr(moto, "mock_dynamodb2", None)
+    if mock_aws is None:
+        pytest.skip("No DynamoDB mock available in installed moto package", allow_module_level=True)
 
 os.environ.setdefault("AWS_ACCESS_KEY_ID", "testing")
 os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "testing")
@@ -35,6 +42,20 @@ def table():
         import store
         store._table = None  # force re-resolve against the mocked table
         yield boto3.resource("dynamodb", region_name="us-east-1").Table("foundry-app-main")
+
+
+def _latest_canvas_item(table, customer_id: str, session_id: str) -> dict:
+    resp = table.query(
+        KeyConditionExpression=(
+            boto3.dynamodb.conditions.Key("PK").eq(f"CUSTOMER#{customer_id}")
+            & boto3.dynamodb.conditions.Key("SK").begins_with(f"CANVAS#{session_id}#")
+        ),
+        ScanIndexForward=False,
+        Limit=1,
+    )
+    items = resp["Items"]
+    assert items
+    return items[0]
 
 
 def test_put_message_writes_expected_item(table):
@@ -85,8 +106,7 @@ def test_put_canvas_snapshot_writes_serialized_nodes_and_edges(table):
     edges = [{"id": "e1", "source": "dev", "target": "surface"}]
     put_canvas_snapshot("cust1", "sess1", nodes, edges, stage="skeleton")
 
-    resp = table.get_item(Key={"PK": "CUSTOMER#cust1", "SK": "CANVAS#sess1"})
-    item = resp["Item"]
+    item = _latest_canvas_item(table, "cust1", "sess1")
     assert json.loads(item["nodes_json"]) == nodes
     assert json.loads(item["edges_json"]) == edges
     assert item["stage"] == "skeleton"
@@ -98,7 +118,26 @@ def test_put_canvas_snapshot_overwrites_previous_snapshot_for_same_session(table
     put_canvas_snapshot("cust1", "sess1", [{"id": "a"}], [], stage="skeleton")
     put_canvas_snapshot("cust1", "sess1", [{"id": "a"}, {"id": "b"}], [], stage="full")
 
-    resp = table.get_item(Key={"PK": "CUSTOMER#cust1", "SK": "CANVAS#sess1"})
-    item = resp["Item"]
+    item = _latest_canvas_item(table, "cust1", "sess1")
     assert json.loads(item["nodes_json"]) == [{"id": "a"}, {"id": "b"}]
     assert item["stage"] == "full"
+
+
+def test_put_workspace_snapshot_persists_operating_model(table):
+    from store import put_workspace_snapshot
+
+    put_workspace_snapshot(
+        "cust1",
+        "sess1",
+        stage="discovery",
+        facts=["Brownfield tools already in use"],
+        operating_model="multi_harness_governed",
+        open_questions=["Which harness is default for general developers?"],
+    )
+
+    resp = table.get_item(Key={"PK": "CUSTOMER#cust1", "SK": "WORKSPACE#sess1"})
+    item = resp["Item"]
+    assert item["stage"] == "discovery"
+    assert item["facts"] == ["Brownfield tools already in use"]
+    assert item["operating_model"] == "multi_harness_governed"
+    assert item["open_questions"] == ["Which harness is default for general developers?"]

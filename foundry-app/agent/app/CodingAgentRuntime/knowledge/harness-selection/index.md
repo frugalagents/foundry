@@ -1,19 +1,30 @@
 ---
 type: platform-component-group
 title: Harness Selection
-description: buy vs. managed vs. OSS — picking the agent orchestration layer
+description: single harness, governed portfolio, or custom build — picking the agent orchestration layer
 group: harness-selection
 tags: [harness-selection, governance, build-vs-buy]
 timestamp: 2026-08-13T00:00:00Z
 status: candidate
 traversal: mandate
-decision-question: "Will you use a SaaS coding agent product, a managed runtime, an OSS framework, or a custom-built harness?"
+decision-question: "What is the target-state operating model for harnesses: one standard tool, a governed portfolio, or a custom-built path?"
 ---
 
 The harness is the orchestration layer that drives the agent loop, dispatches
-tool calls, and manages model interactions. Picking the harness is the earliest
-decision with the most downstream consequences — it pre-resolves surface, execution,
-and often identity choices before you ever design them explicitly.
+tool calls, and manages model interactions. Picking the harness operating model
+is the earliest decision with the most downstream consequences — it pre-resolves
+surface, execution, and often identity choices before you ever design them
+explicitly.
+
+In brownfield enterprises, the first decision is often not which product wins.
+It is whether the target state should be:
+
+- one standard harness
+- a governed multi-harness portfolio
+- one default harness with formal exception paths
+
+Resolve that operating model before narrowing to specific products or custom
+build paths.
 
 ## A Note on Terminology
 
@@ -28,6 +39,7 @@ The practical difference matters: same model, different harness → 20-point swi
 ## Sub-nodes
 
 - [SaaS Products](saas-products.md) — Claude Code, Cursor Enterprise, GitHub Copilot, Kiro
+- [Multi-Harness Governance](multi-harness-governance.md) — approved portfolio, default + exceptions, shared controls
 - [Managed Runtime](managed-runtime.md) — Bedrock AgentCore: compliance-grade cloud runtime, custom code, managed infra
 - [OSS Coding Harnesses](coding-harnesses.md) — OpenCode, Pi, Cline, Codex CLI, Goose, Aider, OpenHands, Mastra, SWE-agent, Hermes
 - [OSS Framework SDKs](oss-frameworks.md) — Strands, LangChain/LangGraph, PydanticAI, AutoGen, CrewAI — build your own harness

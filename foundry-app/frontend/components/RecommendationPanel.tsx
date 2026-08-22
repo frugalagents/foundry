@@ -9,7 +9,10 @@ export default function RecommendationPanel() {
   const view = useMemo(() => normalizeWorkspace(workspace), [workspace])
   const hasWorkspace =
     !!view.recommendation ||
-    view.facts.length > 0
+    view.facts.length > 0 ||
+    !!view.operating_model
+
+  const operatingModelLabel = formatOperatingModel(view.operating_model)
 
   return (
     <div style={{
@@ -56,6 +59,13 @@ export default function RecommendationPanel() {
             </div>
           )}
 
+          {operatingModelLabel && (
+            <div style={sectionStyle}>
+              <div style={sectionLabel}>Operating Model</div>
+              <p style={bodyStyle}>{operatingModelLabel}</p>
+            </div>
+          )}
+
           {view.facts.length > 0 && (
             <div style={sectionStyle}>
               <div style={sectionLabel}>Observed Facts</div>
@@ -96,4 +106,19 @@ const listStyle: React.CSSProperties = {
   fontSize: 12.5,
   color: 'var(--text)',
   lineHeight: 1.55,
+}
+
+function formatOperatingModel(value?: string) {
+  switch (value) {
+    case 'single_standard':
+      return 'Single standard harness'
+    case 'multi_harness_governed':
+      return 'Governed multi-harness portfolio'
+    case 'default_plus_exceptions':
+      return 'Default harness with formal exceptions'
+    case 'undecided':
+      return 'Operating model still being resolved'
+    default:
+      return ''
+  }
 }

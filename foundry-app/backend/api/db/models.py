@@ -217,6 +217,7 @@ class ConsultingWorkspaceOut(BaseModel):
     blueprint_markdown: str = ""
     assumptions: list[dict[str, Any]] = Field(default_factory=list)
     facts: list[str] = Field(default_factory=list)
+    operating_model: str = ""
     open_questions: list[str] = Field(default_factory=list)
     decisions: list[str] = Field(default_factory=list)
     risks: list[str] = Field(default_factory=list)

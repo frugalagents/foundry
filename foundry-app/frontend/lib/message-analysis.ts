@@ -96,6 +96,7 @@ export function normalizeWorkspace(workspace?: ConsultingWorkspace | null): Cons
     blueprint_markdown: workspace?.blueprint_markdown ?? '',
     assumptions: workspace?.assumptions ?? [],
     facts: workspace?.facts ?? [],
+    operating_model: workspace?.operating_model ?? '',
     open_questions: workspace?.open_questions ?? [],
     decisions: workspace?.decisions ?? [],
     risks: workspace?.risks ?? [],

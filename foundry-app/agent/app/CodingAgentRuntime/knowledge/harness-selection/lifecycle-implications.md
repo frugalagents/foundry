@@ -14,6 +14,26 @@ Harness selection cascades into every other platform area. This node is the
 routing map for the advisor: after harness selection, confirm pre-resolved
 decisions fit the customer's constraints rather than re-designing them.
 
+## Governed Multi-Harness Portfolio — partially pre-resolved
+
+| Platform area | Pre-resolved by operating model |
+|---|---|
+| Governance shape | Shared control plane across approved harnesses |
+| Identity baseline | SSO + population mapping must be common |
+| Exception handling | Must exist explicitly; ad-hoc personal exceptions are not acceptable |
+| Audit expectation | Cross-harness observability and spend attribution are mandatory |
+| Tool posture | Every approved harness needs the same minimum governance checks |
+
+**Remaining open:** which harnesses are in the approved portfolio, which
+populations map to each harness, whether there is one default harness, and
+whether an enterprise custom lane is needed for central execution or autonomy.
+
+**Advisor action after multi-harness selection:** load
+`harness-selection/multi-harness-governance`, then confirm the shared control
+plane: identity, model policy, MCP/tool policy, audit, quota, and exception
+workflow. Do not collapse the portfolio back into one product just to simplify
+the architecture.
+
 ## SaaS Product — pre-resolved
 
 | Platform area | Pre-resolved by vendor |
@@ -83,6 +103,8 @@ any available framework primitive.
 - Surface the pre-resolved list to the customer immediately after harness selection —
   "Your choice pre-configures X, Y, Z — I'll confirm those defaults fit your
   constraints rather than redesigning them from scratch"
+- Operating-model choices are as important as product choices — "governed
+  portfolio" is a valid target-state answer, not a failure to decide
 - Pre-resolved decisions are vendor commitments, not your own architecture —
   evaluate SLAs, feature availability, and enterprise-tier support before treating
   them as permanently fixed

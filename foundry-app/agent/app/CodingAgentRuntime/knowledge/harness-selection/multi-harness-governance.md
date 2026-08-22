@@ -1,0 +1,123 @@
+---
+type: platform-component
+title: Multi-Harness Governance
+description: governing an approved portfolio of coding harnesses under one enterprise control plane
+group: harness-selection
+tags: [harness-selection, multi-harness, governance, portfolio, exceptions, brownfield]
+timestamp: 2026-08-22T00:00:00Z
+status: candidate
+traversal: conditional
+trigger: [multi-harness, multiple tools, multiple harnesses, approved tools, approved harnesses, tool sprawl, harness portfolio, portfolio governance, default plus exceptions, default with exceptions, exception path, coexistence]
+trigger_pool: [copilot, github copilot, cursor, claude code, codex]
+trigger_pool_min_matches: 2
+decision-question: "Is the target state a single standard harness, a governed multi-harness portfolio, or one default harness with formal exception paths?"
+---
+
+When the enterprise already has more than one coding tool in flight, the first
+decision is not "which single harness wins?" It is **what operating model will
+govern tool choice**. Without that decision, the platform drifts into unmanaged
+tool sprawl: inconsistent controls, overlapping spend, and architecture debates
+that confuse current-state evidence with target-state design.
+
+## Target-State Operating Models
+
+| Operating model | What it means | When it fits | Main risk |
+|---|---|---|---|
+| Single standard harness | One approved tool for nearly everyone | Strong standardization mandate; limited persona variance | Lowest flexibility; exception pressure rises quickly |
+| Governed multi-harness portfolio | Several approved tools under one control plane | Distinct developer populations or workflow shapes need different tools | Governance complexity if controls are not truly shared |
+| Default + exceptions | One default tool, plus bounded approved exceptions | Org wants standardization with a narrow escape hatch | Exceptions become shadow standards if not reviewed |
+
+Do not let the advisor collapse these into one question about vendor preference.
+This is an operating-model decision first, a product-selection decision second.
+
+## Decisions
+
+**Which developer populations map to which harnesses?**
+- Define the primary populations explicitly: general application developers,
+  platform engineers, data scientists, regulated-repo contributors, high-autonomy
+  CI/CD users, contractors
+- For each population, state:
+  - default harness
+  - allowed alternative harnesses
+  - disallowed harnesses
+  - reason the mapping exists
+
+**What governance must be shared across all approved harnesses?**
+- SSO / enforced corporate identity
+- approved model-routing path and provider policy
+- MCP / tool catalog policy
+- logging and audit export
+- quota and spend controls
+- data handling and retention posture
+- exception approval and revocation workflow
+
+If those controls are not shared, the portfolio is not governed; it is just a
+collection of tools.
+
+**Is there a default harness?**
+- Yes: define the default and its success criteria
+- No: define the routing logic by persona, repo class, or workflow
+
+**How are exceptions approved?**
+- Named populations only
+- time-bounded exceptions with renewal
+- repo- or environment-scoped exceptions
+- no permanent personal exceptions without review
+
+**When do you add a custom enterprise harness lane?**
+- Add one only when the portfolio needs a central capability the vendor tools
+  cannot provide consistently:
+  - durable/background agents
+  - central execution for sensitive repos
+  - custom approval logic
+  - shared enterprise-only orchestration
+  - uniform behavior across tool surfaces
+
+The custom lane is usually an addition to the portfolio, not a replacement for
+interactive IDE-native tools.
+
+## Reference Pattern
+
+```
+Developers
+├── Default lane: Copilot or Claude Code for general IDE workflows
+├── Specialized lane: Cursor for high-velocity single-file editing populations
+├── OpenAI/Codex lane: approved where OpenAI ecosystem integration is required
+└── Enterprise custom lane: central background agents / CI automation only
+
+Shared governance plane
+├── Corporate IdP + group mapping
+├── Approved model routing policy
+├── Shared MCP / tool gateway policy
+├── Central logging + cost attribution
+├── Guardrails / DLP / quota policy
+└── Exception registry + review workflow
+```
+
+## Principles
+
+- Govern the portfolio, not each tool in isolation
+- Population-to-harness mapping must be explicit and reviewable
+- Exception paths must expire unless re-justified
+- Shared control points matter more than perfect tool uniformity
+- A custom harness is justified by missing control or capability, not by the
+  mere existence of multiple approved vendor tools
+
+## Connects to
+
+- [SaaS Coding Agent Products](saas-products.md) — use this after the operating
+  model is clear to decide which products belong in the approved portfolio
+- [Harness Lifecycle Implications](lifecycle-implications.md) — portfolio design
+  changes which downstream decisions are shared versus tool-specific
+- [Policy Tiers](../access/policy-tiers.md) — the mechanism for population-based
+  differentiation and time-bounded exceptions
+- [Quota & Rate Limits](../access/quota.md) — enforce spend boundaries across all
+  approved harnesses
+- [Identity & Access](../access/identity.md) — SSO and group mapping must be
+  consistent across the portfolio
+- [MCP Gateway](../gateway/mcpgw.md) — shared tool-governance layer across
+  different harnesses
+- [Model Gateway](../gateway/modelgw.md) — keep provider and model policy
+  consistent even when harnesses differ
+- [Observability & Audit](../ops/observability.md) — central audit trail is what
+  makes the portfolio governable

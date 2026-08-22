@@ -132,6 +132,7 @@ export interface ConsultingWorkspace {
   blueprint_markdown?: string
   assumptions?: WorkspaceAssumption[]
   facts: string[]
+  operating_model?: OperatingModel
   open_questions: string[]
   decisions: string[]
   risks: string[]
@@ -139,6 +140,13 @@ export interface ConsultingWorkspace {
   advisory_case?: AdvisoryCase | null
   updated_at?: string
 }
+
+export type OperatingModel =
+  | 'undecided'
+  | 'single_standard'
+  | 'multi_harness_governed'
+  | 'default_plus_exceptions'
+  | ''
 
 export interface WorkspaceAssumptionOption {
   id: string
