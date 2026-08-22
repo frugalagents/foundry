@@ -414,6 +414,19 @@ One short bundled message with at most 2 questions:
 Record: brownfield blockers, existing investments to reuse vs replace, IDE
 distribution, SCM system.
 
+If the customer names tools already in use today (for example Claude, Copilot,
+Codex, Cursor), treat that as brownfield current-state evidence, not as the
+target-state recommendation by itself.
+
+Follow-up rule for multi-tool brownfield environments:
+- Do not jump straight to recommending the first or strongest current tool.
+- Clarify whether the target state is:
+  - consolidate on one standard harness
+  - support multiple approved harnesses under one governance model
+  - keep one default with exception paths for specific populations
+- If that is still unclear, carry the existing tools into `facts` and ask the
+  smallest question needed before making a harness recommendation.
+
 ---
 
 ### Phase 2: Enterprise Constraint Scan
