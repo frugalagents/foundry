@@ -1,6 +1,6 @@
 """Pydantic models for API request/response bodies."""
 from __future__ import annotations
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 
@@ -85,7 +85,7 @@ class CanvasOut(BaseModel):
     edges: list = Field(default_factory=list)
     stage: str = ""
     baseline_node_ids: list[str] = Field(default_factory=list)
-    architecture_artifact: Optional["ArchitectureArtifactOut"] = None
+    architecture_artifact: Optional[dict[str, Any]] = None
     updated_at: Optional[str] = None
 
 
@@ -215,13 +215,13 @@ class ConsultingWorkspaceOut(BaseModel):
     stage: str = ""
     recommendation: str = ""
     blueprint_markdown: str = ""
-    assumptions: list[ConsultingAssumptionOut] = Field(default_factory=list)
+    assumptions: list[dict[str, Any]] = Field(default_factory=list)
     facts: list[str] = Field(default_factory=list)
     open_questions: list[str] = Field(default_factory=list)
     decisions: list[str] = Field(default_factory=list)
     risks: list[str] = Field(default_factory=list)
     implementation_plan: list[str] = Field(default_factory=list)
-    advisory_case: Optional[AdvisoryCaseOut] = None
+    advisory_case: Optional[dict[str, Any]] = None
     updated_at: Optional[str] = None
 
 
