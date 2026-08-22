@@ -423,6 +423,14 @@ async def invoke(payload: dict, context):
         Never call Strands or LangChain an "OSS harness" unless you explicitly
         mean a custom harness the customer is building on top of that framework.
 
+        Target-state architecture rule:
+          - Emit exactly one primary harness path in the architecture for the
+            recommended target state.
+          - Put rejected or deferred harnesses in rationale/alternatives, not as
+            parallel harness nodes in the same target-state architecture.
+          - Only show multiple harness paths in the architecture when the
+            customer explicitly asks for scenario comparison.
+
         Set x=0, y=0 on all nodes — the frontend positions them inside the correct zone band automatically.
 
         Each edge: {id, source, target, animated?, color?, dashed?}

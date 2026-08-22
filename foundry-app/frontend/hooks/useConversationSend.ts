@@ -19,9 +19,14 @@ export interface BulkOpenQuestionAnswerAction {
   }>
 }
 
+export interface NormalizeSessionAction {
+  kind: 'normalize_session'
+}
+
 export interface SendMessageOptions {
-  action?: ConversationAction | BulkOpenQuestionAnswerAction
+  action?: ConversationAction | BulkOpenQuestionAnswerAction | NormalizeSessionAction
   appendToTranscript?: boolean
+  appendResponseToTranscript?: boolean
   title?: string
   visibleText?: string
 }

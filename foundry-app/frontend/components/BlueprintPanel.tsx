@@ -21,6 +21,7 @@ export default function BlueprintPanel() {
     () => (view.blueprint_markdown?.trim() || buildFallbackBlueprint(view, architectureArtifact)).trim(),
     [view, architectureArtifact],
   )
+  const technicalSections = useMemo(() => parseMarkdownSections(fallbackMarkdown), [fallbackMarkdown])
   const exportMarkdown = useMemo(
     () => buildExportMarkdown(outputPack, fallbackMarkdown),
     [outputPack, fallbackMarkdown],
@@ -75,7 +76,12 @@ export default function BlueprintPanel() {
           </p>
         </div>
       ) : hasStructuredPack && outputPack ? (
-        <StructuredBlueprintView outputPack={outputPack} activeTab={activeTab} onChange={setActiveTab} />
+        <StructuredBlueprintView
+          outputPack={outputPack}
+          technicalSections={technicalSections}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
       ) : (
         <MarkdownBlueprintView sections={markdownSections} activeTab={activeTab} onChange={setActiveTab} />
       )}
@@ -85,10 +91,12 @@ export default function BlueprintPanel() {
 
 function StructuredBlueprintView({
   outputPack,
+  technicalSections,
   activeTab,
   onChange,
 }: {
   outputPack: AdvisoryOutputPack
+  technicalSections: MarkdownSection[]
   activeTab: string
   onChange: (tab: string) => void
 }) {
@@ -107,6 +115,9 @@ function StructuredBlueprintView({
       : null,
     outputPack.operating_principles.length || outputPack.control_checklist.length
       ? { id: 'controls', label: 'Controls' }
+      : null,
+    technicalSections.length
+      ? { id: 'technical', label: 'Technical' }
       : null,
   ].filter((tab): tab is { id: string; label: string } => Boolean(tab))
   const selectedTab = tabs.find((tab) => tab.id === activeTab)?.id ?? tabs[0]?.id ?? 'brief'
@@ -193,6 +204,21 @@ function StructuredBlueprintView({
             {outputPack.control_checklist.length ? (
               <PackListSection title="Control Checklist" items={outputPack.control_checklist} />
             ) : null}
+          </div>
+        ) : null}
+
+        {selectedTab === 'technical' ? (
+          <div style={contentStackStyle}>
+            {technicalSections.map((section) => (
+              <section key={section.id} style={sectionStyle}>
+                <span style={sectionTitleStyle}>{section.title}</span>
+                <div
+                  className="prose"
+                  style={proseStyle}
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(section.body) }}
+                />
+              </section>
+            ))}
           </div>
         ) : null}
       </div>
@@ -361,7 +387,18 @@ function buildExportMarkdown(outputPack: AdvisoryOutputPack | null, fallbackMark
     lines.push('')
   }
 
+  if (hasTechnicalBlueprintTables(fallbackMarkdown)) {
+    lines.push(fallbackMarkdown.trim(), '')
+  }
+
   return lines.join('\n').trim()
+}
+
+function hasTechnicalBlueprintTables(markdown: string) {
+  return (
+    markdown.includes('| Layer | Decision | Alternatives Considered | Reasoning |') ||
+    markdown.includes("| Dimension | What's needed | Owner | When |")
+  )
 }
 
 type MarkdownSection = {

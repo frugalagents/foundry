@@ -14,6 +14,7 @@ import { normalizeAdvisoryCase } from '@/lib/advisory-case'
 import { getToken } from '@/lib/auth'
 import { normalizeArchitectureArtifact } from '@/lib/architecture-artifact'
 import { normalizeWorkspaceAssumptions } from '@/lib/assumptions'
+import { SESSION_NORMALIZATION_MARKER } from '@/lib/session-normalization'
 import type { SendMessageOptions } from './useConversationSend'
 
 function buildOutboundMessage(text: string, options?: SendMessageOptions) {
@@ -42,6 +43,17 @@ function buildOutboundMessage(text: string, options?: SendMessageOptions) {
     ].join('\n')
   }
 
+  if (action.kind === 'normalize_session') {
+    return [
+      `${SESSION_NORMALIZATION_MARKER}`,
+      'Re-normalize the current session artifacts under the latest advisory rules.',
+      'Refresh the recommendation, advisory brief, architecture, blueprint, assumptions, and open questions as needed.',
+      'For the target-state architecture, converge to exactly one primary harness path unless the customer explicitly asked for scenario comparison.',
+      'If multiple harnesses are currently shown, move non-primary options into alternatives or scenario comparisons instead of the main target-state architecture.',
+      `If you emit any chat reply, make it exactly: ${SESSION_NORMALIZATION_MARKER} session artifacts refreshed.`,
+    ].join('\n')
+  }
+
   return text
 }
 
@@ -63,13 +75,16 @@ export function useStream() {
       const ctrl = new AbortController()
       abortRef.current = ctrl
       const outboundMessage = buildOutboundMessage(text, options)
+      const shouldAppendAgentMessage = options?.appendResponseToTranscript !== false
 
       if (options?.appendToTranscript !== false) {
         appendMessage({ id: nanoid(), role: 'user', content: options?.visibleText ?? text })
       }
 
-      const agentMsgId = nanoid()
-      appendMessage({ id: agentMsgId, role: 'agent', content: '', streaming: true })
+      const agentMsgId = shouldAppendAgentMessage ? nanoid() : null
+      if (agentMsgId) {
+        appendMessage({ id: agentMsgId, role: 'agent', content: '', streaming: true })
+      }
       setStreaming(true)
 
       try {
@@ -82,7 +97,9 @@ export function useStream() {
           const data = (evt as { data?: Record<string, unknown> }).data ?? evt
 
           if (type === 'chat_stream') {
-            appendChunk(agentMsgId, (data as { text?: string }).text ?? '')
+            if (agentMsgId) {
+              appendChunk(agentMsgId, (data as { text?: string }).text ?? '')
+            }
           } else if (type === 'architecture_update') {
             const d = data as {
               nodes?: never[]
@@ -118,11 +135,13 @@ export function useStream() {
           }
         }
       } catch (err: unknown) {
-        if (err instanceof Error && err.name !== 'AbortError') {
+        if (agentMsgId && err instanceof Error && err.name !== 'AbortError') {
           appendChunk(agentMsgId, `\n\n_Connection error: ${err.message}_`)
         }
       } finally {
-        finalizeMessage(agentMsgId)
+        if (agentMsgId) {
+          finalizeMessage(agentMsgId)
+        }
         setStreaming(false)
       }
     },

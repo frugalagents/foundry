@@ -5,6 +5,7 @@ import { useStore } from '@/store'
 import { useConversationSend } from '@/hooks/useConversationSend'
 import { analyzeAgentMessage, type AgentMsgType } from '@/lib/message-analysis'
 import { renderMarkdown } from '@/lib/render-markdown'
+import { isMaintenanceMessage } from '@/lib/session-normalization'
 import { resolveAdvisoryStage, type AdvisoryStage } from '@/lib/workflow'
 import type { Message } from '@/lib/types'
 
@@ -421,6 +422,7 @@ export default function Chat() {
   const visibleMessages = useMemo(() => {
     return messages
       .map((message) => {
+        if (isMaintenanceMessage(message.content)) return message
         if (message.role !== 'agent' || !message.content.trim() || message.streaming) return message
 
         const content = openQuestionKeys.size > 0
@@ -429,6 +431,7 @@ export default function Chat() {
         return { ...message, content }
       })
       .filter((message) => {
+        if (isMaintenanceMessage(message.content)) return false
         if (message.role === 'user' || message.streaming) return true
         if (!message.content.trim()) return false
         if (isRedundantArtifactReply(message.content, artifactBodies)) return false
