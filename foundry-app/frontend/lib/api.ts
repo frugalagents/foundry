@@ -1,5 +1,6 @@
 import { authHeaders, getUserId, refreshIdToken } from './auth'
 import type { Customer, Session, SessionCreate, SessionHistory, Module } from './types'
+import type { ConversationRow } from './types'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
@@ -139,6 +140,9 @@ export const getSessionHistory = (customerId: string, sessionId: string) =>
 
 export const listModules = () =>
   call<Module[]>('/api/v1/modules')
+
+export const listAdminSessions = () =>
+  call<ConversationRow[]>('/api/v1/admin/sessions')
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

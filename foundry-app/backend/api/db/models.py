@@ -56,6 +56,11 @@ class Session(BaseModel):
     updated_at: str
 
 
+class ConversationRowOut(BaseModel):
+    session: Session
+    customer: Customer
+
+
 # ── Modules ────────────────────────────────────────────────────────────────────
 
 class Module(BaseModel):

@@ -1,27 +1,52 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '@/store'
+import { ApiError, listAdminSessions } from '@/lib/api'
 import { loadSessionIntoView } from '@/lib/session-actions'
 import type { ConversationRow } from '@/lib/types'
 
 type SortKey = 'customer' | 'created_by' | 'updated_at'
 
 export default function AdminSessionsView() {
-  const { conversations, setShowAdminView } = useStore()
+  const { setShowAdminView } = useStore()
   const [sortKey, setSortKey] = useState<SortKey>('updated_at')
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [rows, setRows] = useState<ConversationRow[]>([])
+  const [refreshing, setRefreshing] = useState(false)
+
+  useEffect(() => {
+    void refreshRows()
+  }, [])
+
+  async function refreshRows() {
+    setLoadError(null)
+    setRefreshing(true)
+    try {
+      const nextRows = await listAdminSessions()
+      setRows(nextRows)
+    } catch (err) {
+      console.error('[AdminSessionsView] Failed to load admin sessions:', err)
+      if (err instanceof ApiError && err.status === 403) {
+        setLoadError('This browser session is not authorized to load the all-users admin view.')
+      } else {
+        setLoadError('Could not load admin sessions')
+      }
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   const sorted = useMemo(() => {
-    const rows = [...conversations]
-    rows.sort((a, b) => {
+    const nextRows = [...rows]
+    nextRows.sort((a, b) => {
       if (sortKey === 'customer') return a.customer.name.localeCompare(b.customer.name)
       if (sortKey === 'created_by') return a.session.created_by.localeCompare(b.session.created_by)
       return +new Date(b.session.updated_at) - +new Date(a.session.updated_at)
     })
-    return rows
-  }, [conversations, sortKey])
+    return nextRows
+  }, [rows, sortKey])
 
   const handleOpen = async (row: ConversationRow) => {
     setLoadError(null)
@@ -47,18 +72,36 @@ export default function AdminSessionsView() {
         <div>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>All Sessions</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            {conversations.length} session{conversations.length === 1 ? '' : 's'} across every customer
+            {rows.length} session{rows.length === 1 ? '' : 's'} across every customer
           </div>
         </div>
-        <button
-          onClick={() => setShowAdminView(false)}
-          style={{
-            padding: '6px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-            borderRadius: 8, color: 'var(--text)', fontSize: 12.5, cursor: 'pointer',
-          }}
-        >
-          Close
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => void refreshRows()}
+            disabled={refreshing}
+            style={{
+              padding: '6px 12px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              color: 'var(--text)',
+              fontSize: 12.5,
+              cursor: refreshing ? 'default' : 'pointer',
+              opacity: refreshing ? 0.6 : 1,
+            }}
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+          <button
+            onClick={() => setShowAdminView(false)}
+            style={{
+              padding: '6px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              borderRadius: 8, color: 'var(--text)', fontSize: 12.5, cursor: 'pointer',
+            }}
+          >
+            Close
+          </button>
+        </div>
       </div>
 
       {loadError && (
