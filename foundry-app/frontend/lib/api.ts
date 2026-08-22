@@ -1,10 +1,33 @@
-import { authHeaders } from './auth'
+import { authHeaders, getUserId, refreshIdToken } from './auth'
 import type { Customer, Session, SessionCreate, SessionHistory, Module } from './types'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+export class ApiError extends Error {
+  status: number
+  path: string
+  detail?: string
+
+  constructor(status: number, path: string, body: string) {
+    let detail: string | undefined
+    try {
+      const parsed = JSON.parse(body) as { detail?: unknown; message?: unknown }
+      if (typeof parsed.detail === 'string') detail = parsed.detail
+      else if (typeof parsed.message === 'string') detail = parsed.message
+    } catch {
+      if (body.trim()) detail = body.trim()
+    }
+
+    super(`${status} ${path}${detail ? `: ${detail}` : ''}`)
+    this.name = 'ApiError'
+    this.status = status
+    this.path = path
+    this.detail = detail
+  }
+}
+
+async function fetchWithAuthRetry(path: string, init?: RequestInit) {
+  const request = () => fetch(`${BASE}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -12,9 +35,19 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
   })
+
+  let response = await request()
+  if (response.status === 401 && await refreshIdToken()) {
+    response = await request()
+  }
+  return response
+}
+
+async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetchWithAuthRetry(path, init)
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    throw new Error(`${res.status} ${path}: ${body}`)
+    throw new ApiError(res.status, path, body)
   }
 
   if (res.status === 204) {
@@ -40,19 +73,16 @@ export async function streamSession(
   message: string,
   signal?: AbortSignal,
 ): Promise<ReadableStream<Uint8Array>> {
-  const res = await fetch(`${BASE}/api/v1/customers/${customerId}/sessions/${sessionId}/stream`, {
+  const path = `/api/v1/customers/${customerId}/sessions/${sessionId}/stream`
+  const res = await fetchWithAuthRetry(path, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders(),
-    },
     body: JSON.stringify({ message }),
     signal,
   })
 
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    throw new Error(`${res.status} /api/v1/customers/${customerId}/sessions/${sessionId}/stream: ${body}`)
+    throw new ApiError(res.status, path, body)
   }
 
   if (!res.body) {
@@ -75,6 +105,9 @@ export const createCustomer = (name: string) =>
 
 export const getCustomer = (customerId: string) =>
   call<Customer>(`/api/v1/customers/${customerId}`)
+
+export const deleteCustomer = (customerId: string) =>
+  call<void>(`/api/v1/customers/${customerId}`, { method: 'DELETE' })
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
 
@@ -138,10 +171,15 @@ function looksLikeSyntheticCustomer(customer: Customer) {
 
 /** Get or create a default workspace customer for the current user. */
 export async function getOrCreateDefaultCustomer(): Promise<Customer> {
+  const actorId = getUserId()
   const customers = (await listCustomers()).sort(
     (a, b) => +new Date(b.updated_at) - +new Date(a.updated_at),
   )
-  const preferred = customers.find((customer) => !looksLikeSyntheticCustomer(customer)) ?? customers[0]
+  const ownedCustomers = actorId
+    ? customers.filter((customer) => customer.created_by === actorId)
+    : []
+  const preferred = ownedCustomers.find((customer) => !looksLikeSyntheticCustomer(customer))
+    ?? ownedCustomers[0]
   if (preferred) return preferred
   return createCustomer('My Workspace')
 }

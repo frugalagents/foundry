@@ -1,19 +1,64 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Sidebar from './Sidebar'
 import Chat from './Chat'
 import TopBar from './TopBar'
 import AdminSessionsView from './AdminSessionsView'
 import WorkspaceTabs from './WorkspaceTabs'
+import WorkspaceSetupDialog from './WorkspaceSetupDialog'
+import { createCustomer, createSession, deleteCustomer } from '@/lib/api'
+import { restoreSessionFromLocation } from '@/lib/session-actions'
 import { useStore } from '@/store'
 
 export default function Shell() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [chatOpen, setChatOpen] = useState(true)
+  const [workspaceSetupOpen, setWorkspaceSetupOpen] = useState(false)
   const showAdminView = useStore((s) => s.showAdminView)
 
-  const handleNewChat = useCallback(() => {}, [])
+  useEffect(() => {
+    const restoreFromHistory = () => {
+      const conversations = useStore.getState().conversations
+      void restoreSessionFromLocation(conversations).catch((err) => {
+        console.error('[Shell] Failed to restore session from browser history:', err)
+      })
+    }
+
+    window.addEventListener('popstate', restoreFromHistory)
+    return () => window.removeEventListener('popstate', restoreFromHistory)
+  }, [])
+
+  const handleNewChat = useCallback(() => {
+    setWorkspaceSetupOpen(true)
+  }, [])
+
+  const handleCreateWorkspace = useCallback(async (project: string, purpose: string) => {
+    const customer = await createCustomer(project)
+    let session
+    try {
+      session = await createSession(customer.customer_id, {
+        title: project,
+        description: purpose,
+      })
+    } catch (error) {
+      await deleteCustomer(customer.customer_id).catch((cleanupError) => {
+        console.error('[Shell] Failed to clean up incomplete workspace:', cleanupError)
+      })
+      throw error
+    }
+
+    const store = useStore.getState()
+    store.clearMessages()
+    store.clearWorkspace()
+    store.hideCanvas()
+    store.setShowAdminView(false)
+    store.setActiveSession(customer.customer_id, session.session_id)
+    store.prependConversation({ customer, session })
+    setChatOpen(true)
+    setWorkspaceSetupOpen(false)
+    window.history.pushState(null, '', `/sessions/${session.session_id}`)
+  }, [])
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
@@ -145,13 +190,19 @@ export default function Shell() {
                 </p>
               </div>
               <div style={{ flex: 1, minHeight: 0 }}>
-                <Chat />
+                <Chat onStartWorkspace={handleNewChat} />
               </div>
             </aside>
             ) : null}
           </div>
         )}
       </div>
+
+      <WorkspaceSetupDialog
+        open={workspaceSetupOpen}
+        onCancel={() => setWorkspaceSetupOpen(false)}
+        onCreate={handleCreateWorkspace}
+      />
     </div>
   )
 }

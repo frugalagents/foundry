@@ -58,6 +58,32 @@ function buildOutboundMessage(text: string, options?: SendMessageOptions) {
   return text
 }
 
+function addWorkspaceContext(text: string, customerId: string, sessionId: string) {
+  const state = useStore.getState()
+  if (state.messages.length > 0) return text
+
+  const conversation = state.conversations.find(
+    (row) => (
+      row.customer.customer_id === customerId
+      && row.session.session_id === sessionId
+    ),
+  )
+  if (!conversation) return text
+
+  const project = conversation.session.title.trim()
+  const purpose = conversation.session.description?.trim() ?? ''
+  if (!project && !purpose) return text
+
+  return [
+    'Workspace context supplied by the user before the conversation began:',
+    project ? `Project: ${project}` : '',
+    purpose ? `Purpose: ${purpose}` : '',
+    '',
+    'User message:',
+    text,
+  ].filter((line, index) => line || index === 3).join('\n')
+}
+
 export function useStream() {
   const abortRef = useRef<AbortController | null>(null)
   const {
@@ -75,7 +101,11 @@ export function useStream() {
       abortRef.current?.abort()
       const ctrl = new AbortController()
       abortRef.current = ctrl
-      const outboundMessage = buildOutboundMessage(text, options)
+      const outboundMessage = addWorkspaceContext(
+        buildOutboundMessage(text, options),
+        customerId,
+        sessionId,
+      )
       const shouldAppendAgentMessage = options?.appendResponseToTranscript !== false
 
       if (options?.appendToTranscript !== false) {

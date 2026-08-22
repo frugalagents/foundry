@@ -22,6 +22,17 @@ interface AppState {
   activeModule: string | null
   setActiveSession: (customerId: string, sessionId: string, module?: string) => void
   clearActiveSession: () => void
+  hydrateSession: (view: {
+    customerId: string
+    sessionId: string
+    moduleId?: string
+    messages: Message[]
+    workspace: ConsultingWorkspace | null
+    canvasNodes: ArchNode[]
+    canvasEdges: ArchEdge[]
+    baselineNodeIds: string[]
+    architectureArtifact: ArchitectureArtifact | null
+  }) => void
 
   // ── Messages ────────────────────────────────────────────────────────────────
   messages: Message[]
@@ -86,6 +97,18 @@ export const useStore = create<AppState>((set) => ({
     set({ activeCustomerId: customerId, activeSessionId: sessionId, activeModule: module ?? null }),
   clearActiveSession: () =>
     set({ activeCustomerId: null, activeSessionId: null, activeModule: null }),
+  hydrateSession: (view) => set({
+    activeCustomerId: view.customerId,
+    activeSessionId: view.sessionId,
+    activeModule: view.moduleId ?? null,
+    messages: view.messages,
+    workspace: view.workspace,
+    canvasVisible: view.canvasNodes.length > 0,
+    canvasNodes: view.canvasNodes,
+    canvasEdges: view.canvasEdges,
+    baselineNodeIds: view.baselineNodeIds,
+    architectureArtifact: view.architectureArtifact,
+  }),
 
   // ── Messages ────────────────────────────────────────────────────────────────
   messages: [],

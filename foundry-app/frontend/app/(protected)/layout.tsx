@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { isAuthenticated, getUserId, getUserName, isAdmin as getIsAdmin, navigateToLogin } from '@/lib/auth'
 import { listAllSessions, listModules } from '@/lib/api'
+import { restoreSessionFromLocation } from '@/lib/session-actions'
 import { useStore } from '@/store'
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -22,13 +23,25 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     const admin = getIsAdmin()
     setUser(uid, uname, admin)
 
+    let cancelled = false
+
     Promise.all([listAllSessions(), listModules()])
-      .then(([convs, mods]) => {
+      .then(async ([convs, mods]) => {
+        if (cancelled) return
         setConvs(convs)
         setMods(mods)
+        await restoreSessionFromLocation(convs, { fallbackToLatest: true })
       })
-      .catch(() => {/* non-fatal — sidebar will be empty */})
-      .finally(() => setReady(true))
+      .catch((err) => {
+        console.error('[ProtectedLayout] Failed to initialize workspace:', err)
+      })
+      .finally(() => {
+        if (!cancelled) setReady(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [setUser, setConvs, setMods])
 
   if (!ready) {

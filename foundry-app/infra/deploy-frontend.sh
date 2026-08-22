@@ -75,6 +75,7 @@ echo "  AgentCore ARN:    $AGENTCORE_RUNTIME_ARN"
 
 echo "→ Building Next.js (static export)"
 cd "$FRONTEND_DIR"
+rm -rf .next out
 NEXT_PUBLIC_API_URL="$API_URL" \
   NEXT_PUBLIC_APP_URL="$CF_URL" \
   NEXT_PUBLIC_COGNITO_CLIENT_ID="$COGNITO_CLIENT_ID" \

@@ -107,10 +107,10 @@ async def stream_session(
 ):
     # Auth
     authorize_owned_resource(
-        user, db.get_customer(customer_id), resource_name="Customer"
+        user, db.get_customer(customer_id), resource_name="Customer", write=True
     )
     session = authorize_owned_resource(
-        user, db.get_session(customer_id, session_id), resource_name="Session"
+        user, db.get_session(customer_id, session_id), resource_name="Session", write=True
     )
 
     actor_id    = get_user_id(user)

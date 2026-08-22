@@ -350,7 +350,67 @@ const STARTERS = [
   'What target operating model should we adopt for an internal coding agent advisory?',
 ]
 
-function EmptyState({ onStarter }: { onStarter: (text: string) => void }) {
+function WorkspaceStartState({ onStart }: { onStart: () => void }) {
+  return (
+    <div style={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 18,
+      padding: '40px 24px',
+      textAlign: 'center',
+    }}>
+      <div style={{
+        width: 54,
+        height: 54,
+        borderRadius: 16,
+        background: 'var(--accent-dim)',
+        border: '1px solid var(--accent-glow)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 25,
+      }}>
+        ✦
+      </div>
+      <div style={{ maxWidth: 380 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 650, color: 'var(--text)', marginBottom: 8 }}>
+          Start a workspace
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.65 }}>
+          Name the project and tell the advisor what this workspace needs to accomplish before beginning the conversation.
+        </p>
+      </div>
+      <button
+        onClick={onStart}
+        style={{
+          border: 'none',
+          borderRadius: 10,
+          background: 'var(--accent)',
+          color: '#fff',
+          padding: '10px 16px',
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: 'pointer',
+        }}
+      >
+        Create workspace
+      </button>
+    </div>
+  )
+}
+
+function EmptyState({
+  onStarter,
+  project,
+  purpose,
+}: {
+  onStarter: (text: string) => void
+  project?: string
+  purpose?: string
+}) {
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
@@ -364,10 +424,10 @@ function EmptyState({ onStarter }: { onStarter: (text: string) => void }) {
       }}>⚡</div>
       <div style={{ textAlign: 'center', maxWidth: 380 }}>
         <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
-          Advisory Chat
+          {project || 'Advisory Chat'}
         </h2>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          Use chat to refine the recommendation, answer open questions, or challenge specific decisions. The primary brief lives in the workspace.
+          {purpose || 'Use chat to refine the recommendation, answer open questions, or challenge specific decisions. The primary brief lives in the workspace.'}
         </p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 420 }}>
@@ -400,19 +460,25 @@ function EmptyState({ onStarter }: { onStarter: (text: string) => void }) {
 
 // ── Main Chat ─────────────────────────────────────────────────────────────────
 
-export default function Chat() {
+export default function Chat({ onStartWorkspace }: { onStartWorkspace: () => void }) {
   const {
+    activeSessionId,
+    conversations,
     messages,
     canvasNodes,
     workspace,
   } = useStore()
 
-  const { abort, sendMessage, sending } = useConversationSend()
+  const { abort, readOnly, sendMessage, sending } = useConversationSend()
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const hasCanvas = canvasNodes.length > 0
+  const activeConversation = useMemo(
+    () => conversations.find((row) => row.session.session_id === activeSessionId),
+    [activeSessionId, conversations],
+  )
   const openQuestionKeys = useMemo(
     () => new Set((workspace?.open_questions ?? []).map(normalizeQuestionKey)),
     [workspace],
@@ -453,10 +519,10 @@ export default function Chat() {
   }, [input])
 
   const doSend = useCallback(async (text: string) => {
-    if (!text.trim() || sending) return
+    if (!text.trim() || sending || readOnly) return
     setInput('')
     await sendMessage(text)
-  }, [sendMessage, sending])
+  }, [readOnly, sendMessage, sending])
 
   const handleSend = useCallback(() => doSend(input.trim()), [doSend, input])
 
@@ -467,7 +533,22 @@ export default function Chat() {
     }
   }, [handleSend])
 
-  const canSend = input.trim().length > 0 && !sending
+  const canSend = input.trim().length > 0 && !sending && !readOnly
+
+  if (!activeSessionId) {
+    return (
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        overflow: 'hidden',
+        background: 'var(--bg)',
+      }}>
+        <WorkspaceStartState onStart={onStartWorkspace} />
+      </div>
+    )
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
@@ -495,7 +576,11 @@ export default function Chat() {
           </div>
         ) : null}
         {!hasMessages ? (
-          <EmptyState onStarter={(s) => doSend(s)} />
+          <EmptyState
+            onStarter={(s) => doSend(s)}
+            project={activeConversation?.session.title}
+            purpose={activeConversation?.session.description}
+          />
         ) : (
           <div style={{
             maxWidth: 720, width: '100%', margin: '0 auto', padding: '0 20px',
@@ -508,6 +593,21 @@ export default function Chat() {
       </div>
 
       <div style={{ borderTop: '1px solid var(--border)', padding: '12px 20px 16px', background: 'var(--bg)' }}>
+        {readOnly ? (
+          <div style={{
+            maxWidth: 720,
+            margin: '0 auto 10px',
+            padding: '9px 12px',
+            borderRadius: 10,
+            background: 'rgba(245,158,11,0.08)',
+            border: '1px solid rgba(245,158,11,0.22)',
+            color: 'var(--amber)',
+            fontSize: 12,
+            lineHeight: 1.5,
+          }}>
+            Read-only admin view. Start a new chat to send messages in your own workspace.
+          </div>
+        ) : null}
         {openQuestionKeys.size > 0 ? (
           <div style={{
             maxWidth: 720,
@@ -538,15 +638,15 @@ export default function Chat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder={sending ? 'Responding…' : 'Ask or reply…'}
-            disabled={sending}
+            placeholder={readOnly ? 'This session is read-only' : sending ? 'Responding…' : 'Ask or reply…'}
+            disabled={sending || readOnly}
             rows={1}
             style={{
               flex: 1, background: 'none', border: 'none', outline: 'none',
               color: 'var(--text)', fontSize: 14, lineHeight: 1.6,
               resize: 'none', padding: '10px 4px 10px 0', fontFamily: 'inherit',
               overflowY: 'auto', maxHeight: 200,
-              opacity: sending ? 0.5 : 1,
+              opacity: sending || readOnly ? 0.5 : 1,
             }}
           />
           <div style={{ display: 'flex', alignItems: 'flex-end', padding: '4px 4px 4px 0', gap: 4 }}>

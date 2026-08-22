@@ -59,13 +59,14 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
   const {
     conversations, setConversations,
     activeSessionId,
-    clearMessages, clearWorkspace, hideCanvas, setStreaming,
-    userName, isAdmin,
+    clearMessages, clearWorkspace, hideCanvas, streaming,
+    userId, userName, isAdmin,
     showAdminView, setShowAdminView,
   } = useStore()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
@@ -113,21 +114,46 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
     [],
   )
 
-  const handleNewChat = useCallback(async () => {
-    clearMessages()
-    clearWorkspace()
-    hideCanvas()
-    useStore.getState().clearActiveSession()
+  const handleNewChat = useCallback(() => {
     onNewChat()
-    history.pushState(null, '', '/')
-  }, [clearMessages, clearWorkspace, hideCanvas, onNewChat])
+  }, [onNewChat])
 
   const handleRefresh = useCallback(async () => {
+    if (streaming || refreshing) return
+
+    setLoadError(null)
+    setRefreshing(true)
     try {
+      const beforeRefresh = useStore.getState()
       const convs = await listAllSessions()
-      setConversations(convs)
-    } catch { /* ignore */ }
-  }, [setConversations])
+      const activeRow = beforeRefresh.activeSessionId
+        ? beforeRefresh.conversations.find(
+            (row) => row.session.session_id === beforeRefresh.activeSessionId,
+          )
+        : undefined
+      const activeStillListed = activeRow
+        ? convs.some((row) => row.session.session_id === activeRow.session.session_id)
+        : true
+      const refreshedConversations = activeRow && !activeStillListed
+        ? [activeRow, ...convs]
+        : convs
+
+      setConversations(refreshedConversations)
+
+      if (beforeRefresh.activeCustomerId && beforeRefresh.activeSessionId) {
+        await loadSessionIntoView(
+          beforeRefresh.activeCustomerId,
+          beforeRefresh.activeSessionId,
+          beforeRefresh.activeModule ?? undefined,
+        )
+      }
+    } catch (err) {
+      console.error('[Sidebar] Failed to refresh sessions:', err)
+      setLoadError('Could not refresh saved sessions')
+    } finally {
+      setRefreshing(false)
+    }
+  }, [refreshing, setConversations, streaming])
 
   const handleDelete = useCallback(
     async (e: React.MouseEvent, row: ConversationRow) => {
@@ -194,8 +220,27 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
               </svg>
             </button>
           )}
-          <button onClick={handleRefresh} title="Refresh" style={iconBtn}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={streaming || refreshing}
+            title={streaming ? 'Wait for the response to finish' : 'Refresh saved sessions'}
+            aria-label="Refresh saved sessions"
+            style={{
+              ...iconBtn,
+              cursor: streaming || refreshing ? 'not-allowed' : 'pointer',
+              opacity: streaming || refreshing ? 0.55 : 1,
+            }}
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              style={refreshing ? { animation: 'spin 0.7s linear infinite' } : undefined}
+            >
               <polyline points="1 4 1 10 7 10" /><polyline points="23 20 23 14 17 14" />
               <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" />
             </svg>
@@ -278,6 +323,11 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
               )}
               {section.sessions.map((row) => {
                 const isActive = row.session.session_id === activeSessionId
+                const isOwned = Boolean(
+                  userId
+                  && row.session.created_by === userId
+                  && row.customer.created_by === userId,
+                )
                 const mod      = row.session.module_id
                 const modColor = mod ? (MODULE_COLORS[mod] ?? '#888') : '#888'
                 return (
@@ -332,7 +382,7 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
                         )}
                       </div>
                     </button>
-                    {hoveredId === row.session.session_id && (
+                    {isOwned && hoveredId === row.session.session_id && (
                       <button
                         onClick={(e) => handleDelete(e, row)}
                         disabled={deletingId === row.session.session_id}
