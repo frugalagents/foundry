@@ -102,7 +102,113 @@ class ConsultingAssumptionOut(BaseModel):
     why: str = ""
     impact: str = ""
     confidence: str = "default"
+    impact_level: str = ""
+    drives_architecture: bool = False
+    validation_priority: str = ""
     options: list[ConsultingAssumptionOptionOut] = Field(default_factory=list)
+
+
+class AdvisoryRecommendationOut(BaseModel):
+    summary: str = ""
+    why_this: str = ""
+    why_not: str = ""
+    confidence: str = ""
+    confidence_reason: str = ""
+    change_triggers: list[str] = Field(default_factory=list)
+
+
+class AdvisoryAlternativeOut(BaseModel):
+    id: str
+    title: str
+    position: str = ""
+    summary: str = ""
+    benefits: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    operational_burden: str = ""
+    governance_implications: str = ""
+    best_fit_conditions: list[str] = Field(default_factory=list)
+
+
+class AdvisoryDecisionOut(BaseModel):
+    statement: str
+    options_considered: list[str] = Field(default_factory=list)
+    recommendation: str = ""
+    why: str = ""
+    tradeoffs_accepted: list[str] = Field(default_factory=list)
+    owner: str = ""
+    open_dependency: str = ""
+
+
+class AdvisoryRiskOut(BaseModel):
+    category: str = ""
+    severity: str = ""
+    risk: str
+    mitigation: str = ""
+
+
+class AdvisoryMaturityDomainOut(BaseModel):
+    domain: str
+    current_state: str = ""
+    target_state: str = ""
+    gap: str = ""
+
+
+class AdvisoryReadoutOut(BaseModel):
+    current_recommendation: str = ""
+    important_decisions: list[str] = Field(default_factory=list)
+    biggest_risks: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    rollout_summary: str = ""
+    architecture_snapshot: str = ""
+
+
+class AdvisoryNextBestQuestionOut(BaseModel):
+    question: str = ""
+    why_it_matters: str = ""
+
+
+class AdvisoryPackRiskOut(BaseModel):
+    risk: str
+    mitigation: str = ""
+
+
+class AdvisoryPackRolloutPhaseOut(BaseModel):
+    horizon: str
+    outcome: str = ""
+
+
+class AdvisoryOutputPackOut(BaseModel):
+    executive_summary: str = ""
+    recommendation_memo: str = ""
+    architecture_narrative: str = ""
+    key_decisions: list[str] = Field(default_factory=list)
+    risks_and_mitigations: list[AdvisoryPackRiskOut] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    rollout_30_90_180: list[AdvisoryPackRolloutPhaseOut] = Field(default_factory=list)
+    operating_principles: list[str] = Field(default_factory=list)
+    control_checklist: list[str] = Field(default_factory=list)
+
+
+class AdvisoryDeltaOut(BaseModel):
+    summary: str = ""
+    recommendation_change: str = ""
+    new_risks: list[str] = Field(default_factory=list)
+    added_controls: list[str] = Field(default_factory=list)
+    removed_controls: list[str] = Field(default_factory=list)
+    cost_or_complexity_impact: str = ""
+    changed_assumptions: list[str] = Field(default_factory=list)
+
+
+class AdvisoryCaseOut(BaseModel):
+    recommendation: AdvisoryRecommendationOut = Field(default_factory=AdvisoryRecommendationOut)
+    alternatives: list[AdvisoryAlternativeOut] = Field(default_factory=list)
+    decisions: list[AdvisoryDecisionOut] = Field(default_factory=list)
+    risks: list[AdvisoryRiskOut] = Field(default_factory=list)
+    maturity: list[AdvisoryMaturityDomainOut] = Field(default_factory=list)
+    readout: AdvisoryReadoutOut = Field(default_factory=AdvisoryReadoutOut)
+    next_best_question: Optional[AdvisoryNextBestQuestionOut] = None
+    output_pack: AdvisoryOutputPackOut = Field(default_factory=AdvisoryOutputPackOut)
+    delta: Optional[AdvisoryDeltaOut] = None
 
 
 class ConsultingWorkspaceOut(BaseModel):
@@ -115,6 +221,7 @@ class ConsultingWorkspaceOut(BaseModel):
     decisions: list[str] = Field(default_factory=list)
     risks: list[str] = Field(default_factory=list)
     implementation_plan: list[str] = Field(default_factory=list)
+    advisory_case: Optional[AdvisoryCaseOut] = None
     updated_at: Optional[str] = None
 
 

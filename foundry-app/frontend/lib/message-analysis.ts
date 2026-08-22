@@ -100,6 +100,7 @@ export function normalizeWorkspace(workspace?: ConsultingWorkspace | null): Cons
     decisions: workspace?.decisions ?? [],
     risks: workspace?.risks ?? [],
     implementation_plan: workspace?.implementation_plan ?? [],
+    advisory_case: workspace?.advisory_case ?? null,
     updated_at: workspace?.updated_at,
   }
 }

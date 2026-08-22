@@ -132,6 +132,18 @@ export default function AssumptionsPanel({ baselineReady }: { baselineReady: boo
       </div>
 
       <div style={{ padding: '14px 16px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {assumptions.length === 0 ? (
+          <section style={{
+            border: '1px solid var(--border)',
+            background: 'var(--bg-elevated)',
+            borderRadius: 14,
+            padding: '14px 14px 12px',
+          }}>
+            <p style={{ fontSize: 12.5, color: 'var(--text-faint)', lineHeight: 1.6 }}>
+              No structured assumptions have been published by the engine yet. Once the recommendation takes shape, the assumption register will appear here with confidence and validation priority.
+            </p>
+          </section>
+        ) : null}
         {assumptions.map((assumption) => (
           <section
             key={assumption.id}
@@ -152,35 +164,30 @@ export default function AssumptionsPanel({ baselineReady }: { baselineReady: boo
                   {assumption.assumed}
                 </p>
               </div>
-              <span style={{
-                padding: '5px 8px',
-                borderRadius: 999,
-                fontSize: 10.5,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-                background: assumption.confidence === 'confirmed'
-                  ? 'rgba(34,197,94,0.12)'
-                  : assumption.confidence === 'inferred'
-                    ? 'rgba(99,102,241,0.12)'
-                    : 'var(--bg)',
-                border: `1px solid ${assumption.confidence === 'confirmed'
-                  ? 'rgba(34,197,94,0.24)'
-                  : assumption.confidence === 'inferred'
-                    ? 'rgba(99,102,241,0.24)'
-                    : 'var(--border)'}`,
-                color: assumption.confidence === 'confirmed'
-                  ? 'var(--green)'
-                  : assumption.confidence === 'inferred'
-                    ? 'var(--accent-strong)'
-                    : 'var(--text-faint)',
-              }}>
-                {assumption.confidence === 'confirmed'
-                  ? 'Confirmed'
-                  : assumption.confidence === 'inferred'
-                    ? 'Inferred'
-                    : 'Default'}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                <span style={confidencePillStyle(assumption.confidence)}>
+                  {assumption.confidence === 'confirmed'
+                    ? 'Confirmed'
+                    : assumption.confidence === 'inferred'
+                      ? 'Inferred'
+                      : 'Default'}
+                </span>
+                {assumption.impact_level ? (
+                  <span style={metaPillStyle(assumption.impact_level === 'high' ? 'warning' : 'neutral')}>
+                    {assumption.impact_level} impact
+                  </span>
+                ) : null}
+                {assumption.validation_priority ? (
+                  <span style={metaPillStyle(assumption.validation_priority === 'now' ? 'warning' : 'neutral')}>
+                    validate {assumption.validation_priority}
+                  </span>
+                ) : null}
+                {assumption.drives_architecture ? (
+                  <span style={metaPillStyle('success')}>
+                    architecture driver
+                  </span>
+                ) : null}
+              </div>
             </div>
 
             <AssumptionBlock label="Why this is assumed" text={assumption.why} />
@@ -262,4 +269,50 @@ function AssumptionBlock({ label, text }: { label: string; text: string }) {
       </p>
     </div>
   )
+}
+
+function confidencePillStyle(confidence: 'default' | 'inferred' | 'confirmed') {
+  return {
+    padding: '5px 8px',
+    borderRadius: 999,
+    fontSize: 10.5,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    whiteSpace: 'nowrap',
+    background: confidence === 'confirmed'
+      ? 'rgba(34,197,94,0.12)'
+      : confidence === 'inferred'
+        ? 'rgba(99,102,241,0.12)'
+        : 'var(--bg)',
+    border: `1px solid ${confidence === 'confirmed'
+      ? 'rgba(34,197,94,0.24)'
+      : confidence === 'inferred'
+        ? 'rgba(99,102,241,0.24)'
+        : 'var(--border)'}`,
+    color: confidence === 'confirmed'
+      ? 'var(--green)'
+      : confidence === 'inferred'
+        ? 'var(--accent-strong)'
+        : 'var(--text-faint)',
+  } satisfies CSSProperties
+}
+
+function metaPillStyle(tone: 'neutral' | 'warning' | 'success') {
+  const palette = tone === 'warning'
+    ? { background: 'rgba(183,121,31,0.12)', border: 'rgba(183,121,31,0.22)', color: 'var(--amber)' }
+    : tone === 'success'
+      ? { background: 'rgba(15,159,110,0.12)', border: 'rgba(15,159,110,0.2)', color: 'var(--green)' }
+      : { background: 'var(--bg)', border: 'var(--border)', color: 'var(--text-faint)' }
+
+  return {
+    padding: '4px 8px',
+    borderRadius: 999,
+    fontSize: 10.5,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    whiteSpace: 'nowrap',
+    background: palette.background,
+    border: `1px solid ${palette.border}`,
+    color: palette.color,
+  } satisfies CSSProperties
 }

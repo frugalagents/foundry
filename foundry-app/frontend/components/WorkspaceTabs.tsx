@@ -4,20 +4,26 @@ import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '@/store'
 import { buildAssumptionCards } from '@/lib/assumptions'
 import { normalizeWorkspace } from '@/lib/message-analysis'
+import { hasAdvisoryCaseContent } from '@/lib/advisory-case'
+import { normalizeAdvisoryStage, preferredWorkspaceTab, type AdvisoryWorkspaceTab } from '@/lib/workflow'
+import AdvisoryBrief from './AdvisoryBrief'
 import AssumptionsPanel from './AssumptionsPanel'
+import ArchitectureBoard from './ArchitectureBoard'
 import BlueprintPanel from './BlueprintPanel'
-import Canvas from './Canvas'
 import OpenQuestionsPanel from './OpenQuestionsPanel'
 
-type WorkspaceTab = 'assumptions' | 'blueprint' | 'architecture' | 'questions'
+type WorkspaceTab = 'brief' | AdvisoryWorkspaceTab
 
 export default function WorkspaceTabs() {
   const workspace = useStore((s) => s.workspace)
   const architectureArtifact = useStore((s) => s.architectureArtifact)
   const canvasNodes = useStore((s) => s.canvasNodes)
   const view = useMemo(() => normalizeWorkspace(workspace), [workspace])
+  const advisoryCase = hasAdvisoryCaseContent(view.advisory_case) ? view.advisory_case : null
   const blueprintReady =
     !!view.blueprint_markdown?.trim() ||
+    !!advisoryCase?.output_pack.executive_summary ||
+    !!advisoryCase?.output_pack.recommendation_memo ||
     !!view.recommendation ||
     view.decisions.length > 0 ||
     view.implementation_plan.length > 0
@@ -28,21 +34,33 @@ export default function WorkspaceTabs() {
   const questionCount = view.open_questions.length
   const architectureReady = canvasNodes.length > 0 || !!architectureArtifact
   const baselineReady = architectureReady
-  const preferredReadyTab: WorkspaceTab = blueprintReady ? 'blueprint' : 'architecture'
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>(baselineReady ? preferredReadyTab : 'questions')
+  const stage = normalizeAdvisoryStage(view.stage)
+  const preferredTab = preferredWorkspaceTab(stage, {
+    questionCount,
+    blueprintReady,
+    architectureReady,
+  })
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>(
+    questionCount > 0 && stage === 'discovery' ? 'questions' : 'brief',
+  )
 
   useEffect(() => {
     if (!baselineReady) {
-      if (activeTab !== 'questions' && activeTab !== 'assumptions') {
-        setActiveTab('questions')
+      if (activeTab === 'blueprint' || activeTab === 'architecture') {
+        setActiveTab(questionCount > 0 && stage === 'discovery' ? 'questions' : 'brief')
       }
       return
     }
 
-    if (activeTab === 'questions') {
-      setActiveTab(preferredReadyTab)
+    if (questionCount > 0 && stage === 'discovery' && activeTab !== 'questions') {
+      setActiveTab('questions')
+      return
     }
-  }, [activeTab, baselineReady, preferredReadyTab])
+
+    if (activeTab === 'questions' && questionCount === 0) {
+      setActiveTab('brief')
+    }
+  }, [activeTab, baselineReady, preferredTab, questionCount, stage])
 
   return (
     <div style={{
@@ -92,6 +110,20 @@ export default function WorkspaceTabs() {
           flexWrap: 'wrap',
         }}>
           <WorkspaceTabButton
+            active={activeTab === 'brief'}
+            onClick={() => setActiveTab('brief')}
+          >
+            Brief
+          </WorkspaceTabButton>
+          <WorkspaceTabButton
+            active={activeTab === 'questions'}
+            onClick={() => setActiveTab('questions')}
+            badge={questionCount > 0 ? String(questionCount) : undefined}
+            tone={questionCount > 0 ? 'warning' : 'neutral'}
+          >
+            Questions
+          </WorkspaceTabButton>
+          <WorkspaceTabButton
             active={activeTab === 'assumptions'}
             onClick={() => setActiveTab('assumptions')}
             badge={baselineReady ? String(assumptions.length) : 'preview'}
@@ -112,24 +144,20 @@ export default function WorkspaceTabs() {
           >
             Architecture
           </WorkspaceTabButton>
-          <WorkspaceTabButton
-            active={activeTab === 'questions'}
-            onClick={() => setActiveTab('questions')}
-            badge={questionCount > 0 ? String(questionCount) : undefined}
-            tone={questionCount > 0 ? 'warning' : 'neutral'}
-          >
-            Questions
-          </WorkspaceTabButton>
         </div>
       </div>
 
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {activeTab === 'assumptions' ? (
+        {activeTab === 'brief' ? (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: 16, background: 'linear-gradient(180deg, #f4efe8 0%, #efe7da 100%)' }}>
+            <AdvisoryBrief />
+          </div>
+        ) : activeTab === 'assumptions' ? (
           <AssumptionsPanel baselineReady={baselineReady} />
         ) : activeTab === 'blueprint' ? (
           <BlueprintPanel />
         ) : activeTab === 'architecture' ? (
-          <Canvas />
+          <ArchitectureBoard />
         ) : (
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: 'var(--bg)' }}>
             <OpenQuestionsPanel />

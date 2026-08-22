@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useStore } from '@/store'
 import { clearToken, navigateToLogin } from '@/lib/auth'
-import { listAllSessions, createSession, getOrCreateDefaultCustomer, deleteSession } from '@/lib/api'
+import { listAllSessions, deleteSession } from '@/lib/api'
 import { loadSessionIntoView } from '@/lib/session-actions'
 import type { ConversationRow } from '@/lib/types'
 
@@ -31,13 +31,28 @@ function relativeTime(iso: string): string {
 }
 
 function groupByCustomer(conversations: ConversationRow[]) {
-  const groups = new Map<string, ConversationRow[]>()
+  const groups = new Map<string, { name: string; sessions: ConversationRow[] }>()
   for (const row of conversations) {
-    const key = row.customer.name
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key)!.push(row)
+    const key = row.customer.customer_id
+    if (!groups.has(key)) {
+      groups.set(key, { name: row.customer.name, sessions: [] })
+    }
+    groups.get(key)!.sessions.push(row)
   }
-  return Array.from(groups.entries()).map(([name, sessions]) => ({ name, sessions }))
+  return Array.from(groups.entries()).map(([customerId, group]) => ({
+    customerId,
+    name: group.name,
+    sessions: group.sessions,
+  }))
+}
+
+function formatCustomerGroupName(name: string) {
+  const normalized = name.trim()
+  if (!normalized) return 'Workspace'
+  if (/^simulation-\d+$/i.test(normalized) || /^demo(?:\b|[-\s_])/i.test(normalized)) {
+    return 'Workspace'
+  }
+  return normalized
 }
 
 export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
@@ -63,6 +78,23 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
       : conversations
     return groupByCustomer(filtered)
   }, [conversations, search])
+  const sections = useMemo(() => {
+    if (isAdmin && grouped.length > 1) {
+      return grouped.map((group) => ({
+        key: group.customerId,
+        label: formatCustomerGroupName(group.name),
+        sessions: group.sessions,
+        showLabel: true,
+      }))
+    }
+
+    return [{
+      key: 'all-sessions',
+      label: 'Sessions',
+      sessions: grouped.flatMap((group) => group.sessions),
+      showLabel: false,
+    }]
+  }, [grouped, isAdmin])
 
   const handleSelect = useCallback(
     async (row: ConversationRow) => {
@@ -234,15 +266,17 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
             {search ? 'No matches' : 'No conversations yet'}
           </p>
         ) : (
-          grouped.map((group) => (
-            <div key={group.name}>
-              <div style={{
-                padding: '12px 14px 4px', fontSize: 10.5, fontWeight: 600,
-                letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)',
-              }}>
-                {group.name}
-              </div>
-              {group.sessions.map((row) => {
+          sections.map((section) => (
+            <div key={section.key}>
+              {section.showLabel && (
+                <div style={{
+                  padding: '12px 14px 4px', fontSize: 10.5, fontWeight: 600,
+                  letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)',
+                }}>
+                  {section.label}
+                </div>
+              )}
+              {section.sessions.map((row) => {
                 const isActive = row.session.session_id === activeSessionId
                 const mod      = row.session.module_id
                 const modColor = mod ? (MODULE_COLORS[mod] ?? '#888') : '#888'

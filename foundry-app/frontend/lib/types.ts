@@ -136,6 +136,7 @@ export interface ConsultingWorkspace {
   decisions: string[]
   risks: string[]
   implementation_plan: string[]
+  advisory_case?: AdvisoryCase | null
   updated_at?: string
 }
 
@@ -152,7 +153,113 @@ export interface WorkspaceAssumption {
   why: string
   impact: string
   confidence: 'default' | 'inferred' | 'confirmed'
+  impact_level?: 'low' | 'medium' | 'high' | ''
+  drives_architecture?: boolean
+  validation_priority?: 'now' | 'soon' | 'later' | ''
   options: WorkspaceAssumptionOption[]
+}
+
+export interface AdvisoryRecommendation {
+  summary: string
+  why_this: string
+  why_not: string
+  confidence: 'low' | 'medium' | 'high' | ''
+  confidence_reason: string
+  change_triggers: string[]
+}
+
+export interface AdvisoryAlternative {
+  id: string
+  title: string
+  position: 'recommended' | 'viable' | 'deferred' | ''
+  summary: string
+  benefits: string[]
+  risks: string[]
+  operational_burden: string
+  governance_implications: string
+  best_fit_conditions: string[]
+}
+
+export interface AdvisoryDecision {
+  statement: string
+  options_considered: string[]
+  recommendation: string
+  why: string
+  tradeoffs_accepted: string[]
+  owner: string
+  open_dependency: string
+}
+
+export interface AdvisoryRisk {
+  category: string
+  severity: 'low' | 'medium' | 'high' | ''
+  risk: string
+  mitigation: string
+}
+
+export interface AdvisoryMaturityDomain {
+  domain: string
+  current_state: string
+  target_state: string
+  gap: string
+}
+
+export interface AdvisoryReadout {
+  current_recommendation: string
+  important_decisions: string[]
+  biggest_risks: string[]
+  open_questions: string[]
+  rollout_summary: string
+  architecture_snapshot: string
+}
+
+export interface AdvisoryNextBestQuestion {
+  question: string
+  why_it_matters: string
+}
+
+export interface AdvisoryPackRisk {
+  risk: string
+  mitigation: string
+}
+
+export interface AdvisoryPackRolloutPhase {
+  horizon: string
+  outcome: string
+}
+
+export interface AdvisoryOutputPack {
+  executive_summary: string
+  recommendation_memo: string
+  architecture_narrative: string
+  key_decisions: string[]
+  risks_and_mitigations: AdvisoryPackRisk[]
+  open_questions: string[]
+  rollout_30_90_180: AdvisoryPackRolloutPhase[]
+  operating_principles: string[]
+  control_checklist: string[]
+}
+
+export interface AdvisoryDelta {
+  summary: string
+  recommendation_change: string
+  new_risks: string[]
+  added_controls: string[]
+  removed_controls: string[]
+  cost_or_complexity_impact: string
+  changed_assumptions: string[]
+}
+
+export interface AdvisoryCase {
+  recommendation: AdvisoryRecommendation
+  alternatives: AdvisoryAlternative[]
+  decisions: AdvisoryDecision[]
+  risks: AdvisoryRisk[]
+  maturity: AdvisoryMaturityDomain[]
+  readout: AdvisoryReadout
+  next_best_question?: AdvisoryNextBestQuestion | null
+  output_pack: AdvisoryOutputPack
+  delta?: AdvisoryDelta | null
 }
 
 export interface ArchitectureLayerSummary {

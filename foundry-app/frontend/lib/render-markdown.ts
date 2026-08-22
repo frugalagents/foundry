@@ -54,6 +54,36 @@ function renderList(lines: string[], ordered: boolean): string {
   return ordered ? `<ol>${items.join('')}</ol>` : `<ul>${items.join('')}</ul>`
 }
 
+function isTableSeparator(line: string): boolean {
+  return /^\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?$/.test(line.trim())
+}
+
+function parseTableRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim())
+}
+
+function renderTable(lines: string[]): string {
+  if (lines.length < 2) return `<p>${renderInline(lines.join(' '))}</p>`
+
+  const [headerLine, , ...bodyLines] = lines
+  const headers = parseTableRow(headerLine)
+  const rows = bodyLines
+    .filter((line) => line.trim())
+    .map(parseTableRow)
+
+  const head = headers.map((cell) => `<th>${renderInline(cell)}</th>`).join('')
+  const body = rows.map((row) => (
+    `<tr>${row.map((cell) => `<td>${renderInline(cell)}</td>`).join('')}</tr>`
+  )).join('')
+
+  return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`
+}
+
 function finalizeH2Sections(html: string): string {
   const parts = html.split(/(<h2>.*?<\/h2>)/g)
   if (parts.length < 5) return html
@@ -114,6 +144,21 @@ export function renderMarkdown(text: string): string {
     if (/^---+$/.test(trimmed)) {
       blocks.push('<hr />')
       index += 1
+      continue
+    }
+
+    if (
+      index + 1 < lines.length &&
+      trimmed.includes('|') &&
+      isTableSeparator(lines[index + 1])
+    ) {
+      const tableLines: string[] = [lines[index], lines[index + 1]]
+      index += 2
+      while (index < lines.length && lines[index].trim().includes('|')) {
+        tableLines.push(lines[index])
+        index += 1
+      }
+      blocks.push(renderTable(tableLines))
       continue
     }
 

@@ -102,6 +102,7 @@ def put_workspace_snapshot(
     decisions: list[str] | None = None,
     risks: list[str] | None = None,
     implementation_plan: list[str] | None = None,
+    advisory_case: dict | None = None,
 ) -> None:
     now = _now()
     item = {
@@ -118,6 +119,7 @@ def put_workspace_snapshot(
         "decisions": decisions or [],
         "risks": risks or [],
         "implementation_plan": implementation_plan or [],
+        "advisory_case_json": json.dumps(advisory_case or {}),
         "updated_at": now,
     }
     _get_table().put_item(Item=item)

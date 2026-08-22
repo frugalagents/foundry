@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid'
 import { getSessionHistory } from './api'
+import { normalizeAdvisoryCase } from './advisory-case'
 import { useStore } from '@/store'
 import { normalizeArchitectureArtifact } from './architecture-artifact'
 import { normalizeWorkspaceAssumptions } from './assumptions'
@@ -20,6 +21,7 @@ export async function loadSessionIntoView(customerId: string, sessionId: string,
     store.setWorkspace(normalizeWorkspace({
       ...workspace,
       assumptions: normalizeWorkspaceAssumptions(workspace.assumptions),
+      advisory_case: normalizeAdvisoryCase(workspace.advisory_case),
     }))
   }
   if (canvas && canvas.nodes.length > 0) {

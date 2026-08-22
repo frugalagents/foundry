@@ -10,9 +10,40 @@ import {
   readSSEEvents,
 } from '@/lib/agentcore'
 import { streamSession } from '@/lib/api'
+import { normalizeAdvisoryCase } from '@/lib/advisory-case'
 import { getToken } from '@/lib/auth'
 import { normalizeArchitectureArtifact } from '@/lib/architecture-artifact'
 import { normalizeWorkspaceAssumptions } from '@/lib/assumptions'
+import type { SendMessageOptions } from './useConversationSend'
+
+function buildOutboundMessage(text: string, options?: SendMessageOptions) {
+  const action = options?.action
+  if (!action) return text
+
+  if (action.kind === 'open_question_answer') {
+    return [
+      'An open question has been answered.',
+      `Question: ${action.question}`,
+      `Answer: ${action.answer}`,
+      'Refresh the recommendation, assumptions, blueprint, architecture, and open questions only if this answer materially changes them.',
+      'Publish detailed changes in the workspace panels and keep the chat response to at most two short sentences.',
+    ].join('\n')
+  }
+
+  if (action.kind === 'bulk_open_question_answers') {
+    return [
+      'Several open questions have been answered together.',
+      ...action.answers.flatMap((item, index) => [
+        `${index + 1}. Question: ${item.question}`,
+        `   Answer: ${item.answer}`,
+      ]),
+      'Refresh the recommendation, assumptions, blueprint, architecture, and open questions only if these answers materially change them.',
+      'Publish detailed changes in the workspace panels and keep the chat response to at most two short sentences.',
+    ].join('\n')
+  }
+
+  return text
+}
 
 export function useStream() {
   const abortRef = useRef<AbortController | null>(null)
@@ -27,19 +58,22 @@ export function useStream() {
   } = useStore()
 
   const send = useCallback(
-    async (text: string, customerId: string, sessionId: string) => {
+    async (text: string, customerId: string, sessionId: string, options?: SendMessageOptions) => {
       abortRef.current?.abort()
       const ctrl = new AbortController()
       abortRef.current = ctrl
+      const outboundMessage = buildOutboundMessage(text, options)
 
-      appendMessage({ id: nanoid(), role: 'user', content: text })
+      if (options?.appendToTranscript !== false) {
+        appendMessage({ id: nanoid(), role: 'user', content: options?.visibleText ?? text })
+      }
 
       const agentMsgId = nanoid()
       appendMessage({ id: agentMsgId, role: 'agent', content: '', streaming: true })
       setStreaming(true)
 
       try {
-        const stream = await openStream(customerId, sessionId, text, ctrl.signal)
+        const stream = await openStream(customerId, sessionId, outboundMessage, ctrl.signal)
 
         for await (const evt of readSSEEvents(stream)) {
           if (ctrl.signal.aborted) break
@@ -75,6 +109,7 @@ export function useStream() {
               implementation_plan: Array.isArray(data.implementation_plan)
                 ? data.implementation_plan.filter((v): v is string => typeof v === 'string')
                 : [],
+              advisory_case: normalizeAdvisoryCase(data.advisory_case),
               updated_at: typeof data.updated_at === 'string' ? data.updated_at : undefined,
             })
           } else if (type === 'module_detected') {

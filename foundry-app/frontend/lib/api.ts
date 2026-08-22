@@ -127,9 +127,21 @@ export async function listAllSessions() {
     .sort((a, b) => +new Date(b.session.updated_at) - +new Date(a.session.updated_at))
 }
 
+function looksLikeSyntheticCustomer(customer: Customer) {
+  const name = customer.name.trim().toLowerCase()
+  return (
+    customer.demo_data === true ||
+    /^simulation-\d+$/.test(name) ||
+    /^demo(?:\b|[-\s_])/.test(name)
+  )
+}
+
 /** Get or create a default workspace customer for the current user. */
 export async function getOrCreateDefaultCustomer(): Promise<Customer> {
-  const customers = await listCustomers()
-  if (customers.length > 0) return customers[0]
+  const customers = (await listCustomers()).sort(
+    (a, b) => +new Date(b.updated_at) - +new Date(a.updated_at),
+  )
+  const preferred = customers.find((customer) => !looksLikeSyntheticCustomer(customer)) ?? customers[0]
+  if (preferred) return preferred
   return createCustomer('My Workspace')
 }

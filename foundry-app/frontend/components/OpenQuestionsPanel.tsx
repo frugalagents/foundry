@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { useStore } from '@/store'
 import { useConversationSend } from '@/hooks/useConversationSend'
 import { extractOpenQuestions } from '@/lib/message-analysis'
@@ -19,17 +19,65 @@ export default function OpenQuestionsPanel() {
     }
     return extractOpenQuestions(messages)
   }, [messages, workspace])
+  const answeredQuestions = useMemo(
+    () => openQuestions
+      .map((question) => ({
+        id: question.id,
+        text: question.text,
+        answer: drafts[question.id]?.trim() ?? '',
+      }))
+      .filter((question) => question.answer.length > 0),
+    [drafts, openQuestions],
+  )
 
   async function handleSubmit(questionId: string, questionText: string) {
     const answer = drafts[questionId]?.trim()
     if (!answer) return
     setSubmittingId(questionId)
     try {
-      const sent = await sendMessage(
-        `Answer this open question and refresh the recommendation if needed.\n\nQuestion: ${questionText}\nMy answer: ${answer}`,
-      )
+      const sent = await sendMessage(answer, {
+        title: 'Panel answer',
+        appendToTranscript: false,
+        action: {
+          kind: 'open_question_answer',
+          question: questionText,
+          answer,
+        },
+      })
       if (sent) {
         setDrafts((current) => ({ ...current, [questionId]: '' }))
+      }
+    } finally {
+      setSubmittingId(null)
+    }
+  }
+
+  async function handleSubmitAll() {
+    if (answeredQuestions.length === 0) return
+    setSubmittingId('all')
+    try {
+      const sent = await sendMessage(
+        answeredQuestions.map((item) => `${item.text}\n${item.answer}`).join('\n\n'),
+        {
+          title: 'Panel answers',
+          appendToTranscript: false,
+          action: {
+            kind: 'bulk_open_question_answers',
+            answers: answeredQuestions.map((item) => ({
+              question: item.text,
+              answer: item.answer,
+            })),
+          },
+        },
+      )
+      if (sent) {
+        setDrafts((current) => {
+          const next = { ...current }
+          answeredQuestions.forEach((item) => {
+            next[item.id] = ''
+          })
+          return next
+        })
       }
     } finally {
       setSubmittingId(null)
@@ -70,6 +118,29 @@ export default function OpenQuestionsPanel() {
           {openQuestions.length}
         </span>
       </div>
+
+      {answeredQuestions.length > 1 ? (
+        <div style={batchCardStyle}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={batchTitleStyle}>Batch Send</span>
+            <p style={batchBodyStyle}>
+              {answeredQuestions.length} question answers are drafted. Send them together so the engine refreshes the recommendation once.
+            </p>
+          </div>
+          <button
+            onClick={handleSubmitAll}
+            disabled={sending}
+            style={{
+              ...submitButtonStyle,
+              background: submittingId === 'all' ? 'var(--accent-dim)' : 'var(--bg)',
+              color: submittingId === 'all' ? 'var(--accent-strong)' : 'var(--text)',
+              cursor: sending ? 'default' : 'pointer',
+            }}
+          >
+            {submittingId === 'all' ? 'Sending…' : `Send ${answeredQuestions.length} Answers`}
+          </button>
+        </div>
+      ) : null}
 
       {openQuestions.length === 0 ? (
         <p style={{ fontSize: 12.5, color: 'var(--text-faint)', lineHeight: 1.6 }}>
@@ -115,7 +186,6 @@ export default function OpenQuestionsPanel() {
                   value={drafts[question.id] ?? ''}
                   onChange={(e) => setDrafts((current) => ({ ...current, [question.id]: e.target.value }))}
                   placeholder="Answer here without typing in the main chat…"
-                  disabled={sending}
                   rows={3}
                   style={{
                     width: '100%',
@@ -137,13 +207,9 @@ export default function OpenQuestionsPanel() {
                     onClick={() => handleSubmit(question.id, question.text)}
                     disabled={sending || !(drafts[question.id] ?? '').trim()}
                     style={{
-                      padding: '7px 10px',
-                      borderRadius: 8,
-                      border: '1px solid var(--border)',
+                      ...submitButtonStyle,
                       background: submittingId === question.id ? 'var(--accent-dim)' : 'var(--bg)',
                       color: submittingId === question.id ? 'var(--accent-strong)' : 'var(--text)',
-                      fontSize: 12,
-                      fontWeight: 500,
                       cursor: sending || !(drafts[question.id] ?? '').trim() ? 'default' : 'pointer',
                     }}
                   >
@@ -157,4 +223,37 @@ export default function OpenQuestionsPanel() {
       )}
     </div>
   )
+}
+
+const batchCardStyle: CSSProperties = {
+  borderRadius: 10,
+  border: '1px solid rgba(15,109,119,0.18)',
+  background: 'rgba(15,109,119,0.05)',
+  padding: '10px 12px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+}
+
+const batchTitleStyle: CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: 'var(--accent-strong)',
+}
+
+const batchBodyStyle: CSSProperties = {
+  fontSize: 12,
+  color: 'var(--text-muted)',
+  lineHeight: 1.55,
+}
+
+const submitButtonStyle: CSSProperties = {
+  padding: '7px 10px',
+  borderRadius: 8,
+  border: '1px solid var(--border)',
+  fontSize: 12,
+  fontWeight: 500,
 }

@@ -1,24 +1,16 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback, KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, useCallback, KeyboardEvent, useMemo, type CSSProperties } from 'react'
 import { useStore } from '@/store'
 import { useConversationSend } from '@/hooks/useConversationSend'
 import { analyzeAgentMessage, type AgentMsgType } from '@/lib/message-analysis'
 import { renderMarkdown } from '@/lib/render-markdown'
+import { resolveAdvisoryStage, type AdvisoryStage } from '@/lib/workflow'
 import type { Message } from '@/lib/types'
 
 // ── Phase detection ───────────────────────────────────────────────────────────
 
-type Phase = 'discovery' | 'solutioning' | 'blueprint'
-
-function detectPhase(messages: Message[], hasCanvas: boolean): Phase {
-  if (hasCanvas) return 'blueprint'
-  const agentMsgs = messages.filter((m) => m.role === 'agent' && m.content.length > 0)
-  if (agentMsgs.length >= 3) return 'solutioning'
-  return 'discovery'
-}
-
-const PHASES: { id: Phase; label: string }[] = [
+const PHASES: { id: AdvisoryStage; label: string }[] = [
   { id: 'discovery', label: 'Discovery' },
   { id: 'solutioning', label: 'Solutioning' },
   { id: 'blueprint', label: 'Blueprint' },
@@ -26,7 +18,7 @@ const PHASES: { id: Phase; label: string }[] = [
 
 // ── Phase breadcrumb ──────────────────────────────────────────────────────────
 
-function PhaseBreadcrumb({ phase }: { phase: Phase }) {
+function PhaseBreadcrumb({ phase }: { phase: AdvisoryStage }) {
   const phaseIndex = PHASES.findIndex((p) => p.id === phase)
   return (
     <div style={{
@@ -91,6 +83,157 @@ function ThinkingDots() {
   )
 }
 
+function normalizeQuestionKey(text: string) {
+  return text
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[?]+$/, '')
+    .toLowerCase()
+}
+
+function normalizeQuestionLine(text: string) {
+  return text
+    .trim()
+    .replace(/^[-*]\s+/, '')
+    .replace(/^\d+\.\s+/, '')
+    .replace(/\s+/g, ' ')
+}
+
+function questionKeyFromLine(line: string) {
+  const normalized = normalizeQuestionLine(line)
+  if (!normalized.includes('?')) return null
+  const withoutTrailingExplanation = normalized.replace(/\s*\([^)]*\)\s*$/, '').trim()
+  const lastQuestionMark = withoutTrailingExplanation.lastIndexOf('?')
+  const question = lastQuestionMark >= 0
+    ? withoutTrailingExplanation.slice(0, lastQuestionMark + 1).trim()
+    : withoutTrailingExplanation
+  return question ? normalizeQuestionKey(question) : null
+}
+
+function stripDuplicatedOpenQuestions(content: string, openQuestionKeys: Set<string>) {
+  const keptLines: string[] = []
+
+  for (const line of content.split('\n')) {
+    const questionKey = questionKeyFromLine(line)
+    if (questionKey && openQuestionKeys.has(questionKey)) {
+      continue
+    }
+    keptLines.push(line)
+  }
+
+  return keptLines
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function isResidualQuestionPrompt(content: string) {
+  const normalized = content
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+
+  if (!normalized) return true
+
+  const boilerplatePrefixes = [
+    'answer this open question',
+    'please answer this open question',
+    'to proceed, answer this open question',
+    'i need your input',
+    'i need an answer to',
+    'this question affects the recommendation',
+    'this question affects the architecture',
+    'we still need your input',
+    'open question',
+    'needs your input',
+  ]
+
+  if (boilerplatePrefixes.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}:`))) {
+    return true
+  }
+
+  const lines = content
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  if (lines.length === 1 && normalized.length < 120) {
+    return boilerplatePrefixes.some((prefix) => normalized.includes(prefix))
+  }
+
+  return false
+}
+
+function normalizeArtifactText(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[`*_>#-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function collectArtifactBodies(workspace: ReturnType<typeof useStore.getState>['workspace']) {
+  if (!workspace) return []
+
+  const advisoryCase = workspace.advisory_case
+  const outputPack = advisoryCase?.output_pack
+  const sections = [
+    workspace.recommendation,
+    workspace.blueprint_markdown,
+    advisoryCase?.recommendation.summary,
+    advisoryCase?.recommendation.why_this,
+    advisoryCase?.readout.current_recommendation,
+    advisoryCase?.readout.rollout_summary,
+    advisoryCase?.readout.architecture_snapshot,
+    outputPack?.executive_summary,
+    outputPack?.recommendation_memo,
+    outputPack?.architecture_narrative,
+    outputPack?.key_decisions.join(' '),
+    outputPack?.open_questions.join(' '),
+    outputPack?.operating_principles.join(' '),
+    outputPack?.control_checklist.join(' '),
+    outputPack?.risks_and_mitigations.map((item) => `${item.risk} ${item.mitigation}`).join(' '),
+    outputPack?.rollout_30_90_180.map((item) => `${item.horizon} ${item.outcome}`).join(' '),
+  ]
+
+  return sections
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map(normalizeArtifactText)
+}
+
+function isRedundantArtifactReply(content: string, artifactBodies: string[]) {
+  if (artifactBodies.length === 0) return false
+
+  const normalized = normalizeArtifactText(content)
+  if (normalized.length < 280) return false
+
+  let bodyMatches = 0
+  for (const body of artifactBodies) {
+    if (body.length < 140) continue
+    const probe = body.slice(0, Math.min(180, body.length))
+    if (normalized.includes(probe) || body.includes(normalized.slice(0, 140))) {
+      bodyMatches += 1
+    }
+    if (bodyMatches >= 1) {
+      return true
+    }
+  }
+
+  const artifactHeadings = [
+    'executive summary',
+    'recommendation memo',
+    'architecture narrative',
+    'key decisions',
+    'risks and mitigations',
+    '30 / 90 / 180',
+    'operating principles',
+    'control checklist',
+  ]
+  const headingMatches = artifactHeadings.filter((heading) => normalized.includes(heading)).length
+
+  return headingMatches >= 3
+}
+
 // ── Message bubble ────────────────────────────────────────────────────────────
 
 function MessageBubble({ msg }: { msg: Message }) {
@@ -100,6 +243,8 @@ function MessageBubble({ msg }: { msg: Message }) {
   const msgType = analysis.type
   const isQuestion = !isUser && msgType === 'question'
   const isMixed = !isUser && msgType === 'mixed'
+  const shouldCollapse = !isUser && !isQuestion && !isMixed && !msg.streaming && msg.content.trim().length > 900
+  const [expanded, setExpanded] = useState(false)
 
   return (
     <div
@@ -159,7 +304,34 @@ function MessageBubble({ msg }: { msg: Message }) {
           <ThinkingDots />
         ) : (
           <>
-            <div className="prose" dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content || '') }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {shouldCollapse && !expanded ? (
+                <div style={{
+                  fontSize: 11,
+                  color: 'var(--text-faint)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}>
+                  Detailed advisory content lives in the workspace panels.
+                </div>
+              ) : null}
+              <div style={{ position: 'relative' }}>
+                <div
+                  className="prose"
+                  style={shouldCollapse && !expanded ? collapsedMessageStyle : undefined}
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content || '') }}
+                />
+                {shouldCollapse && !expanded ? <div style={collapsedOverlayStyle} /> : null}
+              </div>
+              {shouldCollapse ? (
+                <button
+                  onClick={() => setExpanded((current) => !current)}
+                  style={collapseButtonStyle}
+                >
+                  {expanded ? 'Show less' : 'Show full response'}
+                </button>
+              ) : null}
+            </div>
             {msg.streaming && <Cursor />}
           </>
         )}
@@ -171,10 +343,10 @@ function MessageBubble({ msg }: { msg: Message }) {
 // ── Starter prompts ───────────────────────────────────────────────────────────
 
 const STARTERS = [
-  'Help me design a coding agent platform for my engineering team',
-  'What harness should I use for a highly regulated environment?',
-  'We need a coding agent platform for ~500 engineers on AWS',
-  'Walk me through the tradeoffs between managed and self-hosted runtimes',
+  'Recommend the right coding agent platform for 500 engineers on AWS',
+  'Design a regulated enterprise architecture and call out the key tradeoffs',
+  'Summarize the recommendation, risks, and rollout plan for a brownfield platform',
+  'What target operating model should we adopt for an internal coding agent advisory?',
 ]
 
 function EmptyState({ onStarter }: { onStarter: (text: string) => void }) {
@@ -191,10 +363,10 @@ function EmptyState({ onStarter }: { onStarter: (text: string) => void }) {
       }}>⚡</div>
       <div style={{ textAlign: 'center', maxWidth: 380 }}>
         <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
-          Platform Advisor
+          Advisory Chat
         </h2>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          I&apos;ll ask you a few questions to understand your scale, compliance needs, and team — then design an architecture and visualize it on the canvas.
+          Use chat to refine the recommendation, answer open questions, or challenge specific decisions. The primary brief lives in the workspace.
         </p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 420 }}>
@@ -231,6 +403,7 @@ export default function Chat() {
   const {
     messages,
     canvasNodes,
+    workspace,
   } = useStore()
 
   const { abort, sendMessage, sending } = useConversationSend()
@@ -239,12 +412,35 @@ export default function Chat() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const hasCanvas = canvasNodes.length > 0
-  const phase = detectPhase(messages, hasCanvas)
-  const hasMessages = messages.length > 0
+  const openQuestionKeys = useMemo(
+    () => new Set((workspace?.open_questions ?? []).map(normalizeQuestionKey)),
+    [workspace],
+  )
+  const artifactBodies = useMemo(() => collectArtifactBodies(workspace), [workspace])
+  const hasWorkspaceArtifacts = artifactBodies.length > 0
+  const visibleMessages = useMemo(() => {
+    return messages
+      .map((message) => {
+        if (message.role !== 'agent' || !message.content.trim() || message.streaming) return message
+
+        const content = openQuestionKeys.size > 0
+          ? stripDuplicatedOpenQuestions(message.content, openQuestionKeys)
+          : message.content
+        return { ...message, content }
+      })
+      .filter((message) => {
+        if (message.role === 'user' || message.streaming) return true
+        if (!message.content.trim()) return false
+        if (isRedundantArtifactReply(message.content, artifactBodies)) return false
+        return !isResidualQuestionPrompt(message.content)
+      })
+  }, [artifactBodies, messages, openQuestionKeys])
+  const phase = resolveAdvisoryStage(workspace?.stage, visibleMessages, hasCanvas)
+  const hasMessages = visibleMessages.length > 0
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [visibleMessages])
 
   useEffect(() => {
     const el = textareaRef.current
@@ -275,6 +471,26 @@ export default function Chat() {
       {hasMessages && <PhaseBreadcrumb phase={phase} />}
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', display: 'flex', flexDirection: 'column' }}>
+        {hasWorkspaceArtifacts ? (
+          <div style={{
+            maxWidth: 720,
+            width: '100%',
+            margin: '0 auto 12px',
+            padding: '0 20px',
+          }}>
+            <div style={{
+              borderRadius: 10,
+              border: '1px solid rgba(15,109,119,0.18)',
+              background: 'rgba(15,109,119,0.05)',
+              padding: '9px 12px',
+              color: 'var(--text-muted)',
+              fontSize: 12,
+              lineHeight: 1.5,
+            }}>
+              Recommendation detail, blueprint updates, risks, and rollout belong in the workspace panels. Use chat for follow-ups, challenges, and clarifications.
+            </div>
+          </div>
+        ) : null}
         {!hasMessages ? (
           <EmptyState onStarter={(s) => doSend(s)} />
         ) : (
@@ -282,13 +498,28 @@ export default function Chat() {
             maxWidth: 720, width: '100%', margin: '0 auto', padding: '0 20px',
             display: 'flex', flexDirection: 'column', gap: 2,
           }}>
-            {messages.map((m) => <MessageBubble key={m.id} msg={m} />)}
+            {visibleMessages.map((m) => <MessageBubble key={m.id} msg={m} />)}
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
       <div style={{ borderTop: '1px solid var(--border)', padding: '12px 20px 16px', background: 'var(--bg)' }}>
+        {openQuestionKeys.size > 0 ? (
+          <div style={{
+            maxWidth: 720,
+            margin: '0 auto 10px',
+            padding: '9px 12px',
+            borderRadius: 10,
+            background: 'rgba(245,158,11,0.08)',
+            border: '1px solid rgba(245,158,11,0.22)',
+            color: 'var(--amber)',
+            fontSize: 12,
+            lineHeight: 1.5,
+          }}>
+            Open questions are tracked in the `Questions` tab. Use chat for follow-ups or to challenge the recommendation after answering there.
+          </div>
+        ) : null}
         <div
           style={{
             maxWidth: 720, margin: '0 auto',
@@ -357,4 +588,31 @@ export default function Chat() {
       </div>
     </div>
   )
+}
+
+const collapsedMessageStyle: CSSProperties = {
+  maxHeight: 168,
+  overflow: 'hidden',
+}
+
+const collapsedOverlayStyle: CSSProperties = {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  bottom: 0,
+  height: 72,
+  background: 'linear-gradient(to bottom, rgba(255,253,249,0), var(--bg-elevated))',
+  pointerEvents: 'none',
+}
+
+const collapseButtonStyle: CSSProperties = {
+  alignSelf: 'flex-start',
+  padding: '6px 10px',
+  borderRadius: 999,
+  border: '1px solid var(--border)',
+  background: 'var(--bg)',
+  color: 'var(--text-muted)',
+  fontSize: 12,
+  fontWeight: 600,
+  cursor: 'pointer',
 }

@@ -331,6 +331,7 @@ throughout the session with:
 - decisions made
 - risks / blockers
 - current recommendation
+- structured advisory case artifact
 - current blueprint artifact
 - next implementation steps
 
@@ -339,6 +340,7 @@ Rules:
 - Every workspace update must set `stage` explicitly as `discovery`, `solutioning`, or `blueprint`.
 - `blueprint_markdown` is the authoritative technical blueprint artifact shown in the blueprint panel.
 - `assumptions` is the authoritative assumptions artifact shown in the assumptions panel.
+- `advisory_case` is the authoritative executive artifact shown across the brief and blueprint surfaces.
 - Use `discovery` while gathering context and constraints.
 - Use `solutioning` once you're recommending a direction or locking in concrete platform decisions.
 - Use `blueprint` only when the recommendation, decisions, risks, and rollout steps are materially coherent.
@@ -358,6 +360,45 @@ Rules:
 - Do not dump the full blueprint into chat if it can live in `blueprint_markdown`.
   When the blueprint is ready, update the workspace artifact and use a short chat
   response such as "Blueprint updated in the panel."
+- Distinguish the model provider from the broker or gateway in every architecture
+  description. Name them explicitly as `<provider/model> via <broker>` when
+  relevant, for example `Claude Sonnet via Bedrock`, `OpenAI direct`,
+  `Azure OpenAI`, or `self-hosted Llama behind LiteLLM`.
+- Do not relabel a provider as the broker. For example, do not call OpenAI
+  "OpenAI on Bedrock" unless the actual invocation path is a Bedrock-hosted
+  OpenAI endpoint; otherwise say `OpenAI direct` or `Azure OpenAI`.
+
+For `advisory_case`, use this structure:
+
+- `recommendation`
+  - `summary`
+  - `why_this`
+  - `why_not`
+  - `confidence` (`low` | `medium` | `high`)
+  - `confidence_reason`
+  - `change_triggers`
+- `alternatives`
+  - at least two viable options when the recommendation is substantive
+  - each option should include `title`, `summary`, `benefits`, `risks`,
+    `operational_burden`, `governance_implications`, and `best_fit_conditions`
+- `decisions`
+  - `statement`, `options_considered`, `recommendation`, `why`,
+    `tradeoffs_accepted`, `owner`, `open_dependency`
+- `risks`
+  - `category`, `severity`, `risk`, `mitigation`
+- `maturity`
+  - `domain`, `current_state`, `target_state`, `gap`
+- `readout`
+  - `current_recommendation`, `important_decisions`, `biggest_risks`,
+    `open_questions`, `rollout_summary`, `architecture_snapshot`
+- `next_best_question`
+  - the single highest-leverage unanswered question and why it matters
+- `output_pack`
+  - `executive_summary`, `recommendation_memo`, `architecture_narrative`,
+    `key_decisions`, `risks_and_mitigations`, `open_questions`,
+    `rollout_30_90_180`, `operating_principles`, `control_checklist`
+- optional `delta`
+  - use only when the recommendation materially changed after new input
 
 ---
 
@@ -437,6 +478,17 @@ After harness selection, read `harness-selection/lifecycle-implications.md` to
 identify which downstream OKF nodes are pre-resolved by that choice. State those
 decisions confidently and skip re-interviewing for them.
 
+Customer-facing recommendation rule:
+- Always converge to one primary harness recommendation for the target-state architecture.
+- Use `advisory_case.alternatives` to compare other viable harness options, but do not
+  present multiple harnesses as co-equal parts of the same recommended stack.
+- For enterprise cases that need customization, prefer phrasing such as
+  `Custom harness built on <framework>` or `Custom harness on managed runtime`
+  instead of listing several harness products inside the architecture itself.
+- If more than one harness is mentioned in the recommendation, one must be
+  clearly marked as the recommendation and the others must be framed as
+  rejected, deferred, or scenario variants.
+
 When summarizing the decision later:
 - If the choice is Strands/LangChain/PydanticAI/AutoGen/CrewAI, label it
   `Framework SDK` or `Custom harness built on <framework>`.
@@ -478,6 +530,24 @@ extension.
 
 Do not present this partial blueprint as "full architecture." Call it a working
 direction or draft baseline until the open items are resolved.
+
+**Blueprint gating rule:** Do not finalize `stage="blueprint"` until each of the
+following is either answered explicitly or captured as an assumption with clear
+confidence and impact:
+
+- primary user surface (`IDE`, `CLI`, `chat`, `CI`, or combination)
+- harness ownership model (buy/configure vs build/own)
+- execution isolation boundary (local, container, microVM, remote runner)
+- model provider boundary (Bedrock, direct provider, Azure OpenAI, self-hosted, etc.)
+- identity boundary (SSO / IdP / workload identity pattern)
+- approval posture (advisory only, propose-and-approve, or autonomous write/execute)
+- compliance / residency constraints that materially affect placement
+- repo / tooling integration boundary
+- rollout scope / first cohort
+
+If one of these is still unknown, either ask the smallest high-leverage
+question that resolves it or record the current default as an assumption rather
+than pretending the architecture is complete.
 
 ---
 

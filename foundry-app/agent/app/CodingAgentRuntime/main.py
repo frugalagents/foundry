@@ -219,6 +219,16 @@ Tool rules:
   architecture variable into a question.
   Each item should look like:
   `{"id","title","assumed","why","impact","confidence","options":[{"id","label","prompt"}]}`
+- `advisory_case`: the authoritative executive artifact for the app. Use structured JSON instead of prose-heavy chat.
+  It should contain:
+  `recommendation`, `alternatives`, `decisions`, `risks`, `maturity`,
+  `readout`, `next_best_question`, `output_pack`, and optional `delta`.
+  The recommendation should include `summary`, `why_this`, `why_not`,
+  `confidence`, `confidence_reason`, and `change_triggers`.
+  The output pack should include `executive_summary`, `recommendation_memo`,
+  `architecture_narrative`, `key_decisions`, `risks_and_mitigations`,
+  `open_questions`, `rollout_30_90_180`, `operating_principles`,
+  and `control_checklist`.
 - `stage`: one of discovery, solutioning, blueprint.
 
 Execution rules:
@@ -541,6 +551,7 @@ async def invoke(payload: dict, context):
         decisions: list[str] | None = None,
         risks: list[str] | None = None,
         implementation_plan: list[str] | None = None,
+        advisory_case: dict | None = None,
         stage: str = "",
     ) -> str:
         """
@@ -560,6 +571,7 @@ async def invoke(payload: dict, context):
             "decisions": decisions or [],
             "risks": risks or [],
             "implementation_plan": implementation_plan or [],
+            "advisory_case": advisory_case or None,
         }
         panel_queue.put_nowait(_workspace_event(workspace))
         if customer_id and session_id:
@@ -576,6 +588,7 @@ async def invoke(payload: dict, context):
                     decisions=decisions or [],
                     risks=risks or [],
                     implementation_plan=implementation_plan or [],
+                    advisory_case=advisory_case or None,
                 )
             except Exception:
                 log.exception("Failed to persist workspace snapshot")

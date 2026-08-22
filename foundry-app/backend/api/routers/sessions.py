@@ -116,8 +116,11 @@ async def get_session_history(customer_id: str, session_id: str, user: CurrentUs
         )
     if workspace_item:
         assumptions = []
+        advisory_case = None
         if workspace_item.get("assumptions_json"):
             assumptions = json.loads(workspace_item.get("assumptions_json") or "[]")
+        if workspace_item.get("advisory_case_json"):
+            advisory_case = json.loads(workspace_item.get("advisory_case_json") or "{}")
         workspace = ConsultingWorkspaceOut(
             stage=workspace_item.get("stage") or "",
             recommendation=workspace_item.get("recommendation") or "",
@@ -128,6 +131,7 @@ async def get_session_history(customer_id: str, session_id: str, user: CurrentUs
             decisions=workspace_item.get("decisions") or [],
             risks=workspace_item.get("risks") or [],
             implementation_plan=workspace_item.get("implementation_plan") or [],
+            advisory_case=advisory_case,
             updated_at=workspace_item.get("updated_at"),
         )
     return SessionHistory(
