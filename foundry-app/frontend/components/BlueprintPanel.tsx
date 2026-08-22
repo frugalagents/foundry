@@ -5,12 +5,16 @@ import { useStore } from '@/store'
 import { hasAdvisoryCaseContent } from '@/lib/advisory-case'
 import { normalizeWorkspace } from '@/lib/message-analysis'
 import { renderMarkdown } from '@/lib/render-markdown'
-import type { AdvisoryOutputPack, ArchitectureArtifact, ConsultingWorkspace } from '@/lib/types'
+import {
+  buildExportMarkdown,
+  buildFallbackBlueprint,
+  hasOutputPackContent,
+} from '@/lib/session-export'
+import type { AdvisoryOutputPack } from '@/lib/types'
 
 export default function BlueprintPanel() {
   const workspace = useStore((s) => s.workspace)
   const architectureArtifact = useStore((s) => s.architectureArtifact)
-  const activeSessionId = useStore((s) => s.activeSessionId)
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState('brief')
 
@@ -41,15 +45,6 @@ export default function BlueprintPanel() {
     }
   }
 
-  function handleDownload() {
-    if (!hasBlueprint) return
-    downloadTextFile(
-      `${activeSessionId ?? 'foundry-blueprint'}.md`,
-      exportMarkdown,
-      'text/markdown;charset=utf-8',
-    )
-  }
-
   return (
     <div style={shellStyle}>
       <div style={headerStyle}>
@@ -62,9 +57,6 @@ export default function BlueprintPanel() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <ArtifactButton onClick={handleCopy} disabled={!hasBlueprint}>
             {copied ? 'Copied' : 'Copy'}
-          </ArtifactButton>
-          <ArtifactButton onClick={handleDownload} disabled={!hasBlueprint}>
-            Download MD
           </ArtifactButton>
         </div>
       </div>
@@ -325,82 +317,6 @@ function PackListSection({
   )
 }
 
-function hasOutputPackContent(pack: AdvisoryOutputPack) {
-  return Boolean(
-    pack.executive_summary ||
-    pack.recommendation_memo ||
-    pack.architecture_narrative ||
-    pack.key_decisions.length > 0 ||
-    pack.risks_and_mitigations.length > 0 ||
-    pack.rollout_30_90_180.length > 0 ||
-    pack.operating_principles.length > 0 ||
-    pack.control_checklist.length > 0,
-  )
-}
-
-function buildExportMarkdown(outputPack: AdvisoryOutputPack | null, fallbackMarkdown: string) {
-  if (!outputPack || !hasOutputPackContent(outputPack)) {
-    return fallbackMarkdown
-  }
-
-  const lines: string[] = []
-
-  if (outputPack.executive_summary) {
-    lines.push('## Executive Summary', '', outputPack.executive_summary, '')
-  }
-  if (outputPack.recommendation_memo) {
-    lines.push('## Recommendation Memo', '', outputPack.recommendation_memo, '')
-  }
-  if (outputPack.architecture_narrative) {
-    lines.push('## Architecture Narrative', '', outputPack.architecture_narrative, '')
-  }
-  if (outputPack.key_decisions.length) {
-    lines.push('## Key Decisions', '')
-    outputPack.key_decisions.forEach((item, index) => lines.push(`${index + 1}. ${item}`))
-    lines.push('')
-  }
-  if (outputPack.risks_and_mitigations.length) {
-    lines.push('## Risks And Mitigations', '')
-    outputPack.risks_and_mitigations.forEach((item) => {
-      lines.push(`- **${item.risk}**${item.mitigation ? `: ${item.mitigation}` : ''}`)
-    })
-    lines.push('')
-  }
-  if (outputPack.open_questions.length) {
-    lines.push('## Open Questions', '')
-    outputPack.open_questions.forEach((item) => lines.push(`- ${item}`))
-    lines.push('')
-  }
-  if (outputPack.rollout_30_90_180.length) {
-    lines.push('## 30 / 90 / 180 Day Rollout', '')
-    outputPack.rollout_30_90_180.forEach((item) => lines.push(`- **${item.horizon}**: ${item.outcome}`))
-    lines.push('')
-  }
-  if (outputPack.operating_principles.length) {
-    lines.push('## Operating Principles', '')
-    outputPack.operating_principles.forEach((item) => lines.push(`- ${item}`))
-    lines.push('')
-  }
-  if (outputPack.control_checklist.length) {
-    lines.push('## Control Checklist', '')
-    outputPack.control_checklist.forEach((item) => lines.push(`- ${item}`))
-    lines.push('')
-  }
-
-  if (hasTechnicalBlueprintTables(fallbackMarkdown)) {
-    lines.push(fallbackMarkdown.trim(), '')
-  }
-
-  return lines.join('\n').trim()
-}
-
-function hasTechnicalBlueprintTables(markdown: string) {
-  return (
-    markdown.includes('| Layer | Decision | Alternatives Considered | Reasoning |') ||
-    markdown.includes("| Dimension | What's needed | Owner | When |")
-  )
-}
-
 type MarkdownSection = {
   id: string
   title: string
@@ -449,111 +365,6 @@ function createSectionId(title: string, index: number) {
   return slug || `section-${index + 1}`
 }
 
-function buildFallbackBlueprint(
-  workspace: ConsultingWorkspace,
-  architectureArtifact: ArchitectureArtifact | null,
-): string {
-  const lines: string[] = []
-  const baselineName = architectureArtifact?.baseline.name || 'Working baseline'
-
-  if (
-    !workspace.recommendation &&
-    !workspace.blueprint_markdown &&
-    !architectureArtifact?.executive_summary &&
-    workspace.decisions.length === 0 &&
-    workspace.implementation_plan.length === 0
-  ) {
-    return ''
-  }
-
-  lines.push('## Technical Blueprint')
-  lines.push('')
-
-  if (workspace.recommendation) {
-    lines.push('### Current Direction')
-    lines.push(workspace.recommendation)
-    lines.push('')
-  }
-
-  if (architectureArtifact?.executive_summary) {
-    lines.push('### Executive Summary')
-    lines.push(architectureArtifact.executive_summary)
-    lines.push('')
-  }
-
-  lines.push('### Baseline')
-  lines.push(`**${baselineName}**`)
-  lines.push('')
-
-  if (architectureArtifact?.baseline.layers.length) {
-    for (const layer of architectureArtifact.baseline.layers) {
-      const components = layer.component_labels.join(', ')
-      lines.push(`- **${layer.label}**: ${components || 'TBD'}`)
-      if (layer.purpose) lines.push(`  ${layer.purpose}`)
-    }
-    lines.push('')
-  }
-
-  if ((architectureArtifact?.customizations.length ?? 0) > 0) {
-    lines.push('### Added For This Organization')
-    lines.push('')
-    for (const item of architectureArtifact?.customizations ?? []) {
-      lines.push(`- **${item.title}** (${item.layer})`)
-      lines.push(`  Reason: ${item.reason}`)
-      if (item.tradeoff) lines.push(`  Tradeoff: ${item.tradeoff}`)
-    }
-    lines.push('')
-  }
-
-  if (workspace.facts.length > 0) {
-    lines.push('### Confirmed Facts')
-    lines.push(...workspace.facts.map((fact) => `- ${fact}`))
-    lines.push('')
-  }
-
-  if (workspace.decisions.length > 0 || (architectureArtifact?.decisions.length ?? 0) > 0) {
-    lines.push('### Key Decisions')
-    lines.push(
-      ...(architectureArtifact?.decisions.length
-        ? architectureArtifact.decisions.map((item) =>
-            `- **${item.decision}**${item.why ? `: ${item.why}` : ''}`,
-          )
-        : workspace.decisions.map((decision) => `- ${decision}`)),
-    )
-    lines.push('')
-  }
-
-  if (workspace.risks.length > 0 || (architectureArtifact?.risks.length ?? 0) > 0) {
-    lines.push('### Risks And Tradeoffs')
-    lines.push(
-      ...(architectureArtifact?.risks.length
-        ? architectureArtifact.risks.map((item) =>
-            `- **${item.risk}**${item.mitigation ? `: ${item.mitigation}` : ''}`,
-          )
-        : workspace.risks.map((risk) => `- ${risk}`)),
-    )
-    lines.push('')
-  }
-
-  if (workspace.implementation_plan.length > 0 || (architectureArtifact?.rollout.length ?? 0) > 0) {
-    lines.push('### Rollout Plan')
-    lines.push(
-      ...(architectureArtifact?.rollout.length
-        ? architectureArtifact.rollout.map((phase, index) => `${index + 1}. **${phase.phase}**: ${phase.outcome}`)
-        : workspace.implementation_plan.map((step, index) => `${index + 1}. ${step}`)),
-    )
-    lines.push('')
-  }
-
-  if (workspace.open_questions.length > 0) {
-    lines.push('### Open Questions')
-    lines.push(...workspace.open_questions.map((question) => `- ${question}`))
-    lines.push('')
-  }
-
-  return lines.join('\n').trim()
-}
-
 function ArtifactButton({
   children,
   disabled,
@@ -581,16 +392,6 @@ function ArtifactButton({
       {children}
     </button>
   )
-}
-
-function downloadTextFile(filename: string, text: string, mimeType: string) {
-  const blob = new Blob([text], { type: mimeType })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
 }
 
 const shellStyle: React.CSSProperties = {

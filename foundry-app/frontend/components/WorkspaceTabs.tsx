@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { Download } from 'lucide-react'
 import { useStore } from '@/store'
 import { buildAssumptionCards } from '@/lib/assumptions'
 import { normalizeWorkspace } from '@/lib/message-analysis'
 import { hasAdvisoryCaseContent } from '@/lib/advisory-case'
+import { downloadSessionBrief, hasSessionExportContent } from '@/lib/session-export'
 import { normalizeAdvisoryStage, preferredWorkspaceTab, type AdvisoryWorkspaceTab } from '@/lib/workflow'
 import AdvisoryBrief from './AdvisoryBrief'
 import AssumptionsPanel from './AssumptionsPanel'
@@ -15,9 +17,14 @@ import OpenQuestionsPanel from './OpenQuestionsPanel'
 type WorkspaceTab = 'brief' | AdvisoryWorkspaceTab
 
 export default function WorkspaceTabs() {
+  const activeSessionId = useStore((s) => s.activeSessionId)
+  const conversations = useStore((s) => s.conversations)
+  const messages = useStore((s) => s.messages)
   const workspace = useStore((s) => s.workspace)
   const architectureArtifact = useStore((s) => s.architectureArtifact)
   const canvasNodes = useStore((s) => s.canvasNodes)
+  const canvasEdges = useStore((s) => s.canvasEdges)
+  const baselineNodeIds = useStore((s) => s.baselineNodeIds)
   const view = useMemo(() => normalizeWorkspace(workspace), [workspace])
   const advisoryCase = hasAdvisoryCaseContent(view.advisory_case) ? view.advisory_case : null
   const blueprintReady =
@@ -40,6 +47,34 @@ export default function WorkspaceTabs() {
     blueprintReady,
     architectureReady,
   })
+  const sessionTitle = useMemo(
+    () => conversations.find((item) => item.session.session_id === activeSessionId)?.session.title ?? null,
+    [activeSessionId, conversations],
+  )
+  const canExport = useMemo(
+    () => hasSessionExportContent({
+      activeSessionId,
+      sessionTitle,
+      workspace,
+      architectureArtifact,
+      canvasNodes,
+      canvasEdges,
+      baselineNodeIds,
+      messages,
+    }),
+    [
+      activeSessionId,
+      architectureArtifact,
+      baselineNodeIds,
+      canvasEdges,
+      canvasNodes,
+      messages,
+      sessionTitle,
+      workspace,
+    ],
+  )
+  const showExport = blueprintReady && canExport
+  const [exporting, setExporting] = useState(false)
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(
     questionCount > 0 && stage === 'discovery' ? 'questions' : 'brief',
   )
@@ -62,6 +97,27 @@ export default function WorkspaceTabs() {
     }
   }, [activeTab, baselineReady, preferredTab, questionCount, stage])
 
+  async function handleDownloadBrief() {
+    if (!canExport || exporting) return
+    try {
+      setExporting(true)
+      await downloadSessionBrief({
+        activeSessionId,
+        sessionTitle,
+        workspace,
+        architectureArtifact,
+        canvasNodes,
+        canvasEdges,
+        baselineNodeIds,
+        messages,
+      })
+    } catch (err) {
+      console.error('Failed to export session brief', err)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div style={{
       flex: 1,
@@ -79,23 +135,54 @@ export default function WorkspaceTabs() {
         gap: 10,
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            color: 'var(--text-muted)',
-          }}>
-            Workspace
-          </span>
-          <p style={{
-            fontSize: 12,
-            color: 'var(--text-faint)',
-            lineHeight: 1.55,
-          }}>
-            Blueprint and architecture artifacts live here instead of being buried in chat.
-          </p>
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+            }}>
+              Workspace
+            </span>
+            <p style={{
+              fontSize: 12,
+              color: 'var(--text-faint)',
+              lineHeight: 1.55,
+            }}>
+              Blueprint and architecture artifacts live here instead of being buried in chat.
+            </p>
+          </div>
+
+          {showExport ? (
+            <button
+              onClick={handleDownloadBrief}
+              disabled={exporting}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 12px',
+                borderRadius: 10,
+                border: '1px solid var(--border)',
+                background: exporting ? 'var(--bg-hover)' : 'var(--bg-elevated)',
+                color: exporting ? 'var(--text-faint)' : 'var(--text)',
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: exporting ? 'default' : 'pointer',
+              }}
+            >
+              <Download size={14} />
+              {exporting ? 'Preparing…' : 'Download Brief'}
+            </button>
+          ) : null}
         </div>
 
         <div style={{

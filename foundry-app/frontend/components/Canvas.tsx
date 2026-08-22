@@ -336,7 +336,6 @@ function CanvasFlow({
 
 export default function Canvas() {
   const {
-    activeSessionId,
     canvasNodes,
     canvasEdges,
     baselineNodeIds,
@@ -345,7 +344,6 @@ export default function Canvas() {
   } = useStore()
   const [annotationsOn, setAnnotationsOn] = useState(true)
   const [selected, setSelected] = useState<DrawerNode | null>(null)
-  const [copied, setCopied] = useState(false)
 
   const baselineSet = useMemo(() => new Set(baselineNodeIds), [baselineNodeIds])
 
@@ -401,37 +399,6 @@ export default function Canvas() {
   const baselineLabel = architectureArtifact?.baseline.name || (baselineNodes.length > 0 ? 'Working baseline' : '')
   const riskCount = architectureArtifact?.risks.length ?? workspace?.risks?.length ?? 0
   const openQuestionCount = workspace?.open_questions.length ?? 0
-  const architectureExport = useMemo(
-    () => JSON.stringify({
-      session_id: activeSessionId,
-      stage: stageLabel,
-      baseline_node_ids: baselineNodeIds,
-      architecture_artifact: architectureArtifact,
-      nodes: canvasNodes,
-      edges: canvasEdges,
-    }, null, 2),
-    [activeSessionId, architectureArtifact, baselineNodeIds, canvasEdges, canvasNodes, stageLabel],
-  )
-
-  async function handleCopyExport() {
-    if (!hasNodes) return
-    try {
-      await navigator.clipboard.writeText(architectureExport)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1800)
-    } catch (err) {
-      console.error('Failed to copy architecture export', err)
-    }
-  }
-
-  function handleDownloadExport() {
-    if (!hasNodes) return
-    downloadTextFile(
-      `${activeSessionId ?? 'foundry-architecture'}.json`,
-      architectureExport,
-      'application/json;charset=utf-8',
-    )
-  }
 
   return (
     <div style={{
@@ -454,12 +421,6 @@ export default function Canvas() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <ArtifactButton onClick={handleCopyExport} disabled={!hasNodes}>
-            {copied ? 'Copied' : 'Copy JSON'}
-          </ArtifactButton>
-          <ArtifactButton onClick={handleDownloadExport} disabled={!hasNodes}>
-            Download JSON
-          </ArtifactButton>
           <button
             onClick={() => setAnnotationsOn((v) => !v)}
             title="Toggle comments"
@@ -575,43 +536,4 @@ function StatusChip({
       {children}
     </span>
   )
-}
-
-function ArtifactButton({
-  children,
-  disabled,
-  onClick,
-}: {
-  children: React.ReactNode
-  disabled?: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        padding: '7px 10px',
-        borderRadius: 8,
-        border: '1px solid var(--border)',
-        background: disabled ? 'var(--bg-hover)' : 'var(--bg-elevated)',
-        color: disabled ? 'var(--text-faint)' : 'var(--text)',
-        fontSize: 12,
-        fontWeight: 500,
-        cursor: disabled ? 'default' : 'pointer',
-      }}
-    >
-      {children}
-    </button>
-  )
-}
-
-function downloadTextFile(filename: string, text: string, mimeType: string) {
-  const blob = new Blob([text], { type: mimeType })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
 }
