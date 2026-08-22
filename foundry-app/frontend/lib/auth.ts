@@ -94,9 +94,9 @@ export function isAuthenticated(): boolean {
 // ── Auth headers for API calls ────────────────────────────────────────────────
 
 export function authHeaders(): Record<string, string> {
-  // Use the ID token for backend RBAC so API authorization sees the same
-  // group and custom-role claims that drive the frontend admin experience.
-  const t = getToken() ?? getAccessToken()
+  // Prefer the access token for API calls; fall back to the ID token if the
+  // browser session only has that available.
+  const t = getAccessToken() ?? getToken()
   return t ? { Authorization: `Bearer ${t}` } : {}
 }
 
