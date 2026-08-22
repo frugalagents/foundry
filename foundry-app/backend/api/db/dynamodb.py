@@ -40,6 +40,26 @@ def _is_conditional_failure(exc: ClientError) -> bool:
     return exc.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException"
 
 
+def _scan_all(table, **kwargs) -> list[dict]:
+    items: list[dict] = []
+    resp = table.scan(**kwargs)
+    items.extend(resp.get("Items", []))
+    while "LastEvaluatedKey" in resp:
+        resp = table.scan(ExclusiveStartKey=resp["LastEvaluatedKey"], **kwargs)
+        items.extend(resp.get("Items", []))
+    return items
+
+
+def _query_all(table, **kwargs) -> list[dict]:
+    items: list[dict] = []
+    resp = table.query(**kwargs)
+    items.extend(resp.get("Items", []))
+    while "LastEvaluatedKey" in resp:
+        resp = table.query(ExclusiveStartKey=resp["LastEvaluatedKey"], **kwargs)
+        items.extend(resp.get("Items", []))
+    return items
+
+
 # ── Customers ─────────────────────────────────────────────────────────────────
 
 def list_customers(
@@ -56,11 +76,11 @@ def list_customers(
         filter_parts.append("attribute_not_exists(demo_data) OR demo_data = :f")
         expr_values[":f"] = False
 
-    resp = table.scan(
+    return _scan_all(
+        table,
         FilterExpression=" AND ".join(filter_parts),
         ExpressionAttributeValues=expr_values,
     )
-    return resp.get("Items", [])
 
 
 def create_customer(name: str, created_by: str) -> dict:
@@ -145,20 +165,17 @@ def list_sessions(
     created_by: str | None = None,
 ) -> list[dict]:
     table = _get_table()
-    filter_parts = ["PK = :pk", "begins_with(SK, :sk_prefix)"]
-    expr_values: dict[str, Any] = {
-        ":pk": f"CUSTOMER#{customer_id}",
-        ":sk_prefix": "SESSION#",
+    query_kwargs: dict[str, Any] = {
+        "KeyConditionExpression": (
+            Key("PK").eq(f"CUSTOMER#{customer_id}") &
+            Key("SK").begins_with("SESSION#")
+        ),
     }
     if created_by:
-        filter_parts.append("created_by = :created_by")
-        expr_values[":created_by"] = created_by
+        query_kwargs["FilterExpression"] = "created_by = :created_by"
+        query_kwargs["ExpressionAttributeValues"] = {":created_by": created_by}
 
-    resp = table.scan(
-        FilterExpression=" AND ".join(filter_parts),
-        ExpressionAttributeValues=expr_values,
-    )
-    items = resp.get("Items", [])
+    items = _query_all(table, **query_kwargs)
     items.sort(key=lambda i: i.get("updated_at", ""), reverse=True)
     return items
 
