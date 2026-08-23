@@ -403,3 +403,103 @@ def list_canvases() -> list[dict]:
     )
     items.sort(key=lambda i: i.get("updated_at", i.get("created_at", "")), reverse=True)
     return items
+
+
+# ── Access requests ───────────────────────────────────────────────────────────
+
+def create_access_request(item: dict[str, Any]) -> dict:
+    table = _get_table()
+    table.put_item(
+        Item=item,
+        ConditionExpression="attribute_not_exists(PK)",
+    )
+    return item
+
+
+def get_access_request(request_id: str) -> dict | None:
+    table = _get_table()
+    resp = table.get_item(
+        Key={
+            "PK": f"ACCESS_REQUEST#{request_id}",
+            "SK": f"ACCESS_REQUEST#{request_id}",
+        }
+    )
+    return resp.get("Item")
+
+
+def list_access_requests() -> list[dict]:
+    table = _get_table()
+    items = _scan_all(
+        table,
+        FilterExpression="begins_with(SK, :sk_prefix)",
+        ExpressionAttributeValues={":sk_prefix": "ACCESS_REQUEST#"},
+    )
+    items.sort(key=lambda item: item.get("requested_at", ""), reverse=True)
+    return items
+
+
+def find_open_access_request(email: str) -> dict | None:
+    normalized = email.strip().lower()
+    now_epoch = int(datetime.now(timezone.utc).timestamp())
+    for item in list_access_requests():
+        if item.get("email") != normalized:
+            continue
+        if int(item.get("expires_at_epoch") or 0) <= now_epoch:
+            continue
+        if item.get("status") in {"pending", "approved"}:
+            return item
+    return None
+
+
+def count_recent_access_requests(source_hash: str, since_iso: str) -> int:
+    return sum(
+        1
+        for item in list_access_requests()
+        if item.get("source_hash") == source_hash
+        and item.get("requested_at", "") >= since_iso
+    )
+
+
+def update_access_request(
+    request_id: str,
+    updates: dict[str, Any],
+    *,
+    expected_status: str | None = None,
+) -> dict | None:
+    table = _get_table()
+    updates = {key: value for key, value in updates.items() if value is not None}
+    if not updates:
+        return get_access_request(request_id)
+
+    set_parts = [f"#field_{index} = :value_{index}" for index, _ in enumerate(updates)]
+    expr_names = {
+        f"#field_{index}": field
+        for index, field in enumerate(updates)
+    }
+    expr_values = {
+        f":value_{index}": value
+        for index, value in enumerate(updates.values())
+    }
+    condition = "attribute_exists(PK)"
+    if expected_status:
+        condition += " AND #request_status = :expected_status"
+        expr_names["#request_status"] = "status"
+        expr_values[":expected_status"] = expected_status
+
+    try:
+        resp = table.update_item(
+            Key={
+                "PK": f"ACCESS_REQUEST#{request_id}",
+                "SK": f"ACCESS_REQUEST#{request_id}",
+            },
+            UpdateExpression=f"SET {', '.join(set_parts)}",
+            ExpressionAttributeNames=expr_names,
+            ExpressionAttributeValues=expr_values,
+            ConditionExpression=condition,
+            ReturnValues="ALL_NEW",
+        )
+        return resp.get("Attributes")
+    except ClientError as exc:
+        if _is_conditional_failure(exc):
+            return None
+        raise

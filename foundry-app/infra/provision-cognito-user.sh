@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Provision a native Cognito login for foundry-app.
+# Emergency native Cognito user provisioning for foundry-app.
 #
-# New users receive Cognito's temporary-password invitation email.
-# Existing Federate-only users are converted in place so their Cognito sub
-# (and therefore ownership of existing Foundry records) is preserved. They can
-# then use "Forgot password" on the Cognito login page to choose a password.
+# Normal onboarding uses the public Request access page and admin approval.
+# This helper is intentionally limited to brand-new email addresses. It never
+# converts a Federate user in place because those users retain a Midway-prefixed
+# username that cannot reliably sign in with the mapped email address.
 set -euo pipefail
 
 EMAIL="${1:-}"
@@ -40,56 +40,29 @@ existing_user="$(
 )"
 
 username="$(jq -r '.Users[0].Username // empty' <<<"$existing_user")"
-user_status="$(jq -r '.Users[0].UserStatus // empty' <<<"$existing_user")"
+if [[ -n "$username" ]]; then
+  echo "ERROR: A Cognito user already exists for $EMAIL as $username." >&2
+  echo "Do not convert Federate users in place. Use the access-request workflow or migrate the identity explicitly." >&2
+  exit 1
+fi
 
-if [[ -z "$username" ]]; then
+temporary_password="Foundry-$(openssl rand -hex 8)Aa1!"
+created="$(
   aws cognito-idp admin-create-user \
     --user-pool-id "$USER_POOL_ID" \
     --username "$EMAIL" \
+    --temporary-password "$temporary_password" \
+    --message-action SUPPRESS \
     --user-attributes \
       "Name=email,Value=$EMAIL" \
       "Name=email_verified,Value=true" \
-    --desired-delivery-mediums EMAIL \
     --profile "$PROFILE" \
     --region "$REGION" \
-    --query 'User.{Username:Username,Status:UserStatus}' \
-    --output table
+    --output json
+)"
 
-  echo "Cognito emailed a temporary password to $EMAIL."
-  echo "The user must choose a new password on first sign-in."
-  exit 0
-fi
-
-if [[ "$user_status" == "EXTERNAL_PROVIDER" ]]; then
-  generated_password="$(openssl rand -hex 16)Aa1"
-  aws cognito-idp admin-set-user-password \
-    --user-pool-id "$USER_POOL_ID" \
-    --username "$username" \
-    --password "$generated_password" \
-    --permanent \
-    --profile "$PROFILE" \
-    --region "$REGION"
-  unset generated_password
-
-  echo "Converted $EMAIL to native Cognito login without changing its user identity."
-  echo "Use 'Forgot password' on the login page to choose a password."
-  exit 0
-fi
-
-if [[ "$user_status" == "FORCE_CHANGE_PASSWORD" ]]; then
-  aws cognito-idp admin-create-user \
-    --user-pool-id "$USER_POOL_ID" \
-    --username "$username" \
-    --message-action RESEND \
-    --desired-delivery-mediums EMAIL \
-    --profile "$PROFILE" \
-    --region "$REGION" \
-    --query 'User.{Username:Username,Status:UserStatus}' \
-    --output table
-
-  echo "Cognito resent the temporary password to $EMAIL."
-  exit 0
-fi
-
-echo "$EMAIL already has a native Cognito account with status $user_status."
-echo "Use 'Forgot password' on the login page if the password is unknown."
+created_username="$(jq -r '.User.Username' <<<"$created")"
+echo "Created native Cognito user: $created_username"
+echo "Email login: $EMAIL"
+echo "One-time password: $temporary_password"
+echo "Cognito will require a new password at first sign-in."

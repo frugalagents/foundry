@@ -1,5 +1,8 @@
 import { authHeaders, getUserId, refreshIdToken } from './auth'
 import type {
+  AccessRequestCreated,
+  AccessRequestStatusView,
+  AdminAccessRequest,
   AdminAnalytics,
   AdminFeedbackRow,
   ConversationRow,
@@ -76,6 +79,22 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return body as T
+}
+
+async function publicCall<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new ApiError(res.status, path, body)
+  }
+  const body = await res.text()
+  return body.trim() ? JSON.parse(body) as T : undefined as T
 }
 
 export async function streamSession(
@@ -168,6 +187,43 @@ export const listAdminFeedback = () =>
 
 export const getAdminAnalytics = () =>
   call<AdminAnalytics>('/api/v1/admin/analytics')
+
+export const listAdminAccessRequests = () =>
+  call<AdminAccessRequest[]>('/api/v1/admin/access-requests')
+
+export const approveAccessRequest = (requestId: string, note = '') =>
+  call<AdminAccessRequest>(`/api/v1/admin/access-requests/${requestId}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  })
+
+export const rejectAccessRequest = (requestId: string, note = '') =>
+  call<AdminAccessRequest>(`/api/v1/admin/access-requests/${requestId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  })
+
+export const requestAccess = (body: { name: string; email: string; reason: string; website?: string }) =>
+  publicCall<AccessRequestCreated>('/api/v1/access-requests', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+
+export const getAccessRequestStatus = (requestId: string, requestSecret: string) =>
+  publicCall<AccessRequestStatusView>('/api/v1/access-requests/status', {
+    method: 'POST',
+    body: JSON.stringify({ request_id: requestId, request_secret: requestSecret }),
+  })
+
+export const activateAccessRequest = (requestId: string, requestSecret: string, password: string) =>
+  publicCall<AccessRequestStatusView>('/api/v1/access-requests/activate', {
+    method: 'POST',
+    body: JSON.stringify({
+      request_id: requestId,
+      request_secret: requestSecret,
+      password,
+    }),
+  })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

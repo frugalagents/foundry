@@ -148,6 +148,41 @@ export interface AdminFeedbackRow {
   feedback: SessionFeedback
 }
 
+export type AccessRequestStatus = 'pending' | 'approved' | 'rejected' | 'activated'
+
+export interface AccessRequestCreated {
+  request_id: string
+  request_secret: string
+  status: AccessRequestStatus
+  expires_at: string
+}
+
+export interface AccessRequestStatusView {
+  request_id: string
+  email: string
+  status: AccessRequestStatus
+  requested_at: string
+  updated_at: string
+  expires_at: string
+  decision_note: string
+  can_activate: boolean
+}
+
+export interface AdminAccessRequest {
+  request_id: string
+  name: string
+  email: string
+  reason: string
+  status: AccessRequestStatus
+  requested_at: string
+  updated_at: string
+  expires_at: string
+  decision_note: string
+  reviewed_by: string
+  reviewed_at: string
+  activated_at: string
+}
+
 export interface ChatStreamEvent {
   type: 'chat_stream'
   data: { text: string }

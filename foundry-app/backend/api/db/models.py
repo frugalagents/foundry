@@ -301,6 +301,61 @@ class AdminAnalyticsOut(BaseModel):
     recent_activity: list[AdminRecentActivityOut] = Field(default_factory=list)
 
 
+# ── Access requests ───────────────────────────────────────────────────────────
+
+class AccessRequestCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    email: str = Field(min_length=5, max_length=320)
+    reason: str = Field(min_length=5, max_length=2000)
+    website: str = Field(default="", max_length=200)
+
+
+class AccessRequestCreatedOut(BaseModel):
+    request_id: str
+    request_secret: str
+    status: str
+    expires_at: str
+
+
+class AccessRequestSecretIn(BaseModel):
+    request_id: str = Field(min_length=8, max_length=80)
+    request_secret: str = Field(min_length=32, max_length=200)
+
+
+class AccessRequestActivateIn(AccessRequestSecretIn):
+    password: str = Field(min_length=12, max_length=128)
+
+
+class AccessRequestStatusOut(BaseModel):
+    request_id: str
+    email: str
+    status: str
+    requested_at: str
+    updated_at: str
+    expires_at: str
+    decision_note: str = ""
+    can_activate: bool = False
+
+
+class AccessRequestDecisionIn(BaseModel):
+    note: str = Field(default="", max_length=1000)
+
+
+class AdminAccessRequestOut(BaseModel):
+    request_id: str
+    name: str
+    email: str
+    reason: str
+    status: str
+    requested_at: str
+    updated_at: str
+    expires_at: str
+    decision_note: str = ""
+    reviewed_by: str = ""
+    reviewed_at: str = ""
+    activated_at: str = ""
+
+
 class ArchitectureLayerSummaryOut(BaseModel):
     id: str
     label: str

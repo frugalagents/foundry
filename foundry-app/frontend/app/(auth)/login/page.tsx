@@ -118,6 +118,21 @@ export default function LoginPage() {
               >
                 Sign in with email
               </button>
+              <div style={{
+                borderTop: '1px solid var(--border)',
+                paddingTop: 16,
+                textAlign: 'center',
+                fontSize: 13,
+                color: 'var(--text-muted)',
+              }}>
+                Need an account?{' '}
+                <a
+                  href="/request-access/"
+                  style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}
+                >
+                  Request access
+                </a>
+              </div>
             </>
           ) : (
             <>

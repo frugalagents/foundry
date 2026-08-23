@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '@/store'
-import { ApiError, getAdminAnalytics, listAdminFeedback, listAdminSessions } from '@/lib/api'
+import { ApiError, getAdminAnalytics, listAdminAccessRequests, listAdminFeedback, listAdminSessions } from '@/lib/api'
 import { loadSessionIntoView } from '@/lib/session-actions'
-import type { AdminAnalytics, AdminFeedbackRow, ConversationRow } from '@/lib/types'
+import type { AdminAccessRequest, AdminAnalytics, AdminFeedbackRow, ConversationRow } from '@/lib/types'
+import AdminAccessRequestsPanel from './AdminAccessRequestsPanel'
 
 type SortKey = 'customer' | 'created_by' | 'updated_at'
-type AdminTab = 'overview' | 'sessions' | 'feedback'
+type AdminTab = 'overview' | 'access' | 'sessions' | 'feedback'
 
 export default function AdminSessionsView() {
   const { setShowAdminView } = useStore()
@@ -17,6 +18,7 @@ export default function AdminSessionsView() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [sessionRows, setSessionRows] = useState<ConversationRow[]>([])
   const [feedbackRows, setFeedbackRows] = useState<AdminFeedbackRow[]>([])
+  const [accessRequests, setAccessRequests] = useState<AdminAccessRequest[]>([])
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -28,12 +30,14 @@ export default function AdminSessionsView() {
     setLoadError(null)
     setRefreshing(true)
     try {
-      const [nextAnalytics, nextSessions, nextFeedback] = await Promise.all([
+      const [nextAnalytics, nextAccessRequests, nextSessions, nextFeedback] = await Promise.all([
         getAdminAnalytics(),
+        listAdminAccessRequests(),
         listAdminSessions(),
         listAdminFeedback(),
       ])
       setAnalytics(nextAnalytics)
+      setAccessRequests(nextAccessRequests)
       setSessionRows(nextSessions)
       setFeedbackRows(nextFeedback)
     } catch (err) {
@@ -62,6 +66,13 @@ export default function AdminSessionsView() {
     () => [...feedbackRows].sort((a, b) => +new Date(b.feedback.updated_at) - +new Date(a.feedback.updated_at)),
     [feedbackRows],
   )
+  const pendingAccessCount = accessRequests.filter((request) => request.status === 'pending').length
+
+  function updateAccessRequest(updated: AdminAccessRequest) {
+    setAccessRequests((current) => current.map((request) => (
+      request.request_id === updated.request_id ? updated : request
+    )))
+  }
 
   async function handleOpen(row: { customer: { customer_id: string }; session: { session_id: string; module_id?: string } }) {
     setLoadError(null)
@@ -92,7 +103,7 @@ export default function AdminSessionsView() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Admin Console</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            Cross-user visibility into usage, session inventory, and captured feedback.
+            Review access requests and inspect usage, sessions, and captured feedback.
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -108,6 +119,9 @@ export default function AdminSessionsView() {
       <div style={{ padding: '12px 20px 0', flexShrink: 0 }}>
         <div style={tabBarStyle}>
           <AdminTabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')}>Overview</AdminTabButton>
+          <AdminTabButton active={activeTab === 'access'} onClick={() => setActiveTab('access')}>
+            Access requests{pendingAccessCount > 0 ? ` (${pendingAccessCount})` : ''}
+          </AdminTabButton>
           <AdminTabButton active={activeTab === 'sessions'} onClick={() => setActiveTab('sessions')}>
             Sessions
           </AdminTabButton>
@@ -126,6 +140,7 @@ export default function AdminSessionsView() {
           <div style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={cardGridStyle}>
               <MetricCard label="Unique users" value={analytics?.unique_users ?? 0} />
+              <MetricCard label="Pending access" value={pendingAccessCount} />
               <MetricCard label="Sessions" value={analytics?.total_sessions ?? 0} />
               <MetricCard label="Customers" value={analytics?.total_customers ?? 0} />
               <MetricCard label="Active 7d" value={analytics?.active_sessions_7d ?? 0} />
@@ -182,6 +197,8 @@ export default function AdminSessionsView() {
               </div>
             </section>
           </div>
+        ) : activeTab === 'access' ? (
+          <AdminAccessRequestsPanel requests={accessRequests} onChange={updateAccessRequest} />
         ) : activeTab === 'sessions' ? (
           <div style={{ height: '100%', overflowY: 'auto' }}>
             <section style={panelStyle}>

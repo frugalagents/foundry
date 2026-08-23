@@ -16,6 +16,7 @@ Globals:
         COGNITO_REGION:        !Ref AWS::Region
         COGNITO_USER_POOL_ID:  !Ref UserPoolId
         COGNITO_CLIENT_ID:     !Ref UserPoolClient
+        ACCESS_REQUEST_TOPIC_ARN: !Ref AccessRequestTopic
         AGENTCORE_ENDPOINT_CODING_AGENT: !Ref AgentCoreEndpointArn
 
 Parameters:
@@ -45,6 +46,11 @@ Parameters:
     Default: "platform-advisor-dev-616627284001"
     Description: "Existing Cognito hosted UI domain prefix"
 
+  AdminNotificationEmail:
+    Type: String
+    Default: "thandavm@amazon.com"
+    Description: "Email subscribed to new access-request notifications; confirm the SNS subscription email after deployment"
+
   AgentCoreEndpointArn:
     Type: String
     Default: ""
@@ -59,6 +65,7 @@ Parameters:
 Conditions:
   IsDev: !Equals [!Ref Env, dev]
   HasAgentCoreRuntimeArn: !Not [!Equals [!Ref AgentCoreRuntimeArn, ""]]
+  HasAdminNotificationEmail: !Not [!Equals [!Ref AdminNotificationEmail, ""]]
 
 Resources:
   # ── DynamoDB Table ──────────────────────────────────────────────────────────
@@ -73,6 +80,9 @@ Resources:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: expires_at_epoch
+        Enabled: true
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
@@ -159,6 +169,21 @@ Resources:
       Roles:
         authenticated: !GetAtt IdentityPoolAuthRole.Arn
 
+  # ── Access request notifications ───────────────────────────────────────────
+  AccessRequestTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub foundry-access-requests-${Env}
+      DisplayName: Foundry access requests
+
+  AccessRequestAdminSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAdminNotificationEmail
+    Properties:
+      TopicArn: !Ref AccessRequestTopic
+      Protocol: email
+      Endpoint: !Ref AdminNotificationEmail
+
   # ── API Gateway HTTP API (Cognito JWT-secured) ──────────────────────────────
   HttpApi:
     Type: AWS::Serverless::HttpApi
@@ -217,6 +242,19 @@ Resources:
                 - bedrock:InvokeModel
                 - bedrock:InvokeModelWithResponseStream
               Resource: "*"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminDeleteUser
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:ListUsers
+              Resource: !Sub "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !Ref AccessRequestTopic
       Events:
         ApiProxy:
           Type: HttpApi
@@ -230,6 +268,30 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /health
             Method: GET
+            Auth:
+              Authorizer: NONE
+        CreateAccessRequest:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/v1/access-requests
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        AccessRequestStatus:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/v1/access-requests/status
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        ActivateAccessRequest:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/v1/access-requests/activate
+            Method: POST
             Auth:
               Authorizer: NONE
         CorsPreflight:
@@ -406,3 +468,7 @@ Outputs:
     Value: !Sub "https://${FrontendDistribution.DomainName}"
     Export:
       Name: !Sub "${AWS::StackName}-FrontendURL"
+
+  AccessRequestTopicArn:
+    Description: "SNS topic used for new access-request notifications"
+    Value: !Ref AccessRequestTopic

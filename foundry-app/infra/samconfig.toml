@@ -6,4 +6,4 @@ resolve_s3    = true
 capabilities  = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
 region        = "us-east-1"
 profile       = "platform-advisor"
-parameter_overrides = "Env=dev DevMode=false AllowedOrigins=https://d3a75wh7kjhojn.cloudfront.net AgentCoreEndpointArn=arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/CodingAgentRuntime_CodingAgentRuntime-TOiVHpGwhu"
+parameter_overrides = "Env=dev DevMode=false AllowedOrigins=https://d3a75wh7kjhojn.cloudfront.net AdminNotificationEmail=thandavm@amazon.com AgentCoreEndpointArn=arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/CodingAgentRuntime_CodingAgentRuntime-TOiVHpGwhu"
