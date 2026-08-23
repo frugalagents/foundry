@@ -4,7 +4,11 @@ knowledge the advisor actually sees, so a regression here silently degrades
 advice quality with no visible error.
 """
 from __future__ import annotations
+
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pytest
 

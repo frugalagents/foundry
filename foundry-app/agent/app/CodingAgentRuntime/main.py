@@ -34,6 +34,7 @@ from store import (
     put_session_note,
     put_workspace_snapshot,
 )
+from workspace_state import build_workspace_state
 
 app = BedrockAgentCoreApp()
 log = app.logger
@@ -299,6 +300,14 @@ Execution rules:
 - If you surface a blocker, ambiguity, or control concern, add it to `risks` in the same turn.
 - If the architecture changes, update both `update_architecture` and `update_consulting_state` in that same turn.
 - Every meaningful recommendation turn should call `update_consulting_state` before you finish your response so the workspace stays current.
+- If a customer answer changes facts, assumptions, operating model, blockers, risks, or decisions, regenerate all dependent reasoning artifacts in that same turn:
+  `recommendation`, `open_questions`, `decisions`, `risks`, `implementation_plan`,
+  and any affected `blueprint_markdown` / `advisory_case`.
+- Do not rely on previously saved blueprint, executive brief, or risk/question
+  lists remaining valid after a blocker is resolved or the target pattern shifts.
+- The runtime clears omitted dependent artifacts after a material reasoning change.
+  If you want an artifact to remain visible after such a change, explicitly send
+  the refreshed field again in the same `update_consulting_state` call.
 - When refreshing the workspace, omit fields that are unchanged. Do not send an
   empty `blueprint_markdown` or empty executive artifact just because your
   current turn is focused on a different panel.
@@ -694,26 +703,33 @@ async def invoke(payload: dict, context):
             except Exception:
                 log.exception("Failed to load existing workspace snapshot")
 
-        workspace = {
-            "stage": stage,
-            "recommendation": existing.get("recommendation", "") if recommendation is None else recommendation,
-            "blueprint_markdown": existing.get("blueprint_markdown", "") if blueprint_markdown is None else blueprint_markdown,
-            "assumptions": existing.get("assumptions", []) if assumptions is None else assumptions,
-            "facts": existing.get("facts", []) if facts is None else facts,
-            "operating_model": existing.get("operating_model", "") if operating_model is None else operating_model,
-            "open_questions": existing.get("open_questions", []) if open_questions is None else open_questions,
-            "decisions": existing.get("decisions", []) if decisions is None else decisions,
-            "risks": existing.get("risks", []) if risks is None else risks,
-            "implementation_plan": existing.get("implementation_plan", []) if implementation_plan is None else implementation_plan,
-            "advisory_case": existing.get("advisory_case") if advisory_case is None else advisory_case,
-        }
+        workspace, invalidated_fields, reasoning_changes = build_workspace_state(
+            existing,
+            recommendation=recommendation,
+            blueprint_markdown=blueprint_markdown,
+            assumptions=assumptions,
+            facts=facts,
+            operating_model=operating_model,
+            open_questions=open_questions,
+            decisions=decisions,
+            risks=risks,
+            implementation_plan=implementation_plan,
+            advisory_case=advisory_case,
+            stage=stage,
+        )
+        if invalidated_fields:
+            log.info(
+                "Workspace invalidated stale dependent fields: %s (reasoning changes: %s)",
+                invalidated_fields,
+                reasoning_changes or ["n/a"],
+            )
         panel_queue.put_nowait(_workspace_event(workspace))
         if customer_id and session_id:
             try:
                 put_workspace_snapshot(
                     customer_id,
                     session_id,
-                    stage=stage,
+                    stage=workspace["stage"],
                     recommendation=workspace["recommendation"],
                     blueprint_markdown=workspace["blueprint_markdown"],
                     assumptions=workspace["assumptions"],

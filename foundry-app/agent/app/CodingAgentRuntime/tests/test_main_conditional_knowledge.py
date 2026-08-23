@@ -4,9 +4,13 @@ three-tier traversal model (mandate/conditional/probe) actually automatic
 instead of relying on the model to guess query_knowledge keywords.
 """
 from __future__ import annotations
+
 import os
 import sys
 import types
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 if "bedrock_agentcore.runtime" not in sys.modules:
     runtime_module = types.ModuleType("bedrock_agentcore.runtime")

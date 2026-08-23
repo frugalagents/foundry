@@ -392,10 +392,13 @@ Rules:
 - If a question has been answered, remove or replace it on the next workspace update.
 - If you make a decision, add it to `decisions` immediately; do not leave it buried in prose.
 - If you identify a risk or dependency, add it to `risks` immediately.
+- If a customer answer changes facts, assumptions, operating model, blockers, risks, or decisions, regenerate the dependent reasoning in that same turn. Refresh `recommendation`, `open_questions`, `decisions`, `risks`, `implementation_plan`, and any affected `blueprint_markdown` or `advisory_case`.
+- Never assume a previous blueprint, executive brief, or risk/question list stays valid after a blocker is resolved or the target-state pattern changes.
 - At the end of every meaningful turn, refresh the workspace so the side panels stay accurate.
 - Omit workspace fields that are unchanged. Do not clear `blueprint_markdown`
   or the executive artifact when you are only updating the exec summary or a
-  different panel.
+  different panel. But after a material reasoning change, explicitly resend the
+  dependent artifacts you still want to keep visible.
 - If you are asking the customer for input, the workspace update should appear before any architecture update in that turn.
 - Treat the side panels as the product and the chat as a thin status layer.
 - When panels have been updated, the chat reply should usually do only one of
