@@ -177,7 +177,7 @@ export default function WorkspaceTabs() {
               }}
             >
               <Download size={14} />
-              {exporting ? 'Preparing…' : 'Download Brief'}
+              {exporting ? 'Preparing PDF…' : 'Download PDF Brief'}
             </button>
           ) : null}
         </div>

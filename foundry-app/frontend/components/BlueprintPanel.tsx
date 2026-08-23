@@ -2,16 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import { useStore } from '@/store'
-import { hasAdvisoryCaseContent } from '@/lib/advisory-case'
 import { normalizeWorkspace } from '@/lib/message-analysis'
 import { renderMarkdown } from '@/lib/render-markdown'
-import {
-  buildExportMarkdown,
-  buildFallbackBlueprint,
-  hasOutputPackContent,
-} from '@/lib/session-export'
+import { buildFallbackBlueprint } from '@/lib/session-export'
 import { normalizeAdvisoryStage } from '@/lib/workflow'
-import type { AdvisoryOutputPack } from '@/lib/types'
 
 export default function BlueprintPanel() {
   const workspace = useStore((s) => s.workspace)
@@ -20,29 +14,20 @@ export default function BlueprintPanel() {
   const [activeTab, setActiveTab] = useState('brief')
 
   const view = useMemo(() => normalizeWorkspace(workspace), [workspace])
-  const advisoryCase = hasAdvisoryCaseContent(view.advisory_case) ? view.advisory_case : null
   const stage = normalizeAdvisoryStage(view.stage) ?? 'discovery'
-  const outputPack = advisoryCase?.output_pack ?? null
   const fallbackMarkdown = useMemo(
     () => (view.blueprint_markdown?.trim() || buildFallbackBlueprint(view, architectureArtifact)).trim(),
     [view, architectureArtifact],
   )
   const technicalSections = useMemo(() => parseMarkdownSections(fallbackMarkdown), [fallbackMarkdown])
-  const exportMarkdown = useMemo(
-    () => buildExportMarkdown(outputPack, fallbackMarkdown),
-    [outputPack, fallbackMarkdown],
-  )
-  const hasStructuredPack = Boolean(outputPack && hasOutputPackContent(outputPack))
-  const markdownSections = useMemo(() => parseMarkdownSections(exportMarkdown), [exportMarkdown])
   const hasBlueprint =
-    hasStructuredPack ||
     !!view.blueprint_markdown?.trim() ||
-    (stage === 'blueprint' && exportMarkdown.length > 0)
+    (stage === 'blueprint' && fallbackMarkdown.length > 0)
 
   async function handleCopy() {
     if (!hasBlueprint) return
     try {
-      await navigator.clipboard.writeText(exportMarkdown)
+      await navigator.clipboard.writeText(fallbackMarkdown)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1800)
     } catch (err) {
@@ -54,9 +39,9 @@ export default function BlueprintPanel() {
     <div style={shellStyle}>
       <div style={headerStyle}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={eyebrowStyle}>Output Pack</span>
+          <span style={eyebrowStyle}>Blueprint</span>
           <p style={subtitleStyle}>
-            This is the reusable advisory package for docs, reviews, and leadership conversations.
+            This is the detailed technical blueprint for build teams, review threads, and architecture documentation.
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -71,157 +56,13 @@ export default function BlueprintPanel() {
           <p style={{ fontSize: 12.5, color: 'var(--text-faint)', lineHeight: 1.65 }}>
             {stage === 'discovery'
               ? 'Questions and assumptions are being prioritized first. The blueprint will generate after the recommendation is coherent enough to defend.'
-              : 'The engine will publish the reusable output pack here once the recommendation, decisions, risks, and rollout are coherent enough to defend.'}
+              : 'The engine will publish the detailed technical blueprint here once the recommendation is coherent enough to implement.'}
           </p>
         </div>
-      ) : hasStructuredPack && outputPack ? (
-        <StructuredBlueprintView
-          outputPack={outputPack}
-          technicalSections={technicalSections}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-        />
       ) : (
-        <MarkdownBlueprintView sections={markdownSections} activeTab={activeTab} onChange={setActiveTab} />
+        <MarkdownBlueprintView sections={technicalSections} activeTab={activeTab} onChange={setActiveTab} />
       )}
     </div>
-  )
-}
-
-function StructuredBlueprintView({
-  outputPack,
-  technicalSections,
-  activeTab,
-  onChange,
-}: {
-  outputPack: AdvisoryOutputPack
-  technicalSections: MarkdownSection[]
-  activeTab: string
-  onChange: (tab: string) => void
-}) {
-  const tabs = [
-    outputPack.executive_summary || outputPack.recommendation_memo || outputPack.architecture_narrative
-      ? { id: 'brief', label: 'Brief' }
-      : null,
-    outputPack.key_decisions.length || outputPack.open_questions.length
-      ? { id: 'decisions', label: 'Decisions' }
-      : null,
-    outputPack.risks_and_mitigations.length
-      ? { id: 'risks', label: 'Risks' }
-      : null,
-    outputPack.rollout_30_90_180.length
-      ? { id: 'rollout', label: 'Rollout' }
-      : null,
-    outputPack.operating_principles.length || outputPack.control_checklist.length
-      ? { id: 'controls', label: 'Controls' }
-      : null,
-    technicalSections.length
-      ? { id: 'technical', label: 'Technical' }
-      : null,
-  ].filter((tab): tab is { id: string; label: string } => Boolean(tab))
-  const selectedTab = tabs.find((tab) => tab.id === activeTab)?.id ?? tabs[0]?.id ?? 'brief'
-
-  return (
-    <>
-      <TabBar tabs={tabs} activeTab={selectedTab} onChange={onChange} />
-      <div style={contentShellStyle}>
-        {selectedTab === 'brief' ? (
-          <div style={contentStackStyle}>
-            {outputPack.executive_summary ? <PackSection title="Executive Summary" body={outputPack.executive_summary} /> : null}
-            {outputPack.recommendation_memo ? <PackSection title="Recommendation Memo" body={outputPack.recommendation_memo} /> : null}
-            {outputPack.architecture_narrative ? <PackSection title="Architecture Narrative" body={outputPack.architecture_narrative} /> : null}
-          </div>
-        ) : null}
-
-        {selectedTab === 'decisions' ? (
-          <div style={twoColumnGridStyle}>
-            {outputPack.key_decisions.length ? (
-              <section style={sectionStyle}>
-                <span style={sectionTitleStyle}>Key Decisions</span>
-                <div style={numberedCardListStyle}>
-                  {outputPack.key_decisions.map((item, index) => (
-                    <div key={item} style={numberedCardStyle}>
-                      <span style={numberBadgeStyle}>{index + 1}</span>
-                      <p style={itemBodyStyle}>{item}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {outputPack.open_questions.length ? (
-              <section style={sectionStyle}>
-                <span style={sectionTitleStyle}>Open Questions</span>
-                <div style={contentStackStyle}>
-                  {outputPack.open_questions.map((item) => (
-                    <div key={item} style={questionCardStyle}>
-                      <p style={itemBodyStyle}>{item}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-          </div>
-        ) : null}
-
-        {selectedTab === 'risks' ? (
-          <section style={sectionStyle}>
-            <span style={sectionTitleStyle}>Risks And Mitigations</span>
-            <div style={riskGridStyle}>
-              {outputPack.risks_and_mitigations.map((item) => (
-                <div key={`${item.risk}-${item.mitigation}`} style={riskItemStyle}>
-                  <span style={riskBadgeStyle}>!</span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <p style={itemTitleStyle}>{item.risk}</p>
-                    {item.mitigation ? <p style={itemBodyStyle}>{item.mitigation}</p> : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {selectedTab === 'rollout' ? (
-          <section style={sectionStyle}>
-            <span style={sectionTitleStyle}>30 / 90 / 180 Day Rollout</span>
-            <div style={rolloutGridStyle}>
-              {outputPack.rollout_30_90_180.map((phase) => (
-                <div key={`${phase.horizon}-${phase.outcome}`} style={phaseCardStyle}>
-                  <span style={phaseLabelStyle}>{phase.horizon}</span>
-                  <p style={itemBodyStyle}>{phase.outcome}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {selectedTab === 'controls' ? (
-          <div style={twoColumnGridStyle}>
-            {outputPack.operating_principles.length ? (
-              <PackListSection title="Operating Principles" items={outputPack.operating_principles} />
-            ) : null}
-            {outputPack.control_checklist.length ? (
-              <PackListSection title="Control Checklist" items={outputPack.control_checklist} />
-            ) : null}
-          </div>
-        ) : null}
-
-        {selectedTab === 'technical' ? (
-          <div style={contentStackStyle}>
-            {technicalSections.map((section) => (
-              <section key={section.id} style={sectionStyle}>
-                <span style={sectionTitleStyle}>{section.title}</span>
-                <div
-                  className="prose"
-                  style={proseStyle}
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(section.body) }}
-                />
-              </section>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </>
   )
 }
 

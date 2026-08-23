@@ -90,6 +90,10 @@ export default function ArchitectureBoard() {
   const executionNode = grouped.execution[0]
   const baselineLayers = architectureArtifact?.baseline.layers ?? []
   const summary = architectureArtifact?.executive_summary || workspace.recommendation
+  const changeDrivers = useMemo(
+    () => (architectureArtifact?.customizations ?? []).filter((item) => item.triggered_by.length > 0).slice(0, 4),
+    [architectureArtifact],
+  )
 
   if (!hasArchitecture) {
     return (
@@ -175,8 +179,8 @@ export default function ArchitectureBoard() {
                 color: 'rgba(31,27,22,0.82)',
                 maxWidth: 860,
               }}>
-                A leadership-readable view of the current session architecture. This tab is driven from the live
-                architecture artifact, so it should change whenever new answers alter the baseline or add customer-specific controls.
+                A leadership-readable view of the current session architecture. This tab updates when new answers
+                change the platform shape, control boundaries, or customer-specific additions.
               </p>
             </div>
             <div style={{
@@ -568,42 +572,37 @@ export default function ArchitectureBoard() {
                   </div>
 
                   <div style={subPanel}>
-                    <span style={eyebrow}>Rollout</span>
+                    <span style={eyebrow}>Change Drivers</span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
-                      {(architectureArtifact?.rollout ?? []).map((phase, index) => (
-                        <div key={phase.phase} style={{
-                          display: 'grid',
-                          gridTemplateColumns: '34px 1fr',
-                          gap: 12,
-                          alignItems: 'start',
+                      {changeDrivers.length > 0 ? changeDrivers.map((item) => (
+                        <div key={item.id} style={{
+                          borderRadius: 18,
+                          background: 'rgba(255,255,255,0.78)',
+                          border: '1px solid rgba(31,27,22,0.08)',
+                          padding: '14px 14px',
                         }}>
-                          <div style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 12,
-                            background: '#1f1b16',
-                            color: '#f6f0e8',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 13,
-                            fontWeight: 700,
-                          }}>
-                            {index + 1}
-                          </div>
-                          <div style={{
-                            borderRadius: 18,
-                            background: 'rgba(255,255,255,0.78)',
-                            border: '1px solid rgba(31,27,22,0.08)',
-                            padding: '12px 14px',
-                          }}>
-                            <div style={{ fontSize: 13.5, fontWeight: 650 }}>{phase.phase}</div>
-                            <div style={{ fontSize: 12.5, lineHeight: 1.6, color: 'rgba(31,27,22,0.72)', marginTop: 4 }}>
-                              {phase.outcome}
-                            </div>
+                          <div style={{ fontSize: 13.5, fontWeight: 650, marginBottom: 6 }}>{item.title}</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {item.triggered_by.map((trigger) => (
+                              <div key={trigger} style={{ fontSize: 12.5, lineHeight: 1.6, color: 'rgba(31,27,22,0.72)' }}>
+                                {trigger}
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      ))}
+                      )) : (
+                        <div style={{
+                          borderRadius: 18,
+                          background: 'rgba(255,255,255,0.78)',
+                          border: '1px dashed rgba(31,27,22,0.14)',
+                          padding: '14px 14px',
+                          fontSize: 12.5,
+                          lineHeight: 1.6,
+                          color: 'rgba(31,27,22,0.68)',
+                        }}>
+                          This design is still operating as a governed baseline. Customer-specific structural drivers will appear here as the architecture diverges.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

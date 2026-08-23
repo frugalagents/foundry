@@ -27,7 +27,13 @@ from strands import Agent, tool
 from strands.models import BedrockModel
 
 from knowledge_loader import KnowledgeBase, load_knowledge_base
-from store import put_canvas_snapshot, put_message, put_session_note, put_workspace_snapshot
+from store import (
+    get_workspace_snapshot,
+    put_canvas_snapshot,
+    put_message,
+    put_session_note,
+    put_workspace_snapshot,
+)
 
 app = BedrockAgentCoreApp()
 log = app.logger
@@ -259,6 +265,12 @@ Execution rules:
 - Do not populate `blueprint_markdown` or a full `advisory_case.output_pack` during early discovery just to fill panels.
 - Keep the blueprint panel effectively empty until the direction is coherent enough to defend.
 - If you do have enough context for a working baseline architecture, update the questions/assumptions panels first in that same turn so the customer sees what is still open before the architecture appears.
+- Only call `update_architecture` when the answer changes the platform shape:
+  topology, trust boundary, identity boundary, harness model, execution model,
+  model-routing design, control placement, or customer-specific additions.
+- If an answer only changes confidence, recommendation wording, risks,
+  implementation sequencing, or open questions, refresh
+  `update_consulting_state` without republishing the architecture.
 - Never narrate your own workflow in chat. Do not say things like:
   "I have enough to build...", "let me produce...", "now I will update...",
   or "here's everything at once."
@@ -267,6 +279,11 @@ Execution rules:
   sentences.
 - Do not restate the full architecture, assumption list, or blueprint in chat
   if those artifacts were published to panels.
+- If the customer asks for a one-page or executive summary, write it into
+  `advisory_case.output_pack.executive_summary` and related executive fields
+  instead of printing the body in chat.
+- After publishing an executive-summary artifact, the chat reply should be one
+  short sentence such as "Executive summary added to the brief."
 - If there are open questions, name only the single highest-leverage one in
   chat and leave the rest in the questions panel.
 - When `stage=blueprint`, keep the chat reply short and point the customer to the blueprint panel.
@@ -282,6 +299,9 @@ Execution rules:
 - If you surface a blocker, ambiguity, or control concern, add it to `risks` in the same turn.
 - If the architecture changes, update both `update_architecture` and `update_consulting_state` in that same turn.
 - Every meaningful recommendation turn should call `update_consulting_state` before you finish your response so the workspace stays current.
+- When refreshing the workspace, omit fields that are unchanged. Do not send an
+  empty `blueprint_markdown` or empty executive artifact just because your
+  current turn is focused on a different panel.
 """
 
 
@@ -437,6 +457,9 @@ async def invoke(payload: dict, context):
         In discovery, publish questions and assumptions via
         `update_consulting_state` before calling this tool unless the customer
         explicitly asked for a strawman architecture.
+        Do not call this tool for non-structural changes such as fuller rollout
+        detail, refined risk wording, or confidence updates when the platform
+        shape has not changed.
 
         Each node must have:
           id, type ("arch"), label, sublabel, icon, color, x=0, y=0
@@ -520,11 +543,11 @@ async def invoke(payload: dict, context):
                   "mitigation": string
                 }
               ],
-              "rollout": [
-                {
-                  "phase": string,
-                  "outcome": string
-                }
+	              "rollout": [
+	                {
+	                  "phase": string,
+	                  "outcome": string
+	                }
               ]
             }
 
@@ -534,12 +557,16 @@ async def invoke(payload: dict, context):
           - what changed for this org?
           - why did it change?
 
-        Call at these stages:
-          - After scale + cloud provider: skeleton (harness + execution zones)
-          - After compliance + access: overlay (add policy + identity nodes)
-          - After harness selection: full (complete platform stack)
-        Do not use this tool just to fill the panel while discovery is still
-        waiting on its first decision-driving questions.
+	        Call at these stages:
+	          - After scale + cloud provider: skeleton (harness + execution zones)
+	          - After compliance + access: overlay (add policy + identity nodes)
+	          - After harness selection: full (complete platform stack)
+	        Treat `architecture_artifact.rollout` as architecture
+	        implementation implications or prerequisites, not the full program
+	        rollout plan. The full phased rollout belongs in
+	        `advisory_case.output_pack`.
+	        Do not use this tool just to fill the panel while discovery is still
+	        waiting on its first decision-driving questions.
 
         Args:
             nodes: List of architecture node objects
@@ -596,11 +623,11 @@ async def invoke(payload: dict, context):
 
     @tool
     def update_consulting_state(
-        recommendation: str = "",
-        blueprint_markdown: str = "",
+        recommendation: str | None = None,
+        blueprint_markdown: str | None = None,
         assumptions: list[dict] | None = None,
         facts: list[str] | None = None,
-        operating_model: str = "",
+        operating_model: str | None = None,
         open_questions: list[str] | None = None,
         decisions: list[str] | None = None,
         risks: list[str] | None = None,
@@ -614,19 +641,28 @@ async def invoke(payload: dict, context):
         Keep each list short and specific. This tool updates the workspace
         panels in the UI so the customer can track facts, questions, decisions,
         risks, assumptions, and next steps outside the chat transcript.
+        Omit fields that are unchanged. Passing an empty string or empty list
+        clears that field explicitly.
         """
+        existing = {}
+        if customer_id and session_id:
+            try:
+                existing = get_workspace_snapshot(customer_id, session_id) or {}
+            except Exception:
+                log.exception("Failed to load existing workspace snapshot")
+
         workspace = {
             "stage": stage,
-            "recommendation": recommendation,
-            "blueprint_markdown": blueprint_markdown,
-            "assumptions": assumptions or [],
-            "facts": facts or [],
-            "operating_model": operating_model,
-            "open_questions": open_questions or [],
-            "decisions": decisions or [],
-            "risks": risks or [],
-            "implementation_plan": implementation_plan or [],
-            "advisory_case": advisory_case or None,
+            "recommendation": existing.get("recommendation", "") if recommendation is None else recommendation,
+            "blueprint_markdown": existing.get("blueprint_markdown", "") if blueprint_markdown is None else blueprint_markdown,
+            "assumptions": existing.get("assumptions", []) if assumptions is None else assumptions,
+            "facts": existing.get("facts", []) if facts is None else facts,
+            "operating_model": existing.get("operating_model", "") if operating_model is None else operating_model,
+            "open_questions": existing.get("open_questions", []) if open_questions is None else open_questions,
+            "decisions": existing.get("decisions", []) if decisions is None else decisions,
+            "risks": existing.get("risks", []) if risks is None else risks,
+            "implementation_plan": existing.get("implementation_plan", []) if implementation_plan is None else implementation_plan,
+            "advisory_case": existing.get("advisory_case") if advisory_case is None else advisory_case,
         }
         panel_queue.put_nowait(_workspace_event(workspace))
         if customer_id and session_id:
@@ -635,16 +671,16 @@ async def invoke(payload: dict, context):
                     customer_id,
                     session_id,
                     stage=stage,
-                    recommendation=recommendation,
-                    blueprint_markdown=blueprint_markdown,
-                    assumptions=assumptions or [],
-                    facts=facts or [],
-                    operating_model=operating_model,
-                    open_questions=open_questions or [],
-                    decisions=decisions or [],
-                    risks=risks or [],
-                    implementation_plan=implementation_plan or [],
-                    advisory_case=advisory_case or None,
+                    recommendation=workspace["recommendation"],
+                    blueprint_markdown=workspace["blueprint_markdown"],
+                    assumptions=workspace["assumptions"],
+                    facts=workspace["facts"],
+                    operating_model=workspace["operating_model"],
+                    open_questions=workspace["open_questions"],
+                    decisions=workspace["decisions"],
+                    risks=workspace["risks"],
+                    implementation_plan=workspace["implementation_plan"],
+                    advisory_case=workspace["advisory_case"],
                 )
             except Exception:
                 log.exception("Failed to persist workspace snapshot")

@@ -125,3 +125,30 @@ def put_workspace_snapshot(
         "updated_at": now,
     }
     _get_table().put_item(Item=item)
+
+
+def get_workspace_snapshot(customer_id: str, session_id: str) -> dict | None:
+    resp = _get_table().get_item(
+        Key={
+            "PK": f"CUSTOMER#{customer_id}",
+            "SK": f"WORKSPACE#{session_id}",
+        }
+    )
+    item = resp.get("Item")
+    if not item:
+        return None
+
+    return {
+        "stage": item.get("stage", ""),
+        "recommendation": item.get("recommendation", ""),
+        "blueprint_markdown": item.get("blueprint_markdown", ""),
+        "assumptions": json.loads(item.get("assumptions_json", "[]") or "[]"),
+        "facts": item.get("facts", []) or [],
+        "operating_model": item.get("operating_model", ""),
+        "open_questions": item.get("open_questions", []) or [],
+        "decisions": item.get("decisions", []) or [],
+        "risks": item.get("risks", []) or [],
+        "implementation_plan": item.get("implementation_plan", []) or [],
+        "advisory_case": json.loads(item.get("advisory_case_json", "{}") or "{}") or None,
+        "updated_at": item.get("updated_at", ""),
+    }

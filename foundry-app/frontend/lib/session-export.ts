@@ -2,6 +2,7 @@
 
 import { hasAdvisoryCaseContent } from './advisory-case'
 import { normalizeWorkspace } from './message-analysis'
+import { renderMarkdown } from './render-markdown'
 import type {
   AdvisoryCase,
   AdvisoryDecision,
@@ -162,43 +163,15 @@ export function buildFallbackBlueprint(
     lines.push('')
   }
 
-  if (workspace.decisions.length > 0 || (architectureArtifact?.decisions.length ?? 0) > 0) {
-    lines.push('### Key Decisions')
-    lines.push(
-      ...(architectureArtifact?.decisions.length
-        ? architectureArtifact.decisions.map((item) =>
-            `- **${item.decision}**${item.why ? `: ${item.why}` : ''}`,
-          )
-        : workspace.decisions.map((decision) => `- ${decision}`)),
-    )
-    lines.push('')
-  }
-
-  if (workspace.risks.length > 0 || (architectureArtifact?.risks.length ?? 0) > 0) {
-    lines.push('### Risks And Tradeoffs')
-    lines.push(
-      ...(architectureArtifact?.risks.length
-        ? architectureArtifact.risks.map((item) =>
-            `- **${item.risk}**${item.mitigation ? `: ${item.mitigation}` : ''}`,
-          )
-        : workspace.risks.map((risk) => `- ${risk}`)),
-    )
-    lines.push('')
-  }
-
-  if (workspace.implementation_plan.length > 0 || (architectureArtifact?.rollout.length ?? 0) > 0) {
-    lines.push('### Rollout Plan')
-    lines.push(
-      ...(architectureArtifact?.rollout.length
-        ? architectureArtifact.rollout.map((phase, index) => `${index + 1}. **${phase.phase}**: ${phase.outcome}`)
-        : workspace.implementation_plan.map((step, index) => `${index + 1}. ${step}`)),
-    )
-    lines.push('')
-  }
-
-  if (workspace.open_questions.length > 0) {
-    lines.push('### Open Questions')
-    lines.push(...workspace.open_questions.map((question) => `- ${question}`))
+  const architectureAssumptions = (workspace.assumptions ?? []).filter(
+    (item) => item.drives_architecture || item.validation_priority === 'now' || item.validation_priority === 'soon',
+  )
+  if (architectureAssumptions.length > 0) {
+    lines.push('### Architecture Assumptions')
+    architectureAssumptions.forEach((assumption) => {
+      lines.push(`- **${assumption.title}**: ${assumption.assumed}`)
+      if (assumption.impact) lines.push(`  Impact if wrong: ${assumption.impact}`)
+    })
     lines.push('')
   }
 
@@ -226,9 +199,16 @@ export function hasSessionExportContent(context: SessionExportContext) {
 
 export async function downloadSessionBrief(context: SessionExportContext) {
   const slug = slugify(context.sessionTitle || context.activeSessionId || 'foundry-session')
-  const files = buildSessionExportFiles(context, slug)
-  const blob = buildZipBlob(files)
-  downloadBlob(`${slug}-brief.zip`, blob)
+  const html = buildExecutiveBriefHtml(context, slug)
+
+  if (openPrintPreview(html)) {
+    return
+  }
+
+  downloadBlob(
+    `${slug}-brief.html`,
+    new Blob([html], { type: 'text/html;charset=utf-8' }),
+  )
 }
 
 function buildSessionExportFiles(context: SessionExportContext, slug: string): ExportFile[] {
@@ -286,6 +266,301 @@ function buildSessionExportFiles(context: SessionExportContext, slug: string): E
   })
 
   return files
+}
+
+function buildExecutiveBriefHtml(context: SessionExportContext, slug: string) {
+  const workspace = normalizeWorkspace(context.workspace)
+  const advisoryCase: AdvisoryCase | null = hasAdvisoryCaseContent(workspace.advisory_case)
+    ? (workspace.advisory_case ?? null)
+    : null
+  const outputPack = advisoryCase?.output_pack ?? null
+  const files = buildSessionExportFiles(context, slug)
+  const fileMap = new Map(files.map((file) => [file.name.replace(`${slug}/`, ''), file.content.trim()]))
+  const title = context.sessionTitle || context.activeSessionId || 'Foundry Advisory Brief'
+  const generatedAt = new Date().toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+  const recommendation = advisoryCase?.recommendation.summary || workspace.recommendation
+  const executiveSummary = outputPack?.executive_summary || advisoryCase?.readout.current_recommendation || recommendation
+  const architectureSnapshot = advisoryCase?.readout.architecture_snapshot || context.architectureArtifact?.executive_summary || ''
+  const biggestRisks = [
+    ...(advisoryCase?.readout.biggest_risks ?? []),
+    ...(advisoryCase?.risks.map((item) => item.risk) ?? []),
+  ].filter(Boolean).slice(0, 3)
+  const openQuestions = dedupe([
+    ...workspace.open_questions,
+    ...(advisoryCase?.readout.open_questions ?? []),
+    ...(outputPack?.open_questions ?? []),
+  ]).slice(0, 3)
+  const detailSections = [
+    fileMap.get('recommendation.md') || '',
+    fileMap.get('decisions.md') || '',
+    fileMap.get('risks.md') || '',
+    fileMap.get('rollout.md') || '',
+    fileMap.get('architecture.md') || '',
+    fileMap.get('assumptions.md') || '',
+    fileMap.get('open-questions.md') || '',
+    fileMap.get('maturity.md') || '',
+    fileMap.get('delta.md') || '',
+  ].filter(Boolean)
+
+  const sectionHtml = detailSections
+    .map((content) => `<section class="section">${renderMarkdown(content)}</section>`)
+    .join('')
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(title)} Brief</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #18212f;
+        --muted: #5f6c7b;
+        --line: #d9e1ea;
+        --sheet: #ffffff;
+        --page: #eef3f7;
+        --panel: #f8fbfd;
+        --accent: #0f766e;
+        --accent-soft: #e8fffb;
+        --alert: #9a3412;
+        --alert-soft: #fff7ed;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--page);
+        color: var(--ink);
+        font-family: "Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      }
+      body { padding: 24px; }
+      .sheet {
+        max-width: 980px;
+        margin: 0 auto;
+        background: var(--sheet);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+      }
+      .cover {
+        padding: 32px 36px 28px;
+        background: linear-gradient(135deg, #f8fafc 0%, #ecfeff 100%);
+        border-bottom: 1px solid var(--line);
+      }
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .cover h1 {
+        margin: 10px 0 12px;
+        font-size: 34px;
+        line-height: 1.04;
+        letter-spacing: -0.04em;
+      }
+      .cover p {
+        margin: 0;
+        max-width: 760px;
+        font-size: 14px;
+        line-height: 1.65;
+        color: var(--muted);
+      }
+      .meta {
+        margin-top: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .meta span {
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.78);
+        border-radius: 999px;
+        padding: 7px 11px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+        gap: 16px;
+        padding: 24px 36px 0;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 18px 18px 16px;
+        background: var(--panel);
+      }
+      .card.accent { background: var(--accent-soft); border-color: #bceee8; }
+      .card.alert { background: var(--alert-soft); border-color: #fed7aa; }
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        line-height: 1.3;
+      }
+      .card p {
+        margin: 0;
+        font-size: 13.5px;
+        line-height: 1.7;
+        color: #334155;
+      }
+      .card ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .card li {
+        font-size: 13px;
+        line-height: 1.6;
+        color: #334155;
+      }
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .section {
+        padding: 24px 36px 0;
+      }
+      .section:last-child {
+        padding-bottom: 36px;
+      }
+      .section h1 {
+        margin: 0 0 12px;
+        font-size: 22px;
+        line-height: 1.15;
+        letter-spacing: -0.03em;
+      }
+      .section h2 {
+        margin: 24px 0 10px;
+        font-size: 16px;
+        line-height: 1.3;
+      }
+      .section h3 {
+        margin: 18px 0 8px;
+        font-size: 13px;
+        line-height: 1.35;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .section p, .section li, .section td, .section th, .section blockquote {
+        font-size: 13.5px;
+        line-height: 1.7;
+      }
+      .section p, .section ul, .section ol, .section table, .section blockquote {
+        margin: 0 0 12px;
+      }
+      .section ul, .section ol {
+        padding-left: 20px;
+      }
+      .section li + li {
+        margin-top: 6px;
+      }
+      .section table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .section th, .section td {
+        text-align: left;
+        vertical-align: top;
+        border: 1px solid var(--line);
+        padding: 10px 12px;
+      }
+      .section th {
+        background: #f8fafc;
+      }
+      .section blockquote {
+        margin-left: 0;
+        padding: 12px 14px;
+        border-left: 3px solid #cbd5e1;
+        background: #f8fafc;
+      }
+      .section code {
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 12px;
+      }
+      .footer {
+        padding: 20px 36px 36px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      @media print {
+        @page { size: auto; margin: 14mm; }
+        html, body { background: #fff; padding: 0; }
+        .sheet {
+          max-width: none;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+        }
+        .cover, .card, .section {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <header class="cover">
+        <div class="eyebrow">Executive Brief</div>
+        <h1>${escapeHtml(title)}</h1>
+        <p>Leadership-ready session output for review, forwarding, and PDF export. The first page is designed to stand on its own; the remaining pages carry the supporting recommendation, architecture, risks, and rollout detail.</p>
+        <div class="meta">
+          <span>Generated ${escapeHtml(generatedAt)}</span>
+          ${advisoryCase?.recommendation.confidence ? `<span>Confidence ${escapeHtml(capitalize(advisoryCase.recommendation.confidence))}</span>` : ''}
+          ${openQuestions.length ? `<span>${openQuestions.length} open question${openQuestions.length === 1 ? '' : 's'}</span>` : ''}
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="card accent">
+          <h2>One-Page Executive Summary</h2>
+          <p>${escapeHtml(executiveSummary || 'Executive summary not yet published.')}</p>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <h2>Architecture Snapshot</h2>
+            <p>${escapeHtml(architectureSnapshot || 'Architecture snapshot not yet published.')}</p>
+          </div>
+          ${biggestRisks.length ? `
+          <div class="card alert">
+            <h2>Top Risks</h2>
+            <ul>${biggestRisks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join('')}</ul>
+          </div>` : ''}
+          ${openQuestions.length ? `
+          <div class="card">
+            <h2>Open Questions</h2>
+            <ul>${openQuestions.map((question) => `<li>${escapeHtml(question)}</li>`).join('')}</ul>
+          </div>` : ''}
+        </div>
+      </section>
+
+      ${sectionHtml}
+
+      <footer class="footer">
+        Exported from Foundry. Use the browser print dialog to save this brief as PDF.
+      </footer>
+    </main>
+    <script>
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          window.focus();
+          window.print();
+        }, 250);
+      });
+    </script>
+  </body>
+</html>`
 }
 
 function maybePush(
@@ -468,14 +743,6 @@ function buildArchitectureMarkdown(
     lines.push('## Architecture Risks', '')
     architectureArtifact.risks.forEach((item) => {
       lines.push(`- **${item.risk}**${item.mitigation ? `: ${item.mitigation}` : ''}`)
-    })
-    lines.push('')
-  }
-
-  if (architectureArtifact?.rollout.length) {
-    lines.push('## Architecture Rollout', '')
-    architectureArtifact.rollout.forEach((phase, index) => {
-      lines.push(`${index + 1}. **${phase.phase}**: ${phase.outcome}`)
     })
     lines.push('')
   }
@@ -754,6 +1021,23 @@ function downloadBlob(filename: string, blob: Blob) {
   link.download = filename
   link.click()
   URL.revokeObjectURL(url)
+}
+
+function openPrintPreview(html: string) {
+  const popup = window.open('', '_blank', 'noopener,noreferrer')
+  if (!popup) return false
+  popup.document.open()
+  popup.document.write(html)
+  popup.document.close()
+  return true
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 function buildZipBlob(files: ExportFile[]) {
