@@ -1,52 +1,52 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { isAuthenticated, setToken, createDevToken, navigateToHome } from '@/lib/auth'
+import { useEffect, useState, type CSSProperties } from 'react'
+import {
+  createDevToken,
+  guestAccessExpiresAt,
+  isAuthenticated,
+  isGuestAccessOpen,
+  navigateToHome,
+  setToken,
+  startGuestLogin,
+  startInternalLogin,
+  type LoginMode,
+} from '@/lib/auth'
 
-const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN ?? ''
-const CLIENT_ID      = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID ?? ''
-const APP_URL        = process.env.NEXT_PUBLIC_APP_URL ?? ''
-const IS_DEV = !COGNITO_DOMAIN || process.env.NODE_ENV === 'development'
+const IS_DEV = process.env.NODE_ENV === 'development'
 
-const REDIRECT_URI = APP_URL ? `${APP_URL}/callback` : (
-  typeof window !== 'undefined' ? `${window.location.origin}/callback` : ''
-)
-
-async function generatePKCE(): Promise<{ verifier: string; challenge: string }> {
-  const array = new Uint8Array(32)
-  crypto.getRandomValues(array)
-  const verifier = btoa(String.fromCharCode(...array))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))
-  const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-
-  return { verifier, challenge }
-}
-
-async function redirectToCognito() {
-  const { verifier, challenge } = await generatePKCE()
-  sessionStorage.setItem('pkce_verifier', verifier)
-
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id:     CLIENT_ID,
-    redirect_uri:  REDIRECT_URI,
-    scope:         'openid email profile',
-    code_challenge: challenge,
-    code_challenge_method: 'S256',
-  })
-  window.location.href = `https://${COGNITO_DOMAIN}/oauth2/authorize?${params}`
+function guestExpiryLabel() {
+  const raw = guestAccessExpiresAt()
+  if (!raw) return ''
+  const value = Date.parse(raw)
+  if (Number.isNaN(value)) return raw
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
 }
 
 export default function LoginPage() {
-  const [devId,    setDevId]    = useState('dev-user-01')
-  const [devName,  setDevName]  = useState('Developer')
+  const [devId, setDevId] = useState('dev-user-01')
+  const [devName, setDevName] = useState('Developer')
   const [devAdmin, setDevAdmin] = useState(false)
+  const [loginMode, setLoginMode] = useState<LoginMode>('internal')
 
   useEffect(() => {
-    if (isAuthenticated()) { navigateToHome(); return }
+    if (isAuthenticated()) {
+      navigateToHome()
+      return
+    }
+    if (typeof window === 'undefined') return
+
+    const params = new URLSearchParams(window.location.search)
+    const mode = params.get('mode')
+    const nextMode: LoginMode = mode === 'guest' || mode === 'external' ? 'guest' : 'internal'
+    setLoginMode(nextMode)
+
+    if (!IS_DEV && nextMode === 'internal') {
+      void startInternalLogin()
+    }
   }, [])
 
   function handleDevLogin() {
@@ -55,122 +55,181 @@ export default function LoginPage() {
     navigateToHome()
   }
 
+  const guestOpen = isGuestAccessOpen()
+  const guestExpires = guestExpiryLabel()
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'var(--bg)',
-      padding: '24px',
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '32px',
-      }}>
-        {/* Logo + title */}
+    <div style={pageStyle}>
+      <div style={shellStyle}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: 48, height: 48,
-            borderRadius: 12,
-            background: 'var(--accent)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 16,
-            fontSize: 22,
-          }}>⚡</div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+          <div style={logoStyle}>⚡</div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 6px' }}>
             Enterprise AI Foundry
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-            Sign in with your Foundry account
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
+            {loginMode === 'guest'
+              ? 'External guest access for a time-bounded event window'
+              : 'Amazon users sign in with Midway-backed SSO by default'}
           </p>
         </div>
 
-        <div style={{
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '20px',
-        }}>
+        <div style={cardStyle}>
           {!IS_DEV ? (
-            <>
-              <p style={{
-                color: 'var(--text-muted)',
-                fontSize: 13,
-                lineHeight: 1.5,
-                margin: 0,
-              }}>
-                Use the email address provided by your Foundry administrator.
-              </p>
-              <button
-                onClick={redirectToCognito}
-                style={btnStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-              >
-                Sign in with email
-              </button>
-              <div style={{
-                borderTop: '1px solid var(--border)',
-                paddingTop: 16,
-                textAlign: 'center',
-                fontSize: 13,
-                color: 'var(--text-muted)',
-              }}>
-                Need an account?{' '}
-                <a
-                  href="/request-access/"
-                  style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}
+            loginMode === 'guest' ? (
+              guestOpen ? (
+                <>
+                  <p style={bodyStyle}>
+                    This entry point is for external event guests. Enter through this guest path only if you were invited to the event. {guestExpires ? `Guest access closes ${guestExpires}.` : ''}
+                  </p>
+                  <button
+                    onClick={() => void startGuestLogin()}
+                    style={primaryButtonStyle}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                  >
+                    Continue with guest email
+                  </button>
+                  <a href="/request-access/" style={secondaryLinkStyle}>
+                    Need guest access? Request it here
+                  </a>
+                  <a href="/login/" style={textLinkStyle}>
+                    Amazon user? Use SSO
+                  </a>
+                </>
+              ) : (
+                <>
+                  <p style={bodyStyle}>
+                    Guest access for this event has ended. {guestExpires ? `The guest window closed ${guestExpires}.` : 'The guest window is no longer active.'}
+                  </p>
+                  <a href="/login/" style={secondaryLinkStyle}>
+                    Amazon user? Use SSO
+                  </a>
+                </>
+              )
+            ) : (
+              <>
+                <p style={bodyStyle}>
+                  Redirecting to Amazon SSO. If the redirect does not start, continue manually below. External guests should use the dedicated guest entry point instead of the default app URL.
+                </p>
+                <button
+                  onClick={() => void startInternalLogin()}
+                  style={primaryButtonStyle}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
                 >
-                  Request access
-                </a>
-              </div>
-            </>
+                  Continue with Amazon SSO
+                </button>
+                {guestOpen ? (
+                  <a href="/login/?mode=guest" style={secondaryLinkStyle}>
+                    External guest access
+                  </a>
+                ) : null}
+              </>
+            )
           ) : (
             <>
-              <p style={{
-                fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-                textTransform: 'uppercase', color: 'var(--text-muted)',
-              }}>Dev mode</p>
+              <p style={eyebrowStyle}>Dev mode</p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <input value={devId} onChange={(e) => setDevId(e.target.value)}
-                  placeholder="User ID" style={inputStyle} />
-                <input value={devName} onChange={(e) => setDevName(e.target.value)}
-                  placeholder="Display name" style={inputStyle} />
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={devAdmin} onChange={(e) => setDevAdmin(e.target.checked)}
-                    style={{ accentColor: 'var(--accent)', width: 14, height: 14 }} />
+                <input
+                  value={devId}
+                  onChange={(e) => setDevId(e.target.value)}
+                  placeholder="User ID"
+                  style={inputStyle}
+                />
+                <input
+                  value={devName}
+                  onChange={(e) => setDevName(e.target.value)}
+                  placeholder="Display name"
+                  style={inputStyle}
+                />
+                <label style={checkboxLabelStyle}>
+                  <input
+                    type="checkbox"
+                    checked={devAdmin}
+                    onChange={(e) => setDevAdmin(e.target.checked)}
+                    style={{ accentColor: 'var(--accent)', width: 14, height: 14 }}
+                  />
                   Admin access
                 </label>
               </div>
 
-              <button onClick={handleDevLogin} style={btnStyle}
+              <button
+                onClick={handleDevLogin}
+                style={primaryButtonStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}>
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+              >
                 Sign in
               </button>
             </>
           )}
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-faint)' }}>
-          Enterprise AI Foundry · Internal tool
+        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>
+          Enterprise AI Foundry · Internal SSO plus bounded guest access
         </p>
       </div>
     </div>
   )
 }
 
-const btnStyle: React.CSSProperties = {
+const pageStyle: CSSProperties = {
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: 'var(--bg)',
+  padding: '24px',
+}
+
+const shellStyle: CSSProperties = {
+  width: '100%',
+  maxWidth: '420px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '32px',
+}
+
+const logoStyle: CSSProperties = {
+  width: 48,
+  height: 48,
+  borderRadius: 12,
+  background: 'var(--accent)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 16,
+  fontSize: 22,
+}
+
+const cardStyle: CSSProperties = {
+  background: 'var(--bg-elevated)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius)',
+  padding: '24px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '16px',
+}
+
+const eyebrowStyle: CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+  margin: 0,
+}
+
+const bodyStyle: CSSProperties = {
+  color: 'var(--text-muted)',
+  fontSize: 13,
+  lineHeight: 1.55,
+  margin: 0,
+}
+
+const primaryButtonStyle: CSSProperties = {
   width: '100%',
   padding: '11px 16px',
   background: 'var(--accent)',
@@ -183,7 +242,27 @@ const btnStyle: React.CSSProperties = {
   transition: 'opacity var(--transition)',
 }
 
-const inputStyle: React.CSSProperties = {
+const secondaryLinkStyle: CSSProperties = {
+  width: '100%',
+  padding: '11px 16px',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-sm)',
+  fontSize: 13,
+  fontWeight: 600,
+  color: 'var(--text)',
+  textDecoration: 'none',
+  textAlign: 'center',
+  background: 'var(--bg)',
+}
+
+const textLinkStyle: CSSProperties = {
+  color: 'var(--text-muted)',
+  fontSize: 12.5,
+  textDecoration: 'none',
+  textAlign: 'center',
+}
+
+const inputStyle: CSSProperties = {
   width: '100%',
   padding: '9px 12px',
   background: 'var(--bg)',
@@ -192,4 +271,13 @@ const inputStyle: React.CSSProperties = {
   color: 'var(--text)',
   fontSize: 13,
   outline: 'none',
+}
+
+const checkboxLabelStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  fontSize: 13,
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
 }

@@ -17,6 +17,8 @@ Globals:
         COGNITO_USER_POOL_ID:  !Ref UserPoolId
         COGNITO_CLIENT_ID:     !Ref UserPoolClient
         ACCESS_REQUEST_TOPIC_ARN: !Ref AccessRequestTopic
+        GUEST_GROUP_NAME: !Ref GuestGroupName
+        GUEST_ACCESS_EXPIRES_AT: !Ref GuestAccessExpiresAt
         AGENTCORE_ENDPOINT_CODING_AGENT: !Ref AgentCoreEndpointArn
 
 Parameters:
@@ -39,7 +41,7 @@ Parameters:
   UserPoolId:
     Type: String
     Default: "us-east-1_oSEwvKdfd"
-    Description: "Existing Cognito User Pool ID shared with platform-advisor; this app uses native Cognito users only"
+    Description: "Existing Cognito User Pool ID shared with platform-advisor; this app uses Midway federation for internal users and native Cognito users for guests"
 
   UserPoolDomain:
     Type: String
@@ -50,6 +52,16 @@ Parameters:
     Type: String
     Default: "thandavm@amazon.com"
     Description: "Email subscribed to new access-request notifications; confirm the SNS subscription email after deployment"
+
+  GuestGroupName:
+    Type: String
+    Default: "foundry-guests"
+    Description: "Cognito group marking external guest identities so event cutoffs can be enforced"
+
+  GuestAccessExpiresAt:
+    Type: String
+    Default: ""
+    Description: "Optional ISO-8601 cutoff after which guest login and guest API access are denied"
 
   AgentCoreEndpointArn:
     Type: String
@@ -95,8 +107,15 @@ Resources:
           KeyType: RANGE
 
   # ── Cognito App Client in existing shared User Pool ─────────────────────────
-  # Reuses platform-advisor's User Pool, but deliberately exposes only native
-  # Cognito users to foundry-app. Other app clients may continue using Midway.
+  GuestUserGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPoolId
+      GroupName: !Ref GuestGroupName
+      Description: Time-bounded external guest identities for Foundry
+
+  # Reuses platform-advisor's User Pool and preserves both login modes:
+  # Midway federation for Amazon users and native Cognito users for guests.
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
@@ -110,6 +129,7 @@ Resources:
         - ALLOW_REFRESH_TOKEN_AUTH
       SupportedIdentityProviders:
         - COGNITO
+        - Midway
       CallbackURLs:
         - !Sub "${AllowedOrigins}/callback"
         - "http://localhost:3000/callback"
@@ -248,6 +268,7 @@ Resources:
                 - cognito-idp:AdminCreateUser
                 - cognito-idp:AdminDeleteUser
                 - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminAddUserToGroup
                 - cognito-idp:ListUsers
               Resource: !Sub "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}"
         - Statement:
@@ -450,6 +471,18 @@ Outputs:
   UserPoolLoginUrl:
     Description: "Cognito Hosted UI login URL for testing"
     Value: !Sub "https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=code&scope=email+openid+profile&redirect_uri=${AllowedOrigins}/callback"
+
+  InternalLoginUrl:
+    Description: "Default internal login entry point (auto-redirects to Midway-backed SSO)"
+    Value: !Sub "${AllowedOrigins}/login/"
+
+  GuestLoginUrl:
+    Description: "External guest login entry point suitable for QR distribution"
+    Value: !Sub "${AllowedOrigins}/login/?mode=guest"
+
+  GuestAccessExpiresAtValue:
+    Description: "Configured guest-access cutoff applied by frontend and backend"
+    Value: !Ref GuestAccessExpiresAt
 
   FrontendBucketName:
     Description: S3 bucket for frontend assets

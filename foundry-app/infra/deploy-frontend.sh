@@ -52,6 +52,13 @@ COGNITO_DOMAIN=$(aws cloudformation describe-stacks \
   --profile "$PROFILE" \
   --region "$REGION")
 
+GUEST_ACCESS_EXPIRES_AT=$(aws cloudformation describe-stacks \
+  --stack-name "$STACK" \
+  --query "Stacks[0].Outputs[?OutputKey=='GuestAccessExpiresAtValue'].OutputValue" \
+  --output text \
+  --profile "$PROFILE" \
+  --region "$REGION")
+
 IDENTITY_POOL_ID=$(aws cloudformation describe-stacks \
   --stack-name "$STACK" \
   --query "Stacks[0].Outputs[?OutputKey=='IdentityPoolId'].OutputValue" \
@@ -66,6 +73,7 @@ echo "  CF URL:           $CF_URL"
 echo "  Cognito Client:   $COGNITO_CLIENT_ID"
 echo "  Cognito Domain:   $COGNITO_DOMAIN"
 echo "  Identity Pool:    $IDENTITY_POOL_ID"
+echo "  Guest cutoff:     $GUEST_ACCESS_EXPIRES_AT"
 
 USER_POOL_ID="us-east-1_oSEwvKdfd"
 AGENTCORE_RUNTIME_ARN="arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/CodingAgentRuntime_CodingAgentRuntime-TOiVHpGwhu"
@@ -80,6 +88,8 @@ NEXT_PUBLIC_API_URL="$API_URL" \
   NEXT_PUBLIC_APP_URL="$CF_URL" \
   NEXT_PUBLIC_COGNITO_CLIENT_ID="$COGNITO_CLIENT_ID" \
   NEXT_PUBLIC_COGNITO_DOMAIN="$COGNITO_DOMAIN" \
+  NEXT_PUBLIC_GUEST_ACCESS_EXPIRES_AT="$GUEST_ACCESS_EXPIRES_AT" \
+  NEXT_PUBLIC_GUEST_GROUP_NAME="foundry-guests" \
   NEXT_PUBLIC_IDENTITY_POOL_ID="$IDENTITY_POOL_ID" \
   NEXT_PUBLIC_USER_POOL_ID="$USER_POOL_ID" \
   NEXT_PUBLIC_AGENTCORE_RUNTIME_ARN="$AGENTCORE_RUNTIME_ARN" \

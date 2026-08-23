@@ -8,12 +8,25 @@ import {
   requestAccess,
 } from '@/lib/api'
 import type { AccessRequestStatusView } from '@/lib/types'
+import { guestAccessExpiresAt, isGuestAccessOpen } from '@/lib/auth'
 
 const STORAGE_KEY = 'foundry_access_request'
 
 type SavedRequest = {
   requestId: string
   requestSecret: string
+}
+
+
+function guestExpiryLabel() {
+  const raw = guestAccessExpiresAt()
+  if (!raw) return ''
+  const value = Date.parse(raw)
+  if (Number.isNaN(value)) return raw
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
 }
 
 function readSavedRequest(): SavedRequest | null {
@@ -41,6 +54,8 @@ export default function RequestAccessPage() {
   const [submitting, setSubmitting] = useState(false)
   const [checking, setChecking] = useState(false)
   const [error, setError] = useState('')
+  const guestOpen = isGuestAccessOpen()
+  const guestExpires = guestExpiryLabel()
 
   const refreshStatus = useCallback(async (current: SavedRequest) => {
     setChecking(true)
@@ -78,6 +93,10 @@ export default function RequestAccessPage() {
 
   async function handleRequest(event: FormEvent) {
     event.preventDefault()
+    if (!guestOpen) {
+      setError(guestExpires ? `Guest access closed ${guestExpires}` : 'Guest access is no longer available')
+      return
+    }
     setError('')
     setSubmitting(true)
     try {
@@ -134,14 +153,15 @@ export default function RequestAccessPage() {
       <div style={shellStyle}>
         <div style={{ textAlign: 'center' }}>
           <div style={logoStyle}>⚡</div>
-          <h1 style={{ fontSize: 22, margin: '0 0 6px', color: 'var(--text)' }}>Request Foundry access</h1>
+          <h1 style={{ fontSize: 22, margin: '0 0 6px', color: 'var(--text)' }}>Request guest access</h1>
           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.55 }}>
-            Send a short request to the Foundry administrators. Keep this browser available to see the decision.
+            Send a short request to the Foundry administrators for external or event access. Keep this browser available to track the decision.
           </p>
         </div>
 
         <section style={cardStyle}>
           {!saved ? (
+            guestOpen ? (
             <form onSubmit={handleRequest} style={formStyle}>
               <Field label="Name">
                 <input value={name} onChange={(event) => setName(event.target.value)} required minLength={2} maxLength={120} style={inputStyle} />
@@ -162,11 +182,23 @@ export default function RequestAccessPage() {
                 {submitting ? 'Sending request…' : 'Request access'}
               </button>
             </form>
+            ) : (
+              <div style={formStyle}>
+                <StatusBadge status="rejected" />
+                <div>
+                  <h2 style={sectionTitleStyle}>Guest access has ended</h2>
+                  <p style={bodyStyle}>
+                    {guestExpires ? `The guest window closed ${guestExpires}.` : 'The guest window is no longer active.'}
+                  </p>
+                </div>
+                <a href="/login/" style={linkButtonStyle}>Amazon user? Use SSO</a>
+              </div>
+            )
           ) : requestStatus?.status === 'approved' ? (
             <form onSubmit={handleActivate} style={formStyle}>
               <StatusBadge status="approved" />
               <div>
-                <h2 style={sectionTitleStyle}>Your request was approved</h2>
+                <h2 style={sectionTitleStyle}>Your guest access was approved</h2>
                 <p style={bodyStyle}>Choose a password for {requestStatus.email}. No temporary password or email code is required.</p>
               </div>
               <Field label="New password" hint="At least 12 characters with uppercase, lowercase, and a number.">
@@ -184,9 +216,9 @@ export default function RequestAccessPage() {
               <StatusBadge status="activated" />
               <div>
                 <h2 style={sectionTitleStyle}>Your account is ready</h2>
-                <p style={bodyStyle}>Sign in with {requestStatus.email} and the password you just created.</p>
+                <p style={bodyStyle}>Sign in through the guest access entry point with {requestStatus.email} and the password you just created.</p>
               </div>
-              <a href="/login/" style={linkButtonStyle}>Continue to sign in</a>
+              <a href="/login/?mode=guest" style={linkButtonStyle}>Continue to guest sign in</a>
             </div>
           ) : requestStatus?.status === 'rejected' ? (
             <div style={formStyle}>
@@ -215,8 +247,8 @@ export default function RequestAccessPage() {
           {error ? <p role="alert" style={{ margin: 0, color: 'var(--red)', fontSize: 12.5, lineHeight: 1.5 }}>{error}</p> : null}
         </section>
 
-        <a href="/login/" style={{ color: 'var(--text-muted)', fontSize: 12.5, textAlign: 'center', textDecoration: 'none' }}>
-          Back to sign in
+        <a href="/login/?mode=guest" style={{ color: 'var(--text-muted)', fontSize: 12.5, textAlign: 'center', textDecoration: 'none' }}>
+          Back to guest sign in
         </a>
       </div>
     </main>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { isAuthenticated, getUserId, getUserName, isAdmin as getIsAdmin, navigateToLogin } from '@/lib/auth'
+import { getUserId, getUserName, isAdmin as getIsAdmin, isAuthenticated, isGuestUser, navigateToLogin, startInternalLogin } from '@/lib/auth'
 import { listAllSessions, listModules } from '@/lib/api'
 import { restoreSessionFromLocation } from '@/lib/session-actions'
 import { useStore } from '@/store'
@@ -14,7 +14,11 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      navigateToLogin()
+      if (isGuestUser()) {
+        navigateToLogin('guest')
+      } else {
+        void startInternalLogin()
+      }
       return
     }
 

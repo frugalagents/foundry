@@ -1,36 +1,29 @@
 # Foundry authentication
 
-`foundry-app` uses native Amazon Cognito email/password accounts. Its Cognito
-app client supports only the `COGNITO` identity provider, so login does not
-depend on Amazon Federate or Midway.
+`foundry-app` should support two distinct entry paths on the same Cognito user pool:
 
-The Cognito user pool is shared with Platform Advisor. Other app clients may
-continue to use Federate; this app-client change does not remove or modify the
-shared Midway identity provider.
+1. Internal Amazon users: default login through Cognito Hosted UI with the `Midway` identity provider.
+2. External guests: separate guest entry point through native Cognito accounts.
 
-## Standard onboarding
+The important boundary is that internal users should not be forced into the
+native Cognito username/password flow just because guest access exists.
 
-1. The user opens `/request-access/`.
-2. The user submits their name, email, and reason for access.
-3. The request appears in **Admin Console → Access requests**. An SNS email is
-   also sent after the administrator confirms the topic subscription.
-4. An administrator approves or rejects the request.
-5. Approval creates a native Cognito account with Cognito email delivery
-   suppressed.
-6. The user's saved request page changes to a password-activation form.
-7. The user sets a permanent password and signs in with their email.
+## Internal login
 
-The browser stores a private request token locally. DynamoDB stores only its
-SHA-256 hash, and access-request records expire after seven days using TTL.
+- Default app URL: `/login/`
+- Behavior: immediately redirects to Cognito Hosted UI with `identity_provider=Midway`
+- Result: Cognito still issues the app token, so the API and browser runtime continue to trust a single token issuer
 
-## Emergency administrator provisioning
+## Guest login
 
-The normal path is the approval workflow. For a brand-new email address only:
+- Guest entry point: `/login/?mode=guest`
+- Intended use: QR codes, event access, external evaluators
+- Behavior: routes to native Cognito sign-in instead of Midway
+- Current onboarding path: `/request-access/` for admin-approved guest access
+- Optional event control: set `GuestAccessExpiresAt` so the guest entry point, guest request flow, and guest API access all stop after the configured cutoff
 
-```bash
-./infra/provision-cognito-user.sh user@example.com
-```
+## Operational guidance
 
-The command prints a one-time password and Cognito requires the user to replace
-it during first sign-in. The helper refuses to modify existing or
-Federate-derived users.
+- QR codes for events should point to `/login/?mode=guest`, not the default app URL.
+- Keep guest accounts time-bounded and administrator-managed.
+- If you later add a 24-hour invite or passwordless flow, build it on top of the guest path rather than changing the default internal login path.

@@ -17,8 +17,37 @@ DEV_MODE             = os.environ.get("DEV_MODE", "false").lower() == "true"
 COGNITO_REGION       = os.environ.get("COGNITO_REGION", "us-east-1")
 COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "")
 COGNITO_CLIENT_ID    = os.environ.get("COGNITO_CLIENT_ID", "")
+GUEST_GROUP_NAME     = os.environ.get("GUEST_GROUP_NAME", "foundry-guests")
+GUEST_ACCESS_EXPIRES_AT = os.environ.get("GUEST_ACCESS_EXPIRES_AT", "").strip()
 
 _bearer = HTTPBearer(auto_error=False)
+
+
+def _guest_access_cutoff() -> float | None:
+    if not GUEST_ACCESS_EXPIRES_AT:
+        return None
+    try:
+        normalized = GUEST_ACCESS_EXPIRES_AT.replace("Z", "+00:00")
+        from datetime import datetime
+        return datetime.fromisoformat(normalized).timestamp()
+    except ValueError:
+        logger.warning("Invalid GUEST_ACCESS_EXPIRES_AT value: %s", GUEST_ACCESS_EXPIRES_AT)
+        return None
+
+
+def guest_access_window_closed() -> bool:
+    cutoff = _guest_access_cutoff()
+    if cutoff is None:
+        return False
+    from time import time
+    return time() >= cutoff
+
+
+def _is_guest_user(user: dict) -> bool:
+    groups = user.get("cognito:groups", user.get("groups", []))
+    if isinstance(groups, str):
+        groups = [groups]
+    return GUEST_GROUP_NAME in groups
 
 
 @lru_cache(maxsize=1)
@@ -110,6 +139,11 @@ async def get_current_user(
         ) from exc
 
     get_user_id(payload)  # validates sub is present
+    if not DEV_MODE and _is_guest_user(payload) and guest_access_window_closed():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Guest access for this event has ended",
+        )
     # Attach raw token so stream router can forward it to the AgentCore runtime
     payload["_raw_token"] = token
     return payload

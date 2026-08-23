@@ -104,6 +104,30 @@ class AccessRequestTests(unittest.TestCase):
         create_call = fake_cognito.admin_create_user.call_args.kwargs
         self.assertEqual(create_call["Username"], "new.user@example.com")
         self.assertEqual(create_call["MessageAction"], "SUPPRESS")
+        fake_cognito.admin_add_user_to_group.assert_called_once_with(
+            UserPoolId="pool-id",
+            Username="native-user-id",
+            GroupName="foundry-guests",
+        )
+
+
+    def test_create_access_request_rejects_when_guest_window_is_closed(self) -> None:
+        request = Request({
+            "type": "http",
+            "client": ("127.0.0.1", 12345),
+            "headers": [(b"user-agent", b"unit-test")],
+        })
+        body = AccessRequestCreate(
+            name="New User",
+            email="new.user@example.com",
+            reason="I need to evaluate the Foundry workflow.",
+        )
+
+        with patch("api.routers.access_requests.guest_access_window_closed", return_value=True):
+            with self.assertRaises(Exception) as raised:
+                asyncio.run(access_requests.create_access_request(body, request))
+
+        self.assertEqual(getattr(raised.exception, "status_code", None), 403)
 
     def test_activation_sets_permanent_password(self) -> None:
         item = {

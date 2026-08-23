@@ -25,7 +25,7 @@ from api.db.models import (
     AccessRequestStatusOut,
     AdminAccessRequestOut,
 )
-from api.middleware.auth import get_current_user, get_user_id, is_admin
+from api.middleware.auth import get_current_user, get_user_id, guest_access_window_closed, is_admin
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["access"])
@@ -35,6 +35,7 @@ CurrentUser = Annotated[dict, Depends(get_current_user)]
 REGION = os.environ.get("COGNITO_REGION", "us-east-1")
 USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "")
 ACCESS_REQUEST_TOPIC_ARN = os.environ.get("ACCESS_REQUEST_TOPIC_ARN", "")
+GUEST_GROUP_NAME = os.environ.get("GUEST_GROUP_NAME", "foundry-guests")
 REQUEST_TTL_DAYS = 7
 REQUEST_RATE_LIMIT_PER_HOUR = 3
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -100,6 +101,14 @@ def _require_not_expired(item: dict) -> None:
 def _require_admin(user: dict) -> None:
     if not is_admin(user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+
+
+def _require_guest_access_open() -> None:
+    if guest_access_window_closed():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Guest access for this event has ended",
+        )
 
 
 def _validate_password(value: str) -> None:
@@ -184,6 +193,7 @@ def _notify_admin(item: dict) -> None:
     status_code=status.HTTP_201_CREATED,
 )
 async def create_access_request(body: AccessRequestCreate, request: Request):
+    _require_guest_access_open()
     if body.website.strip():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Request could not be submitted")
 
@@ -241,6 +251,7 @@ async def get_access_request_status(body: AccessRequestSecretIn):
 
 @router.post("/access-requests/activate", response_model=AccessRequestStatusOut)
 async def activate_access_request(body: AccessRequestActivateIn):
+    _require_guest_access_open()
     item = _get_request(body.request_id)
     _require_valid_secret(item, body.request_secret)
     _require_not_expired(item)
@@ -345,6 +356,11 @@ async def approve_access_request(
             ],
         )["User"]
         created_username = created["Username"]
+        _cognito_client().admin_add_user_to_group(
+            UserPoolId=USER_POOL_ID,
+            Username=created_username,
+            GroupName=GUEST_GROUP_NAME,
+        )
         attributes = {
             attribute["Name"]: attribute["Value"]
             for attribute in created.get("Attributes", [])
