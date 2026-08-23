@@ -10,6 +10,7 @@ import {
   buildFallbackBlueprint,
   hasOutputPackContent,
 } from '@/lib/session-export'
+import { normalizeAdvisoryStage } from '@/lib/workflow'
 import type { AdvisoryOutputPack } from '@/lib/types'
 
 export default function BlueprintPanel() {
@@ -20,6 +21,7 @@ export default function BlueprintPanel() {
 
   const view = useMemo(() => normalizeWorkspace(workspace), [workspace])
   const advisoryCase = hasAdvisoryCaseContent(view.advisory_case) ? view.advisory_case : null
+  const stage = normalizeAdvisoryStage(view.stage) ?? 'discovery'
   const outputPack = advisoryCase?.output_pack ?? null
   const fallbackMarkdown = useMemo(
     () => (view.blueprint_markdown?.trim() || buildFallbackBlueprint(view, architectureArtifact)).trim(),
@@ -32,7 +34,10 @@ export default function BlueprintPanel() {
   )
   const hasStructuredPack = Boolean(outputPack && hasOutputPackContent(outputPack))
   const markdownSections = useMemo(() => parseMarkdownSections(exportMarkdown), [exportMarkdown])
-  const hasBlueprint = hasStructuredPack || exportMarkdown.length > 0
+  const hasBlueprint =
+    hasStructuredPack ||
+    !!view.blueprint_markdown?.trim() ||
+    (stage === 'blueprint' && exportMarkdown.length > 0)
 
   async function handleCopy() {
     if (!hasBlueprint) return
@@ -64,7 +69,9 @@ export default function BlueprintPanel() {
       {!hasBlueprint ? (
         <div style={{ padding: '18px 16px' }}>
           <p style={{ fontSize: 12.5, color: 'var(--text-faint)', lineHeight: 1.65 }}>
-            The engine will publish the reusable output pack here once the recommendation, decisions, risks, and rollout are coherent enough to defend.
+            {stage === 'discovery'
+              ? 'Questions and assumptions are being prioritized first. The blueprint will generate after the recommendation is coherent enough to defend.'
+              : 'The engine will publish the reusable output pack here once the recommendation, decisions, risks, and rollout are coherent enough to defend.'}
           </p>
         </div>
       ) : hasStructuredPack && outputPack ? (

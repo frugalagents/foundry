@@ -6,7 +6,7 @@ import { useStore } from '@/store'
 import { buildAssumptionCards } from '@/lib/assumptions'
 import { normalizeWorkspace } from '@/lib/message-analysis'
 import { hasAdvisoryCaseContent } from '@/lib/advisory-case'
-import { downloadSessionBrief, hasSessionExportContent } from '@/lib/session-export'
+import { downloadSessionBrief, hasOutputPackContent, hasSessionExportContent } from '@/lib/session-export'
 import { normalizeAdvisoryStage, preferredWorkspaceTab, type AdvisoryWorkspaceTab } from '@/lib/workflow'
 import AdvisoryBrief from './AdvisoryBrief'
 import AssumptionsPanel from './AssumptionsPanel'
@@ -29,19 +29,16 @@ export default function WorkspaceTabs() {
   const advisoryCase = hasAdvisoryCaseContent(view.advisory_case) ? view.advisory_case : null
   const blueprintReady =
     !!view.blueprint_markdown?.trim() ||
-    !!advisoryCase?.output_pack.executive_summary ||
-    !!advisoryCase?.output_pack.recommendation_memo ||
-    !!view.recommendation ||
-    view.decisions.length > 0 ||
-    view.implementation_plan.length > 0
+    Boolean(advisoryCase?.output_pack && hasOutputPackContent(advisoryCase.output_pack))
   const assumptions = useMemo(
     () => buildAssumptionCards(view, architectureArtifact, canvasNodes),
     [architectureArtifact, canvasNodes, view],
   )
   const questionCount = view.open_questions.length
-  const architectureReady = canvasNodes.length > 0 || !!architectureArtifact
-  const baselineReady = architectureReady
   const stage = normalizeAdvisoryStage(view.stage)
+  const isDiscovery = stage === 'discovery'
+  const architectureReady = !isDiscovery && (canvasNodes.length > 0 || !!architectureArtifact)
+  const baselineReady = architectureReady
   const preferredTab = preferredWorkspaceTab(stage, {
     questionCount,
     blueprintReady,
@@ -76,18 +73,18 @@ export default function WorkspaceTabs() {
   const showExport = blueprintReady && canExport
   const [exporting, setExporting] = useState(false)
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(
-    questionCount > 0 && stage === 'discovery' ? 'questions' : 'brief',
+    questionCount > 0 && isDiscovery ? 'questions' : 'brief',
   )
 
   useEffect(() => {
     if (!baselineReady) {
       if (activeTab === 'blueprint' || activeTab === 'architecture') {
-        setActiveTab(questionCount > 0 && stage === 'discovery' ? 'questions' : 'brief')
+        setActiveTab(questionCount > 0 && isDiscovery ? 'questions' : 'brief')
       }
       return
     }
 
-    if (questionCount > 0 && stage === 'discovery' && activeTab !== 'questions') {
+    if (questionCount > 0 && isDiscovery && activeTab !== 'questions') {
       setActiveTab('questions')
       return
     }
@@ -95,7 +92,7 @@ export default function WorkspaceTabs() {
     if (activeTab === 'questions' && questionCount === 0) {
       setActiveTab('brief')
     }
-  }, [activeTab, baselineReady, preferredTab, questionCount, stage])
+  }, [activeTab, baselineReady, isDiscovery, preferredTab, questionCount])
 
   async function handleDownloadBrief() {
     if (!canExport || exporting) return

@@ -4,6 +4,7 @@ import { useMemo, type CSSProperties } from 'react'
 import { useStore } from '@/store'
 import type { ArchNode, ArchitectureArtifact } from '@/lib/types'
 import { normalizeWorkspace } from '@/lib/message-analysis'
+import { normalizeAdvisoryStage } from '@/lib/workflow'
 import IconGlyph from './IconGlyph'
 
 const LAYER_META: Record<string, { label: string; color: string; purpose: string }> = {
@@ -53,6 +54,7 @@ export default function ArchitectureBoard() {
   const baselineNodeIds = useStore((s) => s.baselineNodeIds)
 
   const workspace = useMemo(() => normalizeWorkspace(workspaceState), [workspaceState])
+  const stage = normalizeAdvisoryStage(workspace.stage) ?? 'discovery'
   const archNodes = useMemo(
     () => canvasNodes.filter((node) => node.type === 'arch'),
     [canvasNodes],
@@ -116,7 +118,9 @@ export default function ArchitectureBoard() {
           <span style={eyebrow}>Architecture</span>
           <h2 style={{ fontSize: 20, lineHeight: 1.2 }}>No architecture snapshot yet</h2>
           <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--text-2)' }}>
-            The architecture board will appear here once the advisor emits a baseline or revised design.
+            {stage === 'discovery'
+              ? 'The advisor is still collecting the first questions and assumptions. A baseline architecture will appear here after the direction is stable enough to visualize.'
+              : 'The architecture board will appear here once the advisor emits a baseline or revised design.'}
           </p>
         </div>
       </div>

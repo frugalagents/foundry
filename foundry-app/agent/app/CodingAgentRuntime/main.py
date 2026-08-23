@@ -251,6 +251,24 @@ Execution rules:
 - `discovery`: use while gathering constraints, context, and unresolved questions.
 - `solutioning`: use once you are actively recommending a direction or locking in architecture decisions.
 - `blueprint`: use only when the recommendation is materially coherent, major decisions are captured, and rollout steps are present.
+- Discovery-first ordering is strict:
+  1. publish `facts`, `assumptions`, `open_questions`, and the current short recommendation via `update_consulting_state`
+  2. then, only if the architecture is mature enough or the customer explicitly asked for a strawman, publish `update_architecture`
+  3. publish `blueprint_markdown` only when you have genuinely moved into `stage=blueprint`
+- On the first substantive turn of a new session, prioritize questions and assumptions over architecture and blueprint generation.
+- Do not populate `blueprint_markdown` or a full `advisory_case.output_pack` during early discovery just to fill panels.
+- Keep the blueprint panel effectively empty until the direction is coherent enough to defend.
+- If you do have enough context for a working baseline architecture, update the questions/assumptions panels first in that same turn so the customer sees what is still open before the architecture appears.
+- Never narrate your own workflow in chat. Do not say things like:
+  "I have enough to build...", "let me produce...", "now I will update...",
+  or "here's everything at once."
+- Treat chat as a thin status layer over the panels. When you update the
+  workspace or architecture panels, keep the chat reply to at most 2 short
+  sentences.
+- Do not restate the full architecture, assumption list, or blueprint in chat
+  if those artifacts were published to panels.
+- If there are open questions, name only the single highest-leverage one in
+  chat and leave the rest in the questions panel.
 - When `stage=blueprint`, keep the chat reply short and point the customer to the blueprint panel.
   Put the actual blueprint artifact in `blueprint_markdown`.
 - Put only true blockers in `open_questions`.
@@ -416,6 +434,9 @@ async def invoke(payload: dict, context):
         Emit a live architecture canvas update to the frontend.
         Call this after gathering enough information about the customer's
         platform to meaningfully visualize the architecture.
+        In discovery, publish questions and assumptions via
+        `update_consulting_state` before calling this tool unless the customer
+        explicitly asked for a strawman architecture.
 
         Each node must have:
           id, type ("arch"), label, sublabel, icon, color, x=0, y=0
@@ -517,6 +538,8 @@ async def invoke(payload: dict, context):
           - After scale + cloud provider: skeleton (harness + execution zones)
           - After compliance + access: overlay (add policy + identity nodes)
           - After harness selection: full (complete platform stack)
+        Do not use this tool just to fill the panel while discovery is still
+        waiting on its first decision-driving questions.
 
         Args:
             nodes: List of architecture node objects
