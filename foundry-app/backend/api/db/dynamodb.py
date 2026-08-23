@@ -309,3 +309,97 @@ def get_workspace(customer_id: str, session_id: str) -> dict | None:
         Key={"PK": f"CUSTOMER#{customer_id}", "SK": f"WORKSPACE#{session_id}"}
     )
     return resp.get("Item")
+
+
+# ── Feedback & admin analytics ───────────────────────────────────────────────
+
+def get_session_feedback(
+    customer_id: str,
+    session_id: str,
+    user_id: str,
+) -> dict | None:
+    table = _get_table()
+    resp = table.get_item(
+        Key={
+            "PK": f"CUSTOMER#{customer_id}",
+            "SK": f"FEEDBACK#{session_id}#{user_id}",
+        }
+    )
+    return resp.get("Item")
+
+
+def upsert_session_feedback(
+    customer_id: str,
+    session_id: str,
+    user_id: str,
+    user_name: str,
+    payload: dict[str, Any],
+) -> dict:
+    table = _get_table()
+    now = _now()
+    existing = get_session_feedback(customer_id, session_id, user_id)
+    item = {
+        "PK": f"CUSTOMER#{customer_id}",
+        "SK": f"FEEDBACK#{session_id}#{user_id}",
+        "customer_id": customer_id,
+        "session_id": session_id,
+        "user_id": user_id,
+        "user_name": user_name,
+        "rating": int(payload.get("rating") or 0),
+        "most_useful": payload.get("most_useful") or "",
+        "missing": payload.get("missing") or "",
+        "additional_comments": payload.get("additional_comments") or "",
+        "reused_in_doc_or_meeting": payload.get("reused_in_doc_or_meeting"),
+        "agreed_with_recommendation": payload.get("agreed_with_recommendation"),
+        "would_reuse": payload.get("would_reuse"),
+        "created_at": existing.get("created_at", now) if existing else now,
+        "updated_at": now,
+    }
+    table.put_item(Item=item)
+    return item
+
+
+def list_feedback_for_session(customer_id: str, session_id: str) -> list[dict]:
+    table = _get_table()
+    items = _query_all(
+        table,
+        KeyConditionExpression=(
+            Key("PK").eq(f"CUSTOMER#{customer_id}")
+            & Key("SK").begins_with(f"FEEDBACK#{session_id}#")
+        ),
+    )
+    items.sort(key=lambda i: i.get("updated_at", ""), reverse=True)
+    return items
+
+
+def list_all_feedback() -> list[dict]:
+    table = _get_table()
+    items = _scan_all(
+        table,
+        FilterExpression="begins_with(SK, :sk_prefix)",
+        ExpressionAttributeValues={":sk_prefix": "FEEDBACK#"},
+    )
+    items.sort(key=lambda i: i.get("updated_at", ""), reverse=True)
+    return items
+
+
+def list_workspaces() -> list[dict]:
+    table = _get_table()
+    items = _scan_all(
+        table,
+        FilterExpression="begins_with(SK, :sk_prefix)",
+        ExpressionAttributeValues={":sk_prefix": "WORKSPACE#"},
+    )
+    items.sort(key=lambda i: i.get("updated_at", ""), reverse=True)
+    return items
+
+
+def list_canvases() -> list[dict]:
+    table = _get_table()
+    items = _scan_all(
+        table,
+        FilterExpression="begins_with(SK, :sk_prefix)",
+        ExpressionAttributeValues={":sk_prefix": "CANVAS#"},
+    )
+    items.sort(key=lambda i: i.get("updated_at", i.get("created_at", "")), reverse=True)
+    return items

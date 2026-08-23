@@ -1,3 +1,4 @@
+import { dedupeTextList } from './text-normalization'
 import type { Message, ConsultingWorkspace } from './types'
 
 export type AgentMsgType = 'question' | 'observation' | 'mixed'
@@ -95,12 +96,12 @@ export function normalizeWorkspace(workspace?: ConsultingWorkspace | null): Cons
     recommendation: workspace?.recommendation ?? '',
     blueprint_markdown: workspace?.blueprint_markdown ?? '',
     assumptions: workspace?.assumptions ?? [],
-    facts: workspace?.facts ?? [],
+    facts: dedupeTextList(workspace?.facts ?? []),
     operating_model: workspace?.operating_model ?? '',
-    open_questions: workspace?.open_questions ?? [],
-    decisions: workspace?.decisions ?? [],
-    risks: workspace?.risks ?? [],
-    implementation_plan: workspace?.implementation_plan ?? [],
+    open_questions: dedupeTextList(workspace?.open_questions ?? []),
+    decisions: dedupeTextList(workspace?.decisions ?? []),
+    risks: dedupeTextList(workspace?.risks ?? []),
+    implementation_plan: dedupeTextList(workspace?.implementation_plan ?? []),
     advisory_case: workspace?.advisory_case ?? null,
     updated_at: workspace?.updated_at,
   }

@@ -464,9 +464,12 @@ async def invoke(payload: dict, context):
         Each node must have:
           id, type ("arch"), label, sublabel, icon, color, x=0, y=0
         Optional but strongly recommended:
-          layer   — zone band for the node (see below)
-          cost    — monthly cost string e.g. "$180/mo"
-          size    — sizing string e.g. "2 vCPU · 4 GB · ALB"
+          layer      — zone band for the node (see below)
+          kind       — semantic category used by the UI to separate harnesses,
+                       frameworks, runtimes, gateways, connectors, models, and controls
+          path_role  — one of `primary`, `overlay`, or `supporting`
+          cost       — monthly cost string e.g. "$180/mo"
+          size       — sizing string e.g. "2 vCPU · 4 GB · ALB"
 
         ALWAYS set `layer` on every node so it lands in the correct zone band —
         these match the platform stack used throughout this conversation:
@@ -483,6 +486,10 @@ async def invoke(payload: dict, context):
           - OpenCode, Pi, Cline, Codex CLI, Goose, Aider, OpenHands, Mastra, SWE-agent = pre-built OSS coding harnesses
         Never call Strands or LangChain an "OSS harness" unless you explicitly
         mean a custom harness the customer is building on top of that framework.
+        Never place a framework SDK in the same peer list as approved interactive
+        harnesses unless the recommendation is explicitly a custom harness built on
+        that framework. Background-agent lanes, runtimes, adapters, and connectors
+        are not peer harnesses.
 
         Target-state architecture rule:
           - Represent the actual target-state operating model. If the customer is
@@ -548,6 +555,30 @@ async def invoke(payload: dict, context):
 	                  "phase": string,
 	                  "outcome": string
 	                }
+              ],
+              "primary_flow": [
+                {
+                  "id": string,
+                  "title": string,
+                  "narrative": string,
+                  "component_ids": [string]
+                }
+              ],
+              "cross_cutting_controls": [
+                {
+                  "id": string,
+                  "title": string,
+                  "narrative": string,
+                  "component_ids": [string]
+                }
+              ],
+              "supporting_lanes": [
+                {
+                  "id": string,
+                  "title": string,
+                  "narrative": string,
+                  "component_ids": [string]
+                }
               ]
             }
 
@@ -556,6 +587,18 @@ async def invoke(payload: dict, context):
           - what is the standard baseline?
           - what changed for this org?
           - why did it change?
+          - what is the end-to-end request path?
+          - which controls apply across that path?
+          - which lanes are sidecars or exceptions instead of the main flow?
+
+        Consistency rules are strict:
+          - Do not list the same concept as both baseline and customization.
+          - Do not say all major decisions are resolved if open questions,
+            prerequisites, or blockers still remain.
+          - Deduplicate near-identical risks and open questions.
+          - If multiple interactive tools are approved, show them as the approved
+            harness portfolio and move frameworks/runtimes/connectors into
+            supporting lanes or overlays rather than the peer harness row.
 
 	        Call at these stages:
 	          - After scale + cloud provider: skeleton (harness + execution zones)

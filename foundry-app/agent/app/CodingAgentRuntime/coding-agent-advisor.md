@@ -297,12 +297,31 @@ include:
 - `architecture_artifact.risks`: meaningful remaining risks and mitigations
 - `architecture_artifact.rollout`: architecture implementation implications or
   prerequisites, not the full program rollout plan
+- `architecture_artifact.primary_flow`: the end-to-end request path as named
+  segments with component IDs
+- `architecture_artifact.cross_cutting_controls`: controls that apply across the
+  path rather than sitting inline in one box
+- `architecture_artifact.supporting_lanes`: sidecars, background-agent lanes,
+  and exception paths that should not be collapsed into the main harness row
 
-The VP should be able to answer three questions from the architecture tab alone:
+The VP should be able to answer six questions from the architecture tab alone:
 
 1. What is the standard baseline?
 2. What changed for our organization?
 3. Why did it change?
+4. What is the end-to-end request path?
+5. Which controls apply across that path?
+6. Which lanes are supporting or exceptional rather than the primary flow?
+
+Consistency rules are strict:
+
+- Do not list the same concept as both baseline and customization.
+- Do not say all major decisions are resolved if open questions, prerequisites,
+  or blockers still remain.
+- Deduplicate near-identical risks and open questions.
+- If multiple interactive tools are approved, show them as the approved harness
+  portfolio and move frameworks, runtimes, adapters, and connectors into
+  supporting lanes or overlays rather than the peer harness row.
 
 If the update only changes nodes and edges but does not refresh the artifact,
 the architecture is incomplete.

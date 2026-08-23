@@ -14,6 +14,7 @@ import { normalizeAdvisoryCase } from '@/lib/advisory-case'
 import { getToken } from '@/lib/auth'
 import { normalizeArchitectureArtifact } from '@/lib/architecture-artifact'
 import { normalizeWorkspaceAssumptions } from '@/lib/assumptions'
+import { normalizeWorkspace } from '@/lib/message-analysis'
 import { SESSION_NORMALIZATION_MARKER } from '@/lib/session-normalization'
 import type { OperatingModel } from '@/lib/types'
 import type { SendMessageOptions } from './useConversationSend'
@@ -141,7 +142,7 @@ export function useStream() {
             setCanvas(d.nodes ?? [], d.edges ?? [], Array.isArray(d.baseline_node_ids) ? d.baseline_node_ids : undefined)
             setArchitectureArtifact(normalizeArchitectureArtifact(d.architecture_artifact))
           } else if (type === 'workspace_update') {
-            setWorkspace({
+            setWorkspace(normalizeWorkspace({
               stage: typeof data.stage === 'string' ? data.stage : '',
               recommendation: typeof data.recommendation === 'string' ? data.recommendation : '',
               blueprint_markdown: typeof data.blueprint_markdown === 'string' ? data.blueprint_markdown : '',
@@ -160,7 +161,7 @@ export function useStream() {
                 : [],
               advisory_case: normalizeAdvisoryCase(data.advisory_case),
               updated_at: typeof data.updated_at === 'string' ? data.updated_at : undefined,
-            })
+            }))
           } else if (type === 'module_detected') {
             const mod = (data as { module?: string }).module ?? ''
             if (mod) useStore.getState().setActiveSession(customerId, sessionId, mod)

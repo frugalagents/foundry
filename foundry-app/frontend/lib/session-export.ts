@@ -3,6 +3,7 @@
 import { hasAdvisoryCaseContent } from './advisory-case'
 import { normalizeWorkspace } from './message-analysis'
 import { renderMarkdown } from './render-markdown'
+import { dedupeTextList } from './text-normalization'
 import type {
   AdvisoryCase,
   AdvisoryDecision,
@@ -268,6 +269,80 @@ function buildSessionExportFiles(context: SessionExportContext, slug: string): E
   return files
 }
 
+
+function collectOpenQuestions(workspace: ConsultingWorkspace, advisoryCase: AdvisoryCase | null, outputPack: AdvisoryOutputPack | null) {
+  return dedupeTextList([
+    ...workspace.open_questions,
+    ...(advisoryCase?.readout.open_questions ?? []),
+    ...(outputPack?.open_questions ?? []),
+  ])
+}
+
+function collectTopRisks(advisoryCase: AdvisoryCase | null, architectureArtifact: ArchitectureArtifact | null, workspace: ConsultingWorkspace) {
+  return dedupeTextList([
+    ...(advisoryCase?.readout.biggest_risks ?? []),
+    ...(advisoryCase?.risks.map((item) => item.risk) ?? []),
+    ...(architectureArtifact?.risks.map((item) => item.risk) ?? []),
+    ...workspace.risks,
+  ])
+}
+
+function describePrimaryFlow(architectureArtifact: ArchitectureArtifact | null) {
+  const titles = architectureArtifact?.primary_flow.length
+    ? architectureArtifact.primary_flow.map((segment) => segment.title)
+    : architectureArtifact?.baseline.layers
+      .filter((layer) => !['access', 'ops'].includes(layer.id))
+      .map((layer) => layer.label)
+      ?? []
+
+  return dedupeTextList(titles).slice(0, 6).join(' -> ')
+}
+
+function buildExecutiveSummaryText(
+  recommendation: string,
+  outputPack: AdvisoryOutputPack | null,
+  architectureArtifact: ArchitectureArtifact | null,
+  openQuestions: string[],
+) {
+  if (openQuestions.length === 0) {
+    return outputPack?.executive_summary || architectureArtifact?.executive_summary || recommendation || ''
+  }
+
+  const base = recommendation || outputPack?.executive_summary || architectureArtifact?.executive_summary || 'The target direction is defined, but not fully closed.'
+  const flow = describePrimaryFlow(architectureArtifact)
+  const pendingLead = openQuestions.length === 1
+    ? `One architecture item still needs confirmation: ${openQuestions[0]}`
+    : `${openQuestions.length} architecture items still need confirmation, starting with ${openQuestions[0]}`
+
+  return [base, flow ? `Primary request path: ${flow}.` : '', pendingLead]
+    .filter(Boolean)
+    .join(' ')
+}
+
+function buildArchitectureSnapshotText(
+  architectureArtifact: ArchitectureArtifact | null,
+  recommendation: string,
+  openQuestions: string[],
+) {
+  const flow = describePrimaryFlow(architectureArtifact)
+  const summary = architectureArtifact?.executive_summary || recommendation
+  const base = [summary, flow ? `Path: ${flow}.` : ''].filter(Boolean).join(' ')
+
+  if (openQuestions.length === 0) {
+    return base || 'Architecture snapshot not yet published.'
+  }
+
+  return [
+    base || 'Architecture snapshot published.',
+    `Pending before finalization: ${openQuestions.slice(0, 2).join(' ')}`,
+  ].filter(Boolean).join(' ')
+}
+
+function resolveComponentLabels(componentIds: string[], canvasNodes: ArchNode[]) {
+  const nodeById = new Map(canvasNodes.map((node) => [node.id, node]))
+  return dedupeTextList(componentIds.map((id) => nodeById.get(id)?.label || id))
+}
+
 function buildExecutiveBriefHtml(context: SessionExportContext, slug: string) {
   const workspace = normalizeWorkspace(context.workspace)
   const advisoryCase: AdvisoryCase | null = hasAdvisoryCaseContent(workspace.advisory_case)
@@ -285,17 +360,19 @@ function buildExecutiveBriefHtml(context: SessionExportContext, slug: string) {
     minute: '2-digit',
   })
   const recommendation = advisoryCase?.recommendation.summary || workspace.recommendation
-  const executiveSummary = outputPack?.executive_summary || advisoryCase?.readout.current_recommendation || recommendation
-  const architectureSnapshot = advisoryCase?.readout.architecture_snapshot || context.architectureArtifact?.executive_summary || ''
-  const biggestRisks = [
-    ...(advisoryCase?.readout.biggest_risks ?? []),
-    ...(advisoryCase?.risks.map((item) => item.risk) ?? []),
-  ].filter(Boolean).slice(0, 3)
-  const openQuestions = dedupe([
-    ...workspace.open_questions,
-    ...(advisoryCase?.readout.open_questions ?? []),
-    ...(outputPack?.open_questions ?? []),
-  ]).slice(0, 3)
+  const openQuestions = collectOpenQuestions(workspace, advisoryCase, outputPack).slice(0, 3)
+  const executiveSummary = buildExecutiveSummaryText(
+    recommendation,
+    outputPack,
+    context.architectureArtifact,
+    openQuestions,
+  )
+  const architectureSnapshot = buildArchitectureSnapshotText(
+    context.architectureArtifact,
+    recommendation,
+    openQuestions,
+  )
+  const biggestRisks = collectTopRisks(advisoryCase, context.architectureArtifact, workspace).slice(0, 3)
   const detailSections = [
     fileMap.get('recommendation.md') || '',
     fileMap.get('decisions.md') || '',
@@ -691,6 +768,45 @@ function buildArchitectureMarkdown(
     lines.push('## Executive Summary', '', architectureArtifact.executive_summary, '')
   }
 
+  if (architectureArtifact?.primary_flow.length) {
+    lines.push('## Primary Flow', '')
+    architectureArtifact.primary_flow.forEach((segment) => {
+      lines.push(`### ${segment.title}`)
+      if (segment.narrative) lines.push(segment.narrative)
+      const labels = resolveComponentLabels(segment.component_ids, canvasNodes)
+      if (labels.length) {
+        labels.forEach((label) => lines.push(`- ${label}`))
+      }
+      lines.push('')
+    })
+  }
+
+  if (architectureArtifact?.cross_cutting_controls.length) {
+    lines.push('## Cross-Cutting Controls', '')
+    architectureArtifact.cross_cutting_controls.forEach((group) => {
+      lines.push(`### ${group.title}`)
+      if (group.narrative) lines.push(group.narrative)
+      const labels = resolveComponentLabels(group.component_ids, canvasNodes)
+      if (labels.length) {
+        labels.forEach((label) => lines.push(`- ${label}`))
+      }
+      lines.push('')
+    })
+  }
+
+  if (architectureArtifact?.supporting_lanes.length) {
+    lines.push('## Supporting Lanes', '')
+    architectureArtifact.supporting_lanes.forEach((group) => {
+      lines.push(`### ${group.title}`)
+      if (group.narrative) lines.push(group.narrative)
+      const labels = resolveComponentLabels(group.component_ids, canvasNodes)
+      if (labels.length) {
+        labels.forEach((label) => lines.push(`- ${label}`))
+      }
+      lines.push('')
+    })
+  }
+
   if (architectureArtifact?.baseline.name || architectureArtifact?.baseline.layers.length) {
     lines.push('## Baseline')
     if (architectureArtifact?.baseline.name) {
@@ -991,7 +1107,7 @@ function buildMessagesMarkdown(messages: Message[]) {
 }
 
 function dedupe(values: string[]) {
-  return [...new Set(values.filter(Boolean))]
+  return dedupeTextList(values)
 }
 
 function hasTechnicalBlueprintTables(markdown: string) {

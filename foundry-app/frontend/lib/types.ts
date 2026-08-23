@@ -91,6 +91,63 @@ export interface SessionHistory {
 
 // ── SSE event payloads ────────────────────────────────────────────────────────
 
+export interface SessionFeedbackInput {
+  rating: number
+  most_useful: string
+  missing: string
+  additional_comments: string
+  reused_in_doc_or_meeting?: boolean | null
+  agreed_with_recommendation?: boolean | null
+  would_reuse?: boolean | null
+}
+
+export interface SessionFeedback extends SessionFeedbackInput {
+  customer_id: string
+  session_id: string
+  user_id: string
+  user_name: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminCountMetric {
+  label: string
+  value: number
+}
+
+export interface AdminRecentActivity {
+  customer_id: string
+  customer_name: string
+  session_id: string
+  session_title: string
+  created_by: string
+  updated_at: string
+  status: string
+  module_id?: string
+  stage: string
+}
+
+export interface AdminAnalytics {
+  total_customers: number
+  total_sessions: number
+  unique_users: number
+  active_sessions_7d: number
+  sessions_with_workspace: number
+  sessions_with_architecture: number
+  feedback_submissions: number
+  average_feedback_score: number
+  module_breakdown: AdminCountMetric[]
+  stage_breakdown: AdminCountMetric[]
+  top_customers: AdminCountMetric[]
+  recent_activity: AdminRecentActivity[]
+}
+
+export interface AdminFeedbackRow {
+  customer: Customer
+  session: Session
+  feedback: SessionFeedback
+}
+
 export interface ChatStreamEvent {
   type: 'chat_stream'
   data: { text: string }
@@ -304,6 +361,20 @@ export interface ArchitectureRolloutPhase {
   outcome: string
 }
 
+export interface ArchitectureFlowSegment {
+  id: string
+  title: string
+  narrative: string
+  component_ids: string[]
+}
+
+export interface ArchitectureOverlayGroup {
+  id: string
+  title: string
+  narrative: string
+  component_ids: string[]
+}
+
 export interface ArchitectureArtifact {
   executive_summary: string
   baseline: {
@@ -314,6 +385,9 @@ export interface ArchitectureArtifact {
   decisions: ArchitectureDecisionRationale[]
   risks: ArchitectureRiskItem[]
   rollout: ArchitectureRolloutPhase[]
+  primary_flow: ArchitectureFlowSegment[]
+  cross_cutting_controls: ArchitectureOverlayGroup[]
+  supporting_lanes: ArchitectureOverlayGroup[]
 }
 
 // ── Architecture canvas ───────────────────────────────────────────────────────
@@ -340,6 +414,8 @@ export interface ArchNode {
   cost?: string
   size?: string
   layer?: ArchLayer
+  kind?: string
+  path_role?: 'primary' | 'overlay' | 'supporting' | ''
   comments?: NodeComment[]
 }
 

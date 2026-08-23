@@ -1,6 +1,16 @@
 import { authHeaders, getUserId, refreshIdToken } from './auth'
-import type { Customer, Session, SessionCreate, SessionHistory, Module } from './types'
-import type { ConversationRow } from './types'
+import type {
+  AdminAnalytics,
+  AdminFeedbackRow,
+  ConversationRow,
+  Customer,
+  Module,
+  Session,
+  SessionCreate,
+  SessionFeedback,
+  SessionFeedbackInput,
+  SessionHistory,
+} from './types'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
@@ -136,6 +146,15 @@ export const deleteSession = (customerId: string, sessionId: string) =>
 export const getSessionHistory = (customerId: string, sessionId: string) =>
   call<SessionHistory>(`/api/v1/customers/${customerId}/sessions/${sessionId}/history`)
 
+export const getSessionFeedback = (customerId: string, sessionId: string) =>
+  call<SessionFeedback | null>(`/api/v1/customers/${customerId}/sessions/${sessionId}/feedback`)
+
+export const submitSessionFeedback = (customerId: string, sessionId: string, body: SessionFeedbackInput) =>
+  call<SessionFeedback>(`/api/v1/customers/${customerId}/sessions/${sessionId}/feedback`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+
 // ── Modules ───────────────────────────────────────────────────────────────────
 
 export const listModules = () =>
@@ -143,6 +162,12 @@ export const listModules = () =>
 
 export const listAdminSessions = () =>
   call<ConversationRow[]>('/api/v1/admin/sessions')
+
+export const listAdminFeedback = () =>
+  call<AdminFeedbackRow[]>('/api/v1/admin/feedback')
+
+export const getAdminAnalytics = () =>
+  call<AdminAnalytics>('/api/v1/admin/analytics')
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

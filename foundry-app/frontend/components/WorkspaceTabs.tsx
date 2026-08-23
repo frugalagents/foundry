@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Download } from 'lucide-react'
+import { Download, MessageSquare } from 'lucide-react'
 import { useStore } from '@/store'
 import { buildAssumptionCards } from '@/lib/assumptions'
 import { normalizeWorkspace } from '@/lib/message-analysis'
@@ -13,10 +13,12 @@ import AssumptionsPanel from './AssumptionsPanel'
 import ArchitectureBoard from './ArchitectureBoard'
 import BlueprintPanel from './BlueprintPanel'
 import OpenQuestionsPanel from './OpenQuestionsPanel'
+import SessionFeedbackDialog from './SessionFeedbackDialog'
 
 type WorkspaceTab = 'brief' | AdvisoryWorkspaceTab
 
 export default function WorkspaceTabs() {
+  const activeCustomerId = useStore((s) => s.activeCustomerId)
   const activeSessionId = useStore((s) => s.activeSessionId)
   const conversations = useStore((s) => s.conversations)
   const messages = useStore((s) => s.messages)
@@ -71,7 +73,9 @@ export default function WorkspaceTabs() {
     ],
   )
   const showExport = blueprintReady && canExport
+  const showFeedback = Boolean(activeCustomerId && activeSessionId && messages.length > 0)
   const [exporting, setExporting] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(
     questionCount > 0 && isDiscovery ? 'questions' : 'brief',
   )
@@ -158,28 +162,51 @@ export default function WorkspaceTabs() {
             </p>
           </div>
 
-          {showExport ? (
-            <button
-              onClick={handleDownloadBrief}
-              disabled={exporting}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 12px',
-                borderRadius: 10,
-                border: '1px solid var(--border)',
-                background: exporting ? 'var(--bg-hover)' : 'var(--bg-elevated)',
-                color: exporting ? 'var(--text-faint)' : 'var(--text)',
-                fontSize: 12.5,
-                fontWeight: 600,
-                cursor: exporting ? 'default' : 'pointer',
-              }}
-            >
-              <Download size={14} />
-              {exporting ? 'Preparing PDF…' : 'Download PDF Brief'}
-            </button>
-          ) : null}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {showFeedback ? (
+              <button
+                onClick={() => setFeedbackOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-elevated)',
+                  color: 'var(--text)',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <MessageSquare size={14} />
+                Share Feedback
+              </button>
+            ) : null}
+            {showExport ? (
+              <button
+                onClick={handleDownloadBrief}
+                disabled={exporting}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  background: exporting ? 'var(--bg-hover)' : 'var(--bg-elevated)',
+                  color: exporting ? 'var(--text-faint)' : 'var(--text)',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: exporting ? 'default' : 'pointer',
+                }}
+              >
+                <Download size={14} />
+                {exporting ? 'Preparing PDF…' : 'Download PDF Brief'}
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div style={{
@@ -248,6 +275,13 @@ export default function WorkspaceTabs() {
           </div>
         )}
       </div>
+      <SessionFeedbackDialog
+        open={feedbackOpen}
+        customerId={activeCustomerId}
+        sessionId={activeSessionId}
+        sessionTitle={sessionTitle}
+        onClose={() => setFeedbackOpen(false)}
+      />
     </div>
   )
 }

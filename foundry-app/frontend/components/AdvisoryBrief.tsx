@@ -7,7 +7,7 @@ import { normalizeWorkspace } from '@/lib/message-analysis'
 import { normalizeAdvisoryStage } from '@/lib/workflow'
 
 type MetricTone = 'neutral' | 'warning' | 'success'
-type BriefTab = 'overview' | 'readout' | 'scenarios' | 'maturity'
+type BriefTab = 'overview' | 'scenarios' | 'maturity'
 
 export default function AdvisoryBrief() {
   const workspace = useStore((s) => s.workspace)
@@ -54,15 +54,6 @@ export default function AdvisoryBrief() {
     : outputPackQuestionFallback.length
       ? outputPackQuestionFallback
       : fallbackQuestions
-  const readoutRollout =
-    readout?.rollout_summary ||
-    (outputPack?.rollout_30_90_180.length
-      ? outputPack.rollout_30_90_180.map((item) => `${item.horizon}: ${item.outcome}`).join(' ')
-      : view.implementation_plan.slice(0, 3).join(' '))
-  const architectureSnapshot =
-    readout?.architecture_snapshot ||
-    outputPack?.architecture_narrative ||
-    outputPack?.recommendation_memo
   const keyFacts = view.facts.slice(0, 4)
   const keySignals: Array<{ label: string; value: string; tone: MetricTone }> = [
     {
@@ -94,7 +85,6 @@ export default function AdvisoryBrief() {
   const tabs = useMemo<Array<{ id: BriefTab; label: string; badge?: string }>>(() => {
     const nextTabs: Array<{ id: BriefTab; label: string; badge?: string }> = [
       { id: 'overview', label: 'Overview' },
-      { id: 'readout', label: 'Readout' },
     ]
 
     if (alternatives.length > 0 || delta) {
@@ -122,40 +112,40 @@ export default function AdvisoryBrief() {
 
   return (
     <section style={shellStyle}>
-      <div style={headerStyle}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0, flex: 1 }}>
-          <span style={eyebrowStyle}>Advisory Brief</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h1 style={titleStyle}>{sessionTitle}</h1>
-            <span style={stagePill(stage)}>{stage}</span>
+      <div style={briefScrollerStyle}>
+        <div style={headerStyle}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0, flex: 1 }}>
+            <span style={eyebrowStyle}>Advisory Brief</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h1 style={titleStyle}>{sessionTitle}</h1>
+              <span style={stagePill(stage)}>{stage}</span>
+            </div>
+            <p style={introStyle}>
+              {recommendationSummary || 'The engine will publish a structured recommendation here as soon as it has enough context to commit to a direction.'}
+            </p>
           </div>
-          <p style={introStyle}>
-            {recommendationSummary || 'The engine will publish a structured recommendation here as soon as it has enough context to commit to a direction.'}
-          </p>
+          {keyFacts.length > 0 ? (
+            <div style={factWrapStyle}>
+              {keyFacts.map((fact) => (
+                <span key={fact} style={factPillStyle}>{fact}</span>
+              ))}
+            </div>
+          ) : null}
         </div>
-        {keyFacts.length > 0 ? (
-          <div style={factWrapStyle}>
-            {keyFacts.map((fact) => (
-              <span key={fact} style={factPillStyle}>{fact}</span>
-            ))}
-          </div>
-        ) : null}
-      </div>
 
-      <div style={tabBarStyle}>
-        {tabs.map((tab) => (
-          <BriefTabButton
-            key={tab.id}
-            active={activeTab === tab.id}
-            badge={tab.badge}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </BriefTabButton>
-        ))}
-      </div>
+        <div style={tabBarStyle}>
+          {tabs.map((tab) => (
+            <BriefTabButton
+              key={tab.id}
+              active={activeTab === tab.id}
+              badge={tab.badge}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </BriefTabButton>
+          ))}
+        </div>
 
-      <div style={contentScrollerStyle}>
         {activeTab === 'overview' ? (
           <div style={contentStackStyle}>
             <div style={signalGridStyle}>
@@ -237,45 +227,6 @@ export default function AdvisoryBrief() {
                 <MiniListCard label="Open Questions" items={openQuestions} tone="warning" />
               </div>
             </section>
-          </div>
-        ) : null}
-
-        {activeTab === 'readout' ? (
-          <div style={contentStackStyle}>
-            <section style={featureCardStyle}>
-              <div style={cardHeaderStyle}>
-                <span style={cardLabelStyle}>Meeting Readout</span>
-              </div>
-              <p style={primaryBodyStyle}>
-                {readout?.current_recommendation || recommendationSummary || 'No meeting readout is available yet.'}
-              </p>
-              <div style={snapshotGridStyle}>
-                <MiniListCard label="Important Decisions" items={importantDecisions} />
-                <MiniListCard label="Biggest Risks" items={biggestRisks} tone="warning" />
-                <MiniListCard label="Open Questions" items={openQuestions} tone="warning" />
-              </div>
-            </section>
-
-            {(readoutRollout || architectureSnapshot) ? (
-              <div style={twoColumnGridStyle}>
-                {readoutRollout ? (
-                  <section style={cardStyle}>
-                    <div style={cardHeaderStyle}>
-                      <span style={cardLabelStyle}>Rollout</span>
-                    </div>
-                    <p style={compactBodyStyle}>{readoutRollout}</p>
-                  </section>
-                ) : null}
-                {architectureSnapshot ? (
-                  <section style={cardStyle}>
-                    <div style={cardHeaderStyle}>
-                      <span style={cardLabelStyle}>Architecture Snapshot</span>
-                    </div>
-                    <p style={compactBodyStyle}>{architectureSnapshot}</p>
-                  </section>
-                ) : null}
-              </div>
-            ) : null}
           </div>
         ) : null}
 
@@ -505,10 +456,17 @@ const shellStyle: React.CSSProperties = {
   background: 'linear-gradient(180deg, rgba(255,253,249,0.96) 0%, rgba(247,241,232,0.92) 100%)',
   boxShadow: 'var(--shadow-lg)',
   padding: 18,
+  overflow: 'hidden',
+}
+
+const briefScrollerStyle: React.CSSProperties = {
+  height: '100%',
+  minHeight: 0,
+  overflowY: 'auto',
+  paddingRight: 4,
   display: 'flex',
   flexDirection: 'column',
   gap: 14,
-  overflow: 'hidden',
 }
 
 const headerStyle: React.CSSProperties = {
@@ -609,9 +567,6 @@ const tabBadgeStyle: React.CSSProperties = {
 
 const contentScrollerStyle: React.CSSProperties = {
   minHeight: 0,
-  flex: 1,
-  overflowY: 'auto',
-  paddingRight: 4,
 }
 
 const contentStackStyle: React.CSSProperties = {

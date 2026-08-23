@@ -29,29 +29,11 @@ export default function OpenQuestionsPanel() {
       .filter((question) => question.answer.length > 0),
     [drafts, openQuestions],
   )
-
-  async function handleSubmit(questionId: string, questionText: string) {
-    const answer = drafts[questionId]?.trim()
-    if (!answer) return
-    setSubmittingId(questionId)
-    try {
-      const sent = await sendMessage(answer, {
-        title: 'Panel answer',
-        appendToTranscript: false,
-        action: {
-          kind: 'open_question_answer',
-          question: questionText,
-          answer,
-        },
-      })
-      if (sent) {
-        setDrafts((current) => ({ ...current, [questionId]: '' }))
-      }
-    } finally {
-      setSubmittingId(null)
-    }
-  }
-
+  const agentStreaming = useMemo(
+    () => messages.some((message) => message.role === 'agent' && message.streaming),
+    [messages],
+  )
+  const busy = sending || agentStreaming || submittingId !== null
   async function handleSubmitAll() {
     if (answeredQuestions.length === 0) return
     setSubmittingId('all')
@@ -119,25 +101,31 @@ export default function OpenQuestionsPanel() {
         </span>
       </div>
 
-      {answeredQuestions.length > 1 ? (
+      {answeredQuestions.length > 0 ? (
         <div style={batchCardStyle}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={batchTitleStyle}>Batch Send</span>
             <p style={batchBodyStyle}>
-              {answeredQuestions.length} question answers are drafted. Send them together so the engine refreshes the recommendation once.
+              {answeredQuestions.length} question answer{answeredQuestions.length === 1 ? '' : 's'} {answeredQuestions.length === 1 ? 'is' : 'are'} drafted. Send them together so the engine refreshes the recommendation once.
             </p>
           </div>
           <button
             onClick={handleSubmitAll}
-            disabled={sending}
+            disabled={busy}
             style={{
               ...submitButtonStyle,
               background: submittingId === 'all' ? 'var(--accent-dim)' : 'var(--bg)',
               color: submittingId === 'all' ? 'var(--accent-strong)' : 'var(--text)',
-              cursor: sending ? 'default' : 'pointer',
+              cursor: busy ? 'default' : 'pointer',
             }}
           >
-            {submittingId === 'all' ? 'Sending…' : `Send ${answeredQuestions.length} Answers`}
+            {submittingId === 'all'
+              ? 'Sending…'
+              : busy
+                ? 'Wait for current response'
+                : answeredQuestions.length === 1
+                  ? 'Send 1 Answer'
+                  : `Send ${answeredQuestions.length} Answers`}
           </button>
         </div>
       ) : null}
@@ -185,7 +173,8 @@ export default function OpenQuestionsPanel() {
                 <textarea
                   value={drafts[question.id] ?? ''}
                   onChange={(e) => setDrafts((current) => ({ ...current, [question.id]: e.target.value }))}
-                  placeholder="Answer here without typing in the main chat…"
+                  disabled={busy}
+                  placeholder="Draft the answer here, then use Send above…"
                   rows={3}
                   style={{
                     width: '100%',
@@ -200,22 +189,9 @@ export default function OpenQuestionsPanel() {
                     lineHeight: 1.55,
                     fontFamily: 'inherit',
                     outline: 'none',
+                    opacity: busy ? 0.7 : 1,
                   }}
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => handleSubmit(question.id, question.text)}
-                    disabled={sending || !(drafts[question.id] ?? '').trim()}
-                    style={{
-                      ...submitButtonStyle,
-                      background: submittingId === question.id ? 'var(--accent-dim)' : 'var(--bg)',
-                      color: submittingId === question.id ? 'var(--accent-strong)' : 'var(--text)',
-                      cursor: sending || !(drafts[question.id] ?? '').trim() ? 'default' : 'pointer',
-                    }}
-                  >
-                    {submittingId === question.id ? 'Sending…' : 'Send Answer'}
-                  </button>
-                </div>
               </div>
             </div>
           ))}

@@ -18,6 +18,8 @@ from api.db.models import (
     MessageOut,
     Session,
     SessionCreate,
+    SessionFeedbackIn,
+    SessionFeedbackOut,
     SessionHistory,
     SessionUpdate,
 )
@@ -149,6 +151,40 @@ async def get_session_history(customer_id: str, session_id: str, user: CurrentUs
     )
 
 
+@router.get("/{session_id}/feedback", response_model=SessionFeedbackOut | None)
+async def get_session_feedback(customer_id: str, session_id: str, user: CurrentUser):
+    _get_session(customer_id, session_id, user)
+    item = db.get_session_feedback(customer_id, session_id, get_user_id(user))
+    return _to_feedback(item) if item else None
+
+
+@router.post("/{session_id}/feedback", response_model=SessionFeedbackOut)
+async def upsert_session_feedback(
+    customer_id: str,
+    session_id: str,
+    body: SessionFeedbackIn,
+    user: CurrentUser,
+):
+    _get_session(customer_id, session_id, user)
+    item = db.upsert_session_feedback(
+        customer_id,
+        session_id,
+        get_user_id(user),
+        _display_name(user),
+        body.model_dump(),
+    )
+    return _to_feedback(item)
+
+
+def _display_name(user: dict) -> str:
+    return (
+        str(user.get("name") or "").strip()
+        or str(user.get("email") or "").strip()
+        or str(user.get("cognito:username") or "").strip()
+        or get_user_id(user)
+    )
+
+
 def _to_session(item: dict) -> Session:
     return Session(
         session_id=item["session_id"],
@@ -161,6 +197,24 @@ def _to_session(item: dict) -> Session:
         recommendation=item.get("recommendation"),
         evidence_state=item.get("evidence_state"),
         created_by=item.get("created_by", ""),
+        created_at=item.get("created_at", ""),
+        updated_at=item.get("updated_at", ""),
+    )
+
+
+def _to_feedback(item: dict) -> SessionFeedbackOut:
+    return SessionFeedbackOut(
+        customer_id=item["customer_id"],
+        session_id=item["session_id"],
+        user_id=item.get("user_id", ""),
+        user_name=item.get("user_name", ""),
+        rating=int(item.get("rating") or 0),
+        most_useful=item.get("most_useful") or "",
+        missing=item.get("missing") or "",
+        additional_comments=item.get("additional_comments") or "",
+        reused_in_doc_or_meeting=item.get("reused_in_doc_or_meeting"),
+        agreed_with_recommendation=item.get("agreed_with_recommendation"),
+        would_reuse=item.get("would_reuse"),
         created_at=item.get("created_at", ""),
         updated_at=item.get("updated_at", ""),
     )

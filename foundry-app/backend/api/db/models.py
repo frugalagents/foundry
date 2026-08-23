@@ -237,6 +237,70 @@ class SessionHistory(BaseModel):
     workspace: Optional[ConsultingWorkspaceOut] = None
 
 
+class SessionFeedbackIn(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    most_useful: str = Field(default="", max_length=2000)
+    missing: str = Field(default="", max_length=2000)
+    additional_comments: str = Field(default="", max_length=4000)
+    reused_in_doc_or_meeting: Optional[bool] = None
+    agreed_with_recommendation: Optional[bool] = None
+    would_reuse: Optional[bool] = None
+
+
+class SessionFeedbackOut(BaseModel):
+    customer_id: str
+    session_id: str
+    user_id: str
+    user_name: str = ""
+    rating: int
+    most_useful: str = ""
+    missing: str = ""
+    additional_comments: str = ""
+    reused_in_doc_or_meeting: Optional[bool] = None
+    agreed_with_recommendation: Optional[bool] = None
+    would_reuse: Optional[bool] = None
+    created_at: str
+    updated_at: str
+
+
+class AdminFeedbackRowOut(BaseModel):
+    customer: Customer
+    session: Session
+    feedback: SessionFeedbackOut
+
+
+class AdminCountOut(BaseModel):
+    label: str
+    value: int
+
+
+class AdminRecentActivityOut(BaseModel):
+    customer_id: str
+    customer_name: str
+    session_id: str
+    session_title: str
+    created_by: str
+    updated_at: str
+    status: str = ""
+    module_id: Optional[str] = None
+    stage: str = ""
+
+
+class AdminAnalyticsOut(BaseModel):
+    total_customers: int = 0
+    total_sessions: int = 0
+    unique_users: int = 0
+    active_sessions_7d: int = 0
+    sessions_with_workspace: int = 0
+    sessions_with_architecture: int = 0
+    feedback_submissions: int = 0
+    average_feedback_score: float = 0.0
+    module_breakdown: list[AdminCountOut] = Field(default_factory=list)
+    stage_breakdown: list[AdminCountOut] = Field(default_factory=list)
+    top_customers: list[AdminCountOut] = Field(default_factory=list)
+    recent_activity: list[AdminRecentActivityOut] = Field(default_factory=list)
+
+
 class ArchitectureLayerSummaryOut(BaseModel):
     id: str
     label: str

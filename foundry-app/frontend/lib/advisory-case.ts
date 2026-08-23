@@ -12,9 +12,10 @@ import type {
   AdvisoryRecommendation,
   AdvisoryRisk,
 } from './types'
+import { dedupeTextList } from './text-normalization'
 
 function stringList(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  return dedupeTextList(Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [])
 }
 
 function normalizeConfidence(value: unknown): AdvisoryRecommendation['confidence'] {

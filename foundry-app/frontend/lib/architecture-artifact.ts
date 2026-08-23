@@ -1,14 +1,17 @@
+import { dedupeTextList } from './text-normalization'
 import type {
   ArchitectureArtifact,
   ArchitectureCustomization,
   ArchitectureDecisionRationale,
+  ArchitectureFlowSegment,
   ArchitectureLayerSummary,
+  ArchitectureOverlayGroup,
   ArchitectureRiskItem,
   ArchitectureRolloutPhase,
 } from './types'
 
 function stringList(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  return dedupeTextList(Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [])
 }
 
 function normalizeLayer(value: unknown): ArchitectureLayerSummary | null {
@@ -70,6 +73,30 @@ function normalizeRollout(value: unknown): ArchitectureRolloutPhase | null {
   }
 }
 
+function normalizeFlowSegment(value: unknown): ArchitectureFlowSegment | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Record<string, unknown>
+  if (typeof raw.id !== 'string' || typeof raw.title !== 'string') return null
+  return {
+    id: raw.id,
+    title: raw.title,
+    narrative: typeof raw.narrative === 'string' ? raw.narrative : '',
+    component_ids: stringList(raw.component_ids),
+  }
+}
+
+function normalizeOverlayGroup(value: unknown): ArchitectureOverlayGroup | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Record<string, unknown>
+  if (typeof raw.id !== 'string' || typeof raw.title !== 'string') return null
+  return {
+    id: raw.id,
+    title: raw.title,
+    narrative: typeof raw.narrative === 'string' ? raw.narrative : '',
+    component_ids: stringList(raw.component_ids),
+  }
+}
+
 export function normalizeArchitectureArtifact(value: unknown): ArchitectureArtifact | null {
   if (!value || typeof value !== 'object') return null
   const raw = value as Record<string, unknown>
@@ -96,6 +123,15 @@ export function normalizeArchitectureArtifact(value: unknown): ArchitectureArtif
       : [],
     rollout: Array.isArray(raw.rollout)
       ? raw.rollout.map(normalizeRollout).filter((item): item is ArchitectureRolloutPhase => Boolean(item))
+      : [],
+    primary_flow: Array.isArray(raw.primary_flow)
+      ? raw.primary_flow.map(normalizeFlowSegment).filter((item): item is ArchitectureFlowSegment => Boolean(item))
+      : [],
+    cross_cutting_controls: Array.isArray(raw.cross_cutting_controls)
+      ? raw.cross_cutting_controls.map(normalizeOverlayGroup).filter((item): item is ArchitectureOverlayGroup => Boolean(item))
+      : [],
+    supporting_lanes: Array.isArray(raw.supporting_lanes)
+      ? raw.supporting_lanes.map(normalizeOverlayGroup).filter((item): item is ArchitectureOverlayGroup => Boolean(item))
       : [],
   }
 }
