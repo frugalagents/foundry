@@ -47,10 +47,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated()) { navigateToHome(); return }
-    // In production, auto-redirect to Cognito (→ Midway) — no button click needed
-    if (!IS_DEV) {
-      redirectToCognito()
-    }
   }, [])
 
   function handleDevLogin() {
@@ -91,7 +87,7 @@ export default function LoginPage() {
             Enterprise AI Foundry
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-            Sign in to access your AI platform advisor
+            Sign in with your Foundry account
           </p>
         </div>
 
@@ -105,14 +101,24 @@ export default function LoginPage() {
           gap: '20px',
         }}>
           {!IS_DEV ? (
-            <button
-              onClick={redirectToCognito}
-              style={btnStyle}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-            >
-              Sign in with Amazon SSO
-            </button>
+            <>
+              <p style={{
+                color: 'var(--text-muted)',
+                fontSize: 13,
+                lineHeight: 1.5,
+                margin: 0,
+              }}>
+                Use the email address provided by your Foundry administrator.
+              </p>
+              <button
+                onClick={redirectToCognito}
+                style={btnStyle}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+              >
+                Sign in with email
+              </button>
+            </>
           ) : (
             <>
               <p style={{

@@ -38,7 +38,7 @@ Parameters:
   UserPoolId:
     Type: String
     Default: "us-east-1_oSEwvKdfd"
-    Description: "Existing Cognito User Pool ID (shared with platform-advisor, has Midway IdP)"
+    Description: "Existing Cognito User Pool ID shared with platform-advisor; this app uses native Cognito users only"
 
   UserPoolDomain:
     Type: String
@@ -85,21 +85,21 @@ Resources:
           KeyType: RANGE
 
   # ── Cognito App Client in existing shared User Pool ─────────────────────────
-  # Reuses platform-advisor's User Pool (which already has Midway as OIDC IdP).
-  # No need to recreate the User Pool or re-register the Midway client secret.
+  # Reuses platform-advisor's User Pool, but deliberately exposes only native
+  # Cognito users to foundry-app. Other app clients may continue using Midway.
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       UserPoolId: !Ref UserPoolId
       ClientName: !Sub foundry-app-${Env}
       GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
       ExplicitAuthFlows:
         - ALLOW_USER_SRP_AUTH
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
       SupportedIdentityProviders:
         - COGNITO
-        - Midway
       CallbackURLs:
         - !Sub "${AllowedOrigins}/callback"
         - "http://localhost:3000/callback"
