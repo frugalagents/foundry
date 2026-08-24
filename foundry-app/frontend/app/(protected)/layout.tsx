@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getUserId, getUserName, isAdmin as getIsAdmin, isAuthenticated, isGuestUser, navigateToLogin, startInternalLogin } from '@/lib/auth'
+import { getUserId, getUserName, isAdmin as getIsAdmin, isAuthenticated, isGuestUser, isMidwayIdentity, logout, navigateToLogin, startInternalLogin } from '@/lib/auth'
 import { listAllSessions, listModules } from '@/lib/api'
 import { restoreSessionFromLocation } from '@/lib/session-actions'
 import { useStore } from '@/store'
@@ -19,6 +19,11 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       } else {
         void startInternalLogin()
       }
+      return
+    }
+
+    if (!isGuestUser() && !isMidwayIdentity()) {
+      logout()
       return
     }
 

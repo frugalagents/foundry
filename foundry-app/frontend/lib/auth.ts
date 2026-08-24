@@ -186,6 +186,14 @@ export function isAdmin(): boolean {
   return c['custom:role'] === 'admin' || groups.includes('admin') || groups.includes('foundry-admins')
 }
 
+export function isMidwayIdentity(): boolean {
+  const c = getClaims()
+  if (!c) return false
+  const alias = String(c['custom:amazon_alias'] ?? '').trim()
+  const username = String(c['cognito:username'] ?? '')
+  return alias.length > 0 || username.startsWith('Midway_')
+}
+
 export function isAuthenticated(): boolean {
   const token = getToken()
   if (!token) return false

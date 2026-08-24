@@ -146,12 +146,24 @@ async def get_current_user(
             detail=f"Invalid token: {exc}",
         ) from exc
 
-    get_user_id(payload)  # validates sub is present
+    actor_id = get_user_id(payload)  # validates sub is present
     if not DEV_MODE and _is_guest_user(payload) and guest_access_window_closed():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Guest access for this event has ended",
         )
+    groups = payload.get("cognito:groups", payload.get("groups", []))
+    if isinstance(groups, str):
+        groups = [groups]
+    logger.info(
+        "auth_request path=%s sub=%s username=%s client_id=%s token_use=%s groups=%s",
+        request.url.path,
+        actor_id,
+        payload.get("cognito:username") or payload.get("username"),
+        payload.get("client_id") or payload.get("aud"),
+        payload.get("token_use"),
+        groups,
+    )
     # Attach raw token so stream router can forward it to the AgentCore runtime
     payload["_raw_token"] = token
     return payload
@@ -171,11 +183,20 @@ def is_admin(user: dict) -> bool:
     groups = user.get("cognito:groups", user.get("groups", []))
     if isinstance(groups, str):
         groups = [groups]
-    return (
+    admin = (
         user.get("custom:role") == "admin"
         or "admin" in groups
         or "foundry-admins" in groups
     )
+    logger.info(
+        "admin_check sub=%s username=%s admin=%s groups=%s custom_role=%s",
+        user.get("sub") or user.get("user_id"),
+        user.get("cognito:username") or user.get("username"),
+        admin,
+        groups,
+        user.get("custom:role"),
+    )
+    return admin
 
 
 def authorize_owned_resource(
