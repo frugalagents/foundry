@@ -69,7 +69,7 @@ export default function LoginPage() {
           <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
             {loginMode === 'guest'
               ? 'External guest access for a time-bounded event window'
-              : 'Amazon users sign in with Midway-backed SSO by default'}
+              : 'Amazon users sign in with enterprise SSO by default'}
           </p>
         </div>
 

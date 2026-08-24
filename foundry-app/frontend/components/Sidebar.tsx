@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { useStore } from '@/store'
-import { clearToken, navigateToLogin } from '@/lib/auth'
+import { logout } from '@/lib/auth'
 import { listAllSessions, deleteSession } from '@/lib/api'
 import { loadSessionIntoView } from '@/lib/session-actions'
 import type { ConversationRow } from '@/lib/types'
@@ -179,8 +179,7 @@ export default function Sidebar({ onNewChat }: { onNewChat: () => void }) {
   )
 
   function handleSignOut() {
-    clearToken()
-    navigateToLogin()
+    logout()
   }
 
   return (

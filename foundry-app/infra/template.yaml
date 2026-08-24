@@ -16,6 +16,11 @@ Globals:
         COGNITO_REGION:        !Ref AWS::Region
         COGNITO_USER_POOL_ID:  !Ref UserPoolId
         COGNITO_CLIENT_ID:     !Ref UserPoolClient
+        COGNITO_SHARED_CLIENT_ID: !If
+          - HasSharedAuthClient
+          - !ImportValue
+              'Fn::Sub': '${SharedAuthClientIdExportName}'
+          - ""
         ACCESS_REQUEST_TOPIC_ARN: !Ref AccessRequestTopic
         GUEST_GROUP_NAME: !Ref GuestGroupName
         GUEST_ACCESS_EXPIRES_AT: !Ref GuestAccessExpiresAt
@@ -53,6 +58,11 @@ Parameters:
     Default: "thandavm@amazon.com"
     Description: "Email subscribed to new access-request notifications; confirm the SNS subscription email after deployment"
 
+  SharedAuthClientIdExportName:
+    Type: String
+    Default: "platform-advisor-dev-UserPoolClientId"
+    Description: "CloudFormation export name for the last-known-good shared Cognito app client used for browser login"
+
   GuestGroupName:
     Type: String
     Default: "foundry-guests"
@@ -78,6 +88,7 @@ Conditions:
   IsDev: !Equals [!Ref Env, dev]
   HasAgentCoreRuntimeArn: !Not [!Equals [!Ref AgentCoreRuntimeArn, ""]]
   HasAdminNotificationEmail: !Not [!Equals [!Ref AdminNotificationEmail, ""]]
+  HasSharedAuthClient: !Not [!Equals [!Ref SharedAuthClientIdExportName, ""]]
 
 Resources:
   # ── DynamoDB Table ──────────────────────────────────────────────────────────
@@ -140,15 +151,44 @@ Resources:
       AllowedOAuthScopes: [email, openid, profile]
       AllowedOAuthFlowsUserPoolClient: true
 
+  FederateKillSwitchCognitoAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: FederateKillSwitchCognitoAccessRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: killswitch.federate.aws.internal
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: FederateKillSwitchCognitoAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cognito-idp:ListUsers
+                  - cognito-idp:AdminUserGlobalSignOut
+                  - cognito-idp:DescribeIdentityProvider
+                Resource: !Sub "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}"
+
   # ── Cognito Identity Pool (browser → AgentCore direct invocation) ───────────
   IdentityPool:
     Type: AWS::Cognito::IdentityPool
     Properties:
       IdentityPoolName: !Sub foundry-app-identity-${Env}
       AllowUnauthenticatedIdentities: false
-      CognitoIdentityProviders:
-        - ClientId: !Ref UserPoolClient
-          ProviderName: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}"
+      CognitoIdentityProviders: !If
+        - HasSharedAuthClient
+        - - ClientId: !Ref UserPoolClient
+            ProviderName: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}"
+          - ClientId: !ImportValue
+              'Fn::Sub': '${SharedAuthClientIdExportName}'
+            ProviderName: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}"
+        - - ClientId: !Ref UserPoolClient
+            ProviderName: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}"
 
   IdentityPoolAuthRole:
     Type: AWS::IAM::Role
@@ -215,8 +255,12 @@ Resources:
           CognitoAuthorizer:
             IdentitySource: "$request.header.Authorization"
             JwtConfiguration:
-              audience:
-                - !Ref UserPoolClient
+              audience: !If
+                - HasSharedAuthClient
+                - - !Ref UserPoolClient
+                  - !ImportValue
+                      'Fn::Sub': '${SharedAuthClientIdExportName}'
+                - - !Ref UserPoolClient
               issuer: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}"
       CorsConfiguration:
         AllowOrigins:
@@ -451,10 +495,18 @@ Outputs:
     Value: !Ref MainTable
 
   UserPoolClientId:
-    Description: "Cognito App Client ID — set as NEXT_PUBLIC_COGNITO_CLIENT_ID in frontend"
+    Description: "Foundry Cognito app client ID kept for native guest compatibility and stack-local resources"
     Value: !Ref UserPoolClient
     Export:
       Name: !Sub "${AWS::StackName}-UserPoolClientId"
+
+  BrowserAuthClientId:
+    Description: "Cognito app client ID used by browser login flows"
+    Value: !If
+      - HasSharedAuthClient
+      - !ImportValue
+          'Fn::Sub': '${SharedAuthClientIdExportName}'
+      - !Ref UserPoolClient
 
   CognitoDomain:
     Description: "Cognito hosted UI full domain — set as NEXT_PUBLIC_COGNITO_DOMAIN in frontend"
@@ -470,7 +522,13 @@ Outputs:
 
   UserPoolLoginUrl:
     Description: "Cognito Hosted UI login URL for testing"
-    Value: !Sub "https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=code&scope=email+openid+profile&redirect_uri=${AllowedOrigins}/callback"
+    Value: !If
+      - HasSharedAuthClient
+      - !Sub
+          - "https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${BrowserClientId}&response_type=code&scope=email+openid+profile&redirect_uri=${AllowedOrigins}/callback"
+          - BrowserClientId: !ImportValue
+              'Fn::Sub': '${SharedAuthClientIdExportName}'
+      - !Sub "https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=code&scope=email+openid+profile&redirect_uri=${AllowedOrigins}/callback"
 
   InternalLoginUrl:
     Description: "Default internal login entry point (auto-redirects to Midway-backed SSO)"
@@ -505,3 +563,7 @@ Outputs:
   AccessRequestTopicArn:
     Description: "SNS topic used for new access-request notifications"
     Value: !Ref AccessRequestTopic
+
+  FederateKillSwitchRoleArn:
+    Description: "IAM role ARN for Federate user-lifecycle management against the shared Cognito user pool"
+    Value: !GetAtt FederateKillSwitchCognitoAccessRole.Arn

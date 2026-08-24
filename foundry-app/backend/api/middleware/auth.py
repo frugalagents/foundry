@@ -17,10 +17,18 @@ DEV_MODE             = os.environ.get("DEV_MODE", "false").lower() == "true"
 COGNITO_REGION       = os.environ.get("COGNITO_REGION", "us-east-1")
 COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "")
 COGNITO_CLIENT_ID    = os.environ.get("COGNITO_CLIENT_ID", "")
+COGNITO_SHARED_CLIENT_ID = os.environ.get("COGNITO_SHARED_CLIENT_ID", "").strip()
 GUEST_GROUP_NAME     = os.environ.get("GUEST_GROUP_NAME", "foundry-guests")
 GUEST_ACCESS_EXPIRES_AT = os.environ.get("GUEST_ACCESS_EXPIRES_AT", "").strip()
 
 _bearer = HTTPBearer(auto_error=False)
+
+
+def _accepted_client_ids() -> set[str]:
+    ids = {COGNITO_CLIENT_ID.strip()} if COGNITO_CLIENT_ID.strip() else set()
+    if COGNITO_SHARED_CLIENT_ID:
+        ids.add(COGNITO_SHARED_CLIENT_ID)
+    return ids
 
 
 def _guest_access_cutoff() -> float | None:
@@ -78,7 +86,7 @@ def _decode_dev_token(token: str) -> dict:
 
 
 def _decode_cognito_token(token: str) -> dict:
-    if not COGNITO_USER_POOL_ID or not COGNITO_CLIENT_ID:
+    if not COGNITO_USER_POOL_ID or not _accepted_client_ids():
         raise JWTError("Cognito is not configured (COGNITO_USER_POOL_ID or COGNITO_CLIENT_ID not set)")
 
     jwks = _get_jwks()
@@ -114,7 +122,7 @@ def _decode_cognito_token(token: str) -> dict:
             "require_sub": True,
         },
     )
-    if payload.get("token_use") == "access" and payload.get("client_id") != COGNITO_CLIENT_ID:
+    if payload.get("token_use") == "access" and payload.get("client_id") not in _accepted_client_ids():
         raise JWTError("Token client_id does not match configured Cognito client")
     return payload
 

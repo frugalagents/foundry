@@ -123,7 +123,7 @@ function CallbackInner() {
         }}>
           <p style={{ color: 'var(--text)', fontWeight: 600, marginBottom: 8 }}>Sign-in failed</p>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>{errorMsg}</p>
-          <a href="/login" style={{
+          <a href="/login/" style={{
             display: 'inline-block',
             padding: '8px 20px',
             background: 'var(--accent)',

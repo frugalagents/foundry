@@ -7,7 +7,7 @@ const GUEST_GROUP_NAME = process.env.NEXT_PUBLIC_GUEST_GROUP_NAME ?? 'foundry-gu
 const GUEST_ACCESS_EXPIRES_AT = process.env.NEXT_PUBLIC_GUEST_ACCESS_EXPIRES_AT ?? ''
 
 export type LoginMode = 'internal' | 'guest'
-type IdentityProvider = 'Midway' | 'COGNITO'
+type IdentityProvider = 'COGNITO' | 'Midway'
 
 function callbackUrl() {
   if (APP_URL) return `${APP_URL}/callback`
@@ -57,7 +57,7 @@ async function generatePKCE(): Promise<{ verifier: string; challenge: string }> 
   return { verifier, challenge }
 }
 
-async function redirectToHostedUi(identityProvider: IdentityProvider) {
+async function redirectToHostedUi(identityProvider?: IdentityProvider) {
   if (typeof window === 'undefined') return
   const { verifier, challenge } = await generatePKCE()
   sessionStorage.setItem('pkce_verifier', verifier)
@@ -69,8 +69,8 @@ async function redirectToHostedUi(identityProvider: IdentityProvider) {
     scope: 'openid email profile',
     code_challenge: challenge,
     code_challenge_method: 'S256',
-    identity_provider: identityProvider,
   })
+  if (identityProvider) params.set('identity_provider', identityProvider)
   window.location.href = `https://${COGNITO_DOMAIN}/oauth2/authorize?${params}`
 }
 
@@ -96,7 +96,7 @@ export function navigateToHome(): void {
   window.location.replace('/')
 }
 
-export function navigateToLogin(mode: LoginMode = 'internal'): void {
+export function navigateToLogin(mode: LoginMode): void {
   if (typeof window === 'undefined') return
   const suffix = mode === 'guest' ? '/login/?mode=guest' : '/login/'
   window.location.replace(suffix)
@@ -267,4 +267,3 @@ export function createDevToken(userId: string, name = 'Developer', admin = false
   return `${header}.${payload}.dev`
 }
 
-export const makeDevToken = createDevToken

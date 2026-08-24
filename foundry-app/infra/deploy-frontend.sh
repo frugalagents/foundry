@@ -40,10 +40,19 @@ CF_URL=$(aws cloudformation describe-stacks \
 
 COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
   --stack-name "$STACK" \
-  --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" \
+  --query "Stacks[0].Outputs[?OutputKey=='BrowserAuthClientId'].OutputValue" \
   --output text \
   --profile "$PROFILE" \
   --region "$REGION")
+
+if [[ -z "$COGNITO_CLIENT_ID" || "$COGNITO_CLIENT_ID" == "None" ]]; then
+  COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
+    --stack-name "$STACK" \
+    --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" \
+    --output text \
+    --profile "$PROFILE" \
+    --region "$REGION")
+fi
 
 COGNITO_DOMAIN=$(aws cloudformation describe-stacks \
   --stack-name "$STACK" \
