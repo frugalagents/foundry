@@ -9,6 +9,9 @@ status: candidate
 traversal: probe
 trigger: [undo-agent-changes, diff-review, change-safety, revert-agent-edits]
 decision-question: "How can developers review and revert agent-authored edits cheaply, before or after commit?"
+decision-domain: change_safety
+priority: 6
+requires: [harness/runtime]
 ---
 
 How the platform lets an agent make many risky edits and cheaply undo, diff,

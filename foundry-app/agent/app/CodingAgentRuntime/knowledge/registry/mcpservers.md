@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [mcp-integration, enterprise-connectors, jira-github-mcp, tool-connector-catalog]
 decision-question: "Which MCP servers will be deployed for enterprise integrations, and how are they lifecycle-managed?"
+decision-domain: registry_governance
+priority: 7
+requires: [registry/registry, gateway/mcpgw]
 ---
 
 The MCP servers the harness may connect to — each wrapping an external

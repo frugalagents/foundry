@@ -9,6 +9,11 @@ status: candidate
 traversal: conditional
 trigger: [managed-runtime, agentcore, custom-harness-on-managed-infra, aws-native]
 decision-question: "Do you want custom agent logic with vendor-managed execution infrastructure, scaling, and security isolation?"
+decision-domain: harness_family
+priority: 9
+blocking: true
+alternatives: [harness-selection/saas-products, harness-selection/coding-harnesses, harness-selection/oss-frameworks]
+implies: [gateway/mcpgw, gateway/modelgw, access/identity]
 ---
 
 A managed runtime gives you a custom agent codebase on fully managed infrastructure.

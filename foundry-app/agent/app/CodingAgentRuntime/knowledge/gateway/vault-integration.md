@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [hashicorp-vault, vault, enterprise-secrets, no-secrets-manager, pam, vault-enterprise, privileged-access, secrets-management-standard]
 decision-question: "Is HashiCorp Vault your enterprise secrets management standard — meaning the MCP gateway cannot inject credentials from AWS Secrets Manager alone, and must integrate with Vault's API to fetch tool credentials at session time?"
+decision-domain: secrets_integration
+priority: 7
+requires: [gateway/mcpgw]
+alternatives: [gateway/cyberark-integration]
 ---
 
 HashiCorp Vault is the secrets management standard at many large enterprises

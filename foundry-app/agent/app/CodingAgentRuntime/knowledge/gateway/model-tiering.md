@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [model-tiering, cost-optimization, cheaper-model, task-complexity-routing, tiered-model-strategy]
 decision-question: "How will you match task complexity to model capability so that simple tasks use cheaper models and frontier models are reserved for tasks that need them?"
+decision-domain: model_routing
+priority: 7
+requires: [gateway/modelgw]
 ---
 
 Model tiering is the practice of routing tasks to the cheapest model that can

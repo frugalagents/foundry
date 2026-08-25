@@ -8,6 +8,44 @@ timestamp: 2026-08-12T00:00:00Z
 status: stable
 traversal: mandate
 decision-question: "What is your baseline execution environment for agent-driven code actions, and what OS-level sandbox applies?"
+decision-domain: execution_boundary
+priority: 6
+alternatives: [exec/container, exec/microvm, exec/remote, exec/on-prem-runner]
+advisory:
+  slice: true
+  fact-rules:
+    - key: local_execution_requested
+      value: true
+      match-any: [local execution, local exec, run locally, developer laptop, developer laptops, local-only, workstation]
+      fact-text: "At least one population or business unit is asking for local execution."
+    - key: local_execution_scope
+      value: non_regulated_only
+      match-any: [non-regulated only, only for non-regulated, general repos only, not for regulated, excluding regulated, except regulated]
+      fact-text: "Local execution, if allowed, is being scoped to non-regulated workflows."
+  activate:
+    requires-facts-all: [local_execution_requested]
+  output:
+    decision-focus: execution_boundary
+    question:
+      id: execution-boundary-local-scope
+      text: "Should local execution be allowed for all repositories, or only for non-regulated populations with a separate controlled lane for sensitive code?"
+      why-it-matters: "This determines whether the platform needs a split execution model instead of one default developer path."
+      decision-domain: execution_boundary
+    recommendation: "Do not lock in local execution as the universal default until you decide which repo classes and populations it actually applies to."
+    options:
+      - path: decision/execution-boundary/split-by-repo-class
+        title: Split execution by repo class
+        summary: Allow local execution for general engineering workflows but keep sensitive lanes on a separate controlled runtime.
+        decision-domain: execution_boundary
+        position: recommended
+      - path: decision/execution-boundary/remote-default
+        title: Remote controlled execution by default
+        summary: Centralize execution to a controlled environment and keep local execution out of the default path.
+        decision-domain: execution_boundary
+        position: viable
+  resolutions:
+    - when-facts-all: [local_execution_requested, local_execution_scope=non_regulated_only]
+      decision: "Local execution, if allowed, is limited to non-regulated or otherwise lower-sensitivity workflows."
 ---
 
 Runs commands directly on the machine the harness is invoked from — fastest,

@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [ci-cd-automation, pr-automation, pipeline-agent, autonomous-review]
 decision-question: "Should the agent run autonomously inside CI/CD pipelines or PR workflows?"
+decision-domain: surface_strategy
+priority: 8
+implies: [access/guardrails, ops/observability]
 ---
 
 Agent invoked by pipelines — fix builds, bump dependencies, generate tests

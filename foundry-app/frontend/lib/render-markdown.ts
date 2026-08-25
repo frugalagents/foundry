@@ -10,7 +10,7 @@ function renderInline(text: string): string {
   let html = escapeHtml(text)
 
   html = html.replace(/`([^`]+)`/g, (_, code: string) => {
-    const token = `__CODE_${codeTokens.length}__`
+    const token = `@@CODETOK${codeTokens.length}@@`
     codeTokens.push(`<code>${code}</code>`)
     return token
   })
@@ -20,8 +20,8 @@ function renderInline(text: string): string {
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
 
-  return codeTokens.reduce((current, token, index) => (
-    current.replace(token, codeTokens[index])
+  return codeTokens.reduce((current, _token, index) => (
+    current.split(`@@CODETOK${index}@@`).join(codeTokens[index])
   ), html)
 }
 
@@ -98,7 +98,15 @@ function finalizeH2Sections(html: string): string {
   return result
 }
 
-export function renderMarkdown(text: string): string {
+type RenderMarkdownOptions = {
+  collapsibleH2Sections?: boolean
+}
+
+export function renderMarkdown(
+  text: string,
+  options: RenderMarkdownOptions = {},
+): string {
+  const { collapsibleH2Sections = true } = options
   const lines = text.replace(/\r\n/g, '\n').split('\n')
   const blocks: string[] = []
 
@@ -214,5 +222,6 @@ export function renderMarkdown(text: string): string {
     blocks.push(`<p>${renderInline(paragraphLines.join(' '))}</p>`)
   }
 
-  return finalizeH2Sections(blocks.join(''))
+  const html = blocks.join('')
+  return collapsibleH2Sections ? finalizeH2Sections(html) : html
 }

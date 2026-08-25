@@ -8,6 +8,9 @@ timestamp: 2026-08-12T00:00:00Z
 status: candidate
 traversal: mandate
 decision-question: "Which model provider(s) will serve inference, and what are your data-residency, compliance, and access constraints?"
+decision-domain: model_provider
+priority: 8
+requires: [gateway/modelgw]
 ---
 
 The model providers that actually serve inference — frontier APIs or

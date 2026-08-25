@@ -8,6 +8,10 @@ timestamp: 2026-08-12T00:00:00Z
 status: stable
 traversal: mandate
 decision-question: "How will your identity provider authenticate developers and govern which agent identities can reach which tools?"
+decision-domain: identity_boundary
+priority: 9
+blocking: true
+implies: [access/quota]
 ---
 
 Federates to your corporate identity provider and authenticates every request

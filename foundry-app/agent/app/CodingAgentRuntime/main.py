@@ -15,26 +15,41 @@ import asyncio
 import json
 import logging
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
-from typing import AsyncIterator
+from typing import Any, AsyncIterator, Mapping
 
 import boto3
 import jwt
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from jwt import PyJWKClient
+from pydantic import BaseModel, Field
 from strands import Agent, tool
 from strands.models import BedrockModel
 
+from architecture_case import build_architecture_case_payload
+from architecture_spine import build_architecture_snapshot
+from decision_spine import (
+    build_turn_guidance,
+    merge_guidance_into_traversal_state,
+    render_turn_guidance_context,
+)
 from knowledge_loader import KnowledgeBase, load_knowledge_base
+from okf_compiler import OKFCompileError, compile_okf_release
 from store import (
+    get_latest_architecture_case,
+    get_latest_canvas_snapshot,
+    get_recent_messages,
     get_workspace_snapshot,
+    put_architecture_case_snapshot,
     put_canvas_snapshot,
     put_message,
     put_session_note,
     put_workspace_snapshot,
 )
-from workspace_state import build_workspace_state
+from traversal_engine import build_traversal_frontier, build_traversal_state, render_traversal_context
+from workspace_state import build_workspace_state, reconcile_workspace_state
 
 app = BedrockAgentCoreApp()
 log = app.logger
@@ -54,6 +69,8 @@ _TOKEN_HEADER    = "x-amzn-bedrock-agentcore-runtime-custom-cognito-id-token"
 # Knowledge base is loaded once at cold-start
 _KNOWLEDGE_DIR  = Path(__file__).parent / "knowledge"
 _kb: KnowledgeBase | None = None
+_okf_release_id = ""
+_okf_contract_initialized = False
 
 
 def _get_kb() -> KnowledgeBase:
@@ -61,7 +78,46 @@ def _get_kb() -> KnowledgeBase:
     if _kb is None:
         _kb = load_knowledge_base(_KNOWLEDGE_DIR)
         log.info("Knowledge base loaded: %d nodes", len(_kb._nodes))
+        _initialize_okf_contract(_kb)
     return _kb
+
+
+def _okf_invalid_bypass_enabled() -> bool:
+    value = str(os.environ.get("OKF_ALLOW_INVALID", "")).strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def _initialize_okf_contract(kb: KnowledgeBase) -> None:
+    global _okf_release_id, _okf_contract_initialized
+    if _okf_contract_initialized:
+        return
+    _okf_contract_initialized = True
+
+    release = None
+    try:
+        release = compile_okf_release(_KNOWLEDGE_DIR)
+    except OKFCompileError as exc:
+        if _okf_invalid_bypass_enabled():
+            _okf_release_id = "invalid:bypass"
+            log.warning(
+                "OKF contract gate bypassed via OKF_ALLOW_INVALID with %d issue(s): %s",
+                len(exc.issues),
+                exc,
+            )
+            return
+        _okf_contract_initialized = False
+        raise RuntimeError(
+            f"OKF contract initialization failed with {len(exc.issues)} issue(s): {exc}"
+        ) from exc
+
+    _okf_release_id = f"{release.manifest.schema_version}:{release.manifest.graph_sha256[:12]}"
+    log.info(
+        "OKF contract compiled: nodes=%d advisory_slices=%d typed_edges=%d release=%s",
+        release.manifest.node_count,
+        release.manifest.advisory_slice_count,
+        release.manifest.typed_edge_count,
+        _okf_release_id,
+    )
 
 
 # ── System prompt ─────────────────────────────────────────────────────────────
@@ -99,7 +155,9 @@ def augment_system_prompt_with_conditional_knowledge(
     if not nodes:
         return base_prompt
     log.info("Conditional knowledge triggered: %s", [n.path for n in nodes])
-    block = "\n\n---\n\n".join(f"### {n.title} ({n.path})\n\n{n.content}" for n in nodes)
+    block = "\n\n---\n\n".join(
+        f"### {n.title} ({n.path})\n\n{_node_body(kb, n)}" for n in nodes
+    )
     related = kb.related_nodes_for([n.path for n in nodes], max_results=6)
     related_block = ""
     if related:
@@ -116,6 +174,45 @@ def augment_system_prompt_with_conditional_knowledge(
         f"## Signals Detected This Turn — Relevant Knowledge Already Loaded\n\n{block}"
         f"{related_block}"
     )
+
+
+def augment_system_prompt_with_traversal_context(
+    base_prompt: str,
+    kb: KnowledgeBase,
+    user_message: str,
+    workspace: Mapping[str, Any] | None,
+) -> str:
+    guidance = build_turn_guidance(kb, workspace, user_message)
+    frontier = build_traversal_frontier(kb, workspace, user_message, guidance)
+    if not frontier:
+        fallback = augment_system_prompt_with_conditional_knowledge(base_prompt, kb, user_message)
+        guidance_block = render_turn_guidance_context(guidance)
+        return f"{fallback}\n\n{guidance_block}".strip() if guidance_block else fallback
+
+    traversal_state = build_traversal_state(kb, workspace, user_message, guidance)
+    traversal_state = merge_guidance_into_traversal_state(traversal_state, guidance)
+    log.info(
+        "Traversal frontier: active=%s loaded=%s",
+        frontier.active_node_path,
+        list(frontier.loaded_node_paths),
+    )
+    context_block = render_traversal_context(kb, frontier, traversal_state)
+    guidance_block = render_turn_guidance_context(guidance)
+    if not context_block:
+        fallback = augment_system_prompt_with_conditional_knowledge(base_prompt, kb, user_message)
+        return f"{fallback}\n\n{guidance_block}".strip() if guidance_block else fallback
+    if guidance_block:
+        return f"{base_prompt}\n\n{guidance_block}\n\n{context_block}"
+    return f"{base_prompt}\n\n{context_block}"
+
+
+def _node_body(kb: KnowledgeBase, node) -> str:
+    content = getattr(node, "content", "")
+    if content:
+        return content
+    if hasattr(kb, "get_content"):
+        return kb.get_content(node)
+    return content
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -184,8 +281,76 @@ def _module_detected_event(module: str) -> str:
     return f"data: {json.dumps({'type': 'module_detected', 'data': {'module': module}})}\n\n"
 
 
-def _workspace_event(workspace: dict) -> str:
-    return f"data: {json.dumps({'type': 'workspace_update', 'data': workspace})}\n\n"
+def _project_workspace_from_architecture_case(
+    workspace: Mapping[str, Any] | None,
+    architecture_case: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    payload = dict(workspace or {})
+    case = architecture_case if isinstance(architecture_case, Mapping) else {}
+    if not case:
+        return payload
+
+    artifacts = case.get("artifacts") if isinstance(case.get("artifacts"), Mapping) else {}
+    facts = case.get("facts") if isinstance(case.get("facts"), list) else []
+    questions = case.get("open_questions") if isinstance(case.get("open_questions"), list) else []
+    decisions = case.get("decisions") if isinstance(case.get("decisions"), list) else []
+    risks = case.get("risks") if isinstance(case.get("risks"), list) else []
+
+    payload["stage"] = str(case.get("stage") or "").strip()
+    payload["recommendation"] = str(case.get("current_recommendation") or "").strip()
+    payload["blueprint_markdown"] = str(artifacts.get("blueprint_markdown") or "").strip()
+    payload["operating_model"] = str(case.get("operating_model") or "").strip()
+
+    projected_facts = [
+        str(item.get("statement") or "").strip()
+        for item in facts
+        if isinstance(item, Mapping) and str(item.get("statement") or "").strip()
+    ]
+    payload["facts"] = projected_facts
+
+    projected_questions = [
+        {
+            "id": str(item.get("id") or "").strip(),
+            "text": str(item.get("text") or "").strip(),
+            "why_it_matters": str(item.get("why_it_matters") or "").strip(),
+            "blocking": bool(item.get("blocking", True)),
+            "decision_domain": str(item.get("decision_domain") or "").strip(),
+            "status": str(item.get("status") or "open").strip() or "open",
+            "answer": str(item.get("answer") or "").strip(),
+            "source": str(item.get("source") or "engine").strip() or "engine",
+        }
+        for item in questions
+        if isinstance(item, Mapping) and str(item.get("text") or "").strip()
+    ]
+    payload["question_state"] = projected_questions
+    payload["open_questions"] = [
+        item["text"]
+        for item in projected_questions
+        if item["status"] == "open"
+    ]
+
+    projected_decisions = [
+        str(item.get("statement") or "").strip()
+        for item in decisions
+        if isinstance(item, Mapping) and str(item.get("statement") or "").strip()
+    ]
+    payload["decisions"] = projected_decisions
+
+    projected_risks = [
+        str(item.get("risk") or "").strip()
+        for item in risks
+        if isinstance(item, Mapping) and str(item.get("risk") or "").strip()
+    ]
+    payload["risks"] = projected_risks
+
+    return payload
+
+
+def _workspace_event(workspace: dict, architecture_case: dict | None = None) -> str:
+    payload = _project_workspace_from_architecture_case(workspace, architecture_case)
+    if architecture_case:
+        payload["architecture_case"] = architecture_case
+    return f"data: {json.dumps({'type': 'workspace_update', 'data': payload})}\n\n"
 
 
 def _complete_event(session_id: str) -> str:
@@ -209,6 +374,607 @@ def _text_from_strands_event(ev) -> str | None:
     return None
 
 
+class RecoveredWorkspaceArtifacts(BaseModel):
+    recommendation: str = ""
+    blueprint_markdown: str = ""
+    open_questions: list[str] = Field(default_factory=list)
+    decisions: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    implementation_plan: list[str] = Field(default_factory=list)
+
+
+def _normalize_question_line(line: str) -> str:
+    return re.sub(r"\s+", " ", line.strip().lstrip("-*0123456789. ")).strip()
+
+
+def _extract_open_questions_from_text(content: str) -> list[str]:
+    questions: list[str] = []
+    for raw_line in content.splitlines():
+        line = _normalize_question_line(raw_line)
+        if not line or "?" not in line:
+            continue
+        last_question_mark = line.rfind("?")
+        question = line[: last_question_mark + 1].strip()
+        if question and question not in questions:
+            questions.append(question)
+    return questions
+
+
+def _has_content(value: Any) -> bool:
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, Mapping):
+        return any(_has_content(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_has_content(item) for item in value)
+    return bool(value)
+
+
+def _is_explicit_blueprint_request(user_message: str) -> bool:
+    normalized = re.sub(r"\s+", " ", user_message.lower()).strip()
+    phrases = (
+        "generate blueprint",
+        "create blueprint",
+        "produce blueprint",
+        "build blueprint",
+        "finalize blueprint",
+        "show blueprint",
+        "publish blueprint",
+        "technical blueprint",
+    )
+    return any(phrase in normalized for phrase in phrases)
+
+
+def _should_recover_blueprint(user_message: str, workspace: Mapping[str, Any]) -> bool:
+    if _has_content(workspace.get("blueprint_markdown")):
+        return False
+    if _is_explicit_blueprint_request(user_message):
+        return True
+    if workspace.get("open_questions"):
+        return False
+    return (
+        _has_content(workspace.get("recommendation"))
+        and (
+            _has_content(workspace.get("implementation_plan"))
+            or _has_content(workspace.get("decisions"))
+        )
+        and (
+            _has_content(workspace.get("facts"))
+            or _has_content(workspace.get("risks"))
+            or _has_content(workspace.get("assumptions"))
+        )
+    )
+
+
+def _format_json_block(value: Any) -> str:
+    return json.dumps(value, indent=2, ensure_ascii=True)
+
+
+def _normalized_architecture_case_payload(payload: Mapping[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(payload, Mapping):
+        return {}
+    normalized = json.loads(json.dumps(payload, sort_keys=True))
+    if isinstance(normalized, dict):
+        normalized.pop("revision", None)
+    return normalized
+
+
+def _build_architecture_case_candidate(
+    *,
+    customer_id: str,
+    session_id: str,
+    workspace: Mapping[str, Any] | None,
+    canvas_snapshot: Mapping[str, Any] | None,
+    revision: int | None = None,
+) -> dict[str, Any]:
+    latest_case = get_latest_architecture_case(customer_id, session_id) or {}
+    latest_revision = int(latest_case.get("revision") or 0) if isinstance(latest_case, Mapping) else 0
+    next_revision = revision if revision is not None else (latest_revision + 1 if latest_revision else 1)
+    return build_architecture_case_payload(
+        case_id=f"{customer_id}/{session_id}",
+        revision=max(1, int(next_revision)),
+        okf_release_id=_okf_release_id,
+        workspace=workspace,
+        canvas_snapshot=_normalize_canvas_snapshot(canvas_snapshot),
+    )
+
+
+def _persist_architecture_case_shadow(
+    *,
+    customer_id: str,
+    session_id: str,
+    workspace: Mapping[str, Any] | None,
+    canvas_snapshot: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not customer_id or not session_id:
+        return None
+    if not _has_content(workspace) and not _has_content(canvas_snapshot):
+        return None
+
+    latest_case = get_latest_architecture_case(customer_id, session_id) or {}
+    latest_revision = int(latest_case.get("revision") or 0) if isinstance(latest_case, Mapping) else 0
+    base_revision = max(1, latest_revision or 1)
+    candidate = _build_architecture_case_candidate(
+        customer_id=customer_id,
+        session_id=session_id,
+        workspace=workspace,
+        canvas_snapshot=canvas_snapshot,
+        revision=base_revision,
+    )
+
+    if _normalized_architecture_case_payload(candidate) == _normalized_architecture_case_payload(latest_case):
+        return dict(latest_case) if isinstance(latest_case, Mapping) else candidate
+
+    next_revision = latest_revision + 1 if latest_revision else 1
+    if next_revision != base_revision:
+        candidate = _build_architecture_case_candidate(
+            customer_id=customer_id,
+            session_id=session_id,
+            workspace=workspace,
+            canvas_snapshot=canvas_snapshot,
+            revision=next_revision,
+        )
+
+    put_architecture_case_snapshot(customer_id, session_id, candidate)
+    return candidate
+
+
+def _persist_workspace_and_case(
+    *,
+    customer_id: str,
+    session_id: str,
+    workspace: Mapping[str, Any],
+    canvas_snapshot: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    architecture_case_payload = _persist_architecture_case_shadow(
+        customer_id=customer_id,
+        session_id=session_id,
+        workspace=workspace,
+        canvas_snapshot=canvas_snapshot,
+    )
+    projected = _project_workspace_from_architecture_case(workspace, architecture_case_payload)
+    put_workspace_snapshot(
+        customer_id,
+        session_id,
+        stage=str(projected.get("stage") or workspace.get("stage") or "").strip(),
+        recommendation=str(projected.get("recommendation") or workspace.get("recommendation") or "").strip(),
+        blueprint_markdown=str(projected.get("blueprint_markdown") or workspace.get("blueprint_markdown") or "").strip(),
+        assumptions=workspace.get("assumptions"),
+        facts=projected.get("facts") if isinstance(projected.get("facts"), list) else workspace.get("facts"),
+        operating_model=str(projected.get("operating_model") or workspace.get("operating_model") or "").strip(),
+        question_state=projected.get("question_state") if isinstance(projected.get("question_state"), list) else workspace.get("question_state"),
+        open_questions=projected.get("open_questions") if isinstance(projected.get("open_questions"), list) else workspace.get("open_questions"),
+        decisions=projected.get("decisions") if isinstance(projected.get("decisions"), list) else workspace.get("decisions"),
+        risks=projected.get("risks") if isinstance(projected.get("risks"), list) else workspace.get("risks"),
+        implementation_plan=workspace.get("implementation_plan"),
+        advisory_case=workspace.get("advisory_case"),
+        recommendation_state=workspace.get("recommendation_state"),
+        artifact_status=workspace.get("artifact_status"),
+        traversal_state=workspace.get("traversal_state"),
+    )
+    return architecture_case_payload
+
+
+def _explicit_blueprint_request_instructions() -> str:
+    return """
+## Explicit Blueprint Request
+
+The customer explicitly asked for the technical blueprint in this turn.
+If the architecture is coherent enough to defend, you must publish the artifact
+through `update_consulting_state` with a non-empty `blueprint_markdown`.
+If one or two blockers remain, still publish the current best technical
+blueprint with clear `[TBD]` markers for unresolved items and keep only those
+blockers in `open_questions`.
+Keep the chat reply to one short sentence after the workspace update.
+"""
+
+
+async def _recover_workspace_after_stream(
+    *,
+    user_message: str,
+    reply_text: str,
+    customer_id: str,
+    session_id: str,
+) -> dict[str, Any] | None:
+    if not customer_id or not session_id:
+        return None
+
+    existing = get_workspace_snapshot(customer_id, session_id) or {}
+    if not existing:
+        return None
+
+    updates: dict[str, Any] = {}
+    if not existing.get("open_questions"):
+        recovered_questions = _extract_open_questions_from_text(reply_text)
+        if recovered_questions:
+            updates["open_questions"] = recovered_questions
+
+    if _should_recover_blueprint(user_message, existing):
+        recent_messages = get_recent_messages(customer_id, session_id, limit=12)
+        latest_canvas = get_latest_canvas_snapshot(customer_id, session_id)
+        recovery_agent = Agent(
+            model=BedrockModel(model_id=_MODEL_ID),
+            system_prompt=(
+                "You repair missing consulting workspace artifacts for a coding-agent "
+                "platform advisory session. Use only the supplied workspace, architecture, "
+                "and transcript context. Do not invent customer facts. If an item is still "
+                "unresolved, keep it as [TBD] in the blueprint and preserve it in open_questions. "
+                "Return a detailed technical blueprint artifact, not an executive memo. "
+                "The blueprint must use markdown with `##` section headers and include: "
+                "Architecture, Architecture Decisions, Rollout Phases, Key Tradeoffs Accepted, "
+                "Escalations Required Before Build, and Org Readiness - Non-Platform Actions."
+            ),
+        )
+        recovery_prompt = f"""Customer turn:
+{user_message}
+
+Latest agent reply:
+{reply_text}
+
+Current workspace:
+{_format_json_block(existing)}
+
+Latest architecture snapshot:
+{_format_json_block(latest_canvas or {})}
+
+Recent transcript:
+{_format_json_block(recent_messages)}
+
+Return the refreshed recommendation, blueprint_markdown, open_questions, decisions, risks, and implementation_plan. Only include true blockers in open_questions. Keep recommendation to at most 3 sentences.
+"""
+        try:
+            repaired = await recovery_agent.structured_output_async(RecoveredWorkspaceArtifacts, recovery_prompt)
+        except Exception:
+            log.exception("Failed to recover missing blueprint workspace artifact")
+            repaired = None
+
+        if repaired is not None:
+            if repaired.recommendation.strip():
+                updates["recommendation"] = repaired.recommendation.strip()
+            if repaired.blueprint_markdown.strip():
+                updates["blueprint_markdown"] = repaired.blueprint_markdown.strip()
+            if repaired.decisions:
+                updates["decisions"] = repaired.decisions
+            if repaired.risks:
+                updates["risks"] = repaired.risks
+            if repaired.implementation_plan:
+                updates["implementation_plan"] = repaired.implementation_plan
+            if repaired.open_questions:
+                updates["open_questions"] = repaired.open_questions
+
+    if "open_questions" in updates:
+        for field in (
+            "recommendation",
+            "decisions",
+            "risks",
+            "implementation_plan",
+            "blueprint_markdown",
+            "advisory_case",
+        ):
+            if field not in updates and _has_content(existing.get(field)):
+                updates[field] = existing[field]
+    elif "recommendation" in updates:
+        for field in ("blueprint_markdown", "advisory_case"):
+            if field not in updates and _has_content(existing.get(field)):
+                updates[field] = existing[field]
+
+    if not updates:
+        return None
+
+    stage = existing.get("stage", "")
+    if updates.get("blueprint_markdown"):
+        stage = "blueprint"
+    elif updates.get("open_questions") and stage == "":
+        stage = "discovery"
+
+    workspace, invalidated_fields, reasoning_changes = build_workspace_state(
+        existing,
+        recommendation=updates.get("recommendation"),
+        blueprint_markdown=updates.get("blueprint_markdown"),
+        open_questions=updates.get("open_questions"),
+        decisions=updates.get("decisions"),
+        risks=updates.get("risks"),
+        implementation_plan=updates.get("implementation_plan"),
+        advisory_case=updates.get("advisory_case"),
+        stage=stage,
+    )
+    workspace = _apply_traversal_state(kb, workspace, user_message)
+    workspace = _finalize_workspace_state(
+        workspace,
+        invalidated_fields=invalidated_fields,
+        reasoning_changes=reasoning_changes,
+    )
+    latest_canvas = get_latest_canvas_snapshot(customer_id, session_id)
+    _persist_workspace_and_case(
+        customer_id=customer_id,
+        session_id=session_id,
+        workspace=workspace,
+        canvas_snapshot=latest_canvas,
+    )
+    return workspace
+
+
+def _apply_traversal_state(
+    kb: KnowledgeBase,
+    workspace: dict[str, Any],
+    user_message: str,
+    guidance: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    traversal_state = build_traversal_state(kb, workspace, user_message, guidance)
+    workspace["traversal_state"] = merge_guidance_into_traversal_state(traversal_state, guidance)
+    return workspace
+
+
+def _merge_text_lists(existing: list[str], derived: list[str]) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for item in existing + derived:
+        text = re.sub(r"\s+", " ", str(item or "").strip())
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(text)
+    return merged
+
+
+def _workspace_changed(previous: Mapping[str, Any], current: Mapping[str, Any]) -> bool:
+    tracked_fields = (
+        "stage",
+        "recommendation",
+        "blueprint_markdown",
+        "assumptions",
+        "facts",
+        "operating_model",
+        "question_state",
+        "open_questions",
+        "decisions",
+        "risks",
+        "implementation_plan",
+        "advisory_case",
+        "recommendation_state",
+        "artifact_status",
+        "traversal_state",
+    )
+    return any(previous.get(field) != current.get(field) for field in tracked_fields)
+
+
+def _normalize_canvas_snapshot(snapshot: Mapping[str, Any] | None) -> dict[str, Any]:
+    snapshot = snapshot or {}
+    return {
+        "stage": str(snapshot.get("stage") or ""),
+        "nodes": snapshot.get("nodes") if isinstance(snapshot.get("nodes"), list) else [],
+        "edges": snapshot.get("edges") if isinstance(snapshot.get("edges"), list) else [],
+        "baseline_node_ids": snapshot.get("baseline_node_ids") if isinstance(snapshot.get("baseline_node_ids"), list) else [],
+        "architecture_artifact": snapshot.get("architecture_artifact") if isinstance(snapshot.get("architecture_artifact"), Mapping) else None,
+    }
+
+
+def _architecture_snapshot_changed(previous: Mapping[str, Any] | None, current: Mapping[str, Any] | None) -> bool:
+    return _normalize_canvas_snapshot(previous) != _normalize_canvas_snapshot(current)
+
+
+def _canvas_concreteness_score(snapshot: Mapping[str, Any] | None) -> float:
+    normalized = _normalize_canvas_snapshot(snapshot)
+    nodes = normalized.get("nodes") if isinstance(normalized.get("nodes"), list) else []
+    artifact = normalized.get("architecture_artifact") if isinstance(normalized.get("architecture_artifact"), Mapping) else {}
+    score = 0.0
+
+    for node in nodes:
+        if not isinstance(node, Mapping):
+            continue
+        label = str(node.get("label") or "").strip()
+        sublabel = str(node.get("sublabel") or "").strip()
+        kind = str(node.get("kind") or "").strip()
+        path_role = str(node.get("path_role") or "").strip()
+        combined = f"{label} {sublabel}".lower()
+
+        if label:
+            score += 1.0
+        if "[tbd]" not in combined:
+            score += 1.5
+        if not any(
+            marker in combined
+            for marker in (
+                "target-state harness policy",
+                "default harness lane",
+                "approved model route",
+                "under review",
+            )
+        ):
+            score += 1.0
+        if kind in {"interactive_harness", "agent_runtime", "model_gateway", "model_provider", "tool_gateway"}:
+            score += 1.0
+        if path_role == "supporting":
+            score += 0.5
+
+    if isinstance(artifact.get("customizations"), list):
+        score += len(artifact.get("customizations") or []) * 0.5
+    if isinstance(artifact.get("supporting_lanes"), list):
+        score += len(artifact.get("supporting_lanes") or []) * 0.5
+    if isinstance(artifact.get("decisions"), list):
+        score += len(artifact.get("decisions") or []) * 0.25
+
+    return score
+
+
+def _canvas_placeholder_count(snapshot: Mapping[str, Any] | None) -> int:
+    normalized = _normalize_canvas_snapshot(snapshot)
+    nodes = normalized.get("nodes") if isinstance(normalized.get("nodes"), list) else []
+    placeholders = 0
+    for node in nodes:
+        if not isinstance(node, Mapping):
+            continue
+        label = str(node.get("label") or "").strip().lower()
+        sublabel = str(node.get("sublabel") or "").strip().lower()
+        if "[tbd]" in label or "[tbd]" in sublabel:
+            placeholders += 1
+    return placeholders
+
+
+def _specific_harness_count(snapshot: Mapping[str, Any] | None) -> int:
+    normalized = _normalize_canvas_snapshot(snapshot)
+    nodes = normalized.get("nodes") if isinstance(normalized.get("nodes"), list) else []
+    count = 0
+    for node in nodes:
+        if not isinstance(node, Mapping):
+            continue
+        label = str(node.get("label") or "").strip().lower()
+        kind = str(node.get("kind") or "").strip()
+        layer = str(node.get("layer") or "").strip()
+        if layer != "harness" and kind != "interactive_harness":
+            continue
+        if "[tbd]" in label:
+            continue
+        if label in {"single standard harness", "governed harness portfolio"}:
+            continue
+        count += 1
+    return count
+
+
+def _prefer_existing_canvas(
+    existing_canvas: Mapping[str, Any] | None,
+    candidate_canvas: Mapping[str, Any] | None,
+) -> bool:
+    existing = _normalize_canvas_snapshot(existing_canvas)
+    candidate = _normalize_canvas_snapshot(candidate_canvas)
+    existing_nodes = existing.get("nodes") if isinstance(existing.get("nodes"), list) else []
+    candidate_nodes = candidate.get("nodes") if isinstance(candidate.get("nodes"), list) else []
+
+    if not existing_nodes or not candidate_nodes:
+        return False
+
+    existing_score = _canvas_concreteness_score(existing)
+    candidate_score = _canvas_concreteness_score(candidate)
+    existing_placeholders = _canvas_placeholder_count(existing)
+    candidate_placeholders = _canvas_placeholder_count(candidate)
+    existing_specific_harnesses = _specific_harness_count(existing)
+    candidate_specific_harnesses = _specific_harness_count(candidate)
+    if candidate_placeholders > 0 and existing_specific_harnesses > candidate_specific_harnesses:
+        return True
+    if candidate_placeholders > existing_placeholders and existing_score >= candidate_score:
+        return True
+    return existing_score > candidate_score + 2.0 and len(existing_nodes) >= len(candidate_nodes)
+
+
+def _merge_canvas_semantics(
+    existing_canvas: Mapping[str, Any] | None,
+    candidate_canvas: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    existing = _normalize_canvas_snapshot(existing_canvas)
+    candidate = _normalize_canvas_snapshot(candidate_canvas)
+    if not existing.get("nodes"):
+        return candidate
+    if not candidate.get("nodes"):
+        return existing
+    return {
+        "stage": str(candidate.get("stage") or existing.get("stage") or ""),
+        "nodes": existing.get("nodes", []),
+        "edges": existing.get("edges", []),
+        "baseline_node_ids": existing.get("baseline_node_ids", []),
+        "architecture_artifact": candidate.get("architecture_artifact") or existing.get("architecture_artifact"),
+    }
+
+
+def _prepare_workspace_for_turn(
+    kb: KnowledgeBase,
+    existing_workspace: Mapping[str, Any] | None,
+    user_message: str,
+) -> tuple[dict[str, Any], bool]:
+    existing_workspace = dict(existing_workspace or {})
+    guidance = build_turn_guidance(kb, existing_workspace, user_message)
+    if not any(
+        (
+            guidance.get("facts"),
+            guidance.get("question_state"),
+            guidance.get("risks"),
+            guidance.get("recommendation"),
+            guidance.get("decisions"),
+        )
+    ):
+        workspace = dict(existing_workspace)
+        if workspace:
+            workspace = _apply_traversal_state(kb, workspace, user_message, guidance=guidance)
+            workspace = _finalize_workspace_state(workspace)
+        return workspace, False
+
+    workspace, invalidated_fields, reasoning_changes = build_workspace_state(
+        existing_workspace,
+        recommendation=str(guidance.get("recommendation") or "").strip() or None,
+        facts=guidance.get("facts"),
+        operating_model=guidance.get("operating_model"),
+        question_state=guidance.get("question_state"),
+        decisions=guidance.get("decisions") or None,
+        risks=guidance.get("risks") or None,
+        stage=str(existing_workspace.get("stage") or ""),
+    )
+    workspace = _apply_traversal_state(kb, workspace, user_message, guidance=guidance)
+    workspace = _finalize_workspace_state(
+        workspace,
+        invalidated_fields=invalidated_fields,
+        reasoning_changes=reasoning_changes,
+    )
+    return workspace, _workspace_changed(existing_workspace, workspace)
+
+
+def _maybe_emit_engine_architecture(
+    *,
+    workspace: Mapping[str, Any],
+    panel_queue: asyncio.Queue[str],
+    customer_id: str,
+    session_id: str,
+    existing_canvas: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    snapshot = build_architecture_snapshot(workspace)
+    normalized_existing = _normalize_canvas_snapshot(existing_canvas)
+
+    if snapshot is None:
+        return normalized_existing if normalized_existing.get("nodes") else None
+    if _prefer_existing_canvas(normalized_existing, snapshot):
+        snapshot = _merge_canvas_semantics(normalized_existing, snapshot)
+    if not _architecture_snapshot_changed(normalized_existing, snapshot):
+        return normalized_existing
+
+    panel_queue.put_nowait(
+        _architecture_event(
+            snapshot["nodes"],
+            snapshot["edges"],
+            snapshot["stage"],
+            baseline_node_ids=snapshot.get("baseline_node_ids"),
+            architecture_artifact=snapshot.get("architecture_artifact"),
+        )
+    )
+    if customer_id and session_id:
+        try:
+            put_canvas_snapshot(
+                customer_id,
+                session_id,
+                snapshot["nodes"],
+                snapshot["edges"],
+                snapshot["stage"],
+                baseline_node_ids=snapshot.get("baseline_node_ids"),
+                architecture_artifact=snapshot.get("architecture_artifact"),
+            )
+        except Exception:
+            log.exception("Failed to persist deterministic architecture snapshot")
+    return snapshot
+
+
+def _finalize_workspace_state(
+    workspace: dict[str, Any],
+    *,
+    invalidated_fields: list[str] | None = None,
+    reasoning_changes: list[str] | None = None,
+) -> dict[str, Any]:
+    return reconcile_workspace_state(
+        workspace,
+        invalidated_fields=invalidated_fields,
+        reasoning_changes=reasoning_changes,
+    )
+
+
 def _workspace_tool_instructions() -> str:
     return """
 ## Workspace State Contract
@@ -229,7 +995,11 @@ Tool rules:
 - `operating_model`: target-state harness model when relevant.
   Use one of `undecided`, `single_standard`, `multi_harness_governed`, or
   `default_plus_exceptions`.
-- `open_questions`: unanswered questions blocking or materially shaping the recommendation.
+- `question_state`: authoritative question registry when you can provide structure.
+  Each item should look like:
+  `{"id","text","why_it_matters","blocking","decision_domain","status","answer"}`
+  Use `status=open` for active blockers and `status=answered` once the customer resolves one.
+- `open_questions`: shorthand unanswered blocker list. The runtime derives this from `question_state` when present.
 - `decisions`: architecture choices already made, phrased as decisions.
 - `risks`: unresolved risks, tradeoffs, or external dependencies.
 - `implementation_plan`: near-term rollout steps in order.
@@ -294,8 +1064,8 @@ Execution rules:
   before continuing with generic harness-selection questions.
 - Put non-blocking defaults in `assumptions` with plain-English rationale and
   1-2 override options the customer can choose from later.
-- If you ask the customer for input, call `update_consulting_state` in the same turn and put those prompts in `open_questions`.
-- If the customer answers a previous question, remove or replace it in `open_questions` on your next call.
+- If you ask the customer for input, call `update_consulting_state` in the same turn and put those prompts in `question_state` and `open_questions`.
+- If the customer answers a previous question, mark it answered in `question_state` and remove or replace it in `open_questions` on your next call.
 - If you make a concrete architecture choice, add it to `decisions` in the same turn; do not leave decisions only in prose.
 - If you surface a blocker, ambiguity, or control concern, add it to `risks` in the same turn.
 - If the architecture changes, update both `update_architecture` and `update_consulting_state` in that same turn.
@@ -414,9 +1184,50 @@ async def invoke(payload: dict, context):
     # Panel side-channel — tools write SSE strings here
     panel_queue: asyncio.Queue[str] = asyncio.Queue()
 
+    existing_workspace: dict[str, Any] = {}
+    existing_canvas: dict[str, Any] | None = None
+    if customer_id and session_id:
+        try:
+            existing_workspace = get_workspace_snapshot(customer_id, session_id) or {}
+            existing_workspace = _finalize_workspace_state(existing_workspace)
+            existing_canvas = get_latest_canvas_snapshot(customer_id, session_id)
+        except Exception:
+            log.exception("Failed to load existing workspace before prompt assembly")
+
     # ── Build tools ───────────────────────────────────────────────────────────
 
     kb = _get_kb()
+    existing_workspace, workspace_seeded = _prepare_workspace_for_turn(kb, existing_workspace, user_message)
+    if workspace_seeded:
+        architecture_case_payload = None
+        if customer_id and session_id:
+            try:
+                architecture_case_payload = _persist_workspace_and_case(
+                    customer_id=customer_id,
+                    session_id=session_id,
+                    workspace=existing_workspace,
+                    canvas_snapshot=existing_canvas,
+                )
+            except Exception:
+                log.exception("Failed to persist deterministic pre-turn workspace snapshot")
+        panel_queue.put_nowait(_workspace_event(existing_workspace, architecture_case_payload))
+    existing_canvas = _maybe_emit_engine_architecture(
+        workspace=existing_workspace,
+        panel_queue=panel_queue,
+        customer_id=customer_id,
+        session_id=session_id,
+        existing_canvas=existing_canvas,
+    )
+    if customer_id and session_id:
+        try:
+            _persist_workspace_and_case(
+                customer_id=customer_id,
+                session_id=session_id,
+                workspace=existing_workspace,
+                canvas_snapshot=existing_canvas,
+            )
+        except Exception:
+            log.exception("Failed to persist shadow architecture case before streaming")
 
     @tool
     def query_knowledge(topic: str) -> str:
@@ -435,7 +1246,7 @@ async def invoke(payload: dict, context):
             return "No relevant knowledge found for: " + topic
         parts = []
         for n in nodes:
-            parts.append(f"### {n.title} ({n.path})\n\n{n.content}")
+            parts.append(f"### {n.title} ({n.path})\n\n{_node_body(kb, n)}")
         return "\n\n---\n\n".join(parts)
 
     @tool
@@ -448,7 +1259,7 @@ async def invoke(payload: dict, context):
         nodes = kb.mandate_nodes()
         if not nodes:
             return "No mandate knowledge nodes found."
-        parts = [f"### {n.title} ({n.path})\n\n{n.content}" for n in nodes]
+        parts = [f"### {n.title} ({n.path})\n\n{_node_body(kb, n)}" for n in nodes]
         return "\n\n---\n\n".join(parts)
 
     @tool
@@ -635,6 +1446,16 @@ async def invoke(payload: dict, context):
             architecture_artifact=architecture_artifact,
         )
         panel_queue.put_nowait(event)
+        nonlocal existing_canvas
+        existing_canvas = _normalize_canvas_snapshot(
+            {
+                "stage": stage,
+                "nodes": nodes,
+                "edges": edges,
+                "baseline_node_ids": baseline_node_ids,
+                "architecture_artifact": architecture_artifact,
+            }
+        )
         log.info("Architecture update emitted: stage=%s nodes=%d edges=%d",
                  stage, len(nodes), len(edges))
         if customer_id and session_id:
@@ -648,6 +1469,13 @@ async def invoke(payload: dict, context):
                     baseline_node_ids=baseline_node_ids,
                     architecture_artifact=architecture_artifact,
                 )
+                architecture_case_payload = _persist_workspace_and_case(
+                    customer_id=customer_id,
+                    session_id=session_id,
+                    workspace=existing_workspace,
+                    canvas_snapshot=existing_canvas,
+                )
+                panel_queue.put_nowait(_workspace_event(existing_workspace, architecture_case_payload))
             except Exception:
                 log.exception("Failed to persist canvas snapshot")
         return f"Architecture canvas updated ({stage or 'update'}: {len(nodes)} nodes, {len(edges)} edges)."
@@ -680,6 +1508,7 @@ async def invoke(payload: dict, context):
         assumptions: list[dict] | None = None,
         facts: list[str] | None = None,
         operating_model: str | None = None,
+        question_state: list[dict] | None = None,
         open_questions: list[str] | None = None,
         decisions: list[str] | None = None,
         risks: list[str] | None = None,
@@ -710,6 +1539,7 @@ async def invoke(payload: dict, context):
             assumptions=assumptions,
             facts=facts,
             operating_model=operating_model,
+            question_state=question_state,
             open_questions=open_questions,
             decisions=decisions,
             risks=risks,
@@ -723,26 +1553,34 @@ async def invoke(payload: dict, context):
                 invalidated_fields,
                 reasoning_changes or ["n/a"],
             )
-        panel_queue.put_nowait(_workspace_event(workspace))
+        workspace = _apply_traversal_state(kb, workspace, user_message)
+        workspace = _finalize_workspace_state(
+            workspace,
+            invalidated_fields=invalidated_fields,
+            reasoning_changes=reasoning_changes,
+        )
+        nonlocal existing_canvas
+        nonlocal existing_workspace
+        existing_workspace = workspace
+        existing_canvas = _maybe_emit_engine_architecture(
+            workspace=workspace,
+            panel_queue=panel_queue,
+            customer_id=customer_id,
+            session_id=session_id,
+            existing_canvas=existing_canvas,
+        )
+        architecture_case_payload = None
         if customer_id and session_id:
             try:
-                put_workspace_snapshot(
-                    customer_id,
-                    session_id,
-                    stage=workspace["stage"],
-                    recommendation=workspace["recommendation"],
-                    blueprint_markdown=workspace["blueprint_markdown"],
-                    assumptions=workspace["assumptions"],
-                    facts=workspace["facts"],
-                    operating_model=workspace["operating_model"],
-                    open_questions=workspace["open_questions"],
-                    decisions=workspace["decisions"],
-                    risks=workspace["risks"],
-                    implementation_plan=workspace["implementation_plan"],
-                    advisory_case=workspace["advisory_case"],
+                architecture_case_payload = _persist_workspace_and_case(
+                    customer_id=customer_id,
+                    session_id=session_id,
+                    workspace=workspace,
+                    canvas_snapshot=existing_canvas,
                 )
             except Exception:
                 log.exception("Failed to persist workspace snapshot")
+        panel_queue.put_nowait(_workspace_event(workspace, architecture_case_payload))
         return "Consulting workspace updated."
 
     tools = [
@@ -775,9 +1613,11 @@ async def invoke(payload: dict, context):
             session_manager = None
 
     # ── Build Strands Agent ───────────────────────────────────────────────────
-    system_prompt = augment_system_prompt_with_conditional_knowledge(
-        _load_system_prompt(), kb, user_message
+    system_prompt = augment_system_prompt_with_traversal_context(
+        _load_system_prompt(), kb, user_message, existing_workspace
     )
+    if _is_explicit_blueprint_request(user_message):
+        system_prompt = f"{system_prompt}\n\n{_explicit_blueprint_request_instructions()}"
     system_prompt = f"{system_prompt}\n\n{_workspace_tool_instructions()}"
     model = BedrockModel(model_id=_MODEL_ID, streaming=True)
     agent_kwargs: dict = dict(
@@ -804,6 +1644,41 @@ async def invoke(payload: dict, context):
                 put_message(customer_id, session_id, "agent", "".join(reply_parts))
             except Exception:
                 log.exception("Failed to persist agent message")
+
+    reply_text = "".join(reply_parts)
+    if reply_text and customer_id and session_id:
+        try:
+            recovered_workspace = await _recover_workspace_after_stream(
+                user_message=user_message,
+                reply_text=reply_text,
+                customer_id=customer_id,
+                session_id=session_id,
+            )
+        except Exception:
+            log.exception("Failed to repair workspace after stream")
+            recovered_workspace = None
+        if recovered_workspace is not None:
+            existing_workspace = recovered_workspace
+            existing_canvas = get_latest_canvas_snapshot(customer_id, session_id)
+            latest_case = get_latest_architecture_case(customer_id, session_id)
+            yield _workspace_event(recovered_workspace, latest_case if isinstance(latest_case, dict) else None)
+
+    if customer_id and session_id:
+        try:
+            latest_workspace = get_workspace_snapshot(customer_id, session_id) or existing_workspace
+            latest_canvas = get_latest_canvas_snapshot(customer_id, session_id)
+            post_turn_queue: asyncio.Queue[str] = asyncio.Queue()
+            existing_canvas = _maybe_emit_engine_architecture(
+                workspace=latest_workspace,
+                panel_queue=post_turn_queue,
+                customer_id=customer_id,
+                session_id=session_id,
+                existing_canvas=latest_canvas,
+            )
+            while not post_turn_queue.empty():
+                yield post_turn_queue.get_nowait()
+        except Exception:
+            log.exception("Failed to reassert deterministic architecture after stream")
 
     yield _complete_event(session_id)
 

@@ -8,6 +8,10 @@ timestamp: 2026-08-13T00:00:00Z
 status: candidate
 traversal: mandate
 decision-question: "What is the full attack surface of your coding agent platform, and which controls are required vs. recommended?"
+decision-domain: security_posture
+priority: 8
+blocking: true
+implies: [access/guardrails, ops/observability]
 ---
 
 A coding agent platform has a materially different attack surface than a

@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [cost-attribution, chargeback, budget-management, team-spend-reporting]
 decision-question: "How will AI spend be attributed, reported, and managed across teams — and who pays what?"
+decision-domain: cost_control
+priority: 7
+requires: [access/quota]
 ---
 
 Attributes spend to a user/team/repo, powers chargeback/showback, and

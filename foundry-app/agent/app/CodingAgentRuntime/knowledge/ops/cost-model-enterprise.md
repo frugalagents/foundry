@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [cost-model, token-cost, per-developer-cost, budget-approval, roi, tco, finance-sign-off, cost-justification, chargeback, usage-based-billing, cost-attribution]
 decision-question: "Do you need a structured cost model — per-developer unit economics, total platform cost at scale, infrastructure cost breakdown, and ROI justification — to get finance and executive approval for the platform at enterprise scale?"
+decision-domain: cost_control
+priority: 8
+requires: [ops/cost, ops/session-economics, gateway/model-tiering]
 ---
 
 Enterprise coding agent platforms at 1,000–50,000 developer scale generate

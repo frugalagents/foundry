@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [cloud-sandbox, ephemeral-workspace, fully-managed-exec, remote-dev-environment]
 decision-question: "Should code execution happen in ephemeral remote cloud workspaces rather than on developer machines?"
+decision-domain: execution_boundary
+priority: 8
+alternatives: [exec/local, exec/container, exec/microvm, exec/on-prem-runner]
 ---
 
 Runs the harness in a dedicated remote environment entirely separate from

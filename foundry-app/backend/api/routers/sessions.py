@@ -102,6 +102,7 @@ async def get_session_history(customer_id: str, session_id: str, user: CurrentUs
     messages = db.list_messages(customer_id, session_id)
     canvas_item = db.get_canvas(customer_id, session_id)
     workspace_item = db.get_workspace(customer_id, session_id)
+    architecture_case_item = db.get_latest_architecture_case(customer_id, session_id)
     canvas = None
     workspace = None
     if canvas_item:
@@ -119,10 +120,22 @@ async def get_session_history(customer_id: str, session_id: str, user: CurrentUs
     if workspace_item:
         assumptions = []
         advisory_case = None
+        architecture_case = None
+        question_state = []
+        recommendation_state = None
+        artifact_status = None
         if workspace_item.get("assumptions_json"):
             assumptions = json.loads(workspace_item.get("assumptions_json") or "[]")
         if workspace_item.get("advisory_case_json"):
             advisory_case = json.loads(workspace_item.get("advisory_case_json") or "{}")
+        if workspace_item.get("question_state_json"):
+            question_state = json.loads(workspace_item.get("question_state_json") or "[]")
+        if workspace_item.get("recommendation_state_json"):
+            recommendation_state = json.loads(workspace_item.get("recommendation_state_json") or "{}")
+        if workspace_item.get("artifact_status_json"):
+            artifact_status = json.loads(workspace_item.get("artifact_status_json") or "{}")
+        if architecture_case_item and architecture_case_item.get("architecture_case_json"):
+            architecture_case = json.loads(architecture_case_item.get("architecture_case_json") or "{}")
         workspace = ConsultingWorkspaceOut(
             stage=workspace_item.get("stage") or "",
             recommendation=workspace_item.get("recommendation") or "",
@@ -130,11 +143,15 @@ async def get_session_history(customer_id: str, session_id: str, user: CurrentUs
             assumptions=assumptions,
             facts=workspace_item.get("facts") or [],
             operating_model=workspace_item.get("operating_model") or "",
+            question_state=question_state,
             open_questions=workspace_item.get("open_questions") or [],
             decisions=workspace_item.get("decisions") or [],
             risks=workspace_item.get("risks") or [],
             implementation_plan=workspace_item.get("implementation_plan") or [],
             advisory_case=advisory_case,
+            architecture_case=architecture_case,
+            recommendation_state=recommendation_state,
+            artifact_status=artifact_status,
             updated_at=workspace_item.get("updated_at"),
         )
     return SessionHistory(

@@ -8,6 +8,10 @@ timestamp: 2026-08-12T00:00:00Z
 status: candidate
 traversal: mandate
 decision-question: "What filtering, approval gates, and DLP policies must govern agent output before it reaches a developer or a system?"
+decision-domain: approval_posture
+priority: 8
+blocking: true
+requires: [access/identity]
 ---
 
 Screens each tool call on the way in and blocks or redacts policy violations,

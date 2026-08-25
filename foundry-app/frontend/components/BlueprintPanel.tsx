@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useStore } from '@/store'
 import { normalizeWorkspace } from '@/lib/message-analysis'
 import { renderMarkdown } from '@/lib/render-markdown'
-import { buildFallbackBlueprint } from '@/lib/session-export'
+import { buildFallbackBlueprint, buildStructuredBlueprintHtml, buildStructuredBlueprintSections } from '@/lib/session-export'
 import { normalizeAdvisoryStage } from '@/lib/workflow'
 
 export default function BlueprintPanel() {
@@ -15,19 +15,40 @@ export default function BlueprintPanel() {
 
   const view = useMemo(() => normalizeWorkspace(workspace), [workspace])
   const stage = normalizeAdvisoryStage(view.stage) ?? 'discovery'
+  const rawBlueprint = useMemo(
+    () => (view.architecture_case?.artifacts.blueprint_markdown?.trim() || view.blueprint_markdown?.trim() || '').trim(),
+    [view.architecture_case?.artifacts.blueprint_markdown, view.blueprint_markdown],
+  )
   const fallbackMarkdown = useMemo(
-    () => (view.blueprint_markdown?.trim() || buildFallbackBlueprint(view, architectureArtifact)).trim(),
+    () => (rawBlueprint || buildFallbackBlueprint(view, architectureArtifact)).trim(),
+    [rawBlueprint, view, architectureArtifact],
+  )
+  const structuredBlueprintHtml = useMemo(
+    () => buildStructuredBlueprintHtml(view, architectureArtifact).trim(),
     [view, architectureArtifact],
   )
-  const technicalSections = useMemo(() => parseMarkdownSections(fallbackMarkdown), [fallbackMarkdown])
+  const structuredSections = useMemo(
+    () => buildStructuredBlueprintSections(view, architectureArtifact),
+    [view, architectureArtifact],
+  )
+  const useStructuredHtml = useMemo(
+    () => shouldUseStructuredBlueprintHtml(rawBlueprint, fallbackMarkdown, structuredBlueprintHtml),
+    [rawBlueprint, fallbackMarkdown, structuredBlueprintHtml],
+  )
+  const technicalSections = useMemo(
+    () => (useStructuredHtml ? [] : parseMarkdownSections(fallbackMarkdown)),
+    [fallbackMarkdown, useStructuredHtml],
+  )
   const hasBlueprint =
-    !!view.blueprint_markdown?.trim() ||
+    rawBlueprint.length > 0 ||
+    structuredBlueprintHtml.length > 0 ||
     (stage === 'blueprint' && fallbackMarkdown.length > 0)
+  const copySource = fallbackMarkdown || rawBlueprint
 
   async function handleCopy() {
     if (!hasBlueprint) return
     try {
-      await navigator.clipboard.writeText(fallbackMarkdown)
+      await navigator.clipboard.writeText(copySource)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1800)
     } catch (err) {
@@ -59,10 +80,64 @@ export default function BlueprintPanel() {
               : 'The engine will publish the detailed technical blueprint here once the recommendation is coherent enough to implement.'}
           </p>
         </div>
+      ) : useStructuredHtml ? (
+        <StructuredBlueprintView
+          html={structuredBlueprintHtml}
+          sections={structuredSections}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
       ) : (
         <MarkdownBlueprintView sections={technicalSections} activeTab={activeTab} onChange={setActiveTab} />
       )}
     </div>
+  )
+}
+
+function StructuredBlueprintView({
+  html,
+  sections,
+  activeTab,
+  onChange,
+}: {
+  html: string
+  sections: Array<{ id: string; title: string; html: string }>
+  activeTab: string
+  onChange: (tab: string) => void
+}) {
+  const tabs = sections.map((section) => ({ id: section.id, label: section.title }))
+  const selectedTab = tabs.find((tab) => tab.id === activeTab)?.id ?? tabs[0]?.id ?? 'overview'
+  const activeSection = sections.find((section) => section.id === selectedTab) ?? sections[0] ?? null
+
+  if (!activeSection) {
+    return (
+      <div style={contentShellStyle}>
+        <section style={sectionStyle}>
+          <span style={sectionTitleStyle}>Structured Blueprint</span>
+          <div
+            className="prose"
+            style={proseStyle}
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        </section>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {tabs.length > 1 ? <TabBar tabs={tabs} activeTab={selectedTab} onChange={onChange} /> : null}
+      <div style={contentShellStyle}>
+        <section style={sectionStyle}>
+          <span style={sectionTitleStyle}>{activeSection.title}</span>
+          <div
+            className="prose"
+            style={proseStyle}
+            dangerouslySetInnerHTML={{ __html: htmlForStructuredSection(activeSection.id, html, activeSection.html) }}
+          />
+        </section>
+      </div>
+    </>
   )
 }
 
@@ -92,7 +167,7 @@ function MarkdownBlueprintView({
           <div
             className="prose"
             style={proseStyle}
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(activeSection.body) }}
+            dangerouslySetInnerHTML={{ __html: renderArtifactBody(activeSection.body) }}
           />
         </section>
       </div>
@@ -139,7 +214,7 @@ function PackSection({ title, body }: { title: string; body: string }) {
       <div
         className="prose"
         style={proseStyle}
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(body) }}
+        dangerouslySetInnerHTML={{ __html: renderArtifactBody(body) }}
       />
     </section>
   )
@@ -175,34 +250,71 @@ function parseMarkdownSections(markdown: string): MarkdownSection[] {
   const normalized = markdown.trim()
   if (!normalized) return []
 
-  const matches = Array.from(normalized.matchAll(/^##\s+(.+)$/gm))
-  if (matches.length === 0) {
+  const h2Matches = Array.from(normalized.matchAll(/^##\s+(.+)$/gm))
+  if (h2Matches.length > 1) {
+    const sections: MarkdownSection[] = []
+    const firstMatch = h2Matches[0]
+    if ((firstMatch.index ?? 0) > 0) {
+      const intro = normalized.slice(0, firstMatch.index).trim()
+      if (intro) {
+        sections.push({ id: 'overview', title: 'Overview', body: intro })
+      }
+    }
+
+    h2Matches.forEach((match, index) => {
+      const title = match[1].trim()
+      const start = (match.index ?? 0) + match[0].length
+      const end = h2Matches[index + 1]?.index ?? normalized.length
+      const body = normalized.slice(start, end).trim()
+      if (!body) return
+      sections.push({
+        id: createSectionId(title, index),
+        title,
+        body,
+      })
+    })
+
+    return sections
+  }
+
+  const h3Matches = Array.from(normalized.matchAll(/^###\s+(.+)$/gm))
+  if (h3Matches.length > 0) {
+    const sections: MarkdownSection[] = []
+    const leadingBoundary = h2Matches[0]?.index ?? 0
+    const firstH3 = h3Matches[0]
+    const introStart = h2Matches.length === 1
+      ? (h2Matches[0].index ?? 0) + h2Matches[0][0].length
+      : 0
+    const introTitle = h2Matches.length === 1 ? h2Matches[0][1].trim() : 'Overview'
+    const introEnd = firstH3.index ?? normalized.length
+    const intro = normalized.slice(introStart, introEnd).trim()
+    if (intro && introEnd >= leadingBoundary) {
+      sections.push({ id: 'overview', title: introTitle, body: intro })
+    }
+
+    h3Matches.forEach((match, index) => {
+      const title = match[1].trim()
+      const start = (match.index ?? 0) + match[0].length
+      const end = h3Matches[index + 1]?.index ?? normalized.length
+      const body = normalized.slice(start, end).trim()
+      if (!body) return
+      sections.push({
+        id: createSectionId(title, index),
+        title,
+        body,
+      })
+    })
+
+    return sections
+  }
+
+  if (h2Matches.length === 0) {
     return [{ id: 'blueprint', title: 'Blueprint', body: normalized }]
   }
 
-  const sections: MarkdownSection[] = []
-  const firstMatch = matches[0]
-  if ((firstMatch.index ?? 0) > 0) {
-    const intro = normalized.slice(0, firstMatch.index).trim()
-    if (intro) {
-      sections.push({ id: 'overview', title: 'Overview', body: intro })
-    }
-  }
-
-  matches.forEach((match, index) => {
-    const title = match[1].trim()
-    const start = (match.index ?? 0) + match[0].length
-    const end = matches[index + 1]?.index ?? normalized.length
-    const body = normalized.slice(start, end).trim()
-    if (!body) return
-    sections.push({
-      id: createSectionId(title, index),
-      title,
-      body,
-    })
-  })
-
-  return sections
+  const outerTitle = h2Matches[0][1].trim() || 'Blueprint'
+  const outerBody = normalized.slice(((h2Matches[0].index ?? 0) + h2Matches[0][0].length)).trim()
+  return [{ id: createSectionId(outerTitle, 0), title: outerTitle, body: outerBody || normalized }]
 }
 
 function createSectionId(title: string, index: number) {
@@ -211,6 +323,29 @@ function createSectionId(title: string, index: number) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
   return slug || `section-${index + 1}`
+}
+
+function renderArtifactBody(body: string) {
+  return looksLikeHtml(body) ? body : renderMarkdown(body)
+}
+
+function looksLikeHtml(body: string) {
+  return /^\s*<(article|aside|div|dl|footer|h1|h2|h3|header|li|main|nav|ol|p|section|table|tbody|td|th|thead|tr|ul)\b/i.test(body)
+}
+
+function shouldUseStructuredBlueprintHtml(rawBlueprint: string, fallbackMarkdown: string, html: string) {
+  if (!html) return false
+  if (!rawBlueprint) return true
+  if (looksLikeHtml(rawBlueprint)) return false
+  const hasStructuredHeadings = /^##\s+.+$/m.test(fallbackMarkdown) || /^###\s+.+$/m.test(fallbackMarkdown)
+  if (!hasStructuredHeadings) return true
+  const paragraphCount = fallbackMarkdown.split(/\n\s*\n/).filter((item) => item.trim()).length
+  return paragraphCount <= 2 && fallbackMarkdown.length > 240
+}
+
+function htmlForStructuredSection(sectionId: string, html: string, sectionHtml: string) {
+  const marker = `data-blueprint-section="${sectionId}"`
+  return html.includes(marker) ? sectionHtml : html
 }
 
 function ArtifactButton({

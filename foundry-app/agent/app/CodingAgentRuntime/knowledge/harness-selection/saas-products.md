@@ -8,6 +8,11 @@ timestamp: 2026-08-13T00:00:00Z
 status: candidate
 traversal: mandate
 decision-question: "Which SaaS coding agent product fits your developer population, and what does it pre-configure downstream?"
+decision-domain: harness_family
+priority: 8
+blocking: true
+alternatives: [harness-selection/coding-harnesses, harness-selection/oss-frameworks, harness-selection/managed-runtime]
+implies: [access/identity, access/quota]
 ---
 
 SaaS coding agents ship harness, IDE surface, and often managed execution as a

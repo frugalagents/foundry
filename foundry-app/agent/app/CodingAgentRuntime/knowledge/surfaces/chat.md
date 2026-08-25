@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [non-developer-users, slack-teams-integration, pr-review-bot, async-collaboration]
 decision-question: "Do non-developer stakeholders or async PR workflows need a chat or bot surface?"
+decision-domain: surface_strategy
+priority: 7
+implies: [gateway/mcpgw, ops/observability]
 ---
 
 Async surface to kick off tasks, review PRs, and approve actions from where

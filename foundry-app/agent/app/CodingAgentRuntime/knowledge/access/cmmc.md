@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [cmmc, cui, nist-800-171, defense-contractor, dod, dfars, fedramp, govcloud, controlled-unclassified, dib, defense-industrial-base]
 decision-question: "Are you a US defense contractor or subcontractor in the Defense Industrial Base (DIB) who handles Controlled Unclassified Information (CUI) — technical data, export-controlled research, or sensitive government program information — requiring CMMC certification for DoD contracts?"
+decision-domain: compliance_overlay
+priority: 10
+blocking: true
+requires: [access/identity, exec/microvm]
 ---
 
 CMMC (Cybersecurity Maturity Model Certification) is a DoD framework requiring

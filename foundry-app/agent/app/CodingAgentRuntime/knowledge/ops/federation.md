@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [multi-instance, platform-federation, multiple-bus, regional-instances, instance-governance, one-platform-mandate, federated-platform, bу-instances, instance-drift]
 decision-question: "Are you operating — or planning to operate — more than one platform instance across BUs, regions, or jurisdictions, and do you need to govern them as a single federated platform rather than independent deployments?"
+decision-domain: multi_instance
+priority: 8
+blocking: true
+requires: [access/identity, ops/observability]
 ---
 
 When a coding agent platform scales beyond a single BU or region, it inevitably

@@ -6,6 +6,9 @@ group: exec
 tags: [exec, sandboxing]
 timestamp: 2026-08-12T00:00:00Z
 status: candidate
+decision-domain: execution_boundary
+priority: 4
+implies: [exec/local, exec/container, exec/microvm, exec/remote, exec/on-prem-runner, exec/gcp-runner]
 ---
 
 Where the agent's tool calls (shell, tests, builds) actually execute. Split

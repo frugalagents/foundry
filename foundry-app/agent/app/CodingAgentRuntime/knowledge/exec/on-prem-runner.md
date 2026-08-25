@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [on-premises, on-prem, air-gapped, hardware-in-the-loop, hil, classified-lab, local-runner, hybrid-execution, embedded-test, hardware-test, no-cloud-compute, self-hosted-runner]
 decision-question: "Do any developer workflows require agent execution on local or air-gapped infrastructure — because the agent needs physical hardware access, the environment cannot reach the internet, or regulatory requirements prohibit cloud compute for that workload?"
+decision-domain: execution_boundary
+priority: 9
+blocking: true
+alternatives: [exec/local, exec/container, exec/microvm, exec/remote]
 ---
 
 Most coding agent execution runs comfortably in cloud compute. But some developer

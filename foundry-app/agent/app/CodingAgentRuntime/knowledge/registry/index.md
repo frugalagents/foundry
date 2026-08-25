@@ -6,6 +6,9 @@ group: registry
 tags: [registry]
 timestamp: 2026-08-12T00:00:00Z
 status: candidate
+decision-domain: registry_governance
+priority: 5
+implies: [registry/registry, registry/tools, registry/mcpservers, registry/provenance, registry/skills, registry/subagents]
 ---
 
 Everything the harness may load — tools, plugins, skills, subagents, MCP

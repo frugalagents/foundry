@@ -9,6 +9,11 @@ status: candidate
 traversal: conditional
 trigger: [data-residency, data-jurisdiction, china-deployment, eu-data-residency, sovereignty, cross-border-transfer, schrems2, transfer-impact-assessment, regulatory-data-boundary, mlps, pipl]
 decision-question: "Do you have regulatory, contractual, or sovereign requirements that restrict where developer session data or processed source code can be stored, transmitted, or inferred — particularly for China, EU, or other jurisdictions with strict cross-border transfer rules?"
+decision-domain: compliance_overlay
+priority: 10
+blocking: true
+requires: [access/identity, ops/federation]
+conflicts_with: [access/export-control]
 ---
 
 Data jurisdiction is the set of rules governing where data can be processed, stored,

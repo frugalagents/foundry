@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [container-isolation, devcontainer, shared-kernel-sandbox, reproducible-environment]
 decision-question: "Do you need container-level isolation for agent code execution, and is a devcontainer approach sufficient?"
+decision-domain: execution_boundary
+priority: 8
+alternatives: [exec/local, exec/microvm, exec/remote, exec/on-prem-runner]
 ---
 
 Runs the whole harness process inside a Docker/OCI container rather than

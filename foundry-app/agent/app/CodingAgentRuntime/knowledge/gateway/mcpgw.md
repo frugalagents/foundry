@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [mcp-gateway, enterprise-tool-routing, multi-team-mcp, centralized-tool-policy]
 decision-question: "Do you need a central MCP gateway to route, authenticate, and policy-gate tool calls across teams?"
+decision-domain: tool_governance
+priority: 8
+requires: [access/identity]
+implies: [access/quota]
 ---
 
 The single chokepoint for all tool/MCP traffic to enterprise systems and

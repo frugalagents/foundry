@@ -31,6 +31,7 @@ export default function WorkspaceTabs() {
   const advisoryCase = hasAdvisoryCaseContent(view.advisory_case) ? view.advisory_case : null
   const blueprintReady =
     !!view.blueprint_markdown?.trim() ||
+    !!view.architecture_case?.artifacts.blueprint_markdown?.trim() ||
     Boolean(advisoryCase?.output_pack && hasOutputPackContent(advisoryCase.output_pack))
   const assumptions = useMemo(
     () => buildAssumptionCards(view, architectureArtifact, canvasNodes),

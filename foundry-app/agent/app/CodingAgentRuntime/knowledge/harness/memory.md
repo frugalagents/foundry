@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [cross-session-memory, developer-preferences, personalization, team-knowledge, remember-across-sessions]
 decision-question: "What should persist across sessions, how is it scoped per developer vs. team, and what governance applies?"
+decision-domain: memory_strategy
+priority: 6
+requires: [harness/runtime]
 ---
 
 Facts the agent remembers *across* sessions — user preferences, project

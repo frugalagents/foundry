@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [jupyterlab, jupyter, notebook, quant-research, data-science, data-scientist, ml-engineer, jupyter-surface, python-research, shadow-it-jupyter]
 decision-question: "Do you have a significant population of developers — quant researchers, data scientists, or ML engineers — who work primarily in JupyterLab and will not adopt a coding agent platform that requires them to leave their notebook environment?"
+decision-domain: surface_strategy
+priority: 8
+implies: [gateway/mcpgw, knowledge-layer/code-intelligence]
 ---
 
 JupyterLab is the primary development environment for quantitative researchers,

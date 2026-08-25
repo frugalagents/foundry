@@ -8,6 +8,11 @@ timestamp: 2026-08-12T00:00:00Z
 status: candidate
 traversal: mandate
 decision-question: "How will you cap, throttle, and attribute spend per developer and team — and what happens when limits are breached?"
+decision-domain: cost_control
+priority: 8
+blocking: true
+requires: [access/identity]
+implies: [ops/cost]
 ---
 
 Enforces limits at the edge before any model or tool spend — per-caller,

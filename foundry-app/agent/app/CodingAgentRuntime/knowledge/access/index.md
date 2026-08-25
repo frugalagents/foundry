@@ -6,6 +6,9 @@ group: access
 tags: [access, governance]
 timestamp: 2026-08-12T00:00:00Z
 status: candidate
+decision-domain: governance_group
+priority: 4
+implies: [access/identity, access/guardrails, access/quota, access/security-posture, access/policy-tiers]
 ---
 
 The governance control plane: who may reach the harness, what they may do

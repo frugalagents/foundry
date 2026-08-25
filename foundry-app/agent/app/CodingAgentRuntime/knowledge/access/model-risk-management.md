@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [sr-11-7, model-risk, mrm, occ-guidance, fed-guidance, financial-model-validation, ai-validation, model-risk-management, banking-regulation, quantitative-model]
 decision-question: "Are you a financial institution subject to SR 11-7 (OCC/Federal Reserve model risk management guidance), and does your coding agent platform touch code used in quantitative models, risk systems, credit decisioning, or other model-driven financial processes?"
+decision-domain: compliance_overlay
+priority: 9
+blocking: true
+requires: [quality/evals, ops/observability]
 ---
 
 SR 11-7 is the Federal Reserve's supervisory guidance on model risk management

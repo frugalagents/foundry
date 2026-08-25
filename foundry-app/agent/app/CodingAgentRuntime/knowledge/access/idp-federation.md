@@ -9,6 +9,11 @@ status: candidate
 traversal: conditional
 trigger: [multiple-idps, idp-federation, acquisition-identity, legacy-directory, 11-idps, active-directory-forest, saml-federation, oidc-federation, enterprise-sso]
 decision-question: "Do you have more than one identity provider — through acquisitions, BU autonomy, or legacy AD forests — that must all grant access to the coding agent platform without requiring a monolithic IdP consolidation first?"
+decision-domain: identity_boundary
+priority: 9
+blocking: true
+requires: [access/identity]
+implies: [ops/federation]
 ---
 
 Enterprise identity sprawl is the norm at scale: a 20,000-developer organization

@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [automated-workflows, headless-execution, scripting, ci-scripting]
 decision-question: "Do you need headless or automated CLI invocations outside of IDE sessions?"
+decision-domain: surface_strategy
+priority: 7
+implies: [exec/local]
 ---
 
 Terminal surface for power users and scripting — the same harness as every

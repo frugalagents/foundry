@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [coding-standards, architectural-rules, compliance-rules, enforce-standards, style-guide]
 decision-question: "How will org-wide coding standards and compliance rules be delivered into every agent session without requiring developers to manually include them?"
+decision-domain: knowledge_layer
+priority: 7
+requires: [access/guardrails]
 ---
 
 Standards injection delivers coding standards, architectural patterns, and

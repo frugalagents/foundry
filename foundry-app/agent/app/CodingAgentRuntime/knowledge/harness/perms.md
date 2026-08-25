@@ -9,6 +9,9 @@ status: stable
 traversal: probe
 trigger: [allow-deny-lists, granular-permissions, tool-whitelisting, least-privilege-tools]
 decision-question: "How are per-tool allow/deny decisions made at runtime, and who controls the permission policy?"
+decision-domain: approval_posture
+priority: 7
+requires: [access/guardrails]
 ---
 
 Decides, for every tool call, whether to run it, block it, or ask a human —

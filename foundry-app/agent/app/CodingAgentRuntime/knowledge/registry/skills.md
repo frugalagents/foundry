@@ -9,6 +9,9 @@ status: candidate
 traversal: probe
 trigger: [skill-library, reusable-procedures, prompt-management, shared-agent-workflows]
 decision-question: "How are reusable agent procedures packaged, versioned, and distributed across your developer population?"
+decision-domain: registry_governance
+priority: 6
+requires: [registry/registry]
 ---
 
 Packaged know-how the agent loads on demand — "how we do migrations here",

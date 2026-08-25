@@ -8,6 +8,10 @@ timestamp: 2026-08-13T00:00:00Z
 status: candidate
 traversal: mandate
 decision-question: "Which downstream platform decisions are already resolved by the harness choice, and which remain open?"
+decision-domain: harness_cascade
+priority: 8
+blocking: true
+requires: [harness-selection/index]
 ---
 
 Harness selection cascades into every other platform area. This node is the

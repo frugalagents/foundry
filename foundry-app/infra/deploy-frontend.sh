@@ -5,75 +5,76 @@ set -euo pipefail
 
 INFRA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="$INFRA_DIR/../frontend"
-STACK="foundry-app-dev"
-PROFILE="platform-advisor"
-REGION="us-east-1"
+STACK="${STACK:-foundry-app-dev}"
+PROFILE="${PROFILE:-platform-advisor}"
+REGION="${REGION:-us-east-1}"
 
-echo "→ Fetching stack outputs"
-API_URL=$(aws cloudformation describe-stacks \
-  --stack-name "$STACK" \
-  --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
-  --output text \
-  --profile "$PROFILE" \
-  --region "$REGION")
-
-BUCKET=$(aws cloudformation describe-stacks \
-  --stack-name "$STACK" \
-  --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" \
-  --output text \
-  --profile "$PROFILE" \
-  --region "$REGION")
-
-DIST_ID=$(aws cloudformation describe-stacks \
-  --stack-name "$STACK" \
-  --query "Stacks[0].Outputs[?OutputKey=='FrontendDistributionId'].OutputValue" \
-  --output text \
-  --profile "$PROFILE" \
-  --region "$REGION")
-
-CF_URL=$(aws cloudformation describe-stacks \
-  --stack-name "$STACK" \
-  --query "Stacks[0].Outputs[?OutputKey=='FrontendURL'].OutputValue" \
-  --output text \
-  --profile "$PROFILE" \
-  --region "$REGION")
-
-COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
-  --stack-name "$STACK" \
-  --query "Stacks[0].Outputs[?OutputKey=='BrowserAuthClientId'].OutputValue" \
-  --output text \
-  --profile "$PROFILE" \
-  --region "$REGION")
-
-if [[ -z "$COGNITO_CLIENT_ID" || "$COGNITO_CLIENT_ID" == "None" ]]; then
-  COGNITO_CLIENT_ID=$(aws cloudformation describe-stacks \
+stack_output() {
+  local key="$1"
+  aws cloudformation describe-stacks \
     --stack-name "$STACK" \
-    --query "Stacks[0].Outputs[?OutputKey=='UserPoolClientId'].OutputValue" \
+    --query "Stacks[0].Outputs[?OutputKey=='${key}'].OutputValue" \
     --output text \
     --profile "$PROFILE" \
-    --region "$REGION")
+    --region "$REGION"
+}
+
+stack_parameter() {
+  local key="$1"
+  aws cloudformation describe-stacks \
+    --stack-name "$STACK" \
+    --query "Stacks[0].Parameters[?ParameterKey=='${key}'].ParameterValue" \
+    --output text \
+    --profile "$PROFILE" \
+    --region "$REGION"
+}
+
+echo "→ Fetching stack outputs"
+API_URL=$(stack_output "ApiUrl")
+BUCKET=$(stack_output "FrontendBucketName")
+DIST_ID=$(stack_output "FrontendDistributionId")
+CF_URL=$(stack_output "FrontendURL")
+COGNITO_CLIENT_ID=$(stack_output "BrowserAuthClientId")
+
+if [[ -z "$COGNITO_CLIENT_ID" || "$COGNITO_CLIENT_ID" == "None" ]]; then
+  COGNITO_CLIENT_ID=$(stack_output "UserPoolClientId")
 fi
 
-COGNITO_DOMAIN=$(aws cloudformation describe-stacks \
-  --stack-name "$STACK" \
-  --query "Stacks[0].Outputs[?OutputKey=='CognitoDomain'].OutputValue" \
-  --output text \
-  --profile "$PROFILE" \
-  --region "$REGION")
+COGNITO_DOMAIN=$(stack_output "CognitoDomain")
+GUEST_ACCESS_EXPIRES_AT=$(stack_output "GuestAccessExpiresAtValue")
+IDENTITY_POOL_ID=$(stack_output "IdentityPoolId")
+USER_POOL_ID="${USER_POOL_ID:-$(stack_output "UserPoolId")}"
+if [[ -z "$USER_POOL_ID" || "$USER_POOL_ID" == "None" ]]; then
+  USER_POOL_ID=$(stack_parameter "UserPoolId")
+fi
 
-GUEST_ACCESS_EXPIRES_AT=$(aws cloudformation describe-stacks \
-  --stack-name "$STACK" \
-  --query "Stacks[0].Outputs[?OutputKey=='GuestAccessExpiresAtValue'].OutputValue" \
-  --output text \
-  --profile "$PROFILE" \
-  --region "$REGION")
+AGENTCORE_RUNTIME_ARN="${AGENTCORE_RUNTIME_ARN:-$(stack_output "AgentCoreRuntimeArn")}"
+if [[ -z "$AGENTCORE_RUNTIME_ARN" || "$AGENTCORE_RUNTIME_ARN" == "None" ]]; then
+  AGENTCORE_RUNTIME_ARN=$(stack_parameter "AgentCoreRuntimeArn")
+fi
+if [[ -z "$AGENTCORE_RUNTIME_ARN" || "$AGENTCORE_RUNTIME_ARN" == "None" ]]; then
+  AGENTCORE_RUNTIME_ARN=$(stack_parameter "AgentCoreEndpointArn")
+fi
 
-IDENTITY_POOL_ID=$(aws cloudformation describe-stacks \
-  --stack-name "$STACK" \
-  --query "Stacks[0].Outputs[?OutputKey=='IdentityPoolId'].OutputValue" \
-  --output text \
-  --profile "$PROFILE" \
-  --region "$REGION")
+require_value() {
+  local name="$1"
+  local value="$2"
+  if [[ -z "$value" || "$value" == "None" ]]; then
+    echo "✗ Missing required deploy value: $name" >&2
+    echo "  Check stack outputs on $STACK or override via environment variable." >&2
+    exit 1
+  fi
+}
+
+require_value "ApiUrl" "$API_URL"
+require_value "FrontendBucketName" "$BUCKET"
+require_value "FrontendDistributionId" "$DIST_ID"
+require_value "FrontendURL" "$CF_URL"
+require_value "BrowserAuthClientId/UserPoolClientId" "$COGNITO_CLIENT_ID"
+require_value "CognitoDomain" "$COGNITO_DOMAIN"
+require_value "IdentityPoolId" "$IDENTITY_POOL_ID"
+require_value "UserPoolId" "$USER_POOL_ID"
+require_value "AgentCoreRuntimeArn" "$AGENTCORE_RUNTIME_ARN"
 
 echo "  API_URL:          $API_URL"
 echo "  S3 Bucket:        $BUCKET"
@@ -83,9 +84,6 @@ echo "  Cognito Client:   $COGNITO_CLIENT_ID"
 echo "  Cognito Domain:   $COGNITO_DOMAIN"
 echo "  Identity Pool:    $IDENTITY_POOL_ID"
 echo "  Guest cutoff:     $GUEST_ACCESS_EXPIRES_AT"
-
-USER_POOL_ID="us-east-1_oSEwvKdfd"
-AGENTCORE_RUNTIME_ARN="arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/CodingAgentRuntime_CodingAgentRuntime-TOiVHpGwhu"
 
 echo "  User Pool ID:     $USER_POOL_ID"
 echo "  AgentCore ARN:    $AGENTCORE_RUNTIME_ARN"

@@ -8,6 +8,10 @@ timestamp: 2026-08-12T00:00:00Z
 status: candidate
 traversal: mandate
 decision-question: "Which IDE integration approach fits your developer population and workflow?"
+decision-domain: surface_strategy
+priority: 6
+blocking: true
+implies: [exec/local]
 ---
 
 The agent inside a code editor — inline edits, diffs, side-panel chat,

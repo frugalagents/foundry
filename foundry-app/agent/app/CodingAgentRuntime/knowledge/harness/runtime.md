@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [custom-harness, managed-runtime, agentcore, oss-framework, build-vs-buy-harness]
 decision-question: "Which harness runtime — SaaS product, managed runtime, or OSS framework — will orchestrate tool calls and model interactions?"
+decision-domain: harness_runtime
+priority: 8
+blocking: true
+requires: [gateway/mcpgw, gateway/modelgw]
 ---
 
 Executes the harness's decisions — runs built-in tools, loads skills,

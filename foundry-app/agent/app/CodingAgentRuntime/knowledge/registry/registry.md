@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [enterprise-tool-catalog, tool-governance, multiple-teams, curated-toolset]
 decision-question: "How will approved tools, MCP servers, and skills be catalogued, versioned, and governed across teams?"
+decision-domain: registry_governance
+priority: 7
+requires: [access/identity]
 ---
 
 The versioned source of truth for everything the harness may load — tools,

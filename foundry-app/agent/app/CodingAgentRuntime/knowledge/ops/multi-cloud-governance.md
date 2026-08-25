@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [multi-cloud, azure-acquisition, gcp-workloads, cloud-agnostic, acquisition-integration, existing-azure, existing-gcp]
 decision-question: "Do you have engineering teams on Azure or GCP — through acquisitions or existing investments — that need to be governed under the same platform policy without requiring an AWS migration?"
+decision-domain: multi_cloud
+priority: 8
+blocking: true
+implies: [ops/federation, access/idp-federation]
 ---
 
 Multi-cloud governance applies when a coding agent platform must extend to

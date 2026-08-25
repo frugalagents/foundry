@@ -9,6 +9,53 @@ status: candidate
 traversal: conditional
 trigger: [itar, ear, export-control, defense-contractor, us-government, classified-code, encryption-source, hardware-firmware]
 decision-question: "Do any repos contain ITAR or EAR controlled content — defense firmware, encryption source, hardware schematics — that legally cannot be processed by AI systems accessible to non-US persons?"
+decision-domain: compliance_overlay
+priority: 10
+blocking: true
+requires: [access/identity]
+conflicts_with: [access/data-jurisdiction]
+advisory:
+  slice: true
+  fact-rules:
+    - key: export_control
+      value: true
+      match-any: [itar, ear, export-controlled, export controlled, export-control, defense firmware]
+      fact-text: "Export-controlled / ITAR-sensitive repositories appear to be in scope."
+    - key: regulated_population_isolated
+      value: true
+      match-any: [separate developer population, distinct developer population, isolated environment, dedicated environment, dedicated execution lane, separate lane, regulated lane]
+      fact-text: "Regulated workloads are isolated to a distinct developer population and execution lane."
+  activate:
+    requires-facts-all: [export_control]
+  output:
+    decision-focus: compliance_boundary
+    question:
+      id: compliance-boundary-export-control
+      text: "Are the export-controlled repositories isolated to a distinct developer population and execution environment, or mixed into general engineering workflows?"
+      why-it-matters: "This determines whether the platform needs a dedicated regulated lane instead of one shared default path."
+      decision-domain: compliance_boundary
+    recommendation: "Define the export-control boundary before finalizing execution or harness choices. If the regulated population is distinct, the platform will likely need a dedicated or tightly carved-out controlled lane."
+    risks:
+      - "Export-controlled workloads should not be treated as a generic shared platform population until the regulated boundary is explicit."
+    options:
+      - path: decision/compliance-boundary/dedicated-regulated-lane
+        title: Dedicated regulated lane
+        summary: Separate the regulated population, execution environment, and control posture from the general developer platform.
+        decision-domain: compliance_boundary
+        position: recommended
+      - path: decision/compliance-boundary/shared-core-with-regulated-exception
+        title: Shared core with a regulated exception lane
+        summary: Keep one broader platform baseline but carve out a narrower controlled lane for export-controlled repos.
+        decision-domain: compliance_boundary
+        position: viable
+      - path: decision/compliance-boundary/fully-shared-default
+        title: Fully shared default path
+        summary: Keep regulated and general workloads on the same default workflow and rely on lighter policy overlays.
+        decision-domain: compliance_boundary
+        position: deferred
+  resolutions:
+    - when-facts-all: [export_control, regulated_population_isolated]
+      decision: "Export-controlled workloads require a distinct population and execution boundary instead of the general developer default path."
 ---
 
 ITAR (International Traffic in Arms Regulations) and EAR (Export Administration

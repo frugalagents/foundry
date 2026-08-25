@@ -6,6 +6,9 @@ group: surfaces
 tags: [surfaces]
 timestamp: 2026-08-12T00:00:00Z
 status: candidate
+decision-domain: surface_strategy
+priority: 4
+implies: [surfaces/ide, surfaces/cli, surfaces/chat, surfaces/ci, surfaces/jupyterlab]
 ---
 
 Where a developer or a system event actually engages the agent. All four

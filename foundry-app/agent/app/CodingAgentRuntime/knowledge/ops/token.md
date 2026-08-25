@@ -9,6 +9,9 @@ status: candidate
 traversal: probe
 trigger: [token-caching, prompt-cache, token-right-sizing, reduce-token-spend]
 decision-question: "How will prompt caching, context right-sizing, and model-tier selection reduce per-call token cost?"
+decision-domain: cost_control
+priority: 6
+requires: [gateway/model-tiering]
 ---
 
 The efficiency layer — token metering, prompt-cache hit rate, model

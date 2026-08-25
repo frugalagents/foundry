@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [team-knowledge, codebase-context, knowledge-base, code-intelligence, org-patterns, standards-injection, entire-codebase-in-memory]
 decision-question: "Do you need a persistent knowledge layer — indexed codebase retrieval, org pattern mining, or standards injection — beyond what fits in a session context window?"
+decision-domain: knowledge_layer
+priority: 6
+implies: [knowledge-layer/code-intelligence, knowledge-layer/org-knowledge, knowledge-layer/standards-injection]
 ---
 
 The knowledge layer sits between raw codebase storage and the agent's in-session

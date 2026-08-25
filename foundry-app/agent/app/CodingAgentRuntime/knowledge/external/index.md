@@ -6,6 +6,9 @@ group: external
 tags: [external]
 timestamp: 2026-08-12T00:00:00Z
 status: candidate
+decision-domain: external_integration
+priority: 4
+implies: [external/providers, external/landscape, external/web]
 ---
 
 The actual destinations reached through the [MCP Gateway](../gateway/mcpgw.md)

@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [gcp, google-cloud, cloud-run, gke, vertex-ai, gcp-runner, hybrid-aws-gcp, workload-identity-federation, industrial-automation-gcp, gcp-primary]
 decision-question: "Does a material developer population work primarily in a GCP environment — GCP-hosted CI/CD, GCP-based artifact registries, Vertex AI as the primary model platform, or GCP-first BUs acquired or operated separately — where deploying the agent runtime exclusively on AWS would create friction or policy gaps?"
+decision-domain: execution_boundary
+priority: 8
+requires: [ops/multi-cloud-governance, access/idp-federation]
 ---
 
 GCP runners address the hybrid-cloud reality at large enterprises: most coding

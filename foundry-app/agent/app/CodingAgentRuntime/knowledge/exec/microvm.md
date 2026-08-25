@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [strong-isolation, multi-tenant-sandbox, regulated-environment, kernel-level-isolation]
 decision-question: "Does your threat model or multi-tenancy require microVM-level isolation for agent code execution?"
+decision-domain: execution_boundary
+priority: 9
+alternatives: [exec/local, exec/container, exec/remote, exec/on-prem-runner]
 ---
 
 Runs each agent session inside its own micro-virtual-machine — a lightweight

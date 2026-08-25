@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [litigation-hold, e-discovery, legal-hold, active-litigation, patent-litigation, repo-freeze]
 decision-question: "Are any repos or codebases under active litigation hold — requiring write blocking, e-discovery-grade session logging, and retention override for all AI interactions?"
+decision-domain: compliance_overlay
+priority: 9
+blocking: true
+requires: [access/guardrails, ops/observability]
 ---
 
 A litigation hold (legal hold) is a directive from legal counsel requiring an

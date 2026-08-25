@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [model-evaluation, capability-eval, hdl, verilog, embedded-c, assembly, dsl, firmware, domain-specific-code, model-fit, pre-deployment-eval, hardware-code]
 decision-question: "Does your codebase contain domain-specific languages, hardware description languages, embedded firmware, or other non-standard code that requires a structured evaluation before committing to a model or deploying the platform — rather than assuming frontier models will be effective?"
+decision-domain: quality_gate
+priority: 8
+blocking: true
+requires: [quality/evals]
 ---
 
 Frontier coding models are trained primarily on publicly available source code,

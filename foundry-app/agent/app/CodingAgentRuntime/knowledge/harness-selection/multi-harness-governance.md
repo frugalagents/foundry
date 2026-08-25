@@ -11,6 +11,70 @@ trigger: [multi-harness, multiple tools, multiple harnesses, approved tools, app
 trigger_pool: [copilot, github copilot, cursor, claude code, codex]
 trigger_pool_min_matches: 2
 decision-question: "Is the target state a single standard harness, a governed multi-harness portfolio, or one default harness with formal exception paths?"
+decision-domain: operating_model
+priority: 10
+blocking: true
+implies: [access/policy-tiers, access/quota, access/identity, gateway/mcpgw, gateway/modelgw]
+advisory:
+  slice: true
+  fact-rules:
+    - key: current_tools
+      value-from: matched_trigger_pool_labels
+      min-trigger-pool-matches: 1
+      label-map:
+        github copilot: GitHub Copilot
+        copilot: GitHub Copilot
+        cursor: Cursor
+        claude code: Claude Code
+        codex: Codex CLI
+      fact-text: "Current tools in scope: {value}."
+    - key: multi_tool_current_state
+      value: true
+      min-trigger-pool-matches: 2
+    - key: operating_model
+      value: single_standard
+      match-any: [single standard, one standard tool, single approved tool, one tool for everyone]
+    - key: operating_model
+      value: multi_harness_governed
+      match-any: [governed multi-harness, multi-harness portfolio, approved portfolio]
+    - key: operating_model
+      value: default_plus_exceptions
+      match-any: [default plus exceptions, default with exceptions, formal exception paths, exception lanes]
+  activate:
+    requires-facts-all: [multi_tool_current_state]
+  output:
+    decision-focus: operating_model
+    question:
+      id: operating-model-current-multi-tool
+      text: "Is the target state one standard tool, a governed multi-harness portfolio, or one default tool with formal exception paths?"
+      why-it-matters: "Multiple tools are already in play, so the platform should resolve the governance model before comparing products."
+      decision-domain: operating_model
+    recommendation: "Treat the current state as a multi-tool environment and resolve the operating model before narrowing to products. Until that is explicit, assume shared controls matter more than forcing premature tool uniformity."
+    risks:
+      - "Multiple approved tools without an explicit operating model will drift into unmanaged exceptions and inconsistent controls."
+    options:
+      - path: decision/operating-model/multi-harness-governed
+        title: Governed multi-harness portfolio
+        summary: Several approved tools operate under one shared identity, policy, audit, and quota model.
+        decision-domain: operating_model
+        position: recommended
+      - path: decision/operating-model/default-plus-exceptions
+        title: One default with formal exceptions
+        summary: Standardize on one primary tool but create bounded exception lanes for named populations.
+        decision-domain: operating_model
+        position: viable
+      - path: decision/operating-model/single-standard
+        title: Single standard tool
+        summary: Move all developer populations onto one approved tool unless a later constraint proves that unworkable.
+        decision-domain: operating_model
+        position: deferred
+  resolutions:
+    - when-facts-all: [operating_model=single_standard]
+      decision: "The target operating model is one standard harness for the default developer population."
+    - when-facts-all: [operating_model=multi_harness_governed]
+      decision: "The target operating model is a governed multi-harness portfolio under one shared control model."
+    - when-facts-all: [operating_model=default_plus_exceptions]
+      decision: "The target operating model is one default harness with formal exception lanes for named populations."
 ---
 
 When the enterprise already has more than one coding tool in flight, the first

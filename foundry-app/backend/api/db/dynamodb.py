@@ -311,6 +311,20 @@ def get_workspace(customer_id: str, session_id: str) -> dict | None:
     return resp.get("Item")
 
 
+def get_latest_architecture_case(customer_id: str, session_id: str) -> dict | None:
+    table = _get_table()
+    resp = table.query(
+        KeyConditionExpression=(
+            Key("PK").eq(f"CUSTOMER#{customer_id}")
+            & Key("SK").begins_with(f"CASE#{session_id}#")
+        ),
+        ScanIndexForward=False,
+        Limit=1,
+    )
+    items = resp.get("Items", [])
+    return items[0] if items else None
+
+
 # ── Feedback & admin analytics ───────────────────────────────────────────────
 
 def get_session_feedback(

@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [sox, sarbanes-oxley, itgc, change-control, segregation-of-duties, sox-compliance, financial-reporting-system, public-company, internal-controls, external-auditor]
 decision-question: "Is the company a public company (or preparing to go public) subject to Sarbanes-Oxley, and does the coding agent platform touch code used in financial reporting systems, ERP integrations, revenue recognition logic, or other IT systems in scope for SOX IT General Controls?"
+decision-domain: compliance_overlay
+priority: 9
+blocking: true
+requires: [access/guardrails, ops/observability]
 ---
 
 Sarbanes-Oxley (SOX) Section 404 requires public companies to assess and report

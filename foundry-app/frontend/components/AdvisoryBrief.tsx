@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '@/store'
 import { hasAdvisoryCaseContent } from '@/lib/advisory-case'
 import { normalizeWorkspace } from '@/lib/message-analysis'
+import { renderMarkdown } from '@/lib/render-markdown'
 import { normalizeAdvisoryStage } from '@/lib/workflow'
 
 type MetricTone = 'neutral' | 'warning' | 'success'
@@ -15,17 +16,43 @@ export default function AdvisoryBrief() {
   const activeSessionId = useStore((s) => s.activeSessionId)
   const view = useMemo(() => normalizeWorkspace(workspace), [workspace])
   const advisoryCase = hasAdvisoryCaseContent(view.advisory_case) ? view.advisory_case : null
+  const architectureCase = view.architecture_case
   const stage = normalizeAdvisoryStage(view.stage) ?? 'discovery'
   const sessionTitle = conversations.find((row) => row.session.session_id === activeSessionId)?.session.title
     ?? 'Current engagement'
   const outputPack = advisoryCase?.output_pack
   const readout = advisoryCase?.readout
-  const alternatives = advisoryCase?.alternatives ?? []
+  const recommendationState = view.recommendation_state
+  const alternatives = advisoryCase?.alternatives?.length
+    ? advisoryCase.alternatives
+    : (recommendationState?.candidate_options ?? [])
+      .filter((item) => item.position !== 'recommended')
+      .slice(0, 3)
+      .map((item, index) => ({
+        id: item.path || `option-${index + 1}`,
+        title: item.title,
+        position: item.position || 'viable',
+        summary: item.summary,
+        benefits: [],
+        risks: [],
+        operational_burden: '',
+        governance_implications: '',
+        best_fit_conditions: [],
+      }))
   const maturity = advisoryCase?.maturity ?? []
   const delta = advisoryCase?.delta
-  const nextBestQuestion = advisoryCase?.next_best_question
+  const nextBestQuestion = advisoryCase?.next_best_question ?? (recommendationState?.next_best_question
+    ? {
+        question: recommendationState.next_best_question,
+        why_it_matters: recommendationState.missing_evidence[0]
+          ? 'This is the clearest remaining answer the advisor needs before it can firm up the recommendation.'
+          : '',
+      }
+    : null)
   const recommendationSummary =
     advisoryCase?.recommendation.summary ||
+    architectureCase?.current_recommendation ||
+    recommendationState?.primary_recommendation ||
     readout?.current_recommendation ||
     outputPack?.executive_summary ||
     view.recommendation
@@ -39,6 +66,8 @@ export default function AdvisoryBrief() {
     ? readout.important_decisions
     : advisoryCase?.decisions.length
       ? advisoryCase.decisions.slice(0, 5).map((item) => item.statement || item.recommendation).filter(Boolean)
+      : architectureCase?.decisions.length
+        ? architectureCase.decisions.slice(0, 5).map((item) => item.statement).filter(Boolean)
       : outputPackDecisionFallback.length
         ? outputPackDecisionFallback
         : fallbackDecisions
@@ -46,22 +75,32 @@ export default function AdvisoryBrief() {
     ? readout.biggest_risks
     : advisoryCase?.risks.length
       ? advisoryCase.risks.slice(0, 5).map((item) => item.risk)
+      : architectureCase?.risks.length
+        ? architectureCase.risks.slice(0, 5).map((item) => item.risk)
       : outputPackRiskFallback.length
         ? outputPackRiskFallback
         : fallbackRisks
   const openQuestions = readout?.open_questions?.length
     ? readout.open_questions
+    : architectureCase?.open_questions.length
+      ? architectureCase.open_questions.slice(0, 5).map((item) => item.text)
     : outputPackQuestionFallback.length
       ? outputPackQuestionFallback
       : fallbackQuestions
-  const keyFacts = view.facts.slice(0, 4)
+  const keyFacts = (view.facts.length > 0 ? view.facts : (architectureCase?.facts.map((item) => item.statement) ?? [])).slice(0, 4)
+  const explicitConfidence = advisoryCase?.recommendation.confidence || recommendationState?.confidence || ''
+  const confidenceDisplay = explicitConfidence
+    ? `${explicitConfidence} confidence`
+    : recommendationSummary
+      ? 'Not yet scored'
+      : 'Awaiting engine signal'
   const keySignals: Array<{ label: string; value: string; tone: MetricTone }> = [
     {
       label: 'Confidence',
-      value: advisoryCase?.recommendation.confidence ? `${advisoryCase.recommendation.confidence} confidence` : 'Awaiting engine signal',
-      tone: advisoryCase?.recommendation.confidence === 'high'
+      value: confidenceDisplay,
+      tone: explicitConfidence === 'high'
         ? 'success'
-        : advisoryCase?.recommendation.confidence === 'medium'
+        : explicitConfidence === 'medium'
           ? 'warning'
           : 'neutral',
     },
@@ -120,9 +159,10 @@ export default function AdvisoryBrief() {
               <h1 style={titleStyle}>{sessionTitle}</h1>
               <span style={stagePill(stage)}>{stage}</span>
             </div>
-            <p style={introStyle}>
-              {recommendationSummary || 'The engine will publish a structured recommendation here as soon as it has enough context to commit to a direction.'}
-            </p>
+            <RichTextBlock
+              body={recommendationSummary || 'The engine will publish a structured recommendation here as soon as it has enough context to commit to a direction.'}
+              style={introStyle}
+            />
           </div>
           {keyFacts.length > 0 ? (
             <div style={factWrapStyle}>
@@ -157,15 +197,16 @@ export default function AdvisoryBrief() {
             <section style={featureCardStyle}>
               <div style={cardHeaderStyle}>
                 <span style={cardLabelStyle}>Primary Recommendation</span>
-                {advisoryCase?.recommendation.confidence ? (
-                  <span style={confidencePill(advisoryCase.recommendation.confidence)}>
-                    {advisoryCase.recommendation.confidence} confidence
+                {(advisoryCase?.recommendation.confidence || recommendationState?.confidence) ? (
+                  <span style={confidencePill(advisoryCase?.recommendation.confidence || recommendationState?.confidence || '')}>
+                    {advisoryCase?.recommendation.confidence || recommendationState?.confidence} confidence
                   </span>
                 ) : null}
               </div>
-              <p style={primaryBodyStyle}>
-                {recommendationSummary || 'No recommendation published yet.'}
-              </p>
+              <RichTextBlock
+                body={recommendationSummary || 'No recommendation published yet.'}
+                style={primaryBodyStyle}
+              />
 
               <div style={insightGridStyle}>
                 {advisoryCase?.recommendation.why_this ? (
@@ -315,7 +356,7 @@ function DetailBlock({ label, body }: { label: string; body: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <span style={detailLabelStyle}>{label}</span>
-      <p style={compactBodyStyle}>{body}</p>
+      <RichTextBlock body={body} style={compactBodyStyle} />
     </div>
   )
 }
@@ -332,8 +373,29 @@ function InsightBlock({
   return (
     <div style={insightBlockStyle(tone)}>
       <span style={detailLabelStyle}>{label}</span>
-      <p style={compactBodyStyle}>{body}</p>
+      <RichTextBlock body={body} style={compactBodyStyle} />
     </div>
+  )
+}
+
+function RichTextBlock({
+  body,
+  style,
+}: {
+  body: string
+  style: React.CSSProperties
+}) {
+  const normalized = (body || '').trim()
+  if (!normalized) {
+    return null
+  }
+
+  return (
+    <div
+      className="prose"
+      style={style}
+      dangerouslySetInnerHTML={{ __html: renderBody(normalized) }}
+    />
   )
 }
 
@@ -443,9 +505,17 @@ function EmptyTabState({ body }: { body: string }) {
   return (
     <section style={emptyStateStyle}>
       <span style={cardLabelStyle}>Pending</span>
-      <p style={compactBodyStyle}>{body}</p>
+      <RichTextBlock body={body} style={compactBodyStyle} />
     </section>
   )
+}
+
+function renderBody(body: string) {
+  return looksLikeHtml(body) ? body : renderMarkdown(body, { collapsibleH2Sections: false })
+}
+
+function looksLikeHtml(body: string) {
+  return /^\s*<(article|aside|div|dl|footer|h1|h2|h3|header|li|main|nav|ol|p|section|table|tbody|td|th|thead|tr|ul)\b/i.test(body)
 }
 
 const shellStyle: React.CSSProperties = {

@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [hipaa, phi, healthcare, covered-entity, business-associate, ehr, medical-records, patient-data, hospital, health-insurance, medical-device-software]
 decision-question: "Are you a HIPAA covered entity or business associate — a healthcare provider, health plan, healthcare clearinghouse, or a vendor whose software handles Protected Health Information — where AI interactions with codebases containing PHI create compliance obligations?"
+decision-domain: compliance_overlay
+priority: 10
+blocking: true
+requires: [access/identity]
 ---
 
 HIPAA (Health Insurance Portability and Accountability Act) creates two distinct

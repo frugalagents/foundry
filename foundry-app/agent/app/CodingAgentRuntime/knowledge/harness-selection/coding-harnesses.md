@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [coding-harness, pre-built harness, opencode, pi agent, cline, goose, aider, codex cli, swe-agent, mastra, deep agents, hermes, openhands, open source harness]
 decision-question: "Do you want a pre-built OSS coding harness (configure and deploy) rather than assembling one from a framework SDK?"
+decision-domain: harness_family
+priority: 8
+blocking: true
+alternatives: [harness-selection/saas-products, harness-selection/oss-frameworks, harness-selection/managed-runtime]
 ---
 
 ## Framework vs. Harness — Why the Distinction Matters

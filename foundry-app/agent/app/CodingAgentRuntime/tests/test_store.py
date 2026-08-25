@@ -129,7 +129,7 @@ def test_put_canvas_snapshot_overwrites_previous_snapshot_for_same_session(table
 
 
 def test_put_workspace_snapshot_persists_operating_model(table):
-    from store import put_workspace_snapshot
+    from store import get_workspace_snapshot, put_workspace_snapshot
 
     put_workspace_snapshot(
         "cust1",
@@ -137,7 +137,11 @@ def test_put_workspace_snapshot_persists_operating_model(table):
         stage="discovery",
         facts=["Brownfield tools already in use"],
         operating_model="multi_harness_governed",
+        question_state=[{"id": "q1", "text": "Which harness is default for general developers?", "status": "open", "blocking": True}],
         open_questions=["Which harness is default for general developers?"],
+        recommendation_state={"primary_recommendation": "Governed multi-harness portfolio."},
+        artifact_status={"recommendation": "draft"},
+        traversal_state={"active_decision": {"path": "harness-selection/multi-harness-governance"}},
     )
 
     resp = table.get_item(Key={"PK": "CUSTOMER#cust1", "SK": "WORKSPACE#sess1"})
@@ -145,4 +149,83 @@ def test_put_workspace_snapshot_persists_operating_model(table):
     assert item["stage"] == "discovery"
     assert item["facts"] == ["Brownfield tools already in use"]
     assert item["operating_model"] == "multi_harness_governed"
+    assert json.loads(item["question_state_json"]) == [{"id": "q1", "text": "Which harness is default for general developers?", "status": "open", "blocking": True}]
     assert item["open_questions"] == ["Which harness is default for general developers?"]
+    loaded = get_workspace_snapshot("cust1", "sess1")
+    assert loaded is not None
+    assert loaded["question_state"] == [{"id": "q1", "text": "Which harness is default for general developers?", "status": "open", "blocking": True}]
+    assert loaded["recommendation_state"] == {"primary_recommendation": "Governed multi-harness portfolio."}
+    assert loaded["artifact_status"] == {"recommendation": "draft"}
+    assert loaded["traversal_state"] == {"active_decision": {"path": "harness-selection/multi-harness-governance"}}
+
+
+def test_get_recent_messages_returns_latest_messages_in_chronological_order(table):
+    from store import get_recent_messages, put_message
+
+    put_message("cust1", "sess1", "user", "first")
+    put_message("cust1", "sess1", "agent", "second")
+    put_message("cust1", "sess1", "user", "third")
+
+    messages = get_recent_messages("cust1", "sess1", limit=2)
+    assert messages == [
+        {"role": "agent", "content": "second", "created_at": messages[0]["created_at"]},
+        {"role": "user", "content": "third", "created_at": messages[1]["created_at"]},
+    ]
+
+
+def test_get_latest_canvas_snapshot_returns_latest_version(table):
+    from store import get_latest_canvas_snapshot, put_canvas_snapshot
+
+    put_canvas_snapshot("cust1", "sess1", [{"id": "a"}], [], stage="skeleton")
+    put_canvas_snapshot(
+        "cust1",
+        "sess1",
+        [{"id": "a"}, {"id": "b"}],
+        [{"id": "e1", "source": "a", "target": "b"}],
+        stage="full",
+        baseline_node_ids=["a"],
+        architecture_artifact={"executive_summary": "Latest"},
+    )
+
+    snapshot = get_latest_canvas_snapshot("cust1", "sess1")
+    assert snapshot == {
+        "nodes": [{"id": "a"}, {"id": "b"}],
+        "edges": [{"id": "e1", "source": "a", "target": "b"}],
+        "stage": "full",
+        "baseline_node_ids": ["a"],
+        "architecture_artifact": {"executive_summary": "Latest"},
+        "updated_at": snapshot["updated_at"],
+    }
+
+
+def test_put_architecture_case_snapshot_preserves_latest_revision(table):
+    from store import get_latest_architecture_case, put_architecture_case_snapshot
+
+    put_architecture_case_snapshot(
+        "cust1",
+        "sess1",
+        {
+            "case_id": "cust1/sess1",
+            "revision": 1,
+            "okf_release_id": "okf.release.v1alpha1:abc123",
+            "stage": "discovery",
+        },
+    )
+    put_architecture_case_snapshot(
+        "cust1",
+        "sess1",
+        {
+            "case_id": "cust1/sess1",
+            "revision": 2,
+            "okf_release_id": "okf.release.v1alpha1:def456",
+            "stage": "solutioning",
+        },
+    )
+
+    latest = get_latest_architecture_case("cust1", "sess1")
+    assert latest == {
+        "case_id": "cust1/sess1",
+        "revision": 2,
+        "okf_release_id": "okf.release.v1alpha1:def456",
+        "stage": "solutioning",
+    }

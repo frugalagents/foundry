@@ -9,6 +9,11 @@ status: candidate
 traversal: conditional
 trigger: [oss-framework, sdk, custom-harness, strands, langchain, langgraph, pydanticai, autogen, crewai, smolagents, google adk, agno, phidata, full control, build your own]
 decision-question: "Does your team need to build and own a custom agent harness using an SDK, rather than deploying a pre-built one?"
+decision-domain: harness_family
+priority: 9
+blocking: true
+alternatives: [harness-selection/saas-products, harness-selection/coding-harnesses, harness-selection/managed-runtime]
+implies: [gateway/mcpgw, gateway/modelgw]
 ---
 
 ## What This Node Covers

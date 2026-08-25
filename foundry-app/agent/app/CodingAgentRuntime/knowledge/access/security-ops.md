@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [incident-response, secops, mcp-compromise, credential-leak, security-monitoring, compromise]
 decision-question: "How will you detect and respond to security incidents specific to coding agents — compromised MCP servers, credential leaks, and prompt injection attacks in production?"
+decision-domain: security_posture
+priority: 6
+requires: [access/security-posture, ops/observability]
 ---
 
 The [Security Posture](security-posture.md) node maps the threat surface and

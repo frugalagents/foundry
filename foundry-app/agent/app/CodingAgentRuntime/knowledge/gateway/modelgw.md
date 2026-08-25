@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [multi-provider, model-routing, cost-optimization, provider-fallback, tiered-model-strategy]
 decision-question: "Do you need to route model calls across providers or tiers for cost, resilience, or compliance?"
+decision-domain: model_routing
+priority: 8
+implies: [gateway/model-tiering, access/quota]
 ---
 
 The chokepoint for all LLM calls to model providers — routes by task

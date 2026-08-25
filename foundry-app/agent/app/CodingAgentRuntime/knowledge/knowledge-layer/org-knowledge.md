@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [team-knowledge, org-patterns, learn-from-sessions, common-practices, knowledge-mining]
 decision-question: "Do you want the platform to mine cross-session patterns to discover what the team is converging on, and surface that as platform-level knowledge?"
+decision-domain: knowledge_layer
+priority: 6
+requires: [harness/memory, ops/observability]
 ---
 
 Org knowledge extraction mines aggregate patterns from the platform's session

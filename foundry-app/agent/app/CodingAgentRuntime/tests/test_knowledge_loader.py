@@ -42,10 +42,34 @@ def test_metadata_is_loaded_from_frontmatter_and_links(kb: KnowledgeBase):
     assert node is not None
     assert node.traversal == "conditional"
     assert node.decision_question.startswith("Is the target state")
+    assert node.decision_domain == "operating_model"
+    assert node.priority == 10
+    assert node.blocking is True
     assert "copilot" in node.trigger_pool
     assert node.trigger_pool_min_matches == 2
+    assert "access/policy-tiers" in node.implies
+    assert "gateway/modelgw" in node.implies
     assert "access/policy-tiers" in node.linked_paths
     assert "gateway/mcpgw" in node.linked_paths
+    advisory = node.metadata.get("advisory")
+    assert isinstance(advisory, dict)
+    assert advisory["slice"] is True
+    assert advisory["output"]["question"]["id"] == "operating-model-current-multi-tool"
+
+def test_node_body_is_loaded_lazily(kb: KnowledgeBase):
+    node = kb.get("gateway/modelgw")
+    assert node is not None
+    assert node.content == ""
+    assert "gateway/modelgw" not in kb._body_cache
+
+    body = kb.get_content(node)
+    assert "The chokepoint for all LLM calls to model providers" in body
+    assert kb._body_cache["gateway/modelgw"] == body
+
+    hydrated = kb.materialize_node(node)
+    assert hydrated is not None
+    assert hydrated.content == body
+
 
 
 def test_conditional_nodes_for_triggers_on_matching_signal(kb: KnowledgeBase):
@@ -67,6 +91,13 @@ def test_conditional_nodes_for_can_trigger_multi_harness_from_multiple_tool_ment
     nodes = kb.conditional_nodes_for(text)
     paths = {n.path for n in nodes}
     assert "harness-selection/multi-harness-governance" in paths
+
+
+def test_conditional_nodes_for_does_not_double_count_overlapping_single_tool_names(kb: KnowledgeBase):
+    text = "We currently standardize on GitHub Copilot."
+    nodes = kb.conditional_nodes_for(text)
+    paths = {n.path for n in nodes}
+    assert "harness-selection/multi-harness-governance" not in paths
 
 
 def test_conditional_nodes_for_returns_empty_when_no_signal_present(kb: KnowledgeBase):
@@ -103,3 +134,8 @@ def test_related_nodes_for_returns_graph_link_targets(kb: KnowledgeBase):
     paths = {node.path for node in related}
     assert "access/policy-tiers" in paths
     assert "gateway/mcpgw" in paths
+
+
+def test_every_knowledge_node_has_a_decision_domain(kb: KnowledgeBase):
+    missing = sorted(node.path for node in kb._nodes.values() if not node.decision_domain)
+    assert missing == []

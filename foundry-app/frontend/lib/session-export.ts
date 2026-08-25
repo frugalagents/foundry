@@ -22,6 +22,12 @@ type ExportFile = {
   mimeType: string
 }
 
+export type StructuredBlueprintSection = {
+  id: string
+  title: string
+  html: string
+}
+
 export type SessionExportContext = {
   activeSessionId: string | null
   sessionTitle?: string | null
@@ -107,6 +113,15 @@ export function buildFallbackBlueprint(
   architectureArtifact: ArchitectureArtifact | null,
 ): string {
   const lines: string[] = []
+  const canonicalBlueprint = workspace.architecture_case?.artifacts.blueprint_markdown?.trim() || ''
+  const architectureCase = workspace.architecture_case
+  const advisoryCase: AdvisoryCase | null = hasAdvisoryCaseContent(workspace.advisory_case)
+    ? (workspace.advisory_case ?? null)
+    : null
+  const outputPack = advisoryCase?.output_pack ?? null
+  if (canonicalBlueprint) {
+    return canonicalBlueprint
+  }
   const baselineName = architectureArtifact?.baseline.name || 'Working baseline'
 
   if (
@@ -176,16 +191,370 @@ export function buildFallbackBlueprint(
     lines.push('')
   }
 
+  const decisions = dedupeTextList([
+    ...(architectureCase?.decisions.map((item) => item.statement) ?? []),
+    ...(advisoryCase?.decisions.map((item) => item.statement) ?? []),
+    ...(architectureArtifact?.decisions.map((item) => item.decision) ?? []),
+    ...workspace.decisions,
+  ])
+  if (decisions.length > 0) {
+    lines.push('### Architecture Decisions')
+    decisions.slice(0, 6).forEach((decision) => lines.push(`- ${decision}`))
+    lines.push('')
+  }
+
+  const risks = dedupeTextList([
+    ...(architectureCase?.risks.map((item) => item.risk) ?? []),
+    ...(advisoryCase?.risks.map((item) => item.risk) ?? []),
+    ...(architectureArtifact?.risks.map((item) => item.risk) ?? []),
+    ...workspace.risks,
+  ])
+  if (risks.length > 0) {
+    lines.push('### Risks And Mitigations')
+    risks.slice(0, 6).forEach((risk) => lines.push(`- ${risk}`))
+    lines.push('')
+  }
+
+  const openQuestions = dedupeTextList([
+    ...(architectureCase?.open_questions.map((item) => item.text) ?? []),
+    ...(outputPack?.open_questions ?? []),
+    ...workspace.open_questions,
+  ])
+  if (openQuestions.length > 0) {
+    lines.push('### Open Questions')
+    openQuestions.slice(0, 6).forEach((question) => lines.push(`- ${question}`))
+    lines.push('')
+  }
+
+  const rollout = architectureCase?.artifacts.rollout.length
+    ? architectureCase.artifacts.rollout.map((item) => `${item.phase}: ${item.outcome}`)
+    : outputPack?.rollout_30_90_180.length
+      ? outputPack.rollout_30_90_180.map((item) => `${item.horizon}: ${item.outcome}`)
+      : (architectureArtifact?.rollout ?? []).map((item) => `${item.phase}: ${item.outcome}`)
+  if (rollout.length > 0) {
+    lines.push('### Rollout Phases')
+    rollout.slice(0, 6).forEach((item) => lines.push(`- ${item}`))
+    lines.push('')
+  }
+
   return lines.join('\n').trim()
+}
+
+export function buildStructuredBlueprintHtml(
+  workspace: ConsultingWorkspace,
+  architectureArtifact: ArchitectureArtifact | null,
+) {
+  const sections = buildStructuredBlueprintSections(workspace, architectureArtifact)
+  if (sections.length === 0) {
+    return ''
+  }
+
+  return `<article class="bp-shell">
+    <style>
+      .bp-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        color: var(--text);
+      }
+      .bp-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.75fr);
+        gap: 12px;
+      }
+      .bp-card {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--bg-elevated);
+        padding: 14px 15px;
+      }
+      .bp-card.accent {
+        background: linear-gradient(180deg, rgba(99,102,241,0.08), rgba(99,102,241,0.03));
+        border-color: rgba(99,102,241,0.18);
+      }
+      .bp-card h3, .bp-section h3 {
+        margin: 0 0 8px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+      }
+      .bp-card p, .bp-section p, .bp-card li, .bp-section li {
+        margin: 0;
+        font-size: 12.5px;
+        line-height: 1.65;
+      }
+      .bp-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .bp-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .bp-section-block {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: rgba(255,255,255,0.5);
+        padding: 14px 15px;
+      }
+      .bp-section ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .bp-section li + li {
+        margin-top: 6px;
+      }
+      .bp-layer-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .bp-layer-table th, .bp-layer-table td {
+        border-top: 1px solid var(--border);
+        padding: 10px 0;
+        text-align: left;
+        vertical-align: top;
+        font-size: 12.5px;
+        line-height: 1.55;
+      }
+      .bp-layer-table th {
+        color: var(--text-faint);
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border-top: 0;
+        padding-top: 0;
+      }
+      .bp-layer-table td strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .bp-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .bp-chip {
+        padding: 6px 9px;
+        border-radius: 999px;
+        background: rgba(15,23,42,0.04);
+        border: 1px solid var(--border);
+        font-size: 11.5px;
+        line-height: 1.35;
+      }
+      .bp-trigger {
+        color: var(--text-muted);
+        font-size: 11.5px;
+      }
+      .timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .timeline-item {
+        display: grid;
+        grid-template-columns: 112px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+      }
+      .timeline-item strong {
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+      }
+      .timeline-item span {
+        font-size: 12.5px;
+        line-height: 1.6;
+      }
+      .muted {
+        color: var(--text-muted);
+      }
+      @media (max-width: 860px) {
+        .bp-hero, .bp-grid {
+          grid-template-columns: 1fr;
+        }
+        .timeline-item {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+      }
+    </style>
+    ${sections.map((section) => `<section class="bp-section" data-blueprint-section="${section.id}">${section.html}</section>`).join('')}
+  </article>`
+}
+
+export function buildStructuredBlueprintSections(
+  workspace: ConsultingWorkspace,
+  architectureArtifact: ArchitectureArtifact | null,
+): StructuredBlueprintSection[] {
+  const architectureCase = workspace.architecture_case
+  const advisoryCase: AdvisoryCase | null = hasAdvisoryCaseContent(workspace.advisory_case)
+    ? (workspace.advisory_case ?? null)
+    : null
+  const outputPack = advisoryCase?.output_pack ?? null
+  const recommendation = architectureCase?.current_recommendation || advisoryCase?.recommendation.summary || workspace.recommendation
+  const summary = architectureCase?.artifacts.architecture_narrative
+    || outputPack?.architecture_narrative
+    || outputPack?.recommendation_memo
+    || architectureArtifact?.executive_summary
+    || recommendation
+  const facts = dedupeTextList([
+    ...(architectureCase?.facts.map((item) => item.statement) ?? []),
+    ...workspace.facts,
+  ])
+  const decisions = dedupeTextList([
+    ...(architectureCase?.decisions.map((item) => item.statement) ?? []),
+    ...(advisoryCase?.decisions.map((item) => item.statement) ?? []),
+    ...(architectureArtifact?.decisions.map((item) => item.decision) ?? []),
+    ...workspace.decisions,
+  ])
+  const risks = dedupeTextList([
+    ...(architectureCase?.risks.map((item) => item.risk) ?? []),
+    ...(advisoryCase?.risks.map((item) => item.risk) ?? []),
+    ...(architectureArtifact?.risks.map((item) => item.risk) ?? []),
+    ...workspace.risks,
+  ])
+  const questions = dedupeTextList([
+    ...(architectureCase?.open_questions.map((item) => item.text) ?? []),
+    ...(outputPack?.open_questions ?? []),
+    ...workspace.open_questions,
+  ])
+  const assumptions = (workspace.assumptions ?? []).filter((item) => item.assumed)
+  const baselineLayers = architectureArtifact?.baseline.layers ?? []
+  const customizations = architectureArtifact?.customizations ?? []
+  const rollout = architectureCase?.artifacts.rollout.length
+    ? architectureCase.artifacts.rollout.map((item) => ({ label: item.phase, outcome: item.outcome }))
+    : outputPack?.rollout_30_90_180.length
+      ? outputPack.rollout_30_90_180.map((item) => ({ label: item.horizon, outcome: item.outcome }))
+      : (architectureArtifact?.rollout ?? []).map((item) => ({ label: item.phase, outcome: item.outcome }))
+
+  if (
+    !recommendation &&
+    !summary &&
+    facts.length === 0 &&
+    decisions.length === 0 &&
+    risks.length === 0 &&
+    questions.length === 0 &&
+    baselineLayers.length === 0 &&
+    customizations.length === 0
+  ) {
+    return []
+  }
+
+  const renderList = (items: string[]) => items.length
+    ? `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+    : '<p class="muted">Not yet published.</p>'
+
+  const renderRollout = rollout.length
+    ? `<div class="timeline">${rollout.map((item) => `<div class="timeline-item"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.outcome)}</span></div>`).join('')}</div>`
+    : '<p class="muted">Rollout phases have not been published yet.</p>'
+
+  return [
+    {
+      id: 'overview',
+      title: 'Overview',
+      html: `
+        <section class="bp-hero">
+          <div class="bp-card accent">
+            <h3>Architecture Direction</h3>
+            <p>${escapeHtml(recommendation || 'Direction not yet published.')}</p>
+          </div>
+          <div class="bp-card">
+            <h3>Blueprint Status</h3>
+            <p>${escapeHtml(questions.length > 0 ? `${questions.length} open question${questions.length === 1 ? '' : 's'} still influence the target build.` : 'The current blueprint is materially coherent enough for build review.')}</p>
+          </div>
+        </section>
+        <div class="bp-section-block">
+          <h3>Architecture Narrative</h3>
+          <p>${escapeHtml(summary || 'Architecture narrative not yet published.')}</p>
+        </div>
+        <div class="bp-grid">
+          <section class="bp-section-block">
+            <h3>Confirmed Facts</h3>
+            ${renderList(facts.slice(0, 8))}
+          </section>
+          <section class="bp-section-block">
+            <h3>Open Questions</h3>
+            ${renderList(questions.slice(0, 6))}
+          </section>
+        </div>`,
+    },
+    {
+      id: 'baseline',
+      title: 'Baseline',
+      html: `
+        <div class="bp-section-block">
+          <h3>Layered Baseline</h3>
+          ${baselineLayers.length > 0 ? `
+            <table class="bp-layer-table">
+              <thead>
+                <tr><th>Layer</th><th>Components and purpose</th></tr>
+              </thead>
+              <tbody>
+                ${baselineLayers.map((layer) => `
+                  <tr>
+                    <td><strong>${escapeHtml(layer.label)}</strong></td>
+                    <td>
+                      <div>${escapeHtml(layer.component_labels.join(', ') || 'TBD')}</div>
+                      ${layer.purpose ? `<div class="muted">${escapeHtml(layer.purpose)}</div>` : ''}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : '<p class="muted">No layered baseline has been published yet.</p>'}
+        </div>
+        <div class="bp-section-block">
+          <h3>Customer-Specific Additions</h3>
+          ${customizations.length > 0 ? `<div class="bp-chip-row">${customizations.map((item) => `<div class="bp-chip"><strong>${escapeHtml(item.title)}</strong><div class="bp-trigger">${escapeHtml(item.reason || item.layer || 'Customer-specific customization')}</div></div>`).join('')}</div>` : '<p class="muted">No customer-specific structural additions have been published yet.</p>'}
+        </div>`,
+    },
+    {
+      id: 'decisions',
+      title: 'Decisions',
+      html: `
+        <div class="bp-grid">
+          <section class="bp-section-block">
+            <h3>Architecture Decisions</h3>
+            ${renderList(decisions.slice(0, 8))}
+          </section>
+          <section class="bp-section-block">
+            <h3>Risks And Mitigations</h3>
+            ${renderList(risks.slice(0, 8))}
+          </section>
+        </div>`,
+    },
+    {
+      id: 'delivery',
+      title: 'Delivery',
+      html: `
+        <div class="bp-grid">
+          <section class="bp-section-block">
+            <h3>Architecture Assumptions</h3>
+            ${assumptions.length > 0 ? `<ul>${assumptions.slice(0, 6).map((item) => `<li><strong>${escapeHtml(item.title)}</strong>: ${escapeHtml(item.assumed)}${item.impact ? ` <span class="muted">Impact if wrong: ${escapeHtml(item.impact)}</span>` : ''}</li>`).join('')}</ul>` : '<p class="muted">No architecture assumptions are currently published.</p>'}
+          </section>
+          <section class="bp-section-block">
+            <h3>Rollout Phases</h3>
+            ${renderRollout}
+          </section>
+        </div>`,
+    },
+  ]
 }
 
 export function hasSessionExportContent(context: SessionExportContext) {
   const workspace = normalizeWorkspace(context.workspace)
+  const architectureCase = workspace.architecture_case
   return Boolean(
     context.activeSessionId &&
     (
       workspace.recommendation ||
       workspace.blueprint_markdown ||
+      architectureCase?.current_recommendation ||
+      architectureCase?.artifacts.blueprint_markdown ||
       workspace.facts.length > 0 ||
       workspace.open_questions.length > 0 ||
       workspace.decisions.length > 0 ||
@@ -386,7 +755,7 @@ function buildExecutiveBriefHtml(context: SessionExportContext, slug: string) {
   ].filter(Boolean)
 
   const sectionHtml = detailSections
-    .map((content) => `<section class="section">${renderMarkdown(content)}</section>`)
+    .map((content) => `<section class="section">${renderMarkdown(content, { collapsibleH2Sections: false })}</section>`)
     .join('')
 
   return `<!doctype html>
@@ -511,6 +880,11 @@ function buildExecutiveBriefHtml(context: SessionExportContext, slug: string) {
       .section:last-child {
         padding-bottom: 36px;
       }
+      .section + .section {
+        border-top: 1px solid var(--line);
+        margin-top: 24px;
+        padding-top: 28px;
+      }
       .section h1 {
         margin: 0 0 12px;
         font-size: 22px;
@@ -536,6 +910,11 @@ function buildExecutiveBriefHtml(context: SessionExportContext, slug: string) {
       }
       .section p, .section ul, .section ol, .section table, .section blockquote {
         margin: 0 0 12px;
+      }
+      .section h1:first-child,
+      .section h2:first-child,
+      .section h3:first-child {
+        margin-top: 0;
       }
       .section ul, .section ol {
         padding-left: 20px;
@@ -565,6 +944,11 @@ function buildExecutiveBriefHtml(context: SessionExportContext, slug: string) {
       .section code {
         font-family: "SFMono-Regular", Consolas, monospace;
         font-size: 12px;
+      }
+      .section hr {
+        border: 0;
+        border-top: 1px solid var(--line);
+        margin: 16px 0;
       }
       .footer {
         padding: 20px 36px 36px;

@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [innovation-lab, policy-exception, tiered-access, different-teams-different-limits, contractor-access, spend-exception]
 decision-question: "Do different teams or developer populations need differentiated quota limits, guardrail settings, or tool access — and how is that governed?"
+decision-domain: population_policy
+priority: 8
+requires: [access/identity, access/quota]
 ---
 
 Not all developers should sit under identical quota and guardrail settings.

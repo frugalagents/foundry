@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [enterprise-integrations, jira-github-connectors, existing-toolchain, system-of-record-access]
 decision-question: "What enterprise systems — Jira, GitHub, databases, internal APIs — must the agent integrate with?"
+decision-domain: external_integration
+priority: 7
+requires: [gateway/mcpgw, registry/mcpservers]
 ---
 
 The systems of record the agent acts on, reached through the

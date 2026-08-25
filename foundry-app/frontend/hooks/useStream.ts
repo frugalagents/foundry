@@ -11,12 +11,13 @@ import {
 } from '@/lib/agentcore'
 import { streamSession } from '@/lib/api'
 import { normalizeAdvisoryCase } from '@/lib/advisory-case'
+import { normalizeArchitectureCase } from '@/lib/architecture-case'
 import { getToken } from '@/lib/auth'
 import { normalizeArchitectureArtifact } from '@/lib/architecture-artifact'
 import { normalizeWorkspaceAssumptions } from '@/lib/assumptions'
 import { normalizeWorkspace } from '@/lib/message-analysis'
 import { SESSION_NORMALIZATION_MARKER } from '@/lib/session-normalization'
-import type { OperatingModel } from '@/lib/types'
+import type { ConsultingWorkspace, OperatingModel } from '@/lib/types'
 import type { SendMessageOptions } from './useConversationSend'
 
 function buildOutboundMessage(text: string, options?: SendMessageOptions) {
@@ -149,6 +150,7 @@ export function useStream() {
               assumptions: normalizeWorkspaceAssumptions(data.assumptions),
               facts: Array.isArray(data.facts) ? data.facts.filter((v): v is string => typeof v === 'string') : [],
               operating_model: normalizeOperatingModel(data.operating_model),
+              question_state: Array.isArray(data.question_state) ? data.question_state : [],
               open_questions: Array.isArray(data.open_questions)
                 ? data.open_questions.filter((v): v is string => typeof v === 'string')
                 : [],
@@ -160,6 +162,9 @@ export function useStream() {
                 ? data.implementation_plan.filter((v): v is string => typeof v === 'string')
                 : [],
               advisory_case: normalizeAdvisoryCase(data.advisory_case),
+              architecture_case: normalizeArchitectureCase(data.architecture_case),
+              recommendation_state: data.recommendation_state as ConsultingWorkspace['recommendation_state'],
+              artifact_status: data.artifact_status as ConsultingWorkspace['artifact_status'],
               updated_at: typeof data.updated_at === 'string' ? data.updated_at : undefined,
             }))
           } else if (type === 'module_detected') {

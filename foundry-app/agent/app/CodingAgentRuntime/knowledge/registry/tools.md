@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [custom-tools, tool-integration, file-shell-git, specific-tool-set]
 decision-question: "What built-in and custom tools will agents be permitted to invoke, and under what conditions?"
+decision-domain: registry_governance
+priority: 7
+requires: [registry/registry, access/guardrails]
 ---
 
 The capabilities the harness invokes directly — file edit, shell, git,

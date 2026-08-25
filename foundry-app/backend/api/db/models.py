@@ -223,11 +223,15 @@ class ConsultingWorkspaceOut(BaseModel):
     assumptions: list[dict[str, Any]] = Field(default_factory=list)
     facts: list[str] = Field(default_factory=list)
     operating_model: str = ""
+    question_state: list[dict[str, Any]] = Field(default_factory=list)
     open_questions: list[str] = Field(default_factory=list)
     decisions: list[str] = Field(default_factory=list)
     risks: list[str] = Field(default_factory=list)
     implementation_plan: list[str] = Field(default_factory=list)
     advisory_case: Optional[dict[str, Any]] = None
+    architecture_case: Optional[dict[str, Any]] = None
+    recommendation_state: Optional[dict[str, Any]] = None
+    artifact_status: Optional[dict[str, Any]] = None
     updated_at: Optional[str] = None
 
 

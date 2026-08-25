@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [mnpi, material-nonpublic, trading-strategy, ma-code, financial-ip, information-barriers, insider-trading, securities-law, hedge-fund, investment-bank, trading-algorithm]
 decision-question: "Do any repos contain code that, if read or processed by an AI system, could constitute access to Material Non-Public Information — trading strategies, pending M&A analysis code, client position management algorithms, or other content where AI processing creates information asymmetry or disclosure risk?"
+decision-domain: compliance_overlay
+priority: 10
+blocking: true
+requires: [access/identity, ops/observability]
 ---
 
 Material Non-Public Information (MNPI) is information that is not available to

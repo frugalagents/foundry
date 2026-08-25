@@ -6,6 +6,9 @@ group: ops
 tags: [ops]
 timestamp: 2026-08-12T00:00:00Z
 status: candidate
+decision-domain: audit_ops
+priority: 4
+implies: [ops/observability, ops/cost, ops/token, ops/session-economics, ops/resilience]
 ---
 
 Three components sharing overlapping telemetry, viewed through three

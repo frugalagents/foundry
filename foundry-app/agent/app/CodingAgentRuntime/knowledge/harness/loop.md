@@ -9,6 +9,9 @@ status: stable
 traversal: conditional
 trigger: [agentic-workflows, multi-step-tasks, autonomous-agent, long-running-tasks]
 decision-question: "How will multi-step agentic loops be structured, terminated, and kept from spinning indefinitely?"
+decision-domain: agent_loop
+priority: 7
+requires: [harness/runtime]
 ---
 
 The core cycle: read context, plan, call the model, invoke a tool, observe

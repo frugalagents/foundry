@@ -8,6 +8,10 @@ timestamp: 2026-08-12T00:00:00Z
 status: candidate
 traversal: mandate
 decision-question: "How will you trace, audit, and alert on agent behavior — and what audit trail do compliance obligations require?"
+decision-domain: audit_ops
+priority: 8
+blocking: true
+requires: [access/identity]
 ---
 
 End-to-end traces of every step and tool/model call, plus an audit trail for

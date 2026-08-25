@@ -9,6 +9,9 @@ status: candidate
 traversal: probe
 trigger: [progressive-trust, earn-higher-limits, trust-over-time, auto-tier-upgrade]
 decision-question: "Should developers or teams be able to earn relaxed guardrails and higher quotas over time based on demonstrated responsible usage?"
+decision-domain: population_policy
+priority: 6
+requires: [access/policy-tiers, access/quota]
 ---
 
 Progressive trust is a governance pattern where teams start under a conservative

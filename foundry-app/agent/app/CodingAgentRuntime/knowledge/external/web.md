@@ -9,6 +9,9 @@ status: candidate
 traversal: probe
 trigger: [web-browsing, external-search, internet-access, public-docs-access]
 decision-question: "Do agents need web browsing or external search, and what prompt-injection controls apply?"
+decision-domain: external_integration
+priority: 6
+requires: [gateway/mcpgw, access/guardrails]
 ---
 
 External web and search access, reached through the

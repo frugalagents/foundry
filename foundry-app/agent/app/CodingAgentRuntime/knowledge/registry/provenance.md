@@ -9,6 +9,9 @@ status: candidate
 traversal: probe
 trigger: [supply-chain-security, tool-signing, audit-trail, who-approved-this-tool]
 decision-question: "How is the integrity and origin of tools, skills, and MCP servers verified before use?"
+decision-domain: registry_governance
+priority: 6
+requires: [registry/registry]
 ---
 
 Pre-install-time vetting for anything the registry catalogs that wasn't

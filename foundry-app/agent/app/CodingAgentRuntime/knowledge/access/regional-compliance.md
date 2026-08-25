@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [works-council, betriebsrat, gdpr, eu-deployment, germany, co-determination, employee-monitoring, european-offices, employee-data-processing]
 decision-question: "Do you have engineering teams in jurisdictions with employee monitoring co-determination requirements — specifically Germany (Betriebsrat), the Netherlands (Ondernemingsraad), or France (CSE) — where the works council must approve platform design choices before deployment?"
+decision-domain: compliance_overlay
+priority: 9
+blocking: true
+requires: [ops/observability]
 ---
 
 In several EU jurisdictions — most significantly Germany — deploying a coding agent

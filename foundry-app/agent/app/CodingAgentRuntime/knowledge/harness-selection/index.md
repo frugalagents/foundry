@@ -8,6 +8,10 @@ timestamp: 2026-08-13T00:00:00Z
 status: candidate
 traversal: mandate
 decision-question: "What is the target-state operating model for harnesses: one standard tool, a governed portfolio, or a custom-built path?"
+decision-domain: operating_model
+priority: 10
+blocking: true
+implies: [harness-selection/lifecycle-implications, harness-selection/saas-products, harness-selection/managed-runtime, harness-selection/coding-harnesses, harness-selection/oss-frameworks]
 ---
 
 The harness is the orchestration layer that drives the agent loop, dispatches

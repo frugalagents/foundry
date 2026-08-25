@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [cyberark, pam, privileged-access-management, ccp-api, cyberark-vault, enterprise-pam, no-secrets-manager, credential-checkout, password-vault]
 decision-question: "Is CyberArk (or an equivalent enterprise PAM system — BeyondTrust, Delinea) your enterprise standard for privileged credential management, meaning the MCP gateway cannot inject credentials from AWS Secrets Manager or HashiCorp Vault alone, and must integrate with the PAM system's API to check out credentials at session time?"
+decision-domain: secrets_integration
+priority: 7
+requires: [gateway/mcpgw]
+alternatives: [gateway/vault-integration]
 ---
 
 CyberArk is the dominant enterprise PAM (Privileged Access Management) platform

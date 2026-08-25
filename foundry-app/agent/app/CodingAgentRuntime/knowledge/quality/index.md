@@ -6,6 +6,9 @@ group: quality
 tags: [quality, evals]
 timestamp: 2026-08-12T00:00:00Z
 status: candidate
+decision-domain: quality_gate
+priority: 4
+implies: [quality/evals, quality/model-capability-eval, quality/safety-critical-eval]
 ---
 
 New group — did not exist in the original architecture diagram. Added because

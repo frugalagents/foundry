@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [session-cost, long-running-sessions, session-budget, runaway-session, cost-per-session]
 decision-question: "How will you prevent a single long agentic session from consuming a developer's entire monthly quota, and what recovery path exists when a session hits its ceiling?"
+decision-domain: cost_control
+priority: 7
+requires: [access/quota, ops/cost]
 ---
 
 A long agentic session is qualitatively different from a short query. Context

@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [high-availability, scaling, multi-region, provider-fallback, resilience, production-traffic]
 decision-question: "How will your platform handle provider outages, harness failures, and traffic spikes without a full developer productivity outage?"
+decision-domain: resilience_ops
+priority: 7
+requires: [gateway/modelgw]
 ---
 
 A coding agent platform is infrastructure — when it goes down, developers lose

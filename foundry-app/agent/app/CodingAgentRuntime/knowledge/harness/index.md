@@ -6,6 +6,9 @@ group: harness
 tags: [harness]
 timestamp: 2026-08-12T00:00:00Z
 status: candidate
+decision-domain: harness_runtime
+priority: 4
+implies: [harness/runtime, harness/loop, harness/perms, harness/context, harness/memory, harness/rollback]
 ---
 
 The agent's core reason-act-observe cycle and its immediate dependencies:

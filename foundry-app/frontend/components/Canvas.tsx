@@ -17,17 +17,24 @@ import type { ArchNode, ArchEdge, ArchitectureArtifact, ArchitectureCustomizatio
 import NodeDetailDrawer, { type DrawerNode } from './NodeDetailDrawer'
 import IconGlyph from './IconGlyph'
 
-// ── Zone layer definitions ────────────────────────────────────────────────────
+// ── Deterministic architecture layout ────────────────────────────────────────
 
-const LAYERS = [
-  { id: 'surface',   label: 'Surface',   color: '#6366f1', y: 0,   height: 140 },
-  { id: 'harness',   label: 'Harness',   color: '#8b5cf6', y: 156, height: 140 },
-  { id: 'execution', label: 'Execution', color: '#22c55e', y: 312, height: 140 },
-  { id: 'gateway',   label: 'Gateway',   color: '#06b6d4', y: 468, height: 140 },
-  { id: 'model',     label: 'Model',     color: '#818cf8', y: 624, height: 140 },
-  { id: 'ops',       label: 'Ops',       color: '#f59e0b', y: 780, height: 140 },
-  { id: 'access',    label: 'Access',    color: '#ef4444', y: 936, height: 140 },
-]
+const BASELINE_LAYERS = [
+  { id: 'surface', label: 'Surface', color: '#6366f1' },
+  { id: 'harness', label: 'Harness', color: '#8b5cf6' },
+  { id: 'execution', label: 'Execution', color: '#22c55e' },
+  { id: 'gateway', label: 'Gateway', color: '#06b6d4' },
+  { id: 'model', label: 'Model', color: '#10b981' },
+] as const
+
+const CONTROL_PLANE_SLOTS = [
+  { id: 'identity', label: 'Identity', color: '#ef4444' },
+  { id: 'guardrails', label: 'Guardrails', color: '#f97316' },
+  { id: 'policy', label: 'Policy', color: '#dc2626' },
+  { id: 'quota', label: 'Quota', color: '#f59e0b' },
+  { id: 'observability', label: 'Observability', color: '#0891b2' },
+  { id: 'audit', label: 'Audit', color: '#0f766e' },
+] as const
 
 const LAYER_META: Record<string, { label: string; rationale: string }> = {
   surface: { label: 'Surface', rationale: 'Defines how developers and leaders interact with the platform day to day.' },
@@ -39,67 +46,369 @@ const LAYER_META: Record<string, { label: string; rationale: string }> = {
   access: { label: 'Access', rationale: 'Defines the identity, governance, and compliance controls that shape enterprise rollout.' },
 }
 
-// ── Auto-layout (when agent outputs identical coordinates) ────────────────────
+const NODE_WIDTH = 160
+const NODE_GAP = 18
+const BASELINE_COLS = 4
+const BASELINE_X = 28
+const BASELINE_WIDTH = 744
+const CONTROL_X = BASELINE_X + BASELINE_WIDTH + 28
+const CONTROL_WIDTH = 248
+const ZONE_HEADER = 42
+const LAYER_MIN_HEIGHT = 128
+const LAYER_GAP = 16
+const ROW_HEIGHT = 100
+const SUPPORT_Y_GAP = 28
+const SUPPORT_GROUP_GAP = 18
+const SUPPORT_GROUP_WIDTH = 488
+const SUPPORT_GROUP_COLS = 2
 
-const COL_WIDTH = 180
-const COL_GAP   = 40
-const COLS      = 3
-const START_X   = 30
-// Y offset within each zone band (leave room for the band label at top)
-const BAND_PAD  = 38
+type ResolvedPathRole = 'primary' | 'overlay' | 'supporting'
 
-// Maps layer id → the y-start of its zone band (must match LAYERS above)
-const LAYER_BAND_Y: Record<string, number> = Object.fromEntries(
-  LAYERS.map((l) => [l.id, l.y + BAND_PAD]),
-)
+type ResolvedCanvasNode = ArchNode & {
+  resolvedKind: string
+  resolvedPathRole: ResolvedPathRole
+}
 
-function autoLayout(nodes: ArchNode[]): ArchNode[] {
-  const archNodes = nodes.filter((n) => n.type !== 'zone')
+type ZoneCardData = {
+  id: string
+  type: 'zone'
+  label: string
+  sublabel?: string
+  color: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
 
-  // If the agent has set real, distinct positions respect them
-  const allSame =
-    archNodes.length > 1 &&
-    archNodes.every((n) => n.x === archNodes[0].x && n.y === archNodes[0].y)
-  if (!allSame) return nodes
+type SupportingLaneGroup = {
+  id: string
+  label: string
+  narrative: string
+  color: string
+  nodes: ResolvedCanvasNode[]
+}
 
-  // Group arch nodes by layer
-  const byLayer: Record<string, ArchNode[]> = {}
-  const unassigned: ArchNode[] = []
-  for (const n of archNodes) {
-    if (n.layer && LAYER_BAND_Y[n.layer] !== undefined) {
-      if (!byLayer[n.layer]) byLayer[n.layer] = []
-      byLayer[n.layer].push(n)
-    } else {
-      unassigned.push(n)
-    }
+function resolveNodeKind(node: ArchNode) {
+  if (node.kind?.trim()) return node.kind.trim()
+
+  const label = `${node.label} ${node.sublabel ?? ''}`.toLowerCase()
+  if (node.layer === 'surface') return 'developer_surface'
+  if (node.layer === 'model') return 'model_provider'
+  if (node.layer === 'access') {
+    return label.includes('identity') || label.includes('sso') || label.includes('iam')
+      ? 'identity_control'
+      : 'policy_control'
   }
+  if (node.layer === 'ops') {
+    return label.includes('cost') || label.includes('spend') || label.includes('quota')
+      ? 'cost_control'
+      : 'observability_control'
+  }
+  if (node.layer === 'execution') {
+    return label.includes('runtime') ? 'agent_runtime' : 'execution_lane'
+  }
+  if (node.layer === 'gateway') {
+    if (label.includes('model gateway') || label.includes('litellm') || label.includes('bedrock')) return 'model_gateway'
+    if (label.includes('registry') || label.includes('catalog')) return 'registry_control'
+    if (label.includes('github') || label.includes('gitlab') || label.includes('connector') || label.includes('tool')) return 'tool_connector'
+    return 'tool_gateway'
+  }
+  if (node.layer === 'harness') {
+    if (label.includes('strands') || label.includes('langchain') || label.includes('pydanticai') || label.includes('autogen') || label.includes('crewai')) {
+      return 'framework_sdk'
+    }
+    if (label.includes('background agent') || label.includes('custom harness')) {
+      return 'custom_harness'
+    }
+    return 'interactive_harness'
+  }
+  return 'platform_component'
+}
+
+function resolvePathRole(node: ArchNode): ResolvedPathRole {
+  if (node.path_role === 'primary' || node.path_role === 'overlay' || node.path_role === 'supporting') {
+    return node.path_role
+  }
+
+  const kind = resolveNodeKind(node)
+  if (node.layer === 'access' || node.layer === 'ops') return 'overlay'
+  if (['identity_control', 'policy_control', 'observability_control', 'cost_control', 'registry_control'].includes(kind)) return 'overlay'
+  if (['custom_harness', 'framework_sdk', 'agent_runtime'].includes(kind)) return 'supporting'
+  return 'primary'
+}
+
+function resolveControlSlot(node: ResolvedCanvasNode) {
+  const label = `${node.label} ${node.sublabel ?? ''}`.toLowerCase()
+  if (node.layer === 'access' || node.resolvedKind === 'identity_control' || label.includes('identity') || label.includes('sso') || label.includes('iam')) return 'identity'
+  if (label.includes('guardrail') || label.includes('safety') || label.includes('moderation')) return 'guardrails'
+  if (node.resolvedKind === 'policy_control' || label.includes('policy') || label.includes('governance') || label.includes('approval') || label.includes('compliance')) return 'policy'
+  if (node.resolvedKind === 'cost_control' || label.includes('quota') || label.includes('budget') || label.includes('spend') || label.includes('cost')) return 'quota'
+  if (node.layer === 'ops' || node.resolvedKind === 'observability_control' || label.includes('observe') || label.includes('trace') || label.includes('telemetry') || label.includes('monitor')) return 'observability'
+  if (label.includes('audit') || label.includes('log') || label.includes('siem')) return 'audit'
+  return node.resolvedPathRole === 'overlay' ? 'policy' : null
+}
+
+function baselineLayerForNode(node: ResolvedCanvasNode): typeof BASELINE_LAYERS[number]['id'] | null {
+  if (node.layer === 'gateway' && node.resolvedPathRole === 'primary' && resolveControlSlot(node) === null) return 'gateway'
+  if (node.layer === 'model') return 'model'
+  if (node.layer === 'surface') return 'surface'
+  if (node.layer === 'harness' && node.resolvedPathRole === 'primary') return 'harness'
+  if (node.layer === 'execution' && node.resolvedPathRole === 'primary') return 'execution'
+  return null
+}
+
+function sortNodes(nodes: ResolvedCanvasNode[]) {
+  return [...nodes].sort((a, b) => a.label.localeCompare(b.label))
+}
+
+function uniqueNodes(nodes: ResolvedCanvasNode[]) {
+  const seen = new Set<string>()
+  return nodes.filter((node) => {
+    if (seen.has(node.id)) return false
+    seen.add(node.id)
+    return true
+  })
+}
+
+function buildSupportingLaneGroups(
+  nodes: ResolvedCanvasNode[],
+  artifact: ArchitectureArtifact | null,
+) {
+  const supportingNodes = nodes.filter((node) => node.resolvedPathRole === 'supporting')
+  const groups: SupportingLaneGroup[] = []
+  const assigned = new Set<string>()
+
+  ;(artifact?.supporting_lanes ?? []).forEach((lane, index) => {
+    const laneNodes = uniqueNodes(lane.component_ids
+      .map((id) => supportingNodes.find((node) => node.id === id))
+      .filter(Boolean) as ResolvedCanvasNode[])
+    if (laneNodes.length === 0) return
+    laneNodes.forEach((node) => assigned.add(node.id))
+    groups.push({
+      id: lane.id,
+      label: lane.title,
+      narrative: lane.narrative || 'Supporting lane published from the architecture artifact.',
+      color: index % 2 === 0 ? '#8b5cf6' : '#7c3aed',
+      nodes: sortNodes(laneNodes),
+    })
+  })
+
+  const remaining = supportingNodes.filter((node) => !assigned.has(node.id))
+  const harnessNodes = remaining.filter((node) => node.layer === 'harness')
+  const executionNodes = remaining.filter((node) => node.layer === 'execution')
+  const adjacentNodes = remaining.filter((node) => node.layer !== 'harness' && node.layer !== 'execution')
+
+  if (harnessNodes.length > 0) {
+    groups.push({
+      id: 'support-harness',
+      label: 'Supporting harnesses',
+      narrative: 'Approved alternate harnesses or frameworks that sit beside the default developer path.',
+      color: '#8b5cf6',
+      nodes: sortNodes(harnessNodes),
+    })
+  }
+  if (executionNodes.length > 0) {
+    groups.push({
+      id: 'support-execution',
+      label: 'Exception execution lanes',
+      narrative: 'Specialized runtimes or isolated execution paths that sit outside the standard request lane.',
+      color: '#a855f7',
+      nodes: sortNodes(executionNodes),
+    })
+  }
+  if (adjacentNodes.length > 0) {
+    groups.push({
+      id: 'support-adjacent',
+      label: 'Adjacent platform components',
+      narrative: 'Supporting components that matter to the architecture without belonging to the primary request path.',
+      color: '#4f46e5',
+      nodes: sortNodes(adjacentNodes),
+    })
+  }
+
+  return groups
+}
+
+function buildZoneNode(zone: ZoneCardData): Node<ZoneCardData> {
+  return {
+    id: zone.id,
+    type: 'zone',
+    position: { x: zone.x, y: zone.y },
+    data: zone,
+    draggable: false,
+    selectable: false,
+    zIndex: -1,
+    style: { zIndex: -1, pointerEvents: 'none' },
+  }
+}
+
+function autoLayout(nodes: ArchNode[], artifact: ArchitectureArtifact | null) {
+  const resolvedNodes: ResolvedCanvasNode[] = nodes
+    .filter((node) => node.type !== 'zone')
+    .map((node) => ({
+      ...node,
+      resolvedKind: resolveNodeKind(node),
+      resolvedPathRole: resolvePathRole(node),
+    }))
 
   const positioned = new Map<string, { x: number; y: number }>()
+  const zoneNodes: Node<ZoneCardData>[] = []
+  let currentY = 0
 
-  // Place layered nodes in a horizontal row within their band
-  for (const [layer, layerNodes] of Object.entries(byLayer)) {
-    const bandY = LAYER_BAND_Y[layer]
-    layerNodes.forEach((n, col) => {
-      positioned.set(n.id, { x: START_X + col * (COL_WIDTH + COL_GAP), y: bandY })
+  BASELINE_LAYERS.forEach((layer) => {
+    const layerNodes = sortNodes(resolvedNodes.filter((node) => baselineLayerForNode(node) === layer.id))
+    const rowCount = Math.max(1, Math.ceil(layerNodes.length / BASELINE_COLS))
+    const zoneHeight = Math.max(LAYER_MIN_HEIGHT, ZONE_HEADER + rowCount * ROW_HEIGHT)
+
+    zoneNodes.push(buildZoneNode({
+      id: `__layer-${layer.id}`,
+      type: 'zone',
+      label: layer.label,
+      sublabel: `${layerNodes.length} component${layerNodes.length === 1 ? '' : 's'} in the shared baseline`,
+      color: layer.color,
+      x: 0,
+      y: currentY,
+      width: BASELINE_WIDTH,
+      height: zoneHeight,
+    }))
+
+    layerNodes.forEach((node, index) => {
+      const col = index % BASELINE_COLS
+      const row = Math.floor(index / BASELINE_COLS)
+      positioned.set(node.id, {
+        x: BASELINE_X + col * (NODE_WIDTH + NODE_GAP),
+        y: currentY + ZONE_HEADER + row * ROW_HEIGHT,
+      })
+    })
+
+    currentY += zoneHeight + LAYER_GAP
+  })
+
+  const baselineBottom = currentY - LAYER_GAP
+  const controlNodes = resolvedNodes.filter((node) => resolveControlSlot(node) !== null)
+  let controlY = 18
+
+  zoneNodes.push(buildZoneNode({
+    id: '__control-plane',
+    type: 'zone',
+    label: 'Shared Control Plane',
+    sublabel: 'Identity, guardrails, policy, quota, observability, and audit',
+    color: '#111827',
+    x: CONTROL_X,
+    y: 0,
+    width: CONTROL_WIDTH,
+    height: Math.max(baselineBottom, 540),
+  }))
+
+  CONTROL_PLANE_SLOTS.forEach((slot) => {
+    const slotNodes = sortNodes(controlNodes.filter((node) => resolveControlSlot(node) === slot.id))
+    const rowCount = Math.max(1, slotNodes.length)
+    const slotHeight = Math.max(78, 30 + rowCount * 88)
+
+    zoneNodes.push(buildZoneNode({
+      id: `__control-${slot.id}`,
+      type: 'zone',
+      label: slot.label,
+      sublabel: slotNodes.length > 0 ? `${slotNodes.length} mapped control${slotNodes.length === 1 ? '' : 's'}` : 'No explicit node tagged yet',
+      color: slot.color,
+      x: CONTROL_X + 12,
+      y: controlY,
+      width: CONTROL_WIDTH - 24,
+      height: slotHeight,
+    }))
+
+    slotNodes.forEach((node, index) => {
+      positioned.set(node.id, {
+        x: CONTROL_X + 26,
+        y: controlY + 28 + index * 88,
+      })
+    })
+
+    controlY += slotHeight + 10
+  })
+
+  const supportingGroups = buildSupportingLaneGroups(resolvedNodes, artifact)
+  const supportHeaderY = Math.max(baselineBottom, controlY - 10) + SUPPORT_Y_GAP
+  let supportY = supportHeaderY
+
+  if (supportingGroups.length > 0) {
+    zoneNodes.push(buildZoneNode({
+      id: '__supporting-root',
+      type: 'zone',
+      label: 'Supporting And Exception Lanes',
+      sublabel: 'Specialized or customer-specific paths kept separate from the shared baseline',
+      color: '#6d28d9',
+      x: 0,
+      y: supportHeaderY,
+      width: CONTROL_X + CONTROL_WIDTH,
+      height: 58,
+    }))
+    supportY += 74
+  }
+
+  supportingGroups.forEach((group, index) => {
+    const x = index % SUPPORT_GROUP_COLS === 0 ? 0 : SUPPORT_GROUP_WIDTH + SUPPORT_GROUP_GAP
+    const y = supportY + Math.floor(index / SUPPORT_GROUP_COLS) * 220
+    const rowCount = Math.max(1, Math.ceil(group.nodes.length / 2))
+    const zoneHeight = Math.max(128, ZONE_HEADER + rowCount * 96)
+
+    zoneNodes.push(buildZoneNode({
+      id: `__support-${group.id}`,
+      type: 'zone',
+      label: group.label,
+      sublabel: group.narrative,
+      color: group.color,
+      x,
+      y,
+      width: SUPPORT_GROUP_WIDTH,
+      height: zoneHeight,
+    }))
+
+    group.nodes.forEach((node, nodeIndex) => {
+      const col = nodeIndex % 2
+      const row = Math.floor(nodeIndex / 2)
+      positioned.set(node.id, {
+        x: x + BASELINE_X + col * (NODE_WIDTH + NODE_GAP),
+        y: y + ZONE_HEADER + row * 96,
+      })
+    })
+  })
+
+  const unassigned = resolvedNodes.filter((node) => !positioned.has(node.id))
+  if (unassigned.length > 0) {
+    const x = 0
+    const y = supportY + Math.ceil(supportingGroups.length / SUPPORT_GROUP_COLS) * 220
+    const rowCount = Math.max(1, Math.ceil(unassigned.length / 3))
+    zoneNodes.push(buildZoneNode({
+      id: '__support-overflow',
+      type: 'zone',
+      label: 'Other Components',
+      sublabel: 'Components that were not clearly assigned to the baseline or shared control plane',
+      color: '#475569',
+      x,
+      y,
+      width: CONTROL_X + CONTROL_WIDTH,
+      height: Math.max(128, ZONE_HEADER + rowCount * 96),
+    }))
+
+    unassigned.forEach((node, index) => {
+      const col = index % 3
+      const row = Math.floor(index / 3)
+      positioned.set(node.id, {
+        x: BASELINE_X + col * (NODE_WIDTH + NODE_GAP),
+        y: y + ZONE_HEADER + row * 96,
+      })
     })
   }
 
-  // Fallback: place unassigned nodes below all zone bands
-  const lastLayer = LAYERS[LAYERS.length - 1]
-  const fallbackBaseY = lastLayer.y + lastLayer.height + 40
-  unassigned.forEach((n, i) => {
-    const col = i % COLS
-    const row = Math.floor(i / COLS)
-    positioned.set(n.id, {
-      x: START_X + col * (COL_WIDTH + COL_GAP),
-      y: fallbackBaseY + row * 160,
-    })
-  })
-
-  return nodes.map((n) => {
-    const pos = positioned.get(n.id)
-    return pos ? { ...n, ...pos } : n
-  })
+  return {
+    nodes: resolvedNodes.map((node) => {
+      const position = positioned.get(node.id)
+      return position ? { ...node, ...position } : node
+    }),
+    zoneNodes,
+  }
 }
 
 // ── Custom node: arch component ───────────────────────────────────────────────
@@ -182,7 +491,7 @@ function ArchNodeComponent({ data, id }: NodeProps<ArchNodeData>) {
 
 // ── Custom node: zone background rectangle ────────────────────────────────────
 
-function ZoneNodeComponent({ data }: NodeProps<ArchNode>) {
+function ZoneNodeComponent({ data }: NodeProps<ZoneCardData>) {
   return (
     <div style={{
       background: `${data.color}08`,
@@ -199,28 +508,23 @@ function ZoneNodeComponent({ data }: NodeProps<ArchNode>) {
       }}>
         {data.label}
       </span>
+      {data.sublabel ? (
+        <div style={{
+          marginTop: 6,
+          maxWidth: '100%',
+          fontSize: 11,
+          lineHeight: 1.45,
+          color: 'var(--text-muted)',
+          whiteSpace: 'normal',
+        }}>
+          {data.sublabel}
+        </div>
+      ) : null}
     </div>
   )
 }
 
 const NODE_TYPES = { arch: ArchNodeComponent, zone: ZoneNodeComponent }
-
-// ── Static layer band nodes (injected into every RF render) ───────────────────
-
-const LAYER_BAND_NODES: Node[] = LAYERS.map((l) => ({
-  id: `__layer-${l.id}`,
-  type: 'zone',
-  position: { x: -20, y: l.y },
-  data: {
-    id: `__layer-${l.id}`, type: 'zone',
-    label: l.label, color: l.color,
-    x: -20, y: l.y, width: 780, height: l.height,
-  },
-  draggable: false,
-  selectable: false,
-  zIndex: -1,
-  style: { zIndex: -1, pointerEvents: 'none' },
-}))
 
 // ── Type converters ───────────────────────────────────────────────────────────
 
@@ -368,7 +672,8 @@ export default function Canvas() {
     })
   }, [canvasNodes, annotationsOn, baselineSet, architectureArtifact])
 
-  const laidOut = useMemo(() => autoLayout(canvasNodes), [canvasNodes])
+  const layout = useMemo(() => autoLayout(canvasNodes, architectureArtifact), [canvasNodes, architectureArtifact])
+  const laidOut = layout.nodes
   const baselineNodes = useMemo(
     () => laidOut.filter((node) => baselineSet.size === 0 || baselineSet.has(node.id)),
     [laidOut, baselineSet],
@@ -380,9 +685,9 @@ export default function Canvas() {
 
   // A node is a "customer addition" if it wasn't in the baseline (first) update
   const rfNodes: Node[] = useMemo(() => [
-    ...LAYER_BAND_NODES,
+    ...layout.zoneNodes,
     ...laidOut.map((n) => toRFNode(n, onSelect, baselineSet.size > 0 && !baselineSet.has(n.id))),
-  ], [laidOut, onSelect, baselineSet])
+  ], [layout.zoneNodes, laidOut, onSelect, baselineSet])
 
   const rfEdges: Edge[] = useMemo(() => canvasEdges.map(toRFEdge), [canvasEdges])
 

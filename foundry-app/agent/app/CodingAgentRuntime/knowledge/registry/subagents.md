@@ -9,6 +9,9 @@ status: candidate
 traversal: probe
 trigger: [multi-agent-orchestration, specialist-subagents, delegation, parallel-agent-tasks]
 decision-question: "How will specialist subagents be spawned, scoped, and delegated to by the orchestrating agent?"
+decision-domain: registry_governance
+priority: 6
+requires: [registry/skills, harness/runtime]
 ---
 
 Purpose-built agents the main harness can spawn for scoped work (explore,

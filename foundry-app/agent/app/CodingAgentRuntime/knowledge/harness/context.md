@@ -9,6 +9,9 @@ status: candidate
 traversal: probe
 trigger: [context-window-management, repo-context, large-codebase, context-compaction]
 decision-question: "How is in-session context loaded, compacted, and scoped to the task — and what stays out of the window?"
+decision-domain: context_strategy
+priority: 6
+requires: [harness/runtime]
 ---
 
 How the agent sees your code during a task — pulls the right files,

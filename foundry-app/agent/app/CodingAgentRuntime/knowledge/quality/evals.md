@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [quality-gates, regression-testing, platform-maturity, eval-harness, production-readiness]
 decision-question: "How will you evaluate agent quality and gate platform changes before they reach production developers?"
+decision-domain: quality_gate
+priority: 8
+requires: [ops/observability]
 ---
 
 How the team building this coding agent platform knows a change to the

@@ -9,6 +9,10 @@ status: candidate
 traversal: conditional
 trigger: [autosar, iso-26262, iec-62304, do-178c, asil, functional-safety, safety-critical-code, automotive-software, medical-device-firmware, aerospace-software, certified-software, safety-standard]
 decision-question: "Does your codebase include software certified or being developed for functional safety standards — AUTOSAR ISO 26262 (automotive), IEC 62304 (medical device), DO-178C (aerospace) — where model errors are not just quality issues but potential safety violations with regulatory and liability consequences?"
+decision-domain: quality_gate
+priority: 9
+blocking: true
+requires: [quality/model-capability-eval, quality/evals]
 ---
 
 Safety-critical software operates under functional safety standards that govern

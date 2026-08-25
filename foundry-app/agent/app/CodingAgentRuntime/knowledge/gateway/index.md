@@ -6,6 +6,9 @@ group: gateway
 tags: [gateway, governance]
 timestamp: 2026-08-12T00:00:00Z
 status: candidate
+decision-domain: gateway_strategy
+priority: 4
+implies: [gateway/mcpgw, gateway/modelgw, gateway/vault-integration, gateway/cyberark-integration]
 ---
 
 The chokepoints for outbound traffic from the harness — tools/integrations

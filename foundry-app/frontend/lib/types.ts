@@ -225,11 +225,15 @@ export interface ConsultingWorkspace {
   assumptions?: WorkspaceAssumption[]
   facts: string[]
   operating_model?: OperatingModel
+  question_state?: WorkspaceQuestion[]
   open_questions: string[]
   decisions: string[]
   risks: string[]
   implementation_plan: string[]
   advisory_case?: AdvisoryCase | null
+  architecture_case?: ArchitectureCase | null
+  recommendation_state?: WorkspaceRecommendationState | null
+  artifact_status?: WorkspaceArtifactStatus | null
   updated_at?: string
 }
 
@@ -246,6 +250,75 @@ export interface WorkspaceAssumptionOption {
   prompt: string
 }
 
+export interface ArchitectureCaseFact {
+  id: string
+  statement: string
+  value?: unknown
+  status?: string
+  source?: string
+}
+
+export interface ArchitectureCaseQuestion {
+  id: string
+  text: string
+  why_it_matters?: string
+  blocking?: boolean
+  decision_domain?: string
+  status?: string
+  answer?: string
+  source?: string
+}
+
+export interface ArchitectureCaseDecision {
+  id: string
+  statement: string
+  rationale?: string
+  status?: string
+  source?: string
+  alternatives_considered?: string[]
+  evidence_refs?: string[]
+  owner?: string
+  open_dependency?: string
+}
+
+export interface ArchitectureCaseRisk {
+  id: string
+  risk: string
+  mitigation?: string
+  severity?: string
+  category?: string
+  source?: string
+}
+
+export interface ArchitectureCaseRolloutItem {
+  phase: string
+  outcome: string
+}
+
+export interface ArchitectureCaseArtifacts {
+  blueprint_markdown: string
+  executive_summary: string
+  recommendation_memo: string
+  architecture_narrative: string
+  diagram_summary: string
+  rollout: ArchitectureCaseRolloutItem[]
+}
+
+export interface ArchitectureCase {
+  schema_version: string
+  case_id: string
+  revision: number
+  okf_release_id: string
+  stage: string
+  current_recommendation: string
+  operating_model: string
+  facts: ArchitectureCaseFact[]
+  open_questions: ArchitectureCaseQuestion[]
+  decisions: ArchitectureCaseDecision[]
+  risks: ArchitectureCaseRisk[]
+  artifacts: ArchitectureCaseArtifacts
+}
+
 export interface WorkspaceAssumption {
   id: string
   title: string
@@ -257,6 +330,49 @@ export interface WorkspaceAssumption {
   drives_architecture?: boolean
   validation_priority?: 'now' | 'soon' | 'later' | ''
   options: WorkspaceAssumptionOption[]
+}
+
+
+export type WorkspaceQuestionStatus = 'open' | 'answered' | 'deferred' | 'invalidated' | ''
+
+export interface WorkspaceQuestion {
+  id: string
+  text: string
+  why_it_matters: string
+  decision_domain?: string
+  status: WorkspaceQuestionStatus
+  blocking: boolean
+  answer?: string
+  source?: string
+}
+
+export interface WorkspaceCandidateOption {
+  path: string
+  title: string
+  summary: string
+  decision_domain?: string
+  position: 'recommended' | 'viable' | 'deferred' | ''
+}
+
+export interface WorkspaceRecommendationState {
+  primary_recommendation: string
+  confidence: 'low' | 'medium' | 'high' | ''
+  candidate_options: WorkspaceCandidateOption[]
+  missing_evidence: string[]
+  next_best_question: string
+  last_reasoning_change_fields: string[]
+}
+
+export type WorkspaceArtifactReadiness = 'missing' | 'draft' | 'ready' | 'stale' | ''
+
+export interface WorkspaceArtifactStatus {
+  recommendation: WorkspaceArtifactReadiness
+  question_state: WorkspaceArtifactReadiness
+  advisory_case: WorkspaceArtifactReadiness
+  blueprint: WorkspaceArtifactReadiness
+  blocking_question_count: number
+  stale_fields: string[]
+  reasoning_changes: string[]
 }
 
 export interface AdvisoryRecommendation {

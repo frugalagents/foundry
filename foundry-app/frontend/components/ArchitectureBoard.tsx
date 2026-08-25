@@ -52,6 +52,43 @@ const LAYER_META: Record<string, { label: string; color: string; purpose: string
   },
 }
 
+const BASELINE_LAYER_ORDER = ['surface', 'harness', 'execution', 'gateway', 'model'] as const
+
+const CONTROL_PLANE_META: Record<string, { title: string; accent: string; narrative: string }> = {
+  identity: {
+    title: 'Identity',
+    accent: '#ef4444',
+    narrative: 'Who can access the platform, which identities are trusted, and how entitlements follow each lane.',
+  },
+  guardrails: {
+    title: 'Guardrails',
+    accent: '#f97316',
+    narrative: 'Safety, prompt, and tool-use guardrails applied before requests reach execution or model endpoints.',
+  },
+  policy: {
+    title: 'Policy',
+    accent: '#dc2626',
+    narrative: 'Enterprise policy, approval, and compliance checks that shape what each lane is allowed to do.',
+  },
+  quota: {
+    title: 'Quota',
+    accent: '#f59e0b',
+    narrative: 'Spend, rate, and capacity controls that keep usage inside organizational limits.',
+  },
+  observability: {
+    title: 'Observability',
+    accent: '#0891b2',
+    narrative: 'Telemetry, traces, and operational signals that make the platform measurable and supportable.',
+  },
+  audit: {
+    title: 'Audit',
+    accent: '#0f766e',
+    narrative: 'Tamper-evident logs and evidence trails that support regulated or high-assurance use cases.',
+  },
+}
+
+const CONTROL_PLANE_ORDER = ['identity', 'guardrails', 'policy', 'quota', 'observability', 'audit'] as const
+
 type ResolvedPathRole = 'primary' | 'overlay' | 'supporting'
 type ResolvedNode = ArchNode & { resolvedKind: string; resolvedPathRole: ResolvedPathRole }
 
@@ -92,6 +129,7 @@ export default function ArchitectureBoard() {
   const baselineNodeIds = useStore((s) => s.baselineNodeIds)
 
   const workspace = useMemo(() => normalizeWorkspace(workspaceState), [workspaceState])
+  const architectureCase = workspace.architecture_case
   const stage = normalizeAdvisoryStage(workspace.stage) ?? 'discovery'
   const archNodes = useMemo(
     () => canvasNodes.filter((node) => node.type === 'arch'),
@@ -161,11 +199,39 @@ export default function ArchitectureBoard() {
   }, [activeAudienceId, audienceViews])
 
   const activeAudience = audienceViews.find((view) => view.id === activeAudienceId) ?? audienceViews[0]
-  const summary = architectureArtifact?.executive_summary || workspace.recommendation
-  const baselineLayers = architectureArtifact?.baseline.layers ?? []
-  const decisionHighlights = (architectureArtifact?.decisions ?? []).slice(0, 3)
-  const riskHighlights = (architectureArtifact?.risks ?? []).slice(0, 3)
+  const summary = architectureArtifact?.executive_summary
+    || architectureCase?.artifacts.diagram_summary
+    || architectureCase?.current_recommendation
+    || workspace.recommendation
+  const decisionHighlights = (architectureArtifact?.decisions?.length
+    ? architectureArtifact.decisions
+    : (architectureCase?.decisions ?? []).map((item) => ({
+        decision: item.statement,
+        why: item.rationale || item.open_dependency || '',
+        alternatives_rejected: item.alternatives_considered ?? [],
+      }))).slice(0, 3)
+  const riskHighlights = (architectureArtifact?.risks?.length
+    ? architectureArtifact.risks
+    : (architectureCase?.risks ?? []).map((item) => ({
+        risk: item.risk,
+        mitigation: item.mitigation || '',
+      }))).slice(0, 3)
   const baselineCount = resolvedNodes.length - addedNodes.length
+  const baselineLayerRows = useMemo(
+    () => buildBaselineLayerRows(architectureArtifact, primaryStages),
+    [architectureArtifact, primaryStages],
+  )
+  const baselineLayerNodeMap = useMemo(() => {
+    const stageMap = new Map(primaryStages.map((stage) => [stage.id, stage.nodes]))
+    return new Map(
+      baselineLayerRows.map((layer) => {
+        const explicitNodes = layer.component_ids
+          .map((id) => nodeById.get(id))
+          .filter(Boolean) as ResolvedNode[]
+        return [layer.id, explicitNodes.length > 0 ? explicitNodes : (stageMap.get(layer.id) ?? [])]
+      }),
+    )
+  }, [baselineLayerRows, nodeById, primaryStages])
 
   if (!hasArchitecture) {
     return (
@@ -249,29 +315,49 @@ export default function ArchitectureBoard() {
               <div style={flowAreaStyle}>
                 <div style={laneHeadingStyle}>
                   <span style={laneHeadingEyebrowStyle}>Shared Baseline Flow</span>
-                  <div style={laneHeadingTitleStyle}>How a request moves through the standard platform</div>
+                  <div style={laneHeadingTitleStyle}>Five stacked platform layers with components inside each layer</div>
                 </div>
-                <div style={flowStripStyle}>
-                  {primaryStages.map((stageItem, index) => (
-                    <div key={stageItem.id} style={flowItemWrapStyle}>
-                      <FlowStageCard
-                        stage={stageItem}
-                        addedNodeIdSet={addedNodeIdSet}
-                      />
-                      {index < primaryStages.length - 1 ? (
-                        <FlowConnector label={transitionLabel(stageItem, primaryStages[index + 1])} />
-                      ) : null}
-                    </div>
+                <div style={stackedBaselineStyle}>
+                  {baselineLayerRows.map((layer, index) => (
+                    <LayerStackCard
+                      key={layer.id}
+                      layer={layer}
+                      nodes={baselineLayerNodeMap.get(layer.id) ?? []}
+                      addedNodeIdSet={addedNodeIdSet}
+                      showConnector={index < baselineLayerRows.length - 1}
+                    />
                   ))}
+                </div>
+
+                <div style={supportingLaneSectionStyle}>
+                  <div style={laneHeadingStyle}>
+                    <span style={laneHeadingEyebrowStyle}>Supporting And Exception Lanes</span>
+                    <div style={laneHeadingTitleStyle}>Components that diverge from or flank the shared baseline</div>
+                  </div>
+                  {supportingGroups.length > 0 ? (
+                    <div style={supportingLaneStackStyle}>
+                      {supportingGroups.map((group) => (
+                        <SupportingLaneCard
+                          key={group.id}
+                          group={group}
+                          addedNodeIdSet={addedNodeIdSet}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={emptySupportingLaneStyle}>
+                      No explicit supporting or exception lane has been published yet. The current recommendation is still centered on the shared baseline.
+                    </div>
+                  )}
                 </div>
               </div>
 
               <aside style={controlStripStyle}>
                 <div style={controlStripHeaderStyle}>
                   <span style={laneHeadingEyebrowStyle}>Control Plane</span>
-                  <div style={laneHeadingTitleStyle}>What governs every lane</div>
+                  <div style={laneHeadingTitleStyle}>Shared controls that govern every layer</div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={controlGroupGridStyle}>
                   {controlGroups.map((group) => (
                     <ControlGroupCard
                       key={group.id}
@@ -291,153 +377,168 @@ export default function ArchitectureBoard() {
           ) : null}
         </section>
 
-        <section style={audienceSectionStyle}>
-          <div style={sectionHeadingRowStyle}>
-            <div>
-              <span style={eyebrow}>Audience Views</span>
-              <h2 style={sectionTitleStyle}>Shared baseline first, then persona and exception deltas</h2>
-            </div>
-          </div>
-
-          <div style={tabBarStyle}>
-            {audienceViews.map((view) => (
-              <button
-                key={view.id}
-                type="button"
-                onClick={() => setActiveAudienceId(view.id)}
-                style={tabButtonStyle(activeAudienceId === view.id)}
-              >
-                <span>{view.label}</span>
-                {view.addedCount > 0 ? <span style={tabCountStyle(activeAudienceId === view.id)}>{view.addedCount}</span> : null}
-              </button>
-            ))}
-          </div>
-
-          {activeAudience ? (
-            activeAudience.isBaseline ? (
-              <div style={detailGridStyle}>
-                <div style={detailCardStyle}>
-                  <span style={eyebrow}>Standard Platform</span>
-                  <p style={detailIntroStyle}>
-                    {activeAudience.description}
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {(baselineLayers.length > 0 ? baselineLayers : inferLayerRowsFromStages(primaryStages)).map((layer) => (
-                      <LayerRow key={layer.id} layer={layer} />
-                    ))}
-                  </div>
-                </div>
-
-                <div style={detailCardStyle}>
-                  <span style={eyebrow}>Specialized Lanes</span>
-                  <p style={detailIntroStyle}>
-                    Populations or workflows that diverge from the standard platform show up here as explicit exception lanes.
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {audienceViews.filter((view) => !view.isBaseline).length > 0 ? audienceViews.filter((view) => !view.isBaseline).map((view) => (
-                      <div key={view.id} style={exceptionRowStyle}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-                          <div style={exceptionTitleStyle}>{view.label}</div>
-                          {view.addedCount > 0 ? <span style={exceptionCountStyle}>{view.addedCount} addition{view.addedCount === 1 ? '' : 's'}</span> : null}
-                        </div>
-                        <div style={exceptionTextStyle}>{view.description}</div>
-                      </div>
-                    )) : (
-                      <div style={emptyNoteStyle}>No explicit persona or exception lane has been published yet. The recommendation is still operating as one governed baseline.</div>
-                    )}
-                  </div>
+        <details style={disclosureStyle}>
+          <summary style={disclosureSummaryStyle}>Architecture details and rationale</summary>
+          <div style={disclosureBodyStyle}>
+            <section style={audienceSectionStyle}>
+              <div style={sectionHeadingRowStyle}>
+                <div>
+                  <span style={eyebrow}>Audience Views</span>
+                  <h2 style={sectionTitleStyle}>Shared baseline first, then persona and exception deltas</h2>
                 </div>
               </div>
-            ) : (
-              <div style={detailGridStyle}>
-                <div style={detailCardStyle}>
-                  <span style={eyebrow}>{activeAudience.label}</span>
-                  <p style={detailIntroStyle}>{activeAudience.description}</p>
-                  <div style={nodeListStyle}>
-                    {activeAudience.nodes.length > 0 ? activeAudience.nodes.map((node) => (
-                      <AudienceNodeRow
-                        key={node.id}
-                        node={node}
-                        isAdded={addedNodeIdSet.has(node.id)}
-                      />
-                    )) : (
-                      <div style={emptyNoteStyle}>No specific components were tagged for this lane yet.</div>
-                    )}
-                  </div>
-                </div>
 
-                <div style={detailCardStyle}>
-                  <span style={eyebrow}>Why This Lane Exists</span>
-                  <p style={detailIntroStyle}>
-                    The engine uses customer answers, constraints, and explicit tradeoffs to justify each deviation from the baseline.
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {activeAudience.customizations.map((item) => (
-                      <div key={item.id} style={reasonCardStyle}>
-                        <div style={reasonTitleStyle}>{item.title}</div>
-                        <div style={reasonTextStyle}>{item.reason || 'Added beyond the standard baseline for this organization.'}</div>
-                        {item.tradeoff ? <div style={tradeoffTextStyle}>Tradeoff: {item.tradeoff}</div> : null}
+              <div style={tabBarStyle}>
+                {audienceViews.map((view) => (
+                  <button
+                    key={view.id}
+                    type="button"
+                    onClick={() => setActiveAudienceId(view.id)}
+                    style={tabButtonStyle(activeAudienceId === view.id)}
+                  >
+                    <span>{view.label}</span>
+                    {view.addedCount > 0 ? <span style={tabCountStyle(activeAudienceId === view.id)}>{view.addedCount}</span> : null}
+                  </button>
+                ))}
+              </div>
+
+              {activeAudience ? (
+                activeAudience.isBaseline ? (
+                  <div style={detailGridStyle}>
+                    <div style={detailCardStyle}>
+                      <span style={eyebrow}>Standard Platform</span>
+                      <p style={detailIntroStyle}>
+                        {activeAudience.description}
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {baselineLayerRows.map((layer) => (
+                          <LayerRow key={layer.id} layer={layer} />
+                        ))}
                       </div>
-                    ))}
-                    {activeAudience.triggers.length > 0 ? (
-                      <div style={reasonCardStyle}>
-                        <div style={reasonTitleStyle}>Decision triggers</div>
-                        <div style={bulletListStyle}>
-                          {activeAudience.triggers.map((trigger) => (
-                            <div key={trigger} style={bulletRowStyle}>• {trigger}</div>
+                      <div style={controlSummarySectionStyle}>
+                        <div style={controlSummaryTitleStyle}>Shared control plane</div>
+                        <div style={controlSummaryGridStyle}>
+                          {controlGroups.map((group) => (
+                            <div key={group.id} style={controlSummaryPillStyle(group.accent)}>
+                              {group.title}
+                            </div>
                           ))}
                         </div>
                       </div>
-                    ) : null}
-                    {activeAudience.customizations.length === 0 && activeAudience.triggers.length === 0 ? (
-                      <div style={emptyNoteStyle}>This lane is published as a distinct view, but the engine has not attached explicit rationale text yet.</div>
-                    ) : null}
+                    </div>
+
+                    <div style={detailCardStyle}>
+                      <span style={eyebrow}>Specialized Lanes</span>
+                      <p style={detailIntroStyle}>
+                        Populations or workflows that diverge from the standard platform show up here as explicit exception lanes.
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {audienceViews.filter((view) => !view.isBaseline).length > 0 ? audienceViews.filter((view) => !view.isBaseline).map((view) => (
+                          <div key={view.id} style={exceptionRowStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+                              <div style={exceptionTitleStyle}>{view.label}</div>
+                              {view.addedCount > 0 ? <span style={exceptionCountStyle}>{view.addedCount} addition{view.addedCount === 1 ? '' : 's'}</span> : null}
+                            </div>
+                            <div style={exceptionTextStyle}>{view.description}</div>
+                          </div>
+                        )) : (
+                          <div style={emptyNoteStyle}>No explicit persona or exception lane has been published yet. The recommendation is still operating as one governed baseline.</div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )
-          ) : null}
-        </section>
+                ) : (
+                  <div style={detailGridStyle}>
+                    <div style={detailCardStyle}>
+                      <span style={eyebrow}>{activeAudience.label}</span>
+                      <p style={detailIntroStyle}>{activeAudience.description}</p>
+                      <div style={nodeListStyle}>
+                        {activeAudience.nodes.length > 0 ? activeAudience.nodes.map((node) => (
+                          <AudienceNodeRow
+                            key={node.id}
+                            node={node}
+                            isAdded={addedNodeIdSet.has(node.id)}
+                          />
+                        )) : (
+                          <div style={emptyNoteStyle}>No specific components were tagged for this lane yet.</div>
+                        )}
+                      </div>
+                    </div>
 
-        <section style={detailGridStyle}>
-          <div style={detailCardStyle}>
-            <span style={eyebrow}>Risk Watchlist</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
-              {riskHighlights.length > 0 ? riskHighlights.map((risk) => (
-                <div key={risk.risk} style={reasonCardStyle}>
-                  <div style={reasonTitleStyle}>{risk.risk}</div>
-                  <div style={reasonTextStyle}>{risk.mitigation}</div>
-                </div>
-              )) : (
-                <div style={emptyNoteStyle}>No architecture risks have been published yet.</div>
-              )}
-            </div>
-          </div>
-
-          <div style={detailCardStyle}>
-            <span style={eyebrow}>Customer-specific additions</span>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
-              {addedNodes.length > 0 ? addedNodes.slice(0, 8).map((node) => {
-                const customization = findCustomizationForNode(architectureArtifact, node.id)
-                return (
-                  <div key={node.id} style={additionRowStyle}>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <span style={smallIconWrapStyle(node.color)}>
-                        <IconGlyph icon={node.icon} color={node.color} size={14} />
-                      </span>
-                      <div>
-                        <div style={reasonTitleStyle}>{node.label}</div>
-                        <div style={reasonTextStyle}>{customization?.reason || node.sublabel || 'Added for this customer beyond the reference baseline.'}</div>
+                    <div style={detailCardStyle}>
+                      <span style={eyebrow}>Why This Lane Exists</span>
+                      <p style={detailIntroStyle}>
+                        The engine uses customer answers, constraints, and explicit tradeoffs to justify each deviation from the baseline.
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {activeAudience.customizations.map((item) => (
+                          <div key={item.id} style={reasonCardStyle}>
+                            <div style={reasonTitleStyle}>{item.title}</div>
+                            <div style={reasonTextStyle}>{item.reason || 'Added beyond the standard baseline for this organization.'}</div>
+                            {item.tradeoff ? <div style={tradeoffTextStyle}>Tradeoff: {item.tradeoff}</div> : null}
+                          </div>
+                        ))}
+                        {activeAudience.triggers.length > 0 ? (
+                          <div style={reasonCardStyle}>
+                            <div style={reasonTitleStyle}>Decision triggers</div>
+                            <div style={bulletListStyle}>
+                              {activeAudience.triggers.map((trigger) => (
+                                <div key={trigger} style={bulletRowStyle}>• {trigger}</div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                        {activeAudience.customizations.length === 0 && activeAudience.triggers.length === 0 ? (
+                          <div style={emptyNoteStyle}>This lane is published as a distinct view, but the engine has not attached explicit rationale text yet.</div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
                 )
-              }) : (
-                <div style={emptyNoteStyle}>This session is still aligned to the standard baseline and has not introduced customer-specific structural additions.</div>
-              )}
-            </div>
+              ) : null}
+            </section>
+
+            <section style={detailGridStyle}>
+              <div style={detailCardStyle}>
+                <span style={eyebrow}>Risk Watchlist</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                  {riskHighlights.length > 0 ? riskHighlights.map((risk) => (
+                    <div key={risk.risk} style={reasonCardStyle}>
+                      <div style={reasonTitleStyle}>{risk.risk}</div>
+                      <div style={reasonTextStyle}>{risk.mitigation}</div>
+                    </div>
+                  )) : (
+                    <div style={emptyNoteStyle}>No architecture risks have been published yet.</div>
+                  )}
+                </div>
+              </div>
+
+              <div style={detailCardStyle}>
+                <span style={eyebrow}>Customer-specific additions</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                  {addedNodes.length > 0 ? addedNodes.slice(0, 8).map((node) => {
+                    const customization = findCustomizationForNode(architectureArtifact, node.id)
+                    return (
+                      <div key={node.id} style={additionRowStyle}>
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                          <span style={smallIconWrapStyle(node.color)}>
+                            <IconGlyph icon={node.icon} color={node.color} size={14} />
+                          </span>
+                          <div>
+                            <div style={reasonTitleStyle}>{node.label}</div>
+                            <div style={reasonTextStyle}>{customization?.reason || node.sublabel || 'Added for this customer beyond the reference baseline.'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }) : (
+                    <div style={emptyNoteStyle}>This session is still aligned to the standard baseline and has not introduced customer-specific structural additions.</div>
+                  )}
+                </div>
+              </div>
+            </section>
           </div>
-        </section>
+        </details>
       </div>
     </div>
   )
@@ -448,60 +549,21 @@ function buildFlowStages(
   nodes: ResolvedNode[],
   nodeById: Map<string, ResolvedNode>,
 ): FlowStage[] {
-  if (artifact?.primary_flow.length) {
-    return artifact.primary_flow
-      .map((segment) => sectionFromFlowSegment(segment, nodeById, nodes))
-      .filter((item): item is FlowStage => Boolean(item))
-  }
+  return BASELINE_LAYER_ORDER.map((layerId) => {
+    const layerSummary = artifact?.baseline.layers.find((layer) => layer.id === layerId)
+    const flowSegment = matchFlowSegmentToLayer(artifact?.primary_flow ?? [], layerId)
+    const stageNodes = flowSegment
+      ? uniqueNodes(flowSegment.component_ids.map((id) => nodeById.get(id)).filter(Boolean) as ResolvedNode[])
+      : nodesForBaselineLayer(layerId, nodes)
 
-  const toolContextNodes = nodes.filter((node) => (
-    node.layer === 'gateway'
-    && node.resolvedPathRole === 'primary'
-    && !isModelRouteNode(node)
-    && !isControlPlaneGatewayNode(node)
-  ))
-  const modelRouteNodes = nodes.filter((node) => (
-    node.layer === 'model'
-    || (node.layer === 'gateway' && node.resolvedPathRole === 'primary' && isModelRouteNode(node))
-  ))
-
-  return [
-    makeFlowStage(
-      'surface',
-      'Developer entry',
-      artifact?.baseline.layers.find((layer) => layer.id === 'surface')?.purpose || LAYER_META.surface.purpose,
-      '#5161ff',
-      nodes.filter((node) => node.layer === 'surface'),
-    ),
-    makeFlowStage(
-      'harness',
-      'Approved harness',
-      artifact?.baseline.layers.find((layer) => layer.id === 'harness')?.purpose || LAYER_META.harness.purpose,
-      '#7c4dff',
-      nodes.filter((node) => node.layer === 'harness' && node.resolvedPathRole === 'primary'),
-    ),
-    makeFlowStage(
-      'execution',
-      'Execution boundary',
-      artifact?.baseline.layers.find((layer) => layer.id === 'execution')?.purpose || LAYER_META.execution.purpose,
-      '#a855f7',
-      nodes.filter((node) => node.layer === 'execution' && node.resolvedPathRole === 'primary'),
-    ),
-    makeFlowStage(
-      'tool-path',
-      'Tool and context path',
-      'Where approved tools, repositories, and context sources are reached through the shared platform path.',
-      '#0ea5e9',
-      toolContextNodes,
-    ),
-    makeFlowStage(
-      'model-route',
-      'Model route',
-      artifact?.baseline.layers.find((layer) => layer.id === 'model')?.purpose || LAYER_META.model.purpose,
-      '#10b981',
-      modelRouteNodes,
-    ),
-  ].filter((item): item is FlowStage => Boolean(item))
+    return makeFlowStage(
+      layerId,
+      layerSummary?.label || flowSegment?.title || LAYER_META[layerId].label,
+      flowSegment?.narrative || layerSummary?.purpose || LAYER_META[layerId].purpose,
+      LAYER_META[layerId].color,
+      stageNodes,
+    )
+  })
 }
 
 function buildControlGroups(
@@ -509,49 +571,38 @@ function buildControlGroups(
   nodes: ResolvedNode[],
   nodeById: Map<string, ResolvedNode>,
 ): ControlGroup[] {
-  if (artifact?.cross_cutting_controls.length) {
-    return artifact.cross_cutting_controls
-      .map((group) => sectionFromOverlay(group, nodeById))
-      .filter((item): item is ControlGroup => Boolean(item))
-  }
+  const slotNodes = new Map<string, ResolvedNode[]>()
+  const slotNarratives = new Map<string, string>()
 
-  const identityAndPolicy = nodes.filter((node) => (
-    node.layer === 'access'
-    || ['identity_control', 'policy_control'].includes(node.resolvedKind)
-  ))
-  const registryAndCatalog = nodes.filter((node) => (
-    (node.layer === 'gateway' && isControlPlaneGatewayNode(node))
-    || isRegistryNode(node)
-  ))
-  const auditAndOperations = nodes.filter((node) => (
-    node.layer === 'ops'
-    || ['observability_control', 'cost_control'].includes(node.resolvedKind)
-    || isAuditNode(node)
-  ))
+  CONTROL_PLANE_ORDER.forEach((slot) => {
+    slotNodes.set(slot, [])
+  })
 
-  return [
-    makeControlGroup(
-      'identity-policy',
-      'Identity and policy',
-      'Access control, guardrails, compliance policy, and entitlement checks applied across the platform.',
-      '#ef4444',
-      identityAndPolicy,
-    ),
-    makeControlGroup(
-      'registry-catalog',
-      'Registry and catalog',
-      'Approved tool registry, MCP catalog, and shared platform services that sit across multiple lanes.',
-      '#0ea5e9',
-      registryAndCatalog,
-    ),
-    makeControlGroup(
-      'audit-operations',
-      'Audit, observability, and cost',
-      'Audit trail, usage visibility, quota enforcement, and operating controls.',
-      '#f59e0b',
-      auditAndOperations,
-    ),
-  ].filter((item): item is ControlGroup => Boolean(item))
+  ;(artifact?.cross_cutting_controls ?? []).forEach((group) => {
+    const resolved = uniqueNodes(group.component_ids.map((id) => nodeById.get(id)).filter(Boolean) as ResolvedNode[])
+    const slot = matchControlSlot(group.id, group.title, resolved)
+    if (!slot) return
+    slotNodes.set(slot, uniqueNodes([...(slotNodes.get(slot) ?? []), ...resolved]))
+    if (!slotNarratives.has(slot) && group.narrative.trim()) {
+      slotNarratives.set(slot, group.narrative.trim())
+    }
+  })
+
+  nodes
+    .filter((node) => isControlPlaneNode(node))
+    .forEach((node) => {
+      const slot = classifyControlPlaneNode(node)
+      if (!slot) return
+      slotNodes.set(slot, uniqueNodes([...(slotNodes.get(slot) ?? []), node]))
+    })
+
+  return CONTROL_PLANE_ORDER.map((slot) => makeControlGroup(
+    slot,
+    CONTROL_PLANE_META[slot].title,
+    slotNarratives.get(slot) || CONTROL_PLANE_META[slot].narrative,
+    CONTROL_PLANE_META[slot].accent,
+    slotNodes.get(slot) ?? [],
+  ))
 }
 
 function buildSupportingGroups(
@@ -706,8 +757,7 @@ function makeFlowStage(
   subtitle: string,
   accent: string,
   nodes: ResolvedNode[],
-): FlowStage | null {
-  if (nodes.length === 0) return null
+): FlowStage {
   return { id, title, subtitle, accent, nodes }
 }
 
@@ -717,8 +767,7 @@ function makeControlGroup(
   subtitle: string,
   accent: string,
   nodes: ResolvedNode[],
-): ControlGroup | null {
-  if (nodes.length === 0) return null
+): ControlGroup {
   return { id, title, subtitle, accent, nodes }
 }
 
@@ -743,6 +792,77 @@ function inferFlowNodesFromSegment(segment: ArchitectureFlowSegment, nodes: Reso
   }
 
   return []
+}
+
+function nodesForBaselineLayer(
+  layerId: typeof BASELINE_LAYER_ORDER[number],
+  nodes: ResolvedNode[],
+) {
+  if (layerId === 'gateway') {
+    return nodes.filter((node) => (
+      node.layer === 'gateway'
+      && node.resolvedPathRole === 'primary'
+      && !isControlPlaneGatewayNode(node)
+    ))
+  }
+
+  return nodes.filter((node) => (
+    node.layer === layerId
+    && (layerId === 'surface' || node.resolvedPathRole === 'primary')
+  ))
+}
+
+function matchFlowSegmentToLayer(
+  segments: ArchitectureFlowSegment[],
+  layerId: typeof BASELINE_LAYER_ORDER[number],
+) {
+  return segments.find((segment) => {
+    const source = `${segment.id} ${segment.title}`.toLowerCase()
+    if (layerId === 'surface') return source.includes('surface') || source.includes('developer')
+    if (layerId === 'harness') return source.includes('harness')
+    if (layerId === 'execution') return source.includes('execution')
+    if (layerId === 'gateway') return source.includes('gateway') || source.includes('tool') || source.includes('context')
+    return source.includes('model')
+  }) ?? null
+}
+
+function isControlPlaneNode(node: ResolvedNode) {
+  return classifyControlPlaneNode(node) !== null
+}
+
+function classifyControlPlaneNode(node: ResolvedNode) {
+  const label = `${node.label} ${node.sublabel ?? ''}`.toLowerCase()
+  if (node.layer === 'access' || node.resolvedKind === 'identity_control' || label.includes('identity') || label.includes('sso') || label.includes('iam')) {
+    return 'identity'
+  }
+  if (label.includes('guardrail') || label.includes('safety') || label.includes('moderation') || label.includes('prompt firewall')) {
+    return 'guardrails'
+  }
+  if (node.resolvedKind === 'policy_control' || label.includes('policy') || label.includes('governance') || label.includes('approval') || label.includes('compliance')) {
+    return 'policy'
+  }
+  if (node.resolvedKind === 'cost_control' || label.includes('quota') || label.includes('budget') || label.includes('spend') || label.includes('cost')) {
+    return 'quota'
+  }
+  if (node.layer === 'ops' || node.resolvedKind === 'observability_control' || label.includes('observe') || label.includes('telemetry') || label.includes('monitor') || label.includes('trace')) {
+    return 'observability'
+  }
+  if (isAuditNode(node)) {
+    return 'audit'
+  }
+  return node.resolvedPathRole === 'overlay' ? 'policy' : null
+}
+
+function matchControlSlot(id: string, title: string, nodes: ResolvedNode[]) {
+  const source = `${id} ${title}`.toLowerCase()
+  if (source.includes('identity') || source.includes('access')) return 'identity'
+  if (source.includes('guardrail') || source.includes('safety')) return 'guardrails'
+  if (source.includes('policy') || source.includes('governance') || source.includes('compliance')) return 'policy'
+  if (source.includes('quota') || source.includes('cost') || source.includes('budget') || source.includes('spend')) return 'quota'
+  if (source.includes('observ') || source.includes('telemetry') || source.includes('trace') || source.includes('monitor')) return 'observability'
+  if (source.includes('audit') || source.includes('log') || source.includes('siem')) return 'audit'
+
+  return nodes.map((node) => classifyControlPlaneNode(node)).find(Boolean) ?? null
 }
 
 function resolveNodeKind(node: ArchNode) {
@@ -921,6 +1041,26 @@ function inferLayerRowsFromStages(stages: FlowStage[]): ArchitectureLayerSummary
   }))
 }
 
+function buildBaselineLayerRows(
+  artifact: ArchitectureArtifact | null,
+  stages: FlowStage[],
+) {
+  const stageMap = new Map(stages.map((stage) => [stage.id, stage]))
+  const artifactLayerMap = new Map((artifact?.baseline.layers ?? []).map((layer) => [layer.id, layer]))
+
+  return BASELINE_LAYER_ORDER.map((layerId) => {
+    const artifactLayer = artifactLayerMap.get(layerId)
+    const stage = stageMap.get(layerId)
+    return {
+      id: layerId,
+      label: artifactLayer?.label || stage?.title || LAYER_META[layerId].label,
+      purpose: artifactLayer?.purpose || stage?.subtitle || LAYER_META[layerId].purpose,
+      component_ids: artifactLayer?.component_ids || stage?.nodes.map((node) => node.id) || [],
+      component_labels: artifactLayer?.component_labels || stage?.nodes.map((node) => node.label) || [],
+    }
+  })
+}
+
 function formatTimestamp(value: string) {
   if (!value) return 'Live session'
   const date = new Date(value)
@@ -951,10 +1091,55 @@ function FlowStageCard({
         <div style={flowCardTextStyle}>{stage.subtitle}</div>
       </div>
       <div style={chipWrapStyle}>
-        {stage.nodes.map((node) => (
+        {stage.nodes.length > 0 ? stage.nodes.map((node) => (
           <NodeChip key={node.id} node={node} isAdded={addedNodeIdSet.has(node.id)} />
-        ))}
+        )) : (
+          <div style={emptyInlineCardStyle}>No component has been published for this layer yet.</div>
+        )}
       </div>
+    </div>
+  )
+}
+
+function LayerStackCard({
+  layer,
+  nodes,
+  addedNodeIdSet,
+  showConnector,
+}: {
+  layer: ArchitectureLayerSummary
+  nodes: ResolvedNode[]
+  addedNodeIdSet: Set<string>
+  showConnector: boolean
+}) {
+  const accent = LAYER_META[layer.id]?.color || '#5161ff'
+
+  return (
+    <div style={stackedLayerWrapStyle}>
+      <div style={stackedLayerCardStyle(accent)}>
+        <div style={stackedLayerHeaderStyle}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={stackedLayerTitleStyle}>{layer.label}</div>
+            <div style={stackedLayerPurposeStyle}>
+              {layer.purpose || 'This layer becomes clearer as the architecture converges.'}
+            </div>
+          </div>
+          <span style={flowBadgeStyle(accent)}>{nodes.length}</span>
+        </div>
+        <div style={layerNodeGridStyle}>
+          {nodes.length > 0 ? nodes.map((node) => (
+            <LayerNodeCard key={node.id} node={node} isAdded={addedNodeIdSet.has(node.id)} />
+          )) : (
+            <div style={emptyInlineCardStyle}>No component has been published for this layer yet.</div>
+          )}
+        </div>
+      </div>
+      {showConnector ? (
+        <div style={stackedConnectorStyle}>
+          <span style={stackedConnectorRuleStyle} />
+          <span style={stackedConnectorTextStyle}>Request path continues downward</span>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -973,9 +1158,52 @@ function ControlGroupCard({
         <div style={controlCardTextStyle}>{group.subtitle}</div>
       </div>
       <div style={controlNodeListStyle}>
+        {group.nodes.length > 0 ? group.nodes.map((node) => (
+          <ControlNodePill key={node.id} node={node} isAdded={addedNodeIdSet.has(node.id)} />
+        )) : (
+          <div style={emptyControlCardStyle}>No explicit component is tagged here yet.</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SupportingLaneCard({
+  group,
+  addedNodeIdSet,
+}: {
+  group: ControlGroup
+  addedNodeIdSet: Set<string>
+}) {
+  return (
+    <div style={supportingLaneCardStyle(group.accent)}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={supportingLaneTitleStyle}>{group.title}</div>
+        <div style={supportingLaneTextStyle}>{group.subtitle}</div>
+      </div>
+      <div style={layerNodeGridStyle}>
         {group.nodes.map((node) => (
-          <NodeRow key={node.id} node={node} isAdded={addedNodeIdSet.has(node.id)} />
+          <LayerNodeCard key={node.id} node={node} isAdded={addedNodeIdSet.has(node.id)} />
         ))}
+      </div>
+    </div>
+  )
+}
+
+function LayerNodeCard({ node, isAdded }: { node: ResolvedNode; isAdded: boolean }) {
+  return (
+    <div style={layerNodeCardStyle(node.color, isAdded)}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', minWidth: 0 }}>
+          <span style={smallIconWrapStyle(node.color)}>
+            <IconGlyph icon={node.icon} color={node.color} size={13} />
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <div style={layerNodeTitleStyle}>{node.label}</div>
+            {node.sublabel ? <div style={layerNodeTextStyle}>{node.sublabel}</div> : null}
+          </div>
+        </div>
+        {isAdded ? <span style={inlineAddedStyle}>Added</span> : null}
       </div>
     </div>
   )
@@ -1023,6 +1251,23 @@ function AudienceNodeRow({ node, isAdded }: { node: ResolvedNode; isAdded: boole
         </div>
       </div>
       {isAdded ? <span style={sideAddedStyle}>Added</span> : null}
+    </div>
+  )
+}
+
+function ControlNodePill({ node, isAdded }: { node: ResolvedNode; isAdded: boolean }) {
+  return (
+    <div style={controlNodePillStyle(node.color, isAdded)}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
+        <span style={tinyIconWrapStyle(node.color)}>
+          <IconGlyph icon={node.icon} color={node.color} size={12} />
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <div style={controlNodePillTitleStyle}>{node.label}</div>
+          {node.sublabel ? <div style={controlNodePillTextStyle}>{node.sublabel}</div> : null}
+        </div>
+      </div>
+      {isAdded ? <span style={controlAddedStyle}>Added</span> : null}
     </div>
   )
 }
@@ -1138,7 +1383,7 @@ const sourceCardStyle: CSSProperties = {
 
 const summaryPanelStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1.45fr) minmax(320px, 0.8fr)',
+  gridTemplateColumns: 'minmax(0, 1.18fr) minmax(280px, 0.82fr)',
   gap: 16,
 }
 
@@ -1189,27 +1434,44 @@ const diagramViewportStyle: CSSProperties = {
 }
 
 const diagramSceneStyle: CSSProperties = {
-  minWidth: 1040,
+  minWidth: 980,
   display: 'grid',
-  gridTemplateColumns: 'minmax(720px, 1fr) 270px',
-  gap: 16,
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(420px, 0.98fr)',
+  gap: 12,
   alignItems: 'stretch',
 }
 
 const flowAreaStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 12,
+  gap: 8,
+}
+
+const supportingLaneSectionStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 10,
+  padding: 14,
+  borderRadius: 18,
+  background: 'rgba(31,27,22,0.03)',
+  border: '1px solid rgba(31,27,22,0.08)',
 }
 
 const controlStripStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 12,
-  padding: 16,
-  borderRadius: 20,
+  gap: 8,
+  padding: 12,
+  borderRadius: 18,
   background: 'linear-gradient(180deg, rgba(27,31,45,0.96), rgba(18,22,32,0.96))',
   color: '#f6f0e8',
+}
+
+const controlGroupGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 8,
+  alignItems: 'start',
 }
 
 const laneHeadingStyle: CSSProperties = {
@@ -1239,15 +1501,119 @@ const flowItemWrapStyle: CSSProperties = {
   gap: 10,
 }
 
+const stackedBaselineStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+}
+
+const stackedLayerWrapStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 10,
+}
+
+function stackedLayerCardStyle(accent: string): CSSProperties {
+  return {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    padding: 10,
+    borderRadius: 16,
+    background: 'rgba(255,255,255,0.82)',
+    border: `1px solid ${accent}22`,
+    boxShadow: '0 12px 24px rgba(90,69,42,0.08)',
+  }
+}
+
+const stackedLayerHeaderStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 12,
+  alignItems: 'flex-start',
+}
+
+const stackedLayerTitleStyle: CSSProperties = {
+  fontSize: 14,
+  fontWeight: 700,
+  color: '#1f1b16',
+}
+
+const stackedLayerPurposeStyle: CSSProperties = {
+  fontSize: 11.75,
+  lineHeight: 1.45,
+  color: 'rgba(31,27,22,0.68)',
+}
+
+const stackedConnectorStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 4,
+  paddingBottom: 0,
+}
+
+const stackedConnectorRuleStyle: CSSProperties = {
+  width: 2,
+  height: 14,
+  borderRadius: 999,
+  background: 'linear-gradient(180deg, rgba(81,97,255,0.48), rgba(81,97,255,0.12))',
+}
+
+const stackedConnectorTextStyle: CSSProperties = {
+  fontSize: 10,
+  fontWeight: 600,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  color: 'rgba(31,27,22,0.46)',
+}
+
+const supportingLaneGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+  gap: 12,
+}
+
+const supportingLaneStackStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+  gap: 8,
+}
+
 const audienceSectionStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 14,
-  padding: 20,
+  padding: 18,
   borderRadius: 24,
   background: 'rgba(255,255,255,0.84)',
   border: '1px solid rgba(31,27,22,0.08)',
   boxShadow: '0 12px 24px rgba(90,69,42,0.08)',
+}
+
+const disclosureStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 12,
+}
+
+const disclosureSummaryStyle: CSSProperties = {
+  listStyle: 'none',
+  cursor: 'pointer',
+  padding: '10px 14px',
+  borderRadius: 14,
+  background: 'rgba(255,255,255,0.82)',
+  border: '1px solid rgba(31,27,22,0.08)',
+  fontSize: 12.5,
+  fontWeight: 700,
+  color: '#1f1b16',
+}
+
+const disclosureBodyStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 14,
+  marginTop: 12,
 }
 
 const detailGridStyle: CSSProperties = {
@@ -1279,6 +1645,59 @@ const nodeListStyle: CSSProperties = {
   flexDirection: 'column',
   gap: 10,
   marginTop: 4,
+}
+
+const layerNodeGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+  gap: 6,
+}
+
+function layerNodeCardStyle(color: string, isAdded: boolean): CSSProperties {
+  return {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    minHeight: 56,
+    padding: 8,
+    borderRadius: 12,
+    background: isAdded ? 'rgba(99,102,241,0.06)' : 'rgba(31,27,22,0.03)',
+    border: `1px solid ${isAdded ? 'rgba(99,102,241,0.24)' : `${color}22`}`,
+  }
+}
+
+const layerNodeTitleStyle: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.3,
+  color: '#1f1b16',
+}
+
+const layerNodeTextStyle: CSSProperties = {
+  fontSize: 10.75,
+  lineHeight: 1.35,
+  color: 'rgba(31,27,22,0.64)',
+}
+
+const controlSummarySectionStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 10,
+  marginTop: 6,
+}
+
+const controlSummaryTitleStyle: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: 'rgba(31,27,22,0.5)',
+}
+
+const controlSummaryGridStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 8,
 }
 
 const reasonCardStyle: CSSProperties = {
@@ -1404,9 +1823,9 @@ const controlCardTitleStyle: CSSProperties = {
 }
 
 const controlCardTextStyle: CSSProperties = {
-  fontSize: 12.25,
-  lineHeight: 1.55,
-  color: 'rgba(246,240,232,0.74)',
+  fontSize: 11.5,
+  lineHeight: 1.45,
+  color: 'rgba(246,240,232,0.66)',
 }
 
 const chipWrapStyle: CSSProperties = {
@@ -1416,8 +1835,8 @@ const chipWrapStyle: CSSProperties = {
 }
 
 const controlNodeListStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(128px, 1fr))',
   gap: 8,
 }
 
@@ -1492,6 +1911,11 @@ const emptyNoteStyle: CSSProperties = {
   fontSize: 12.5,
   lineHeight: 1.55,
   color: 'rgba(31,27,22,0.66)',
+}
+
+const emptySupportingLaneStyle: CSSProperties = {
+  ...emptyNoteStyle,
+  background: 'rgba(255,255,255,0.68)',
 }
 
 const reasonTitleStyle: CSSProperties = {
@@ -1622,6 +2046,16 @@ function flowCardStyle(accent: string): CSSProperties {
   }
 }
 
+const emptyInlineCardStyle: CSSProperties = {
+  padding: '10px 12px',
+  borderRadius: 12,
+  background: 'rgba(31,27,22,0.035)',
+  border: '1px dashed rgba(31,27,22,0.12)',
+  fontSize: 12,
+  lineHeight: 1.5,
+  color: 'rgba(31,27,22,0.58)',
+}
+
 function flowBadgeStyle(accent: string): CSSProperties {
   return {
     minWidth: 24,
@@ -1642,12 +2076,50 @@ function controlCardStyle(accent: string): CSSProperties {
   return {
     display: 'flex',
     flexDirection: 'column',
-    gap: 10,
-    padding: 14,
-    borderRadius: 16,
+    gap: 8,
+    minHeight: 104,
+    padding: 12,
+    borderRadius: 14,
     background: 'rgba(246,240,232,0.05)',
     border: `1px solid ${accent}28`,
   }
+}
+
+const emptyControlCardStyle: CSSProperties = {
+  padding: '10px 12px',
+  borderRadius: 12,
+  background: 'rgba(246,240,232,0.04)',
+  border: '1px dashed rgba(246,240,232,0.18)',
+  fontSize: 11.75,
+  lineHeight: 1.5,
+  color: 'rgba(246,240,232,0.68)',
+}
+
+function supportingLaneCardStyle(accent: string): CSSProperties {
+  return {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    minHeight: 150,
+    padding: 12,
+    borderRadius: 16,
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(244,238,230,0.92))',
+    border: `1px solid ${accent}22`,
+    boxShadow: `0 10px 20px ${accent}10`,
+  }
+}
+
+const supportingLaneTitleStyle: CSSProperties = {
+  fontSize: 14,
+  fontWeight: 700,
+  lineHeight: 1.2,
+  color: '#1f1b16',
+}
+
+const supportingLaneTextStyle: CSSProperties = {
+  fontSize: 12.25,
+  lineHeight: 1.55,
+  color: 'rgba(31,27,22,0.68)',
 }
 
 function nodeChipStyle(color: string, isAdded: boolean): CSSProperties {
@@ -1761,6 +2233,46 @@ const nodeRowTextStyle: CSSProperties = {
   color: 'rgba(246,240,232,0.70)',
 }
 
+function controlNodePillStyle(color: string, isAdded: boolean): CSSProperties {
+  return {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    minWidth: 0,
+    padding: '7px 8px',
+    borderRadius: 12,
+    background: isAdded ? `${color}14` : 'rgba(246,240,232,0.05)',
+    border: `1px solid ${isAdded ? `${color}30` : 'rgba(246,240,232,0.10)'}`,
+  }
+}
+
+const controlNodePillTitleStyle: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.3,
+  color: '#f6f0e8',
+}
+
+const controlNodePillTextStyle: CSSProperties = {
+  fontSize: 10.75,
+  lineHeight: 1.35,
+  color: 'rgba(246,240,232,0.62)',
+}
+
+const controlAddedStyle: CSSProperties = {
+  alignSelf: 'flex-start',
+  marginTop: 2,
+  padding: '2px 6px',
+  borderRadius: 999,
+  background: 'rgba(81,97,255,0.16)',
+  border: '1px solid rgba(81,97,255,0.24)',
+  fontSize: 9.5,
+  fontWeight: 700,
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase',
+  color: '#f6f0e8',
+}
+
 function legendBadgeStyle(accent: boolean): CSSProperties {
   return {
     padding: '5px 8px',
@@ -1772,6 +2284,19 @@ function legendBadgeStyle(accent: boolean): CSSProperties {
     letterSpacing: '0.04em',
     textTransform: 'uppercase',
     color: 'rgba(31,27,22,0.76)',
+  }
+}
+
+function controlSummaryPillStyle(accent: string): CSSProperties {
+  return {
+    padding: '6px 10px',
+    borderRadius: 999,
+    background: `${accent}10`,
+    border: `1px solid ${accent}22`,
+    color: '#1f1b16',
+    fontSize: 11.5,
+    fontWeight: 700,
+    lineHeight: 1.3,
   }
 }
 

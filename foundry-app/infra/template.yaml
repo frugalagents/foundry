@@ -80,13 +80,17 @@ Parameters:
 
   AgentCoreRuntimeArn:
     Type: String
-    Default: "arn:aws:bedrock-agentcore:us-east-1:616627284001:runtime/CodingAgentRuntime_CodingAgentRuntime-TOiVHpGwhu"
+    Default: ""
     AllowedPattern: "^$|^arn:(aws|aws-us-gov|aws-cn):bedrock-agentcore:[a-z0-9-]+:[0-9]{12}:runtime/[A-Za-z0-9][A-Za-z0-9_-]{0,255}$"
     Description: "CodingAgentRuntime ARN for Identity Pool browser invocation permissions"
 
 Conditions:
   IsDev: !Equals [!Ref Env, dev]
+  HasAgentCoreEndpointArn: !Not [!Equals [!Ref AgentCoreEndpointArn, ""]]
   HasAgentCoreRuntimeArn: !Not [!Equals [!Ref AgentCoreRuntimeArn, ""]]
+  HasBrowserAgentCoreArn: !Or
+    - !Condition HasAgentCoreRuntimeArn
+    - !Condition HasAgentCoreEndpointArn
   HasAdminNotificationEmail: !Not [!Equals [!Ref AdminNotificationEmail, ""]]
   HasSharedAuthClient: !Not [!Equals [!Ref SharedAuthClientIdExportName, ""]]
 
@@ -208,7 +212,7 @@ Resources:
                 "cognito-identity.amazonaws.com:amr": authenticated
       Policies:
         - !If
-          - HasAgentCoreRuntimeArn
+          - HasBrowserAgentCoreArn
           - PolicyName: AgentCoreInvokeOnly
             PolicyDocument:
               Version: "2012-10-17"
@@ -218,8 +222,14 @@ Resources:
                     - bedrock-agentcore:InvokeAgentRuntime
                     - bedrock-agentcore:InvokeAgentRuntimeForUser
                   Resource:
-                    - !Ref AgentCoreRuntimeArn
-                    - !Sub "${AgentCoreRuntimeArn}/*"
+                    - !If
+                      - HasAgentCoreRuntimeArn
+                      - !Ref AgentCoreRuntimeArn
+                      - !Ref AgentCoreEndpointArn
+                    - !If
+                      - HasAgentCoreRuntimeArn
+                      - !Sub "${AgentCoreRuntimeArn}/*"
+                      - !Sub "${AgentCoreEndpointArn}/*"
           - !Ref AWS::NoValue
 
   IdentityPoolRoles:
@@ -507,6 +517,17 @@ Outputs:
       - !ImportValue
           'Fn::Sub': '${SharedAuthClientIdExportName}'
       - !Ref UserPoolClient
+
+  UserPoolId:
+    Description: "Cognito User Pool ID used for browser identity federation"
+    Value: !Ref UserPoolId
+
+  AgentCoreRuntimeArn:
+    Description: "Resolved AgentCore runtime ARN used by browser direct invocation"
+    Value: !If
+      - HasAgentCoreRuntimeArn
+      - !Ref AgentCoreRuntimeArn
+      - !Ref AgentCoreEndpointArn
 
   CognitoDomain:
     Description: "Cognito hosted UI full domain — set as NEXT_PUBLIC_COGNITO_DOMAIN in frontend"

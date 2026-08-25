@@ -6,6 +6,8 @@ group: root
 tags: [okf, root]
 timestamp: 2026-08-12T00:00:00Z
 status: candidate
+decision-domain: root_scope
+priority: 1
 ---
 
 Open Knowledge Format bundle backing the coding agent platform designer chat

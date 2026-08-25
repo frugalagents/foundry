@@ -9,6 +9,9 @@ status: candidate
 traversal: conditional
 trigger: [codebase-context, entire-codebase-in-memory, code-rag, team-code-knowledge, bounded-repo]
 decision-question: "How will the agent retrieve relevant code from your team's codebase without loading the entire repo into every session?"
+decision-domain: knowledge_layer
+priority: 7
+requires: [registry/tools]
 ---
 
 Team-scoped indexed RAG over a bounded codebase: a vector store (or hybrid
