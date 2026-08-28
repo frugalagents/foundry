@@ -419,6 +419,23 @@ def list_canvases() -> list[dict]:
     return items
 
 
+def put_judge_report(item: dict[str, Any]) -> dict:
+    table = _get_table()
+    table.put_item(Item=item)
+    return item
+
+
+def list_all_judge_reports() -> list[dict]:
+    table = _get_table()
+    items = _scan_all(
+        table,
+        FilterExpression="begins_with(SK, :sk_prefix)",
+        ExpressionAttributeValues={":sk_prefix": "JUDGE#"},
+    )
+    items.sort(key=lambda i: i.get("created_at", ""), reverse=True)
+    return items
+
+
 # ── Access requests ───────────────────────────────────────────────────────────
 
 def create_access_request(item: dict[str, Any]) -> dict:

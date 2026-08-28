@@ -11,11 +11,20 @@ from api.middleware.auth import get_current_user, is_admin
 from api.db import dynamodb as db
 from api.db.models import (
     AdminAnalyticsOut,
+    AdminJudgeReportRowOut,
     AdminCountOut,
     AdminFeedbackRowOut,
     AdminRecentActivityOut,
     ConversationRowOut,
     Customer,
+    JudgeArchitectureReviewOut,
+    JudgeBlueprintReviewOut,
+    JudgeDeterministicFindingOut,
+    JudgeOpenItemOut,
+    JudgeRecommendationReviewOut,
+    JudgeReportOut,
+    JudgeSuggestedFeatureOut,
+    JudgeUiAccuracyReviewOut,
     Session,
     SessionFeedbackOut,
 )
@@ -58,6 +67,33 @@ async def list_admin_feedback(user: CurrentUser):
         )
 
     rows.sort(key=lambda row: row.feedback.updated_at, reverse=True)
+    return rows
+
+
+@router.get("/judge-reports", response_model=list[AdminJudgeReportRowOut])
+async def list_admin_judge_reports(user: CurrentUser):
+    _require_admin(user)
+
+    rows_by_key = {
+        (row.customer.customer_id, row.session.session_id): row
+        for row in _load_all_session_rows()
+    }
+    rows: list[AdminJudgeReportRowOut] = []
+
+    for item in db.list_all_judge_reports():
+        key = (item.get("customer_id", ""), item.get("session_id", ""))
+        row = rows_by_key.get(key)
+        if not row:
+            continue
+        rows.append(
+            AdminJudgeReportRowOut(
+                customer=row.customer,
+                session=row.session,
+                report=_to_judge_report(item),
+            )
+        )
+
+    rows.sort(key=lambda row: row.report.created_at, reverse=True)
     return rows
 
 
@@ -236,3 +272,61 @@ def _to_feedback(item: dict) -> SessionFeedbackOut:
         created_at=item.get("created_at", ""),
         updated_at=item.get("updated_at", ""),
     )
+
+
+def _to_judge_report(item: dict) -> JudgeReportOut:
+    return JudgeReportOut(
+        judge_report_id=item.get("judge_report_id", ""),
+        customer_id=item["customer_id"],
+        session_id=item["session_id"],
+        session_title=item.get("session_title", ""),
+        simulation_file=item.get("simulation_file", ""),
+        overall_verdict=item.get("overall_verdict", ""),
+        judge_confidence=item.get("judge_confidence", ""),
+        summary=item.get("summary", ""),
+        recommendation_review=JudgeRecommendationReviewOut.model_validate(
+            _json_field(item, "recommendation_review_json", {})
+        ),
+        architecture_review=JudgeArchitectureReviewOut.model_validate(
+            _json_field(item, "architecture_review_json", {})
+        ),
+        blueprint_review=JudgeBlueprintReviewOut.model_validate(
+            _json_field(item, "blueprint_review_json", {})
+        ),
+        ui_accuracy_review=[
+            JudgeUiAccuracyReviewOut.model_validate(entry)
+            for entry in _json_field(item, "ui_accuracy_review_json", [])
+            if isinstance(entry, dict)
+        ],
+        deterministic_findings=[
+            JudgeDeterministicFindingOut.model_validate(entry)
+            for entry in _json_field(item, "deterministic_findings_json", [])
+            if isinstance(entry, dict)
+        ],
+        open_items=[
+            JudgeOpenItemOut.model_validate(entry)
+            for entry in _json_field(item, "open_items_json", [])
+            if isinstance(entry, dict)
+        ],
+        suggested_features=[
+            JudgeSuggestedFeatureOut.model_validate(entry)
+            for entry in _json_field(item, "suggested_features_json", [])
+            if isinstance(entry, dict)
+        ],
+        response_text=item.get("response_text", ""),
+        report_dir=item.get("report_dir", ""),
+        created_at=item.get("created_at", ""),
+        updated_at=item.get("updated_at", ""),
+    )
+
+
+def _json_field(item: dict, field: str, default):
+    import json
+
+    raw = item.get(field)
+    if not raw:
+        return default
+    try:
+        return json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return default

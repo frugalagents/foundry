@@ -2,13 +2,20 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '@/store'
-import { ApiError, getAdminAnalytics, listAdminAccessRequests, listAdminFeedback, listAdminSessions } from '@/lib/api'
+import {
+  ApiError,
+  getAdminAnalytics,
+  listAdminAccessRequests,
+  listAdminFeedback,
+  listAdminJudgeReports,
+  listAdminSessions,
+} from '@/lib/api'
 import { loadSessionIntoView } from '@/lib/session-actions'
-import type { AdminAccessRequest, AdminAnalytics, AdminFeedbackRow, ConversationRow } from '@/lib/types'
+import type { AdminAccessRequest, AdminAnalytics, AdminFeedbackRow, AdminJudgeReportRow, ConversationRow } from '@/lib/types'
 import AdminAccessRequestsPanel from './AdminAccessRequestsPanel'
 
 type SortKey = 'customer' | 'created_by' | 'updated_at'
-type AdminTab = 'overview' | 'access' | 'sessions' | 'feedback'
+type AdminTab = 'overview' | 'access' | 'sessions' | 'feedback' | 'reviews'
 
 export default function AdminSessionsView() {
   const { setShowAdminView } = useStore()
@@ -18,6 +25,7 @@ export default function AdminSessionsView() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [sessionRows, setSessionRows] = useState<ConversationRow[]>([])
   const [feedbackRows, setFeedbackRows] = useState<AdminFeedbackRow[]>([])
+  const [judgeRows, setJudgeRows] = useState<AdminJudgeReportRow[]>([])
   const [accessRequests, setAccessRequests] = useState<AdminAccessRequest[]>([])
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -30,16 +38,18 @@ export default function AdminSessionsView() {
     setLoadError(null)
     setRefreshing(true)
     try {
-      const [nextAnalytics, nextAccessRequests, nextSessions, nextFeedback] = await Promise.all([
+      const [nextAnalytics, nextAccessRequests, nextSessions, nextFeedback, nextJudgeRows] = await Promise.all([
         getAdminAnalytics(),
         listAdminAccessRequests(),
         listAdminSessions(),
         listAdminFeedback(),
+        listAdminJudgeReports(),
       ])
       setAnalytics(nextAnalytics)
       setAccessRequests(nextAccessRequests)
       setSessionRows(nextSessions)
       setFeedbackRows(nextFeedback)
+      setJudgeRows(nextJudgeRows)
     } catch (err) {
       console.error('[AdminSessionsView] Failed to load admin console data:', err)
       if (err instanceof ApiError && err.status === 403) {
@@ -127,6 +137,9 @@ export default function AdminSessionsView() {
           </AdminTabButton>
           <AdminTabButton active={activeTab === 'feedback'} onClick={() => setActiveTab('feedback')}>
             Feedback
+          </AdminTabButton>
+          <AdminTabButton active={activeTab === 'reviews'} onClick={() => setActiveTab('reviews')}>
+            Reviews
           </AdminTabButton>
         </div>
       </div>
@@ -245,7 +258,7 @@ export default function AdminSessionsView() {
               {sortedSessions.length === 0 ? <p style={emptyStateStyle}>No sessions found.</p> : null}
             </section>
           </div>
-        ) : (
+        ) : activeTab === 'feedback' ? (
           <div style={{ height: '100%', overflowY: 'auto' }}>
             <section style={panelStyle}>
               <div style={panelHeaderStyle}>
@@ -296,6 +309,92 @@ export default function AdminSessionsView() {
                 </tbody>
               </table>
               {recentFeedback.length === 0 ? <p style={emptyStateStyle}>No feedback captured yet.</p> : null}
+            </section>
+          </div>
+        ) : (
+          <div style={{ height: '100%', overflowY: 'auto' }}>
+            <section style={panelStyle}>
+              <div style={panelHeaderStyle}>
+                <div>
+                  <div style={panelTitleStyle}>Judge Reports</div>
+                  <div style={panelSubtitleStyle}>Admin-only review results for live sessions and enterprise simulations.</div>
+                </div>
+              </div>
+              {judgeRows.length === 0 ? (
+                <p style={emptyStateStyle}>No judge reports have been persisted yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {judgeRows.map((row) => (
+                    <article key={row.report.judge_report_id} style={judgeCardStyle}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                            {row.customer.name} · {row.session.title}
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-muted)' }}>
+                            <span>{formatDate(row.report.created_at)}</span>
+                            <span>{row.report.simulation_file ? row.report.simulation_file.split('/').pop() : 'Live review'}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={statusPillStyle(row.report.overall_verdict)}>{row.report.overall_verdict || 'unknown'}</span>
+                          <span style={neutralPillStyle}>{row.report.judge_confidence || 'unknown'} confidence</span>
+                          <button onClick={() => void handleOpen(row)} style={headerButtonStyle(false)}>
+                            Open session
+                          </button>
+                        </div>
+                      </div>
+
+                      {row.report.summary ? (
+                        <p style={{ margin: 0, fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>{row.report.summary}</p>
+                      ) : null}
+
+                      <div style={judgeGridStyle}>
+                        <div style={judgeSectionStyle}>
+                          <div style={judgeSectionTitleStyle}>Review Scores</div>
+                          <div style={judgeMetricLineStyle}>Recommendation: {formatScore(row.report.recommendation_review.score)} / 5</div>
+                          <div style={judgeMetricLineStyle}>Architecture: {formatScore(row.report.architecture_review.score)} / 5</div>
+                          <div style={judgeMetricLineStyle}>Blueprint: {formatScore(row.report.blueprint_review.score)} / 5</div>
+                          {row.report.architecture_review.gaps.slice(0, 2).map((gap) => (
+                            <div key={gap} style={judgeBodyCopyStyle}>Gap: {gap}</div>
+                          ))}
+                        </div>
+
+                        <div style={judgeSectionStyle}>
+                          <div style={judgeSectionTitleStyle}>Top Open Items</div>
+                          {row.report.open_items.slice(0, 3).map((item) => (
+                            <div key={`${row.report.judge_report_id}:${item.title}`} style={judgeListItemStyle}>
+                              <strong>{item.title || 'Untitled'}</strong> {item.reason}
+                            </div>
+                          ))}
+                          {row.report.open_items.length === 0 ? <div style={judgeBodyCopyStyle}>No open items captured.</div> : null}
+                        </div>
+
+                        <div style={judgeSectionStyle}>
+                          <div style={judgeSectionTitleStyle}>Suggested Features</div>
+                          {row.report.suggested_features.slice(0, 3).map((feature) => (
+                            <div key={`${row.report.judge_report_id}:${feature.name}`} style={judgeListItemStyle}>
+                              <strong>{feature.name || 'Untitled'}</strong> {feature.why_it_matters}
+                            </div>
+                          ))}
+                          {row.report.suggested_features.length === 0 ? <div style={judgeBodyCopyStyle}>No feature suggestions captured.</div> : null}
+                        </div>
+
+                        <div style={judgeSectionStyle}>
+                          <div style={judgeSectionTitleStyle}>UI Accuracy Signals</div>
+                          {row.report.ui_accuracy_review.slice(0, 3).map((entry) => (
+                            <div key={`${row.report.judge_report_id}:${entry.component}`} style={judgeListItemStyle}>
+                              <strong>{entry.component}</strong> {entry.status}
+                              {entry.assessment ? `: ${entry.assessment}` : ''}
+                            </div>
+                          ))}
+                          {row.report.ui_accuracy_review.length === 0 ? <div style={judgeBodyCopyStyle}>No UI accuracy breakdown captured.</div> : null}
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </section>
           </div>
         )}
@@ -376,6 +475,10 @@ function formatSignal(label: string, value: boolean | null | undefined) {
 
 function formatDate(value: string) {
   return value ? new Date(value).toLocaleString() : 'Unknown'
+}
+
+function formatScore(value: number | null | undefined) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
 function headerButtonStyle(disabled: boolean): React.CSSProperties {
@@ -470,4 +573,89 @@ const tdStyle: React.CSSProperties = {
   padding: '10px 12px',
   color: 'var(--text)',
   lineHeight: 1.5,
+}
+
+const judgeCardStyle: React.CSSProperties = {
+  border: '1px solid var(--border)',
+  borderRadius: 16,
+  padding: 16,
+  background: 'rgba(255,250,242,0.96)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 14,
+}
+
+const judgeGridStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+  gap: 12,
+}
+
+const judgeSectionStyle: React.CSSProperties = {
+  padding: 12,
+  borderRadius: 12,
+  border: '1px solid var(--border)',
+  background: 'rgba(255,255,255,0.72)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+}
+
+const judgeSectionTitleStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: 'var(--text-faint)',
+}
+
+const judgeMetricLineStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: 'var(--text)',
+  lineHeight: 1.5,
+}
+
+const judgeBodyCopyStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: 'var(--text-muted)',
+  lineHeight: 1.5,
+}
+
+const judgeListItemStyle: React.CSSProperties = {
+  fontSize: 12.5,
+  color: 'var(--text)',
+  lineHeight: 1.55,
+}
+
+function statusPillStyle(verdict: string): React.CSSProperties {
+  const normalized = verdict.trim().toLowerCase()
+  const background = normalized === 'pass'
+    ? 'rgba(16,185,129,0.14)'
+    : normalized === 'fail'
+      ? 'rgba(239,68,68,0.14)'
+      : 'rgba(245,158,11,0.14)'
+  const color = normalized === 'pass'
+    ? '#047857'
+    : normalized === 'fail'
+      ? '#b91c1c'
+      : '#b45309'
+  return {
+    padding: '6px 10px',
+    borderRadius: 999,
+    fontSize: 11.5,
+    fontWeight: 700,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+    background,
+    color,
+  }
+}
+
+const neutralPillStyle: React.CSSProperties = {
+  padding: '6px 10px',
+  borderRadius: 999,
+  fontSize: 11.5,
+  fontWeight: 600,
+  background: 'var(--bg-elevated)',
+  color: 'var(--text-muted)',
 }

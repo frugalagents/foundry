@@ -51,6 +51,11 @@ _HEAVY_ARTIFACT_FIELDS = (
 
 _STAGES = {"discovery", "solutioning", "blueprint"}
 _CONFIRMED_FACT_SOURCES = {"customer", "customer_confirmed", "explicit_constraint", "operating_model"}
+_BLUEPRINT_SECTION_TITLES = (
+    ("executive_summary", "Executive Summary"),
+    ("recommendation_memo", "Recommendation Memo"),
+    ("architecture_narrative", "Architecture Narrative"),
+)
 
 
 def _canonicalize(value: Any) -> str:
@@ -91,6 +96,31 @@ def _has_content(value: Any) -> bool:
     return bool(value)
 
 
+def _has_output_pack_content(output_pack: Mapping[str, Any] | None) -> bool:
+    if not isinstance(output_pack, Mapping):
+        return False
+    return any(
+        (
+            str(output_pack.get("executive_summary") or "").strip(),
+            str(output_pack.get("recommendation_memo") or "").strip(),
+            str(output_pack.get("architecture_narrative") or "").strip(),
+            _normalize_text_list(output_pack.get("key_decisions")),
+            [
+                item
+                for item in output_pack.get("risks_and_mitigations", [])
+                if isinstance(item, Mapping) and str(item.get("risk") or "").strip()
+            ] if isinstance(output_pack.get("risks_and_mitigations"), list) else [],
+            [
+                item
+                for item in output_pack.get("rollout_30_90_180", [])
+                if isinstance(item, Mapping) and str(item.get("horizon") or "").strip()
+            ] if isinstance(output_pack.get("rollout_30_90_180"), list) else [],
+            _normalize_text_list(output_pack.get("operating_principles")),
+            _normalize_text_list(output_pack.get("control_checklist")),
+        )
+    )
+
+
 def _normalize_text_list(value: Any) -> list[str]:
     items = value if isinstance(value, list) else []
     normalized: list[str] = []
@@ -105,6 +135,300 @@ def _normalize_text_list(value: Any) -> list[str]:
         seen.add(key)
         normalized.append(re.sub(r"\s+", " ", text).strip())
     return normalized
+
+
+def _explicit_open_questions_from_advisory(
+    output_pack: Mapping[str, Any] | None,
+    readout: Mapping[str, Any] | None = None,
+) -> list[str] | None:
+    if isinstance(output_pack, Mapping) and isinstance(output_pack.get("open_questions"), list):
+        return _normalize_text_list(output_pack.get("open_questions"))
+    if isinstance(readout, Mapping) and isinstance(readout.get("open_questions"), list):
+        return _normalize_text_list(readout.get("open_questions"))
+    return None
+
+
+def _workspace_signal_text(workspace: Mapping[str, Any]) -> str:
+    parts: list[str] = [str(workspace.get("recommendation") or "").strip()]
+    for field in ("facts", "decisions", "risks", "implementation_plan", "open_questions"):
+        parts.extend(_normalize_text_list(workspace.get(field)))
+    question_state = workspace.get("question_state") if isinstance(workspace.get("question_state"), list) else []
+    for item in question_state:
+        if not isinstance(item, Mapping):
+            continue
+        parts.append(str(item.get("text") or "").strip())
+        parts.append(str(item.get("why_it_matters") or "").strip())
+        parts.append(str(item.get("answer") or "").strip())
+    return " ".join(part for part in parts if part).lower()
+
+
+def _active_blocking_questions(workspace: Mapping[str, Any]) -> list[dict[str, Any]]:
+    question_state = _normalize_question_state(workspace.get("question_state"), workspace.get("open_questions"), workspace)
+    return [
+        item
+        for item in question_state
+        if str(item.get("status") or "open").strip().lower() == "open" and bool(item.get("blocking", True))
+    ]
+
+
+def _normalize_rollout_entries(value: Any) -> list[dict[str, str]]:
+    entries = value if isinstance(value, list) else []
+    normalized: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in entries:
+        if not isinstance(item, Mapping):
+            continue
+        horizon = re.sub(r"\s+", " ", str(item.get("horizon") or "").strip())
+        outcome = re.sub(r"\s+", " ", str(item.get("outcome") or "").strip())
+        if not horizon or not outcome:
+            continue
+        key = f"{horizon.lower()}::{outcome.lower()}"
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append({"horizon": horizon, "outcome": outcome})
+    return normalized
+
+
+def _format_rollout_summary(rollout_entries: list[dict[str, str]]) -> str:
+    if not rollout_entries:
+        return ""
+    return " ".join(
+        f"{item['horizon']}: {item['outcome']}"
+        for item in rollout_entries[:3]
+    ).strip()
+
+
+def _default_rollout_focus(workspace: Mapping[str, Any]) -> str:
+    operating_model = str(workspace.get("operating_model") or "undecided").strip().lower()
+    if operating_model == "single_standard":
+        return "the single standard harness"
+    if operating_model == "multi_harness_governed":
+        return "the governed multi-harness portfolio"
+    if operating_model == "default_plus_exceptions":
+        return "the default harness and exception-governance model"
+    return "the governed target-state platform"
+
+
+def _fallback_decisions_from_workspace(workspace: Mapping[str, Any]) -> list[str]:
+    explicit_decisions = _normalize_text_list(workspace.get("decisions"))
+    if explicit_decisions:
+        return explicit_decisions
+    recommendation = str(workspace.get("recommendation") or "").strip()
+    if not recommendation:
+        return []
+    first_sentence = re.split(r"(?<=[.!?])\s+", recommendation, maxsplit=1)[0].strip()
+    return [first_sentence or recommendation]
+
+
+def _build_rollout_plan_from_workspace(workspace: Mapping[str, Any]) -> list[str]:
+    recommendation = str(workspace.get("recommendation") or "").strip()
+    if not recommendation and not _has_content(workspace.get("decisions")):
+        return []
+
+    signal_text = _workspace_signal_text(workspace)
+    blockers = _active_blocking_questions(workspace)
+    focus = _default_rollout_focus(workspace)
+    compliance_tokens = [
+        label
+        for label, keywords in (
+            ("SOX", ("sox", "sarbanes-oxley")),
+            ("PCI", ("pci", "cardholder")),
+            ("HIPAA", ("hipaa", "phi")),
+            ("export-control", ("itar", "export-control", "ear", "cmmc")),
+        )
+        if any(keyword in signal_text for keyword in keywords)
+    ]
+    compliance_label = " and ".join(compliance_tokens[:2])
+    rollout: list[str] = []
+
+    if blockers:
+        rollout.append(
+            f"30 days: Resolve or formally defer '{blockers[0]['text']}' and lock the reference architecture, identity claims, and pilot population for {focus}."
+        )
+    else:
+        rollout.append(
+            f"30 days: Lock the reference architecture, identity claims, session tags, and pilot population for {focus}."
+        )
+
+    ninety_day_outcome = "90 days: Run a controlled pilot, validate the shared audit and policy controls"
+    if compliance_label:
+        ninety_day_outcome += f", and prove {compliance_label} evidence handling in the same workflow"
+    if "data science" in signal_text or "jupyter" in signal_text or "notebook" in signal_text:
+        ninety_day_outcome += "; replace shared notebook API-key workflows with a governed notebook lane"
+    ninety_day_outcome += "."
+    rollout.append(ninety_day_outcome)
+
+    one_eighty_outcome = "180 days: Expand to broader engineering populations"
+    if blockers or "exception" in signal_text or "multi-harness" in signal_text or "regulated" in signal_text:
+        one_eighty_outcome += ", bring exception or regulated lanes under the same control plane"
+    if "github copilot" in signal_text or "cursor" in signal_text or "claude code" in signal_text or "codex" in signal_text:
+        one_eighty_outcome += ", rationalize the current tool estate"
+    one_eighty_outcome += ", and operationalize chargeback, support runbooks, and quarterly control review."
+    rollout.append(one_eighty_outcome)
+
+    return rollout
+
+
+def _rollout_entries_from_implementation_plan(plan: list[str]) -> list[dict[str, str]]:
+    entries: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in plan:
+        text = re.sub(r"\s+", " ", str(item or "").strip())
+        if not text:
+            continue
+        match = re.match(r"^(30|60|90|120|180)\s+days?\s*:\s*(.+)$", text, flags=re.IGNORECASE)
+        if match:
+            horizon = f"{match.group(1)} days"
+            outcome = match.group(2).strip()
+        else:
+            horizon = f"Phase {len(entries) + 1}"
+            outcome = text
+        key = f"{horizon.lower()}::{outcome.lower()}"
+        if key in seen:
+            continue
+        seen.add(key)
+        entries.append({"horizon": horizon, "outcome": outcome})
+    return entries
+
+
+def _conditional_branch_pair(question: Mapping[str, Any], workspace: Mapping[str, Any]) -> tuple[str, str]:
+    question_text = str(question.get("text") or "").strip().lower()
+    decision_domain = str(question.get("decision_domain") or "").strip().lower()
+    signal_text = _workspace_signal_text(workspace)
+
+    if any(token in question_text for token in ("sox", "sarbanes", "pci", "hipaa", "gdpr", "audit", "compliance")):
+        return (
+            "If the affected repos or user populations are in regulated scope, keep them on a separately tagged policy lane with approval-backed writes, evidence retention, and scoped secrets access.",
+            "If the same repos or populations are outside regulated scope, keep them on the default governed lane but preserve repo tags, session tags, and the evidence schema so the stricter lane can be activated later without redesign.",
+        )
+    if decision_domain == "execution_boundary" or any(token in question_text for token in ("local execution", "runtime", "execution", "itar", "export-controlled")):
+        return (
+            "If sensitive workloads require stronger isolation, keep them on a hardened remote or microVM-style runtime and deny shared local execution for that population.",
+            "If the sensitive workloads can remain on the standard managed runtime, allow local execution only for non-regulated repos and keep the control plane shared.",
+        )
+    if decision_domain == "operating_model" or any(token in question_text for token in ("default tool", "exception", "operating model", "harness")):
+        return (
+            "If more than one population needs a durable tool difference, run one default harness with explicit exception governance and shared identity, policy, and audit controls.",
+            "If exceptions are temporary or narrow, converge on one standard harness and retire the extra tools on a defined migration timeline.",
+        )
+    if decision_domain == "identity_boundary" or any(token in question_text for token in ("okta", "entra", "identity", "sso", "idp")):
+        return (
+            "If multiple identity sources or conditional-access policies must stay in play, place a brokered identity layer ahead of session issuance and normalize claims into session tags.",
+            "If one enterprise IdP can remain authoritative, federate directly to the platform and keep role, region, and policy tagging standardized there.",
+        )
+    if "data science" in signal_text or "jupyter" in signal_text or "notebook" in signal_text:
+        return (
+            "If notebook-heavy users need write-capable agent workflows, give them a governed notebook lane with separate secrets handling and kernel isolation.",
+            "If notebook users only need assistive read or suggest flows, keep them on a constrained surface and delay write automation until the workflow is proven.",
+        )
+    return (
+        "If the stricter constraint applies, keep a dedicated governed lane with the required policy and evidence controls before broad rollout.",
+        "If the stricter constraint does not apply, keep the population on the default lane and retain the hooks needed to tighten controls later without redesigning the platform.",
+    )
+
+
+def _build_blueprint_markdown_from_workspace(workspace: Mapping[str, Any]) -> str:
+    advisory_case = workspace.get("advisory_case") if isinstance(workspace.get("advisory_case"), Mapping) else {}
+    output_pack = advisory_case.get("output_pack") if isinstance(advisory_case.get("output_pack"), Mapping) else {}
+    recommendation = str(
+        workspace.get("recommendation")
+        or ((advisory_case.get("recommendation") or {}).get("summary") if isinstance(advisory_case.get("recommendation"), Mapping) else "")
+        or ""
+    ).strip()
+    if not recommendation and not _has_output_pack_content(output_pack):
+        return ""
+
+    lines: list[str] = ["## Technical Blueprint", ""]
+    if recommendation:
+        lines.extend(["### Current Direction", recommendation, ""])
+
+    for field, title in _BLUEPRINT_SECTION_TITLES:
+        body = str(output_pack.get(field) or "").strip()
+        if body:
+            lines.extend([f"### {title}", body, ""])
+
+    key_decisions = _normalize_text_list(output_pack.get("key_decisions")) or _fallback_decisions_from_workspace(workspace)
+    if key_decisions:
+        lines.append("### Architecture Decisions")
+        lines.extend(f"- {item}" for item in key_decisions)
+        lines.append("")
+
+    risk_items = []
+    if isinstance(output_pack.get("risks_and_mitigations"), list):
+        for item in output_pack.get("risks_and_mitigations"):
+            if not isinstance(item, Mapping):
+                continue
+            risk = str(item.get("risk") or "").strip()
+            if not risk:
+                continue
+            mitigation = str(item.get("mitigation") or "").strip()
+            risk_items.append(f"- **{risk}**{f': {mitigation}' if mitigation else ''}")
+    if not risk_items:
+        risk_items = [f"- {item}" for item in _normalize_text_list(workspace.get("risks"))]
+    if risk_items:
+        lines.append("### Risks And Mitigations")
+        lines.extend(risk_items)
+        lines.append("")
+
+    explicit_open_questions = _explicit_open_questions_from_advisory(output_pack)
+    open_questions = (
+        explicit_open_questions
+        if explicit_open_questions is not None
+        else _derive_open_questions(
+            _normalize_question_state(workspace.get("question_state"), workspace.get("open_questions"), workspace),
+            workspace.get("open_questions"),
+        )
+    )
+    if open_questions:
+        lines.append("### Open Questions")
+        lines.extend(f"- {item}" for item in open_questions)
+        lines.append("")
+        lines.append("### Conditional Paths For Unresolved Boundaries")
+        for item in _active_blocking_questions(workspace)[:3]:
+            strict_branch, relaxed_branch = _conditional_branch_pair(item, workspace)
+            lines.append(f"#### {item['text']}")
+            why_it_matters = str(item.get("why_it_matters") or "").strip()
+            if why_it_matters:
+                lines.append(f"Why it matters: {why_it_matters}")
+            lines.append(f"- **If the stricter condition applies**: {strict_branch}")
+            lines.append(f"- **If the default path remains valid**: {relaxed_branch}")
+            lines.append("")
+
+    rollout_entries = _normalize_rollout_entries(output_pack.get("rollout_30_90_180"))
+    if not rollout_entries:
+        rollout_entries = _rollout_entries_from_implementation_plan(_normalize_text_list(workspace.get("implementation_plan")))
+    rollout_items = [f"- **{item['horizon']}**: {item['outcome']}" for item in rollout_entries]
+    if rollout_items:
+        lines.append("### Rollout Phases")
+        lines.extend(rollout_items)
+        lines.append("")
+
+    principles = _normalize_text_list(output_pack.get("operating_principles"))
+    if principles:
+        lines.append("### Operating Principles")
+        lines.extend(f"- {item}" for item in principles)
+        lines.append("")
+
+    controls = _normalize_text_list(output_pack.get("control_checklist"))
+    if controls:
+        lines.append("### Control Checklist")
+        lines.extend(f"- {item}" for item in controls)
+        lines.append("")
+
+    org_readiness = []
+    if open_questions:
+        org_readiness.append("Resolve the named conditional boundary with the relevant security, compliance, or platform owner before irreversible rollout.")
+    if _normalize_text_list(workspace.get("risks")):
+        org_readiness.append("Assign owners and review cadence for the active risks before scaling beyond the pilot.")
+    if "data science" in _workspace_signal_text(workspace) or "jupyter" in _workspace_signal_text(workspace):
+        org_readiness.append("Prepare a separate onboarding and enablement path for notebook-heavy users instead of treating them as standard IDE users.")
+    if org_readiness:
+        lines.append("### Org Readiness - Non-Platform Actions")
+        lines.extend(f"- {item}" for item in org_readiness)
+        lines.append("")
+
+    return "\n".join(lines).strip()
 
 
 def _slugify_question_id(text: str, index: int) -> str:
@@ -391,7 +715,7 @@ def _normalize_advisory_case(value: Any, workspace: Mapping[str, Any]) -> dict[s
                 }
             )
     if not decisions:
-        for item in _normalize_text_list(workspace.get("decisions")):
+        for item in _fallback_decisions_from_workspace(workspace):
             decisions.append(
                 {
                     "statement": item,
@@ -458,10 +782,18 @@ def _normalize_advisory_case(value: Any, workspace: Mapping[str, Any]) -> dict[s
 
     readout = raw.get("readout") if isinstance(raw.get("readout"), Mapping) else {}
     output_pack = raw.get("output_pack") if isinstance(raw.get("output_pack"), Mapping) else {}
-    open_questions = _normalize_text_list(output_pack.get("open_questions")) or _derive_open_questions(
-        _normalize_question_state(workspace.get("question_state"), workspace.get("open_questions"), workspace),
-        workspace.get("open_questions"),
+    explicit_open_questions = _explicit_open_questions_from_advisory(output_pack, readout)
+    open_questions = (
+        explicit_open_questions
+        if explicit_open_questions is not None
+        else _derive_open_questions(
+            _normalize_question_state(workspace.get("question_state"), workspace.get("open_questions"), workspace),
+            workspace.get("open_questions"),
+        )
     )
+    rollout_entries = _normalize_rollout_entries(output_pack.get("rollout_30_90_180"))
+    if not rollout_entries:
+        rollout_entries = _rollout_entries_from_implementation_plan(_normalize_text_list(workspace.get("implementation_plan")))
 
     normalized_case = {
         "recommendation": recommendation,
@@ -473,8 +805,12 @@ def _normalize_advisory_case(value: Any, workspace: Mapping[str, Any]) -> dict[s
             "current_recommendation": str(readout.get("current_recommendation") or recommendation["summary"]).strip(),
             "important_decisions": _normalize_text_list(readout.get("important_decisions")) or _normalize_text_list(workspace.get("decisions"))[:5],
             "biggest_risks": _normalize_text_list(readout.get("biggest_risks")) or _normalize_text_list(workspace.get("risks"))[:5],
-            "open_questions": _normalize_text_list(readout.get("open_questions")) or open_questions[:3],
-            "rollout_summary": str(readout.get("rollout_summary") or "").strip(),
+            "open_questions": (
+                _normalize_text_list(readout.get("open_questions"))
+                if isinstance(readout.get("open_questions"), list)
+                else open_questions[:3]
+            ),
+            "rollout_summary": str(readout.get("rollout_summary") or "").strip() or _format_rollout_summary(rollout_entries),
             "architecture_snapshot": str(readout.get("architecture_snapshot") or "").strip(),
         },
         "next_best_question": next_best_question_payload,
@@ -482,7 +818,7 @@ def _normalize_advisory_case(value: Any, workspace: Mapping[str, Any]) -> dict[s
             "executive_summary": str(output_pack.get("executive_summary") or "").strip(),
             "recommendation_memo": str(output_pack.get("recommendation_memo") or "").strip(),
             "architecture_narrative": str(output_pack.get("architecture_narrative") or "").strip(),
-            "key_decisions": _normalize_text_list(output_pack.get("key_decisions")) or _normalize_text_list(workspace.get("decisions")),
+            "key_decisions": _normalize_text_list(output_pack.get("key_decisions")) or _fallback_decisions_from_workspace(workspace),
             "risks_and_mitigations": [
                 {
                     "risk": str(item.get("risk") or "").strip(),
@@ -492,14 +828,7 @@ def _normalize_advisory_case(value: Any, workspace: Mapping[str, Any]) -> dict[s
                 if isinstance(item, Mapping) and str(item.get("risk") or "").strip()
             ],
             "open_questions": open_questions,
-            "rollout_30_90_180": [
-                {
-                    "horizon": str(item.get("horizon") or "").strip(),
-                    "outcome": str(item.get("outcome") or "").strip(),
-                }
-                for item in output_pack.get("rollout_30_90_180", [])
-                if isinstance(item, Mapping) and str(item.get("horizon") or "").strip()
-            ],
+            "rollout_30_90_180": rollout_entries,
             "operating_principles": _normalize_text_list(output_pack.get("operating_principles")),
             "control_checklist": _normalize_text_list(output_pack.get("control_checklist")),
         },
@@ -576,12 +905,20 @@ def _normalize_recommendation_state(
         if prefer_traversal
         else (raw.get("next_best_question") or traversal_state.get("next_best_question") or "")
     ).strip()
+    open_questions = _derive_open_questions(
+        _normalize_question_state(workspace.get("question_state"), workspace.get("open_questions"), workspace),
+        workspace.get("open_questions"),
+    )
+    if next_best_question and next_best_question not in open_questions:
+        next_best_question = ""
     if not next_best_question:
-        open_questions = _derive_open_questions(
-            _normalize_question_state(workspace.get("question_state"), workspace.get("open_questions"), workspace),
-            workspace.get("open_questions"),
-        )
         next_best_question = open_questions[0] if open_questions else ""
+
+    if open_questions:
+        allowed_missing_evidence = {item.lower() for item in open_questions}
+        missing_evidence = [item for item in missing_evidence if item.lower() in allowed_missing_evidence]
+    else:
+        missing_evidence = []
 
     return {
         "primary_recommendation": primary_recommendation,
@@ -591,6 +928,160 @@ def _normalize_recommendation_state(
         "next_best_question": next_best_question,
         "last_reasoning_change_fields": list(reasoning_changes or []),
     }
+
+
+def _format_count(label: str, count: int) -> str:
+    suffix = "" if count == 1 else "s"
+    return f"{count} {label}{suffix}"
+
+
+def _join_reason_parts(parts: list[str]) -> str:
+    if not parts:
+        return ""
+    if len(parts) == 1:
+        return parts[0]
+    if len(parts) == 2:
+        return f"{parts[0]} and {parts[1]}"
+    return ", ".join(parts[:-1]) + f", and {parts[-1]}"
+
+
+def _derive_recommendation_confidence(workspace: Mapping[str, Any]) -> tuple[str, str]:
+    recommendation_state = workspace.get("recommendation_state") if isinstance(workspace.get("recommendation_state"), Mapping) else {}
+    advisory_case = workspace.get("advisory_case") if isinstance(workspace.get("advisory_case"), Mapping) else {}
+    advisory_recommendation = advisory_case.get("recommendation") if isinstance(advisory_case.get("recommendation"), Mapping) else {}
+    recommendation_summary = str(
+        advisory_recommendation.get("summary")
+        or recommendation_state.get("primary_recommendation")
+        or workspace.get("recommendation")
+        or ""
+    ).strip()
+    if not recommendation_summary:
+        return "", ""
+
+    stage = str(workspace.get("stage") or "").strip().lower()
+    question_state = _normalize_question_state(workspace.get("question_state"), workspace.get("open_questions"), workspace)
+    blocking_open_count = sum(
+        1
+        for item in question_state
+        if bool(item.get("blocking", True))
+        and str(item.get("status") or "open").strip().lower() not in {"answered", "invalidated"}
+    )
+    missing_evidence = _normalize_text_list(recommendation_state.get("missing_evidence"))
+    missing_evidence_count = len(missing_evidence)
+    candidate_options = recommendation_state.get("candidate_options") if isinstance(recommendation_state.get("candidate_options"), list) else []
+    alternatives_count = len(candidate_options)
+    decisions_count = len(_normalize_text_list(workspace.get("decisions")))
+    rollout_count = len(_normalize_text_list(workspace.get("implementation_plan")))
+    blueprint_ready = _has_content(workspace.get("blueprint_markdown")) or stage == "blueprint"
+
+    score = 0
+    if stage == "blueprint":
+        score += 4
+    elif stage == "solutioning":
+        score += 2
+    elif stage == "discovery":
+        score += 0
+
+    if decisions_count > 0:
+        score += 1
+    if rollout_count > 0:
+        score += 1
+    if alternatives_count >= 2:
+        score += 1
+    if blueprint_ready:
+        score += 1
+
+    if blocking_open_count == 0:
+        score += 2
+    elif blocking_open_count == 1:
+        score += 1
+
+    if missing_evidence_count == 0:
+        score += 1
+    elif missing_evidence_count >= 3:
+        score -= 1
+
+    if score >= 7 and blocking_open_count == 0 and missing_evidence_count <= 1:
+        confidence = "high"
+    elif score >= 4:
+        confidence = "medium"
+    else:
+        confidence = "low"
+
+    positive_signals: list[str] = []
+    if stage == "blueprint":
+        positive_signals.append("the session is in blueprint stage")
+    elif stage == "solutioning":
+        positive_signals.append("the recommendation has moved beyond discovery")
+    if blocking_open_count == 0:
+        positive_signals.append("no blocking questions remain")
+    if missing_evidence_count == 0:
+        positive_signals.append("no unresolved evidence gaps remain")
+    if decisions_count > 0:
+        positive_signals.append(
+            "a design decision is captured"
+            if decisions_count == 1
+            else f"{decisions_count} design decisions are captured"
+        )
+    if rollout_count > 0:
+        positive_signals.append("implementation steps are published")
+
+    blocking_signals: list[str] = []
+    if blocking_open_count > 0:
+        blocking_signals.append(f"{_format_count('blocking question', blocking_open_count)} remain")
+    if missing_evidence_count > 0:
+        blocking_signals.append(f"{_format_count('evidence gap', missing_evidence_count)} remain")
+
+    if confidence == "high":
+        detail = _join_reason_parts(positive_signals[:3]) or "the recommendation is materially corroborated"
+        reason = f"High confidence because {detail}."
+    elif confidence == "medium":
+        if blocking_signals:
+            reason = f"Medium confidence because the recommendation is coherent, but {_join_reason_parts(blocking_signals)}."
+        else:
+            detail = _join_reason_parts(positive_signals[:2]) or "the recommendation is coherent but still maturing"
+            reason = f"Medium confidence because {detail}."
+    else:
+        if blocking_signals:
+            reason = f"Low confidence because {_join_reason_parts(blocking_signals)}."
+        elif stage == "discovery":
+            reason = "Low confidence because the session is still in discovery."
+        else:
+            reason = "Low confidence because the recommendation has not accumulated enough corroborating signals yet."
+
+    return confidence, reason
+
+
+def _apply_derived_recommendation_confidence(workspace: dict[str, Any]) -> None:
+    recommendation_state = workspace.get("recommendation_state") if isinstance(workspace.get("recommendation_state"), Mapping) else {}
+    advisory_case = workspace.get("advisory_case") if isinstance(workspace.get("advisory_case"), Mapping) else {}
+    advisory_recommendation = advisory_case.get("recommendation") if isinstance(advisory_case.get("recommendation"), Mapping) else {}
+    explicit_confidence = str(
+        advisory_recommendation.get("confidence")
+        or recommendation_state.get("confidence")
+        or ""
+    ).strip().lower()
+    if explicit_confidence in {"low", "medium", "high"}:
+        return
+
+    confidence, reason = _derive_recommendation_confidence(workspace)
+    if confidence not in {"low", "medium", "high"}:
+        return
+
+    next_recommendation_state = dict(recommendation_state)
+    next_recommendation_state["confidence"] = confidence
+    workspace["recommendation_state"] = next_recommendation_state
+
+    if not isinstance(advisory_case, Mapping):
+        return
+
+    next_advisory_case = dict(advisory_case)
+    next_recommendation = dict(advisory_recommendation)
+    next_recommendation["confidence"] = confidence
+    if not str(next_recommendation.get("confidence_reason") or "").strip():
+        next_recommendation["confidence_reason"] = reason
+    next_advisory_case["recommendation"] = next_recommendation
+    workspace["advisory_case"] = next_advisory_case
 
 
 def _advisory_case_is_ready(advisory_case: Mapping[str, Any] | None) -> bool:
@@ -666,6 +1157,113 @@ def _build_artifact_status(
         "stale_fields": list(invalidated_fields or []),
         "reasoning_changes": list(reasoning_changes or []),
     }
+
+
+def _cleanup_question_state(workspace: dict[str, Any]) -> None:
+    advisory_case = workspace.get("advisory_case") if isinstance(workspace.get("advisory_case"), Mapping) else {}
+    output_pack = advisory_case.get("output_pack") if isinstance(advisory_case.get("output_pack"), Mapping) else {}
+    readout = advisory_case.get("readout") if isinstance(advisory_case.get("readout"), Mapping) else {}
+    explicit_open_questions = _explicit_open_questions_from_advisory(output_pack, readout)
+    question_state = _normalize_question_state(workspace.get("question_state"), workspace.get("open_questions"), workspace)
+
+    if explicit_open_questions == [] and (
+        _has_output_pack_content(output_pack)
+        or str(workspace.get("stage") or "").strip().lower() == "blueprint"
+    ):
+        next_state: list[dict[str, Any]] = []
+        for item in question_state:
+            if item.get("status") == "open":
+                next_state.append({**item, "status": "invalidated"})
+            else:
+                next_state.append(item)
+        question_state = next_state
+
+    workspace["question_state"] = question_state
+    workspace["open_questions"] = _derive_open_questions(
+        question_state,
+        explicit_open_questions if explicit_open_questions is not None else workspace.get("open_questions"),
+    )
+
+
+def _hydrate_missing_rollout_plan(workspace: dict[str, Any]) -> None:
+    existing_plan = _normalize_text_list(workspace.get("implementation_plan"))
+    if existing_plan:
+        rollout_plan = existing_plan
+    else:
+        stage = str(workspace.get("stage") or "").strip().lower()
+        if stage not in {"solutioning", "blueprint"}:
+            rollout_plan = []
+        elif not _has_content(workspace.get("recommendation")) and not _has_content(workspace.get("decisions")):
+            rollout_plan = []
+        else:
+            rollout_plan = _build_rollout_plan_from_workspace(workspace)
+            if rollout_plan:
+                workspace["implementation_plan"] = rollout_plan
+
+    advisory_case = workspace.get("advisory_case") if isinstance(workspace.get("advisory_case"), Mapping) else None
+    if not advisory_case:
+        return
+
+    next_case = dict(advisory_case)
+    output_pack = next_case.get("output_pack") if isinstance(next_case.get("output_pack"), Mapping) else {}
+    normalized_output_pack = dict(output_pack)
+    if not _normalize_rollout_entries(normalized_output_pack.get("rollout_30_90_180")) and rollout_plan:
+        normalized_output_pack["rollout_30_90_180"] = _rollout_entries_from_implementation_plan(rollout_plan)
+    if normalized_output_pack != output_pack:
+        next_case["output_pack"] = normalized_output_pack
+
+    readout = next_case.get("readout") if isinstance(next_case.get("readout"), Mapping) else {}
+    normalized_readout = dict(readout)
+    if not str(normalized_readout.get("rollout_summary") or "").strip() and rollout_plan:
+        normalized_readout["rollout_summary"] = _format_rollout_summary(
+            _rollout_entries_from_implementation_plan(rollout_plan)
+        )
+    if normalized_readout != readout:
+        next_case["readout"] = normalized_readout
+
+    workspace["advisory_case"] = next_case
+
+
+def _hydrate_missing_blueprint_markdown(workspace: dict[str, Any]) -> None:
+    if _has_content(workspace.get("blueprint_markdown")):
+        return
+    stage = str(workspace.get("stage") or "").strip().lower()
+    recommendation = str(workspace.get("recommendation") or "").strip()
+    implementation_plan = _normalize_text_list(workspace.get("implementation_plan"))
+    if stage not in {"solutioning", "blueprint"} and not implementation_plan:
+        return
+    advisory_case = workspace.get("advisory_case") if isinstance(workspace.get("advisory_case"), Mapping) else {}
+    output_pack = advisory_case.get("output_pack") if isinstance(advisory_case.get("output_pack"), Mapping) else {}
+    if not recommendation and not _has_output_pack_content(output_pack):
+        return
+    synthesized = _build_blueprint_markdown_from_workspace(workspace)
+    if synthesized:
+        workspace["blueprint_markdown"] = synthesized
+
+
+def _enforce_blueprint_stage_requirements(workspace: dict[str, Any]) -> None:
+    stage = str(workspace.get("stage") or "").strip().lower()
+    if stage != "blueprint":
+        return
+
+    question_state = _normalize_question_state(workspace.get("question_state"), workspace.get("open_questions"), workspace)
+    advisory_case = workspace.get("advisory_case") if isinstance(workspace.get("advisory_case"), Mapping) else {}
+    output_pack = advisory_case.get("output_pack") if isinstance(advisory_case.get("output_pack"), Mapping) else {}
+    recommendation_ready = _has_content(workspace.get("recommendation"))
+    blueprint_ready = _has_content(workspace.get("blueprint_markdown"))
+    decisions_ready = bool(_normalize_text_list(workspace.get("decisions")) or _normalize_text_list(output_pack.get("key_decisions")))
+    rollout_ready = bool(
+        _normalize_text_list(workspace.get("implementation_plan"))
+        or [
+            item
+            for item in output_pack.get("rollout_30_90_180", [])
+            if isinstance(item, Mapping) and str(item.get("horizon") or "").strip()
+        ]
+    )
+    if recommendation_ready and blueprint_ready and decisions_ready and rollout_ready:
+        return
+
+    workspace["stage"] = "solutioning" if recommendation_ready or decisions_ready or rollout_ready else "discovery"
 
 
 def _resolve_stage(
@@ -838,10 +1436,22 @@ def reconcile_workspace_state(
         reconciled["recommendation"] = str(reconciled["recommendation_state"].get("primary_recommendation") or "").strip()
     if not reconciled["advisory_case"] and reconciled["recommendation"]:
         reconciled["advisory_case"] = _normalize_advisory_case({}, reconciled)
+    _cleanup_question_state(reconciled)
+    _hydrate_missing_rollout_plan(reconciled)
+    _hydrate_missing_blueprint_markdown(reconciled)
+    reconciled["stage"] = _resolve_stage(str(reconciled.get("stage") or ""), str(reconciled.get("stage") or ""), reconciled)
+    _enforce_blueprint_stage_requirements(reconciled)
+    _apply_derived_recommendation_confidence(reconciled)
+    reconciled["recommendation_state"] = _normalize_recommendation_state(
+        reconciled.get("recommendation_state"),
+        reconciled,
+        reasoning_changes=reasoning_changes,
+    )
+    if isinstance(reconciled.get("advisory_case"), Mapping):
+        reconciled["advisory_case"] = _normalize_advisory_case(reconciled.get("advisory_case"), reconciled)
     reconciled["artifact_status"] = _build_artifact_status(
         reconciled,
         invalidated_fields=invalidated_fields,
         reasoning_changes=reasoning_changes,
     )
-    reconciled["stage"] = _resolve_stage(str(reconciled.get("stage") or ""), str(reconciled.get("stage") or ""), reconciled)
     return reconciled

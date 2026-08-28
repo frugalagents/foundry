@@ -28,6 +28,12 @@ export type StructuredBlueprintSection = {
   html: string
 }
 
+export type ResolvedBlueprintContent = {
+  mode: 'empty' | 'published' | 'derived'
+  markdown: string
+  source: 'none' | 'blueprint_markdown' | 'output_pack' | 'derived'
+}
+
 export type SessionExportContext = {
   activeSessionId: string | null
   sessionTitle?: string | null
@@ -50,6 +56,52 @@ export function hasOutputPackContent(pack: AdvisoryOutputPack) {
     pack.operating_principles.length > 0 ||
     pack.control_checklist.length > 0,
   )
+}
+
+export function resolveBlueprintContent(
+  workspace: ConsultingWorkspace,
+  architectureArtifact: ArchitectureArtifact | null,
+): ResolvedBlueprintContent {
+  const canonicalBlueprint = (
+    workspace.architecture_case?.artifacts.blueprint_markdown?.trim()
+    || workspace.blueprint_markdown?.trim()
+    || ''
+  ).trim()
+  const advisoryCase: AdvisoryCase | null = hasAdvisoryCaseContent(workspace.advisory_case)
+    ? (workspace.advisory_case ?? null)
+    : null
+  const outputPack = advisoryCase?.output_pack ?? null
+  const derivedBlueprint = buildFallbackBlueprint(workspace, architectureArtifact).trim()
+
+  if (canonicalBlueprint) {
+    return {
+      mode: 'published',
+      markdown: buildExportMarkdown(outputPack, canonicalBlueprint).trim(),
+      source: 'blueprint_markdown',
+    }
+  }
+
+  if (outputPack && hasOutputPackContent(outputPack)) {
+    return {
+      mode: 'published',
+      markdown: buildExportMarkdown(outputPack, derivedBlueprint).trim(),
+      source: 'output_pack',
+    }
+  }
+
+  if (derivedBlueprint) {
+    return {
+      mode: 'derived',
+      markdown: derivedBlueprint,
+      source: 'derived',
+    }
+  }
+
+  return {
+    mode: 'empty',
+    markdown: '',
+    source: 'none',
+  }
 }
 
 export function buildExportMarkdown(outputPack: AdvisoryOutputPack | null, fallbackMarkdown: string) {

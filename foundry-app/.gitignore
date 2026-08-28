@@ -33,3 +33,6 @@ CodingAgentRuntime/agentcore/.cli/
 # Editor
 .vscode/
 .idea/
+
+# Local review reports
+.reports/

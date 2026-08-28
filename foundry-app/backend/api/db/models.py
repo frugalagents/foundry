@@ -273,6 +273,85 @@ class AdminFeedbackRowOut(BaseModel):
     feedback: SessionFeedbackOut
 
 
+class JudgeDeterministicFindingOut(BaseModel):
+    component: str = ""
+    severity: str = ""
+    title: str = ""
+    detail: str = ""
+
+
+class JudgeRecommendationReviewOut(BaseModel):
+    score: int = 0
+    is_correct_for_customer: Optional[bool] = None
+    assessment: str = ""
+    evidence: list[str] = Field(default_factory=list)
+
+
+class JudgeArchitectureReviewOut(BaseModel):
+    score: int = 0
+    is_complete_enough: Optional[bool] = None
+    assessment: str = ""
+    strengths: list[str] = Field(default_factory=list)
+    gaps: list[str] = Field(default_factory=list)
+
+
+class JudgeBlueprintReviewOut(BaseModel):
+    score: int = 0
+    is_complete_enough: Optional[bool] = None
+    assessment: str = ""
+    missing_elements: list[str] = Field(default_factory=list)
+
+
+class JudgeUiAccuracyReviewOut(BaseModel):
+    component: str = ""
+    status: str = ""
+    score: int = 0
+    assessment: str = ""
+    suggested_improvements: list[str] = Field(default_factory=list)
+
+
+class JudgeOpenItemOut(BaseModel):
+    severity: str = ""
+    title: str = ""
+    reason: str = ""
+    suggested_fix: str = ""
+
+
+class JudgeSuggestedFeatureOut(BaseModel):
+    name: str = ""
+    priority: str = ""
+    why_it_matters: str = ""
+    implementation_hint: str = ""
+
+
+class JudgeReportOut(BaseModel):
+    judge_report_id: str
+    customer_id: str
+    session_id: str
+    session_title: str = ""
+    simulation_file: str = ""
+    overall_verdict: str = ""
+    judge_confidence: str = ""
+    summary: str = ""
+    recommendation_review: JudgeRecommendationReviewOut = Field(default_factory=JudgeRecommendationReviewOut)
+    architecture_review: JudgeArchitectureReviewOut = Field(default_factory=JudgeArchitectureReviewOut)
+    blueprint_review: JudgeBlueprintReviewOut = Field(default_factory=JudgeBlueprintReviewOut)
+    ui_accuracy_review: list[JudgeUiAccuracyReviewOut] = Field(default_factory=list)
+    deterministic_findings: list[JudgeDeterministicFindingOut] = Field(default_factory=list)
+    open_items: list[JudgeOpenItemOut] = Field(default_factory=list)
+    suggested_features: list[JudgeSuggestedFeatureOut] = Field(default_factory=list)
+    response_text: str = ""
+    report_dir: str = ""
+    created_at: str
+    updated_at: str
+
+
+class AdminJudgeReportRowOut(BaseModel):
+    customer: Customer
+    session: Session
+    report: JudgeReportOut
+
+
 class AdminCountOut(BaseModel):
     label: str
     value: int

@@ -214,6 +214,9 @@ def test_reconcile_workspace_builds_recommendation_state_and_advisory_case_defau
     assert workspace["advisory_case"] is not None
     assert workspace["advisory_case"]["recommendation"]["summary"] == workspace["recommendation"]
     assert len(workspace["advisory_case"]["alternatives"]) >= 2
+    assert workspace["recommendation_state"]["confidence"] == "medium"
+    assert workspace["advisory_case"]["recommendation"]["confidence"] == "medium"
+    assert "blocking question" in workspace["advisory_case"]["recommendation"]["confidence_reason"]
     assert workspace["artifact_status"]["recommendation"] == "ready"
 
 
@@ -273,6 +276,221 @@ def test_reconcile_workspace_prefers_confirmed_structured_facts_over_raw_workspa
     )
 
     assert workspace["facts"] == ["Current tools in scope: GitHub Copilot, Cursor."]
+
+
+def test_reconcile_workspace_derives_high_confidence_when_blueprint_and_blockers_are_resolved():
+    workspace = reconcile_workspace_state(
+        {
+            "stage": "blueprint",
+            "recommendation": "Use a governed multi-harness platform with one default lane and controlled exceptions.",
+            "blueprint_markdown": "## Technical Blueprint\n\n### Identity\nOkta to Cognito federation.\n\n### Controls\nShared policy plane.",
+            "decisions": [
+                "Use a shared control plane.",
+                "Gate exception lanes through policy tiers.",
+            ],
+            "implementation_plan": [
+                "Pilot the default lane with one BU.",
+                "Expand to regulated teams after control validation.",
+            ],
+            "question_state": [
+                {
+                    "id": "q1",
+                    "text": "Which teams need exception lanes?",
+                    "status": "answered",
+                    "answer": "Payments and ML platform.",
+                    "blocking": True,
+                }
+            ],
+            "traversal_state": {
+                "candidate_options": [
+                    {"path": "decision/default-plus-exceptions", "title": "Default Plus Exceptions", "description": "One standard with formal carve-outs."},
+                    {"path": "decision/multi-harness", "title": "Governed Multi-Harness", "description": "Shared policy plane."},
+                ],
+                "missing_evidence": [],
+            },
+        }
+    )
+
+    assert workspace["recommendation_state"]["confidence"] == "high"
+    assert workspace["advisory_case"]["recommendation"]["confidence"] == "high"
+    assert "blueprint stage" in workspace["advisory_case"]["recommendation"]["confidence_reason"]
+    assert "no blocking questions remain" in workspace["advisory_case"]["recommendation"]["confidence_reason"]
+
+
+def test_reconcile_workspace_builds_blueprint_markdown_from_output_pack_when_missing():
+    workspace = reconcile_workspace_state(
+        {
+            "stage": "blueprint",
+            "recommendation": "Adopt a governed platform with a standard lane and a regulated lane.",
+            "decisions": ["Use AgentCore Runtime for managed execution."],
+            "implementation_plan": ["30 days: pilot standard lane."],
+            "question_state": [],
+            "advisory_case": {
+                "recommendation": {
+                    "summary": "Adopt a governed platform with a standard lane and a regulated lane.",
+                    "why_this": "It matches the control model.",
+                    "why_not": "Single-lane would violate controls.",
+                    "confidence": "high",
+                },
+                "alternatives": [
+                    {"id": "a", "title": "Single standard"},
+                    {"id": "b", "title": "Governed multi-lane"},
+                ],
+                "output_pack": {
+                    "executive_summary": "Northstar should use a managed runtime and a restricted regulated lane.",
+                    "recommendation_memo": "The design keeps control points centralized.",
+                    "architecture_narrative": "Shared identity and audit feed distinct lanes.",
+                    "key_decisions": ["Use AgentCore Runtime.", "Route regulated repos to the restricted lane."],
+                    "rollout_30_90_180": [{"horizon": "30 days", "outcome": "Pilot standard lane."}],
+                    "open_questions": [],
+                },
+            },
+        }
+    )
+
+    assert workspace["blueprint_markdown"].startswith("## Technical Blueprint")
+    assert "Rollout Phases" in workspace["blueprint_markdown"]
+    assert workspace["stage"] == "blueprint"
+
+
+def test_reconcile_workspace_invalidates_open_questions_when_output_pack_declares_none():
+    workspace = reconcile_workspace_state(
+        {
+            "stage": "blueprint",
+            "recommendation": "Finalize the platform design.",
+            "blueprint_markdown": "## Technical Blueprint\n\n### Rollout\nDone.",
+            "implementation_plan": ["Launch the governed platform."],
+            "question_state": [
+                {
+                    "id": "q1",
+                    "text": "Will every lane stay on the shared control plane?",
+                    "status": "open",
+                    "blocking": True,
+                }
+            ],
+            "recommendation_state": {
+                "next_best_question": "Will every lane stay on the shared control plane?",
+                "missing_evidence": ["Will every lane stay on the shared control plane?"],
+            },
+            "advisory_case": {
+                "recommendation": {
+                    "summary": "Finalize the platform design.",
+                    "why_this": "Shared governance is already confirmed.",
+                    "why_not": "Bypass lanes break audit controls.",
+                    "confidence": "high",
+                },
+                "alternatives": [
+                    {"id": "a", "title": "Bypass lanes"},
+                    {"id": "b", "title": "Shared control plane"},
+                ],
+                "output_pack": {
+                    "executive_summary": "All lanes stay on the shared control plane.",
+                    "open_questions": [],
+                },
+            },
+        }
+    )
+
+    assert workspace["open_questions"] == []
+    assert workspace["recommendation_state"]["next_best_question"] == ""
+    assert workspace["recommendation_state"]["missing_evidence"] == []
+    assert workspace["question_state"][0]["status"] == "invalidated"
+
+
+def test_reconcile_workspace_synthesizes_missing_rollout_and_blueprint_for_blueprint_stage():
+    workspace = reconcile_workspace_state(
+        {
+            "stage": "blueprint",
+            "recommendation": "Use a managed runtime with a regulated lane.",
+            "decisions": ["Use a managed runtime."],
+            "implementation_plan": [],
+            "question_state": [],
+            "advisory_case": {
+                "recommendation": {
+                    "summary": "Use a managed runtime with a regulated lane.",
+                    "why_this": "Matches the controls.",
+                    "why_not": "Single lane is insufficient.",
+                    "confidence": "high",
+                },
+                "alternatives": [
+                    {"id": "a", "title": "Single lane"},
+                    {"id": "b", "title": "Regulated lane"},
+                ],
+            },
+        }
+    )
+
+    assert workspace["stage"] == "blueprint"
+    assert workspace["implementation_plan"]
+    assert workspace["blueprint_markdown"].startswith("## Technical Blueprint")
+    assert "Rollout Phases" in workspace["blueprint_markdown"]
+
+
+def test_reconcile_workspace_builds_conditional_blueprint_when_blocker_remains():
+    workspace = reconcile_workspace_state(
+        {
+            "stage": "solutioning",
+            "recommendation": "Use one default harness with a shared control plane and a regulated exception lane for SOX-scoped repos.",
+            "facts": [
+                "Okta is the enterprise identity provider.",
+                "SOX-controlled repos are likely in scope.",
+                "GitHub Actions drives pull-request automation.",
+            ],
+            "question_state": [
+                {
+                    "id": "q1",
+                    "text": "Are the finance-platform repos in SOX scope for this rollout?",
+                    "why_it_matters": "This determines whether the default lane needs approval-backed write controls on day one.",
+                    "status": "open",
+                    "blocking": True,
+                    "decision_domain": "compliance_overlay",
+                }
+            ],
+            "risks": ["If SOX scope is broader than expected, rollout sequencing changes."],
+        }
+    )
+
+    assert workspace["stage"] == "blueprint"
+    assert len(workspace["implementation_plan"]) == 3
+    assert "Conditional Paths For Unresolved Boundaries" in workspace["blueprint_markdown"]
+    assert "Are the finance-platform repos in SOX scope for this rollout?" in workspace["blueprint_markdown"]
+    assert workspace["recommendation_state"]["confidence"] == "medium"
+    assert workspace["advisory_case"]["output_pack"]["rollout_30_90_180"][0]["horizon"] == "30 days"
+
+
+def test_reconcile_workspace_preserves_explicit_confidence():
+    workspace = reconcile_workspace_state(
+        {
+            "stage": "solutioning",
+            "recommendation": "Use one standard harness with exceptions only for regulated teams.",
+            "question_state": [
+                {
+                    "id": "q1",
+                    "text": "Do regulated teams require a separate execution boundary?",
+                    "status": "open",
+                    "blocking": True,
+                }
+            ],
+            "recommendation_state": {
+                "confidence": "low",
+                "candidate_options": [
+                    {"path": "decision/default-plus-exceptions", "title": "Default Plus Exceptions", "description": "One standard with carve-outs."},
+                    {"path": "decision/single-standard", "title": "Single Standard", "description": "Lowest variance."},
+                ],
+            },
+            "advisory_case": {
+                "recommendation": {
+                    "summary": "Use one standard harness with exceptions only for regulated teams.",
+                    "confidence": "low",
+                    "confidence_reason": "Model-authored confidence should win.",
+                }
+            },
+        }
+    )
+
+    assert workspace["recommendation_state"]["confidence"] == "low"
+    assert workspace["advisory_case"]["recommendation"]["confidence"] == "low"
+    assert workspace["advisory_case"]["recommendation"]["confidence_reason"] == "Model-authored confidence should win."
 
 
 def test_stage_auto_promotes_to_blueprint_when_recommendation_and_blueprint_exist():

@@ -425,10 +425,27 @@ def _is_explicit_blueprint_request(user_message: str) -> bool:
     return any(phrase in normalized for phrase in phrases)
 
 
+def _is_explicit_finalization_request(user_message: str) -> bool:
+    normalized = re.sub(r"\s+", " ", user_message.lower()).strip()
+    phrases = (
+        "finalize",
+        "finalise",
+        "complete brief",
+        "complete blueprint",
+        "lock the architecture",
+        "no open questions",
+        "ready to build",
+        "end this session with",
+    )
+    return any(phrase in normalized for phrase in phrases)
+
+
 def _should_recover_blueprint(user_message: str, workspace: Mapping[str, Any]) -> bool:
     if _has_content(workspace.get("blueprint_markdown")):
         return False
     if _is_explicit_blueprint_request(user_message):
+        return True
+    if _is_explicit_finalization_request(user_message):
         return True
     if workspace.get("open_questions"):
         return False
@@ -569,6 +586,23 @@ Keep the chat reply to one short sentence after the workspace update.
 """
 
 
+def _explicit_finalization_request_instructions() -> str:
+    return """
+## Explicit Finalization Request
+
+The customer is asking you to finalize the session into a build-ready outcome.
+Before you finish:
+- close, explicitly defer, or convert any remaining blocker into a named conditional branch in `question_state`
+- publish a non-empty `blueprint_markdown`
+- refresh `recommendation`, `decisions`, `risks`, and `implementation_plan`
+- ensure the final recommendation is customer-specific, not a generic principle
+- move to `stage=blueprint` when the blueprint is non-empty and the remaining gap is captured as a bounded conditional branch or deferred dependency
+
+If one risk or dependency still remains, keep it in `risks` or mark it `[TBD]`
+in the blueprint instead of leaving the session half-finished.
+"""
+
+
 async def _recover_workspace_after_stream(
     *,
     user_message: str,
@@ -599,6 +633,7 @@ async def _recover_workspace_after_stream(
                 "platform advisory session. Use only the supplied workspace, architecture, "
                 "and transcript context. Do not invent customer facts. If an item is still "
                 "unresolved, keep it as [TBD] in the blueprint and preserve it in open_questions. "
+                "If the session is otherwise coherent, publish a conditional blueprint instead of stalling. "
                 "Return a detailed technical blueprint artifact, not an executive memo. "
                 "The blueprint must use markdown with `##` section headers and include: "
                 "Architecture, Architecture Decisions, Rollout Phases, Key Tradeoffs Accepted, "
@@ -639,7 +674,7 @@ Return the refreshed recommendation, blueprint_markdown, open_questions, decisio
                 updates["risks"] = repaired.risks
             if repaired.implementation_plan:
                 updates["implementation_plan"] = repaired.implementation_plan
-            if repaired.open_questions:
+            if repaired.open_questions or _is_explicit_finalization_request(user_message):
                 updates["open_questions"] = repaired.open_questions
 
     if "open_questions" in updates:
@@ -852,6 +887,10 @@ def _prefer_existing_canvas(
     candidate_placeholders = _canvas_placeholder_count(candidate)
     existing_specific_harnesses = _specific_harness_count(existing)
     candidate_specific_harnesses = _specific_harness_count(candidate)
+    if existing_specific_harnesses >= 2 and existing_specific_harnesses > candidate_specific_harnesses:
+        return True
+    if existing_specific_harnesses > candidate_specific_harnesses and existing_score >= candidate_score - 1.0:
+        return True
     if candidate_placeholders > 0 and existing_specific_harnesses > candidate_specific_harnesses:
         return True
     if candidate_placeholders > existing_placeholders and existing_score >= candidate_score:
@@ -1618,6 +1657,8 @@ async def invoke(payload: dict, context):
     )
     if _is_explicit_blueprint_request(user_message):
         system_prompt = f"{system_prompt}\n\n{_explicit_blueprint_request_instructions()}"
+    if _is_explicit_finalization_request(user_message):
+        system_prompt = f"{system_prompt}\n\n{_explicit_finalization_request_instructions()}"
     system_prompt = f"{system_prompt}\n\n{_workspace_tool_instructions()}"
     model = BedrockModel(model_id=_MODEL_ID, streaming=True)
     agent_kwargs: dict = dict(

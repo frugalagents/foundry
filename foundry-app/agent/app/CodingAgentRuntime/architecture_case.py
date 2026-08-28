@@ -5,7 +5,7 @@ from typing import Any, Mapping
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from workspace_state import reconcile_workspace_state
+from workspace_state import _build_blueprint_markdown_from_workspace, reconcile_workspace_state
 
 SCHEMA_VERSION = "2026-08-25.architecture-case.v1"
 
@@ -606,7 +606,7 @@ def _build_artifacts(workspace: Mapping[str, Any], canvas: Mapping[str, Any]) ->
                 rollout_items.append(RolloutItem(phase=phase, outcome=outcome))
 
     return CaseArtifacts(
-        blueprint_markdown=str(workspace.get("blueprint_markdown") or "").strip(),
+        blueprint_markdown=str(workspace.get("blueprint_markdown") or "").strip() or _build_blueprint_markdown_from_workspace(workspace),
         executive_summary=str(output_pack.get("executive_summary") or "").strip(),
         recommendation_memo=str(output_pack.get("recommendation_memo") or "").strip(),
         architecture_narrative=str(output_pack.get("architecture_narrative") or "").strip(),
@@ -654,6 +654,25 @@ def _build_observability(workspace: Mapping[str, Any], canvas: Mapping[str, Any]
     )
 
 
+def _has_complete_blueprint_artifact(artifacts: CaseArtifacts) -> bool:
+    if not artifacts.blueprint_markdown:
+        return False
+    if artifacts.executive_summary or artifacts.recommendation_memo or artifacts.architecture_narrative:
+        return True
+    if artifacts.rollout:
+        return True
+    lowered = artifacts.blueprint_markdown.lower()
+    return any(
+        heading in lowered
+        for heading in (
+            "### executive summary",
+            "### recommendation memo",
+            "### architecture narrative",
+            "### 30 / 90 / 180 day rollout",
+        )
+    )
+
+
 def _build_evaluation(
     *,
     questions: list[CaseQuestion],
@@ -662,8 +681,9 @@ def _build_evaluation(
     artifacts: CaseArtifacts,
     components: list[ArchitectureComponent],
 ) -> CaseEvaluation:
+    has_blueprint = _has_complete_blueprint_artifact(artifacts)
     missing_artifacts: list[str] = []
-    if not artifacts.blueprint_markdown:
+    if not has_blueprint:
         missing_artifacts.append("blueprint")
     if not components:
         missing_artifacts.append("architecture_snapshot")
@@ -676,7 +696,7 @@ def _build_evaluation(
         blocking_question_count=sum(1 for item in questions if item.blocking),
         decision_count=len(decisions),
         evidence_ref_count=len(evidence_refs),
-        has_blueprint=bool(artifacts.blueprint_markdown),
+        has_blueprint=has_blueprint,
         has_architecture_snapshot=bool(components),
         missing_artifacts=missing_artifacts,
     )

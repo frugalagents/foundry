@@ -9,11 +9,14 @@ Usage:
 from __future__ import annotations
 import argparse
 import json
+import os
 import re
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 import boto3
+from botocore.config import Config
 
 DEFAULT_ARN = (
     "arn:aws:bedrock-agentcore:us-east-1:616627284001:"
@@ -26,6 +29,85 @@ SPEAKER_RE = re.compile(r"^\*\*([^*:]+?):\*\*\s*(.*)$")
 # Speaker-label prefixes that represent the human customer side of the
 # conversation (as opposed to "Advisor" or blueprint section headers).
 CUSTOMER_LABELS = ("customer", "rachel", "marcus")
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _simulation_title(slug: str) -> str:
+    return f"Simulation: {slug.replace('-', ' ')}"
+
+
+def _bootstrap_inventory_rows(
+    table,
+    *,
+    customer_id: str,
+    session_id: str,
+    actor_id: str,
+    slug: str,
+    simulation_file: Path,
+) -> None:
+    now = _now()
+    customer_key = {
+        "PK": f"CUSTOMER#{customer_id}",
+        "SK": f"CUSTOMER#{customer_id}",
+    }
+    if not table.get_item(Key=customer_key).get("Item"):
+        table.put_item(
+            Item={
+                **customer_key,
+                "customer_id": customer_id,
+                "name": _simulation_title(slug),
+                "created_by": actor_id,
+                "created_at": now,
+                "updated_at": now,
+                "demo_data": True,
+                "simulation_slug": slug,
+            }
+        )
+
+    table.put_item(
+        Item={
+            "PK": f"CUSTOMER#{customer_id}",
+            "SK": f"SESSION#{session_id}",
+            "session_id": session_id,
+            "customer_id": customer_id,
+            "module_id": "coding-agent",
+            "title": _simulation_title(slug),
+            "description": f"Auto-generated from {simulation_file.name}",
+            "status": "active",
+            "current_step": 0,
+            "created_by": actor_id,
+            "created_at": now,
+            "updated_at": now,
+            "demo_data": True,
+            "simulation_slug": slug,
+        }
+    )
+
+
+def _update_session_row(
+    table,
+    *,
+    customer_id: str,
+    session_id: str,
+    current_step: int,
+    status: str,
+) -> None:
+    table.update_item(
+        Key={
+            "PK": f"CUSTOMER#{customer_id}",
+            "SK": f"SESSION#{session_id}",
+        },
+        UpdateExpression="SET current_step = :current_step, #status = :status, updated_at = :updated_at",
+        ExpressionAttributeNames={"#status": "status"},
+        ExpressionAttributeValues={
+            ":current_step": current_step,
+            ":status": status,
+            ":updated_at": _now(),
+        },
+    )
 
 
 def extract_customer_turns(md_path: Path) -> list[str]:
@@ -130,6 +212,12 @@ def main() -> None:
     parser.add_argument("simulation_file", type=Path)
     parser.add_argument("--arn", default=DEFAULT_ARN)
     parser.add_argument("--max-turns", type=int, default=None)
+    parser.add_argument("--profile", default="")
+    parser.add_argument("--region", default="us-east-1")
+    parser.add_argument("--connect-timeout", type=int, default=20)
+    parser.add_argument("--read-timeout", type=int, default=300)
+    parser.add_argument("--table-name", default=os.environ.get("DYNAMODB_TABLE", "foundry-app-main"))
+    parser.add_argument("--no-persist", action="store_true")
     args = parser.parse_args()
 
     turns = extract_customer_turns(args.simulation_file)
@@ -146,7 +234,26 @@ def main() -> None:
     session_id = f"sim-{slug}-sess-{run_id}"
     actor_id = f"sim-{slug}-user"
 
-    client = boto3.client("bedrock-agentcore", region_name="us-east-1")
+    session = boto3.Session(profile_name=args.profile or None, region_name=args.region)
+    client = session.client(
+        "bedrock-agentcore",
+        config=Config(
+            connect_timeout=args.connect_timeout,
+            read_timeout=args.read_timeout,
+            retries={"max_attempts": 3, "mode": "adaptive"},
+        ),
+    )
+    table = None
+    if not args.no_persist:
+        table = session.resource("dynamodb", region_name=args.region).Table(args.table_name)
+        _bootstrap_inventory_rows(
+            table,
+            customer_id=customer_id,
+            session_id=session_id,
+            actor_id=actor_id,
+            slug=slug,
+            simulation_file=args.simulation_file,
+        )
 
     print(f"=== Simulation: {slug} ===")
     print(f"session_id={session_id}  actor_id={actor_id}")
@@ -162,12 +269,29 @@ def main() -> None:
             client, args.arn, runtime_session_id, customer_id, session_id, actor_id, msg
         )
         total_arch_updates += len(arch_events)
+        if table is not None:
+            _update_session_row(
+                table,
+                customer_id=customer_id,
+                session_id=session_id,
+                current_step=i + 1,
+                status="active",
+            )
 
         print(f"\n[AGENT RESPONSE]\n{'-' * 70}")
         print(text.strip())
         for ev in arch_events:
             print(f"\n  >> architecture_update: stage={ev.get('stage')!r} "
                   f"nodes={len(ev.get('nodes', []))} edges={len(ev.get('edges', []))}")
+
+    if table is not None:
+        _update_session_row(
+            table,
+            customer_id=customer_id,
+            session_id=session_id,
+            current_step=len(messages),
+            status="completed",
+        )
 
     print(f"\n{'=' * 70}")
     print(f"Simulation complete. {len(messages)} turns, "

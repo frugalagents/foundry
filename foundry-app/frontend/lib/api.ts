@@ -5,6 +5,7 @@ import type {
   AdminAccessRequest,
   AdminAnalytics,
   AdminFeedbackRow,
+  AdminJudgeReportRow,
   ConversationRow,
   Customer,
   Module,
@@ -184,6 +185,9 @@ export const listAdminSessions = () =>
 
 export const listAdminFeedback = () =>
   call<AdminFeedbackRow[]>('/api/v1/admin/feedback')
+
+export const listAdminJudgeReports = () =>
+  call<AdminJudgeReportRow[]>('/api/v1/admin/judge-reports')
 
 export const getAdminAnalytics = () =>
   call<AdminAnalytics>('/api/v1/admin/analytics')

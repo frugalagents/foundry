@@ -1,0 +1,1325 @@
+[
+  {
+    "id": "strategy-blueprint",
+    "name": "Strategy Blueprint",
+    "strict_gate": true,
+    "summary": "Golden-path review session for this app: the advisor lands on Codex on Bedrock, publishes the architecture, and ends with a complete blueprint.",
+    "vision": "The app should act like an enterprise advisory workbench, not a chat log. Every UI surface should accurately reflect the current recommendation, expose uncertainty honestly, and make the next actions obvious. When the answer is ready, the session should end with a defensible recommendation, a visible architecture, and a blueprint build teams can use.",
+    "success_criteria": [
+      "The brief makes the primary recommendation and confidence immediately clear.",
+      "Questions, assumptions, blueprint, and architecture stay consistent with the same underlying session state.",
+      "The session ends with a complete blueprint and no blocking questions when the strategy is resolved."
+    ],
+    "expectations": {
+      "required_stage": "blueprint",
+      "required_confidence": "high",
+      "require_architecture": true,
+      "require_published_blueprint": true,
+      "max_open_questions": 0,
+      "recommendation_must_include": [
+        "Codex",
+        "Bedrock"
+      ],
+      "recommended_option_must_include": [
+        "Codex",
+        "Bedrock"
+      ],
+      "recommended_option_must_exclude": [
+        "Claude Code"
+      ]
+    },
+    "customer": {
+      "customer_id": "review-strategy-customer",
+      "name": "Demo Strategy Review Workspace",
+      "created_by": "review-agent",
+      "created_at": "2026-08-28T13:45:00.000Z",
+      "updated_at": "2026-08-28T13:45:00.000Z",
+      "demo_data": true
+    },
+    "session": {
+      "session_id": "review-strategy-session",
+      "customer_id": "review-strategy-customer",
+      "module_id": "coding-agent",
+      "title": "Foundry Product Strategy Review",
+      "description": "Judge whether the app ends with the right recommendation and whether every UI surface represents that outcome accurately.",
+      "status": "active",
+      "current_step": 3,
+      "created_by": "review-agent",
+      "created_at": "2026-08-28T13:45:00.000Z",
+      "updated_at": "2026-08-28T14:20:00.000Z"
+    },
+    "transcript": [
+      {
+        "id": "strategy-user-1",
+        "role": "user",
+        "content": "Our product vision is an AWS-native advisory app that can simulate, review, and improve coding-agent deployments. We need one default recommendation the app can defend, and we want the review to show whether the UI itself is telling the truth."
+      },
+      {
+        "id": "strategy-agent-1",
+        "role": "agent",
+        "content": "The recommendation is now complete. For this product, the right default is **Codex on Bedrock** inside the managed AWS control plane, with `Claude Code` kept as a deferred alternative rather than the primary recommendation.\n\nI published the final brief, the architecture, and the technical blueprint so the UI can be reviewed as a finished session instead of an in-progress draft."
+      }
+    ],
+    "workspace": {
+      "stage": "blueprint",
+      "recommendation": "Standardize this app on Codex on Bedrock as the default recommendation path. It fits the AWS-native control plane, keeps model access, auditing, and deployment review inside the same governed environment, and leaves Claude Code as a non-default comparison or exception lane rather than the lead answer.",
+      "blueprint_markdown": "## Technical Blueprint\n\n### Product Outcome\nThe app runs as an enterprise review workbench that can inspect a deployment, score the resulting recommendation, and surface the open items a reviewer should act on.\n\n### Default Recommendation Path\n- Default coding harness: Codex\n- Model and governance path: Amazon Bedrock\n- Runtime posture: managed AWS execution with policy, logging, and report capture inside the same control plane\n- Exception posture: Claude Code may be evaluated as a deferred alternative, but not as the default answer for this product\n\n### Review Workflow\n1. Capture the product vision and target deployment context.\n2. Simulate the session and persist the visible workspace state.\n3. Judge the outcome against the product vision and UI accuracy rubric.\n4. Publish the recommendation, architecture, blueprint, open items, and feature suggestions.\n\n### UI Accuracy Rules\n- The Brief must show the real recommendation and confidence.\n- The Questions panel must reflect only active blockers.\n- The Blueprint tab must clearly distinguish published artifacts from synthesized drafts.\n- The Architecture board must expose the control path, execution boundary, and reporting surfaces.\n\n### Rollout\n1. Add deterministic review scenarios and a golden-path seeded session.\n2. Add LLM-as-judge reports driven by product vision and UI outcomes.\n3. Add live deployment review and persisted session playback in the normal app UI.",
+      "assumptions": [
+        {
+          "id": "assumption-control-plane",
+          "title": "One governed AWS control plane",
+          "assumed": "The product should keep recommendation generation, review reporting, and model governance inside the same AWS control plane.",
+          "why": "That keeps operational ownership, reporting, and residency decisions in one place for this app.",
+          "impact": "If this is false, the recommendation would need a multi-provider or split-control architecture.",
+          "confidence": "confirmed",
+          "impact_level": "high",
+          "drives_architecture": true,
+          "validation_priority": "now",
+          "options": [
+            {
+              "id": "control-plane-single",
+              "label": "Keep AWS native",
+              "prompt": "Keep the control plane fully AWS native and strengthen the recommendation around Bedrock, reporting, and runtime governance."
+            },
+            {
+              "id": "control-plane-split",
+              "label": "Split providers",
+              "prompt": "Rework the architecture for a split-control model where review and runtime sit on different provider paths."
+            }
+          ]
+        },
+        {
+          "id": "assumption-review-surface",
+          "title": "Review mode must expose truth, not convenience",
+          "assumed": "The review experience should clearly label synthesized drafts versus published artifacts.",
+          "why": "A reviewer needs to know whether they are looking at an actual blueprint or a helpful fallback.",
+          "impact": "If the UI blurs that line, confidence and readiness signals become misleading.",
+          "confidence": "confirmed",
+          "impact_level": "high",
+          "drives_architecture": false,
+          "validation_priority": "now",
+          "options": [
+            {
+              "id": "review-surface-explicit",
+              "label": "Keep draft labels",
+              "prompt": "Preserve explicit draft labeling and accuracy banners wherever the UI synthesizes artifacts."
+            },
+            {
+              "id": "review-surface-hidden",
+              "label": "Hide derived drafts",
+              "prompt": "Hide any synthesized draft content until the advisor publishes a canonical artifact."
+            }
+          ]
+        }
+      ],
+      "facts": [
+        "The product is AWS-native and already uses Bedrock-aligned deployment primitives.",
+        "The app needs to review not only recommendation quality but also UI truthfulness.",
+        "The target outcome is a persisted advisory session that a human can inspect in the normal UI.",
+        "Claude Code is in scope as a comparison, but not as the default answer for this product strategy."
+      ],
+      "operating_model": "default_plus_exceptions",
+      "question_state": [],
+      "open_questions": [],
+      "decisions": [
+        "Recommend Codex on Bedrock as the default product strategy for this app.",
+        "Treat Claude Code as a deferred alternative or bounded exception lane, not the lead recommendation.",
+        "Use an LLM judge plus deterministic checks to review the outcome and UI accuracy together."
+      ],
+      "risks": [
+        "If the review UI shows synthesized blueprint content without labeling it, reviewers will overestimate blueprint completeness.",
+        "If the judge rubric is vague, the app will collapse back into generic completeness checks instead of outcome quality."
+      ],
+      "implementation_plan": [
+        "Ship deterministic review scenarios and one golden-path seeded session first.",
+        "Add LLM-as-judge reports that score recommendation quality, UI accuracy, and missing features.",
+        "Wire live deployment review so the report links back to a persisted session the user can inspect."
+      ],
+      "advisory_case": {
+        "recommendation": {
+          "summary": "Recommend Codex on Bedrock as the default strategy for this product, with Claude Code retained only as a deferred alternative.",
+          "why_this": "It matches the app's AWS-native control plane, supports governed model access through Bedrock, and keeps the review workflow aligned with the same runtime, audit, and deployment surfaces the product already owns.",
+          "why_not": "Claude Code is a valid comparison point, but making it the default would weaken the app's AWS-first strategy and blur the story around one governed control plane for review and execution.",
+          "confidence": "high",
+          "confidence_reason": "The product vision, control-plane preference, UI accuracy goals, and end-state artifact requirements are all resolved, and no blocking questions remain.",
+          "change_triggers": [
+            "The product shifts away from AWS-native runtime and governance.",
+            "A future user segment requires an IDE-native primary surface that Codex cannot satisfy without a separate lane."
+          ]
+        },
+        "alternatives": [
+          {
+            "id": "alt-claude-default",
+            "title": "Claude Code as the default answer",
+            "position": "deferred",
+            "summary": "Strong agentic experience, but weaker fit for an AWS-first product story when the review and runtime are meant to stay on the same governed Bedrock path.",
+            "benefits": [
+              "Managed product experience"
+            ],
+            "risks": [
+              "Confuses the app's Bedrock-first strategy"
+            ],
+            "operational_burden": "Medium",
+            "governance_implications": "Adds more narrative complexity around the default control path.",
+            "best_fit_conditions": [
+              "If the product later optimizes primarily for IDE-native interaction instead of AWS-native review governance."
+            ]
+          }
+        ],
+        "decisions": [
+          {
+            "statement": "Use Codex on Bedrock as the default strategy recommendation for this app.",
+            "options_considered": [
+              "Codex on Bedrock",
+              "Claude Code as default"
+            ],
+            "recommendation": "Codex on Bedrock",
+            "why": "It keeps model access, runtime governance, and deployment review in one AWS-native story.",
+            "tradeoffs_accepted": [
+              "The app must make its review rubric and runtime posture more explicit."
+            ],
+            "owner": "Product strategy",
+            "open_dependency": ""
+          }
+        ],
+        "risks": [
+          {
+            "category": "product",
+            "severity": "medium",
+            "risk": "Reviewers may misread synthesized artifacts as published outputs.",
+            "mitigation": "Label derived blueprint content and keep the final stage gated on published artifacts."
+          }
+        ],
+        "maturity": [
+          {
+            "domain": "Review workflow",
+            "current_state": "Manual tester-driven review after deployment.",
+            "target_state": "Automated judge-driven review with persisted UI-visible sessions and actionable reports.",
+            "gap": "Judge rubric, seeded sessions, and deployment wiring."
+          }
+        ],
+        "readout": {
+          "current_recommendation": "Codex on Bedrock should be the default recommendation path for this product.",
+          "important_decisions": [
+            "Use Codex on Bedrock as the primary recommendation.",
+            "Keep Claude Code as a deferred alternative, not the default.",
+            "Review every UI surface for accuracy, not just completeness."
+          ],
+          "biggest_risks": [
+            "Misleading draft artifacts",
+            "Judge rubric that is too generic"
+          ],
+          "open_questions": [],
+          "rollout_summary": "Seed the golden path, add the judge, then connect live deployment review.",
+          "architecture_snapshot": "Shared review surfaces feed a Codex-on-Bedrock recommendation path, persisted workspace artifacts, and report outputs in one governed AWS control plane."
+        },
+        "next_best_question": null,
+        "output_pack": {
+          "executive_summary": "This product should default to Codex on Bedrock and use an LLM judge to review both the recommendation outcome and the accuracy of the visible UI surfaces.",
+          "recommendation_memo": "That combination fits the AWS-native control plane, keeps the story consistent for runtime and review, and gives the app a credible way to surface open items and missing features after each deployment.",
+          "architecture_narrative": "The review experience captures product vision, simulates or replays a session, persists workspace artifacts, and judges the result against the same governed Bedrock-backed control path used by the product.",
+          "key_decisions": [
+            "Make Codex on Bedrock the default recommendation path.",
+            "Label derived blueprint drafts so the UI stays truthful.",
+            "Use an LLM judge to suggest missing features in addition to open issues."
+          ],
+          "risks_and_mitigations": [
+            {
+              "risk": "The UI can overstate readiness if derived content looks canonical.",
+              "mitigation": "Treat published artifacts and synthesized drafts as separate states."
+            }
+          ],
+          "open_questions": [],
+          "rollout_30_90_180": [
+            {
+              "horizon": "30 days",
+              "outcome": "Publish deterministic review scenarios and a golden-path review session."
+            },
+            {
+              "horizon": "90 days",
+              "outcome": "Run LLM judge reports for deployed sessions and persist the results."
+            },
+            {
+              "horizon": "180 days",
+              "outcome": "Let the product auto-suggest or auto-apply low-risk review fixes after deployment."
+            }
+          ],
+          "operating_principles": [
+            "Review what the user sees, not just the raw workspace state.",
+            "Treat honesty about uncertainty as a product feature.",
+            "Persist reports so a human can inspect the same session in the main UI."
+          ],
+          "control_checklist": [
+            "Bedrock-backed model access",
+            "Published blueprint artifact",
+            "Persisted session and review report",
+            "Derived-content labeling"
+          ]
+        },
+        "delta": null
+      },
+      "architecture_case": {
+        "schema_version": "1.0",
+        "case_id": "case-strategy-blueprint",
+        "revision": 3,
+        "okf_release_id": "okf:demo",
+        "stage": "blueprint",
+        "current_recommendation": "Codex on Bedrock as the default strategy recommendation for this product.",
+        "operating_model": "default_plus_exceptions",
+        "facts": [
+          {
+            "id": "fact-1",
+            "statement": "The app is AWS-native and needs one governed control plane."
+          },
+          {
+            "id": "fact-2",
+            "statement": "The review needs to assess UI accuracy, not just transcript completeness."
+          }
+        ],
+        "open_questions": [],
+        "decisions": [
+          {
+            "id": "decision-1",
+            "statement": "Use Codex on Bedrock as the default product path.",
+            "rationale": "The runtime, review, and reporting story stays inside one AWS-native control plane."
+          }
+        ],
+        "risks": [
+          {
+            "id": "risk-1",
+            "risk": "The UI may blur published artifacts and synthesized drafts.",
+            "mitigation": "Label derived blueprint content and gate final readiness on canonical artifacts."
+          }
+        ],
+        "artifacts": {
+          "blueprint_markdown": "## Technical Blueprint\n\n### Control Plane\nThe product captures the product vision, runtime outputs, and UI-visible artifacts in one AWS-native review loop.\n\n### Primary Recommendation Lane\nCodex is the default harness and Bedrock is the model and governance path.\n\n### Review Surfaces\nBrief, Questions, Assumptions, Blueprint, and Architecture all read from the same persisted workspace state.\n\n### Reporting\nJudge packets and review reports are stored so a human can inspect the same session in the app.",
+          "executive_summary": "Codex on Bedrock is the default recommendation path, supported by one AWS-native review control plane.",
+          "recommendation_memo": "The review flow and the runtime story stay aligned when the app uses one primary governed path.",
+          "architecture_narrative": "Product vision and session state feed a judge packet, persisted workspace, architecture board, and blueprint report inside the same Bedrock-governed review loop.",
+          "diagram_summary": "Vision -> session state -> Codex recommendation -> Bedrock governance -> reports",
+          "rollout": [
+            {
+              "phase": "30 days",
+              "outcome": "Golden-path session"
+            },
+            {
+              "phase": "90 days",
+              "outcome": "Judge-driven review report"
+            }
+          ]
+        }
+      },
+      "recommendation_state": {
+        "primary_recommendation": "Use Codex on Bedrock as the default product recommendation and keep Claude Code as a deferred alternative.",
+        "confidence": "high",
+        "candidate_options": [
+          {
+            "path": "product/default/codex-bedrock",
+            "title": "Codex on Bedrock",
+            "summary": "AWS-native default recommendation with one governed control plane for review, runtime, and reporting.",
+            "decision_domain": "product-default",
+            "position": "recommended"
+          },
+          {
+            "path": "product/default/claude-code",
+            "title": "Claude Code",
+            "summary": "Valid comparison path, but not the best default fit for this product strategy.",
+            "decision_domain": "product-default",
+            "position": "deferred"
+          }
+        ],
+        "missing_evidence": [],
+        "next_best_question": "",
+        "last_reasoning_change_fields": [
+          "recommendation",
+          "architecture",
+          "blueprint"
+        ]
+      },
+      "artifact_status": {
+        "recommendation": "ready",
+        "question_state": "ready",
+        "advisory_case": "ready",
+        "blueprint": "ready",
+        "blocking_question_count": 0,
+        "stale_fields": [],
+        "reasoning_changes": []
+      },
+      "updated_at": "2026-08-28T14:20:00.000Z"
+    },
+    "architectureArtifact": {
+      "executive_summary": "A shared review control plane captures the product vision, drives a Codex-on-Bedrock recommendation, and publishes the resulting architecture, blueprint, and review report in one AWS-native loop.",
+      "baseline": {
+        "name": "Foundry Review Baseline",
+        "layers": [
+          {
+            "id": "surface",
+            "label": "Surface",
+            "purpose": "Where the user reviews the advisory outcome and session artifacts.",
+            "component_ids": [
+              "surface-brief",
+              "surface-review"
+            ],
+            "component_labels": [
+              "Advisory Brief",
+              "Review Workbench"
+            ]
+          },
+          {
+            "id": "harness",
+            "label": "Harness",
+            "purpose": "The default coding-agent harness this product should recommend.",
+            "component_ids": [
+              "harness-codex"
+            ],
+            "component_labels": [
+              "Codex"
+            ]
+          },
+          {
+            "id": "execution",
+            "label": "Execution",
+            "purpose": "Managed AWS runtime and persisted session state.",
+            "component_ids": [
+              "exec-managed"
+            ],
+            "component_labels": [
+              "Managed Review Runtime"
+            ]
+          },
+          {
+            "id": "gateway",
+            "label": "Gateway",
+            "purpose": "Shared review and policy path for artifacts and reports.",
+            "component_ids": [
+              "gateway-report"
+            ],
+            "component_labels": [
+              "Review + Policy Gateway"
+            ]
+          },
+          {
+            "id": "model",
+            "label": "Model Route",
+            "purpose": "Model access and governance path for the default recommendation.",
+            "component_ids": [
+              "model-bedrock"
+            ],
+            "component_labels": [
+              "Bedrock Model Route"
+            ]
+          }
+        ]
+      },
+      "customizations": [
+        {
+          "id": "cust-derived-labels",
+          "title": "Derived artifact labeling",
+          "layer": "surface",
+          "added_component_ids": [
+            "surface-draft-banner"
+          ],
+          "reason": "Reviewers need to know whether a blueprint is published or synthesized.",
+          "tradeoff": "More UI state to explain, but higher trust.",
+          "triggered_by": [
+            "ui accuracy",
+            "review trust"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "decision": "Use Codex on Bedrock as the default product path.",
+          "why": "It aligns runtime, review, and reporting with one AWS-native control plane."
+        }
+      ],
+      "risks": [
+        {
+          "risk": "Derived artifacts may be mistaken for canonical outputs.",
+          "mitigation": "Publish explicit draft labeling and require canonical artifacts for final readiness."
+        }
+      ],
+      "rollout": [
+        {
+          "phase": "30 days",
+          "outcome": "Seed golden-path review session."
+        },
+        {
+          "phase": "90 days",
+          "outcome": "Run judge-backed review reports after deployment."
+        }
+      ],
+      "primary_flow": [
+        {
+          "id": "flow-review",
+          "title": "Review request path",
+          "narrative": "The user opens the review workbench, the app reads the persisted workspace, and the judge evaluates whether the outcome matches the product vision.",
+          "component_ids": [
+            "surface-review",
+            "harness-codex",
+            "exec-managed",
+            "gateway-report",
+            "model-bedrock"
+          ]
+        }
+      ],
+      "cross_cutting_controls": [
+        {
+          "id": "control-reporting",
+          "title": "Persisted reporting",
+          "narrative": "Session artifacts and judge outputs are stored so humans can inspect the same outcome in the main UI.",
+          "component_ids": [
+            "gateway-report"
+          ]
+        }
+      ],
+      "supporting_lanes": [
+        {
+          "id": "lane-claude-alt",
+          "title": "Deferred alternative lane",
+          "narrative": "Claude Code remains visible as a comparison path, but it is not the default recommendation for this product.",
+          "component_ids": [
+            "surface-brief"
+          ]
+        }
+      ]
+    },
+    "canvas": {
+      "nodes": [
+        {
+          "id": "surface-brief",
+          "type": "arch",
+          "label": "Advisory Brief",
+          "color": "#d97706",
+          "x": 60,
+          "y": 50,
+          "layer": "surface",
+          "path_role": "supporting"
+        },
+        {
+          "id": "surface-review",
+          "type": "arch",
+          "label": "Review Workbench",
+          "color": "#92400e",
+          "x": 60,
+          "y": 160,
+          "layer": "surface",
+          "path_role": "primary"
+        },
+        {
+          "id": "harness-codex",
+          "type": "arch",
+          "label": "Codex",
+          "color": "#2563eb",
+          "x": 280,
+          "y": 160,
+          "layer": "harness",
+          "path_role": "primary"
+        },
+        {
+          "id": "exec-managed",
+          "type": "arch",
+          "label": "Managed Review Runtime",
+          "color": "#16a34a",
+          "x": 500,
+          "y": 160,
+          "layer": "execution",
+          "path_role": "primary"
+        },
+        {
+          "id": "gateway-report",
+          "type": "arch",
+          "label": "Review + Policy Gateway",
+          "color": "#0ea5e9",
+          "x": 720,
+          "y": 160,
+          "layer": "gateway",
+          "path_role": "primary"
+        },
+        {
+          "id": "model-bedrock",
+          "type": "arch",
+          "label": "Bedrock Model Route",
+          "color": "#10b981",
+          "x": 940,
+          "y": 160,
+          "layer": "model",
+          "path_role": "primary"
+        },
+        {
+          "id": "surface-draft-banner",
+          "type": "arch",
+          "label": "Draft Accuracy Banner",
+          "color": "#b45309",
+          "x": 280,
+          "y": 300,
+          "layer": "surface",
+          "path_role": "overlay"
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-1",
+          "source": "surface-review",
+          "target": "harness-codex"
+        },
+        {
+          "id": "edge-2",
+          "source": "harness-codex",
+          "target": "exec-managed"
+        },
+        {
+          "id": "edge-3",
+          "source": "exec-managed",
+          "target": "gateway-report"
+        },
+        {
+          "id": "edge-4",
+          "source": "gateway-report",
+          "target": "model-bedrock"
+        },
+        {
+          "id": "edge-5",
+          "source": "surface-brief",
+          "target": "surface-review",
+          "dashed": true
+        }
+      ],
+      "baselineNodeIds": [
+        "surface-brief",
+        "surface-review",
+        "harness-codex",
+        "exec-managed",
+        "gateway-report",
+        "model-bedrock"
+      ]
+    }
+  },
+  {
+    "id": "discovery-brief",
+    "name": "Discovery Brief",
+    "strict_gate": true,
+    "summary": "Early discovery conversation with live blockers and no architecture commitment yet.",
+    "vision": "The app should turn a loose executive ask into a disciplined advisory workspace: short chat, explicit blockers, and a visible recommendation trajectory instead of burying everything in transcript text.",
+    "success_criteria": [
+      "Discovery stage is obvious at a glance.",
+      "Open questions are promoted into the workspace.",
+      "The app does not pretend the architecture is resolved too early."
+    ],
+    "customer": {
+      "customer_id": "review-discovery-customer",
+      "name": "Demo Discovery Workspace",
+      "created_by": "review-agent",
+      "created_at": "2026-08-28T12:00:00.000Z",
+      "updated_at": "2026-08-28T12:00:00.000Z",
+      "demo_data": true
+    },
+    "session": {
+      "session_id": "review-discovery-session",
+      "customer_id": "review-discovery-customer",
+      "module_id": "coding-agent",
+      "title": "Global Coding Agent Discovery",
+      "description": "Clarify the control posture before recommending a target-state platform.",
+      "status": "active",
+      "current_step": 1,
+      "created_by": "review-agent",
+      "created_at": "2026-08-28T12:00:00.000Z",
+      "updated_at": "2026-08-28T12:20:00.000Z"
+    },
+    "transcript": [
+      {
+        "id": "disc-user-1",
+        "role": "user",
+        "content": "We want a coding agent platform for 4,000 engineers, but security is already worried about local execution and data residency."
+      },
+      {
+        "id": "disc-agent-1",
+        "role": "agent",
+        "content": "The recommendation is not blocked on vendor selection yet. It is blocked on whether regulated repositories need a separate execution lane and whether code can leave region.\n\nWhat portion of your estate is regulated enough to require isolated execution?"
+      }
+    ],
+    "workspace": {
+      "stage": "discovery",
+      "recommendation": "Likely a governed multi-lane platform, but the execution boundary is still unresolved.",
+      "blueprint_markdown": "",
+      "facts": [
+        "Roughly 4,000 engineers are in scope.",
+        "Security has concerns about local execution.",
+        "Data residency is already a decision driver."
+      ],
+      "operating_model": "undecided",
+      "question_state": [
+        {
+          "id": "q-discovery-1",
+          "text": "What portion of the engineering estate requires isolated execution due to regulation or residency?",
+          "why_it_matters": "This determines whether one execution lane is viable or if the target state needs segregated execution paths.",
+          "decision_domain": "execution",
+          "status": "open",
+          "blocking": true,
+          "answer": "",
+          "source": "advisor"
+        }
+      ],
+      "open_questions": [
+        "What portion of the engineering estate requires isolated execution due to regulation or residency?"
+      ],
+      "decisions": [],
+      "risks": [
+        "If the team assumes one global execution path too early, the target architecture will likely violate residency or regulated-code constraints."
+      ],
+      "implementation_plan": [],
+      "recommendation_state": {
+        "primary_recommendation": "A governed multi-lane architecture is more likely than a single standard path.",
+        "confidence": "low",
+        "candidate_options": [
+          {
+            "path": "execution/multi-lane",
+            "title": "Governed multi-lane execution",
+            "summary": "Standard lane for general repos and an isolated lane for regulated workloads.",
+            "decision_domain": "execution",
+            "position": "recommended"
+          },
+          {
+            "path": "execution/single-lane",
+            "title": "Single execution lane",
+            "summary": "One shared execution path for every engineer.",
+            "decision_domain": "execution",
+            "position": "deferred"
+          }
+        ],
+        "missing_evidence": [
+          "Regulated population size",
+          "Regional placement requirement"
+        ],
+        "next_best_question": "What portion of the engineering estate requires isolated execution due to regulation or residency?",
+        "last_reasoning_change_fields": [
+          "open_questions",
+          "candidate_options"
+        ]
+      },
+      "artifact_status": {
+        "recommendation": "draft",
+        "question_state": "ready",
+        "advisory_case": "missing",
+        "blueprint": "missing",
+        "blocking_question_count": 1,
+        "stale_fields": [],
+        "reasoning_changes": [
+          "Execution boundary is unresolved."
+        ]
+      },
+      "updated_at": "2026-08-28T12:20:00.000Z"
+    },
+    "architectureArtifact": null,
+    "canvas": {
+      "nodes": [],
+      "edges": [],
+      "baselineNodeIds": []
+    }
+  },
+  {
+    "id": "solutioning-gap",
+    "name": "Solutioning Gap",
+    "strict_gate": false,
+    "summary": "The advisor has moved into solutioning but has not published the target-state architecture or structured decisions yet.",
+    "vision": "Once the app says it is solutioning, users should see an opinionated architecture direction, not just another round of chat. The workspace needs to convert reasoning into visible design artifacts quickly.",
+    "success_criteria": [
+      "A stage beyond discovery should surface a target-state architecture.",
+      "Major decisions and risks should be explicit, not implied.",
+      "Open blockers should narrow, not sprawl."
+    ],
+    "customer": {
+      "customer_id": "review-solutioning-customer",
+      "name": "Demo Solutioning Workspace",
+      "created_by": "review-agent",
+      "created_at": "2026-08-28T12:30:00.000Z",
+      "updated_at": "2026-08-28T12:30:00.000Z",
+      "demo_data": true
+    },
+    "session": {
+      "session_id": "review-solutioning-session",
+      "customer_id": "review-solutioning-customer",
+      "module_id": "coding-agent",
+      "title": "Regional Bank Platform Refresh",
+      "description": "Pressure-test a governed multi-harness target state for a regulated estate.",
+      "status": "active",
+      "current_step": 2,
+      "created_by": "review-agent",
+      "created_at": "2026-08-28T12:30:00.000Z",
+      "updated_at": "2026-08-28T12:55:00.000Z"
+    },
+    "transcript": [
+      {
+        "id": "sol-user-1",
+        "role": "user",
+        "content": "About 20% of our repos handle regulated workloads, and those teams cannot let code leave our region."
+      },
+      {
+        "id": "sol-agent-1",
+        "role": "agent",
+        "content": "That pushes the target state away from one standard tool for everyone. You now need a governed multi-harness design with at least one isolated execution lane.\n\nThe remaining blocker is whether the isolated lane can use the same identity and approval path as the standard lane."
+      }
+    ],
+    "workspace": {
+      "stage": "solutioning",
+      "recommendation": "Adopt a governed multi-harness model with a standard shared lane and a separate isolated lane for regulated repositories.",
+      "blueprint_markdown": "",
+      "facts": [
+        "Twenty percent of repositories are regulated.",
+        "Regulated teams require in-region execution.",
+        "The platform must still support a shared standard lane for the broader estate."
+      ],
+      "operating_model": "multi_harness_governed",
+      "question_state": [
+        {
+          "id": "q-solutioning-1",
+          "text": "Can the regulated lane reuse the standard identity and approval path, or does it require separate approvals and audit ownership?",
+          "why_it_matters": "This changes the control-plane shape and the amount of control segregation the target architecture needs.",
+          "decision_domain": "identity",
+          "status": "open",
+          "blocking": true,
+          "answer": "",
+          "source": "advisor"
+        }
+      ],
+      "open_questions": [
+        "Can the regulated lane reuse the standard identity and approval path, or does it require separate approvals and audit ownership?"
+      ],
+      "decisions": [],
+      "risks": [],
+      "implementation_plan": [
+        "Validate whether the regulated execution lane needs separate identity governance."
+      ],
+      "recommendation_state": {
+        "primary_recommendation": "Adopt a governed multi-harness model with a standard lane and an isolated regulated lane.",
+        "confidence": "medium",
+        "candidate_options": [
+          {
+            "path": "operating-model/multi-harness",
+            "title": "Governed multi-harness",
+            "summary": "Shared standard lane plus isolated regulated lane under a common governance model.",
+            "decision_domain": "operating-model",
+            "position": "recommended"
+          },
+          {
+            "path": "operating-model/single-standard",
+            "title": "Single standard platform",
+            "summary": "One standard path for every population.",
+            "decision_domain": "operating-model",
+            "position": "deferred"
+          }
+        ],
+        "missing_evidence": [
+          "Identity segregation requirement"
+        ],
+        "next_best_question": "Can the regulated lane reuse the standard identity and approval path, or does it require separate approvals and audit ownership?",
+        "last_reasoning_change_fields": [
+          "recommendation",
+          "operating_model"
+        ]
+      },
+      "artifact_status": {
+        "recommendation": "ready",
+        "question_state": "ready",
+        "advisory_case": "draft",
+        "blueprint": "missing",
+        "blocking_question_count": 1,
+        "stale_fields": [
+          "architecture"
+        ],
+        "reasoning_changes": [
+          "Target-state architecture has not been published yet."
+        ]
+      },
+      "updated_at": "2026-08-28T12:55:00.000Z"
+    },
+    "architectureArtifact": null,
+    "canvas": {
+      "nodes": [],
+      "edges": [],
+      "baselineNodeIds": []
+    }
+  },
+  {
+    "id": "blueprint-ready",
+    "name": "Blueprint Ready",
+    "strict_gate": true,
+    "summary": "A coherent target-state advisory with explicit architecture, decisions, risks, and rollout artifacts.",
+    "vision": "The mature experience should feel like a consulting workbench: brief, architecture, assumptions, and blueprint all synchronized, with chat acting as a thin interaction layer rather than the primary artifact store.",
+    "success_criteria": [
+      "A strong recommendation is visible in the brief and blueprint.",
+      "Architecture, controls, decisions, and rollout are explicit.",
+      "Chat is concise because the artifact panels carry the heavy content."
+    ],
+    "customer": {
+      "customer_id": "review-blueprint-customer",
+      "name": "Demo Blueprint Workspace",
+      "created_by": "review-agent",
+      "created_at": "2026-08-28T13:00:00.000Z",
+      "updated_at": "2026-08-28T13:00:00.000Z",
+      "demo_data": true
+    },
+    "session": {
+      "session_id": "review-blueprint-session",
+      "customer_id": "review-blueprint-customer",
+      "module_id": "coding-agent",
+      "title": "Enterprise Advisory Blueprint",
+      "description": "Publish the target-state platform, controls, and rollout plan for a multi-region enterprise.",
+      "status": "active",
+      "current_step": 3,
+      "created_by": "review-agent",
+      "created_at": "2026-08-28T13:00:00.000Z",
+      "updated_at": "2026-08-28T13:30:00.000Z"
+    },
+    "transcript": [
+      {
+        "id": "bp-user-1",
+        "role": "user",
+        "content": "Shared identity is acceptable for the standard lane, but regulated teams need separate approvals and audit ownership."
+      },
+      {
+        "id": "bp-agent-1",
+        "role": "agent",
+        "content": "I updated the baseline architecture and the blueprint. The target state is now a governed multi-harness platform with a shared standard lane and a separately approved regulated lane."
+      }
+    ],
+    "workspace": {
+      "stage": "blueprint",
+      "recommendation": "Run a governed multi-harness platform with one shared standard lane and a separately approved regulated lane that stays in-region and carries its own audit ownership.",
+      "blueprint_markdown": "## Technical Blueprint\n\n### Target State\nA governed multi-harness platform with two execution lanes: a shared standard lane for most engineers and a regulated lane for in-region repositories that require stricter approval and audit ownership.\n\n### Control Model\n- Shared discovery, policy, and model-routing standards.\n- Separate approval workflow and audit ownership for the regulated lane.\n- Common observability with region-specific telemetry storage.\n\n### Rollout\n1. Pilot the standard lane for non-regulated teams.\n2. Stand up the regulated lane with isolated execution and approvals.\n3. Expand the operating model under shared governance.",
+      "facts": [
+        "Twenty percent of repositories are regulated and must stay in-region.",
+        "A shared standard lane is still required for the broader engineering population.",
+        "Regulated teams need separate approvals and audit ownership."
+      ],
+      "operating_model": "multi_harness_governed",
+      "question_state": [],
+      "open_questions": [],
+      "decisions": [
+        "Use a governed multi-harness operating model instead of forcing one standard tool on all populations.",
+        "Separate the regulated execution lane with its own approval and audit path while preserving shared platform governance."
+      ],
+      "risks": [
+        "If shared policy definitions and regulated-lane controls drift apart, the platform will become operationally expensive and inconsistent.",
+        "The regulated lane may experience slower onboarding unless approval workflows are automated early."
+      ],
+      "implementation_plan": [
+        "Pilot the standard lane with non-regulated teams in the next 30 days.",
+        "Stand up the regulated lane with isolated execution, approvals, and telemetry within 90 days.",
+        "Unify policy, quota, and observability reporting across both lanes within 180 days."
+      ],
+      "advisory_case": {
+        "recommendation": {
+          "summary": "Adopt a governed multi-harness platform with one shared standard lane and one separately governed regulated lane.",
+          "why_this": "It preserves broad developer access while containing regulated workloads inside the correct execution, approval, and audit boundaries.",
+          "why_not": "A single standard lane would violate the control boundary, while fully separate platforms would duplicate governance and fragment the developer experience.",
+          "confidence": "high",
+          "confidence_reason": "The primary execution, identity, and residency decisions are now resolved.",
+          "change_triggers": [
+            "A new class of workloads requires a third isolated lane.",
+            "Shared model routing is no longer allowed for the regulated population."
+          ]
+        },
+        "alternatives": [
+          {
+            "id": "alt-single-standard",
+            "title": "Single standard platform",
+            "position": "deferred",
+            "summary": "Lower operating complexity but incompatible with the regulated execution boundary.",
+            "benefits": [
+              "Simpler rollout"
+            ],
+            "risks": [
+              "Violates control boundaries"
+            ],
+            "operational_burden": "Low",
+            "governance_implications": "Insufficient segregation for regulated teams.",
+            "best_fit_conditions": [
+              "Low-regulation environments"
+            ]
+          }
+        ],
+        "decisions": [
+          {
+            "statement": "Adopt a governed multi-harness operating model.",
+            "options_considered": [
+              "Single standard platform",
+              "Governed multi-harness"
+            ],
+            "recommendation": "Governed multi-harness",
+            "why": "Different populations have materially different control requirements.",
+            "tradeoffs_accepted": [
+              "Additional platform governance complexity"
+            ],
+            "owner": "Platform architecture",
+            "open_dependency": ""
+          }
+        ],
+        "risks": [
+          {
+            "category": "operations",
+            "severity": "medium",
+            "risk": "Control drift between the standard and regulated lanes.",
+            "mitigation": "Use shared policy definitions and a unified observability model."
+          }
+        ],
+        "maturity": [
+          {
+            "domain": "Governance",
+            "current_state": "Manual approvals and fragmented policy ownership.",
+            "target_state": "Shared governance model with explicit regulated-lane ownership.",
+            "gap": "Automation and role clarity."
+          }
+        ],
+        "readout": {
+          "current_recommendation": "Governed multi-harness with one shared lane and one regulated lane.",
+          "important_decisions": [
+            "Separate regulated approvals and audit ownership.",
+            "Keep shared policy, quota, and observability standards."
+          ],
+          "biggest_risks": [
+            "Control drift between lanes",
+            "Slow regulated onboarding if approvals remain manual"
+          ],
+          "open_questions": [],
+          "rollout_summary": "Pilot standard lane first, then introduce regulated lane and unify reporting.",
+          "architecture_snapshot": "Shared surfaces and governance feed two execution lanes with common model-routing standards."
+        },
+        "next_best_question": null,
+        "output_pack": {
+          "executive_summary": "The enterprise should adopt a governed multi-harness platform that keeps the standard lane broadly accessible while isolating regulated repositories inside a separately approved in-region execution path.",
+          "recommendation_memo": "This model balances developer scale with the control boundary. It avoids forcing one compromised standard across incompatible populations.",
+          "architecture_narrative": "Users enter through shared surfaces and governance. Requests for standard workloads flow through the shared lane, while regulated workloads are routed into a separately approved in-region path with independent audit ownership.",
+          "key_decisions": [
+            "Use a governed multi-harness operating model.",
+            "Separate regulated approvals and audit ownership.",
+            "Keep shared observability, quota, and policy standards."
+          ],
+          "risks_and_mitigations": [
+            {
+              "risk": "Control drift between the shared and regulated lanes.",
+              "mitigation": "Back both lanes with the same policy source of truth and unified reporting."
+            }
+          ],
+          "open_questions": [],
+          "rollout_30_90_180": [
+            {
+              "horizon": "30 days",
+              "outcome": "Pilot the standard lane with non-regulated teams."
+            },
+            {
+              "horizon": "90 days",
+              "outcome": "Launch the regulated lane with isolated execution and approval workflows."
+            },
+            {
+              "horizon": "180 days",
+              "outcome": "Standardize reporting, quota, and policy management across both lanes."
+            }
+          ],
+          "operating_principles": [
+            "One governance model, distinct execution boundaries.",
+            "Separate approval ownership only where the control boundary requires it."
+          ],
+          "control_checklist": [
+            "Regional execution for regulated workloads",
+            "Separate regulated approval workflow",
+            "Unified policy and telemetry standards"
+          ]
+        },
+        "delta": null
+      },
+      "architecture_case": {
+        "schema_version": "1.0",
+        "case_id": "case-blueprint-ready",
+        "revision": 4,
+        "okf_release_id": "okf:demo",
+        "stage": "blueprint",
+        "current_recommendation": "Governed multi-harness with one shared lane and one separately governed regulated lane.",
+        "operating_model": "multi_harness_governed",
+        "facts": [
+          {
+            "id": "fact-1",
+            "statement": "Regulated repositories must stay in-region."
+          },
+          {
+            "id": "fact-2",
+            "statement": "Regulated teams need separate approvals and audit ownership."
+          }
+        ],
+        "open_questions": [],
+        "decisions": [
+          {
+            "id": "decision-1",
+            "statement": "Separate the regulated execution lane and approval path.",
+            "rationale": "The control boundary is real and cannot be handled by one shared execution path."
+          }
+        ],
+        "risks": [
+          {
+            "id": "risk-1",
+            "risk": "Control drift between lanes.",
+            "mitigation": "Use shared policy definitions and reporting."
+          }
+        ],
+        "artifacts": {
+          "blueprint_markdown": "## Technical Blueprint\n\n### Target State\nShared surfaces and governance feed two execution lanes: one standard and one regulated.\n\n### Key Controls\n- In-region regulated execution\n- Separate regulated approvals\n- Shared telemetry standards",
+          "executive_summary": "Governed multi-harness with a separate regulated lane.",
+          "recommendation_memo": "This preserves developer scale without collapsing the control boundary.",
+          "architecture_narrative": "Shared surfaces feed two execution lanes with common governance and distinct approvals where required.",
+          "diagram_summary": "Surface -> harness -> execution lanes -> model routing -> controls",
+          "rollout": [
+            {
+              "phase": "30 days",
+              "outcome": "Pilot standard lane"
+            },
+            {
+              "phase": "90 days",
+              "outcome": "Launch regulated lane"
+            }
+          ]
+        }
+      },
+      "recommendation_state": {
+        "primary_recommendation": "Governed multi-harness with a separate regulated lane.",
+        "confidence": "high",
+        "candidate_options": [
+          {
+            "path": "operating-model/multi-harness",
+            "title": "Governed multi-harness",
+            "summary": "Shared standard lane with a separately governed regulated lane.",
+            "decision_domain": "operating-model",
+            "position": "recommended"
+          }
+        ],
+        "missing_evidence": [],
+        "next_best_question": "",
+        "last_reasoning_change_fields": [
+          "architecture",
+          "blueprint"
+        ]
+      },
+      "artifact_status": {
+        "recommendation": "ready",
+        "question_state": "ready",
+        "advisory_case": "ready",
+        "blueprint": "ready",
+        "blocking_question_count": 0,
+        "stale_fields": [],
+        "reasoning_changes": []
+      },
+      "updated_at": "2026-08-28T13:30:00.000Z"
+    },
+    "architectureArtifact": {
+      "executive_summary": "Shared surfaces and governance feed two execution lanes: a standard lane and a separately approved regulated lane.",
+      "baseline": {
+        "name": "Governed Multi-Harness Baseline",
+        "layers": [
+          {
+            "id": "surface",
+            "label": "Surface",
+            "purpose": "Developer entry points for chat, IDE, and CI workflows.",
+            "component_ids": [
+              "surface-chat",
+              "surface-ide"
+            ],
+            "component_labels": [
+              "Advisory Chat",
+              "IDE / CI Surfaces"
+            ]
+          },
+          {
+            "id": "harness",
+            "label": "Harness",
+            "purpose": "Approved harness portfolio under one governance model.",
+            "component_ids": [
+              "harness-standard",
+              "harness-regulated"
+            ],
+            "component_labels": [
+              "Standard Harness",
+              "Regulated Harness"
+            ]
+          },
+          {
+            "id": "execution",
+            "label": "Execution",
+            "purpose": "Separate lanes for shared and regulated workloads.",
+            "component_ids": [
+              "exec-standard",
+              "exec-regulated"
+            ],
+            "component_labels": [
+              "Standard Execution",
+              "Regulated In-Region Execution"
+            ]
+          }
+        ]
+      },
+      "customizations": [
+        {
+          "id": "cust-1",
+          "title": "Separate regulated approvals",
+          "layer": "access",
+          "added_component_ids": [
+            "access-regulated-approval"
+          ],
+          "reason": "Regulated teams need separate audit ownership.",
+          "tradeoff": "More operational complexity for regulated onboarding.",
+          "triggered_by": [
+            "approval segregation"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "decision": "Adopt a governed multi-harness operating model.",
+          "why": "The standard and regulated populations have different control requirements."
+        }
+      ],
+      "risks": [
+        {
+          "risk": "Control drift between lanes.",
+          "mitigation": "Use shared policy definitions and unified reporting."
+        }
+      ],
+      "rollout": [
+        {
+          "phase": "30 days",
+          "outcome": "Pilot standard lane."
+        },
+        {
+          "phase": "90 days",
+          "outcome": "Launch regulated lane."
+        }
+      ],
+      "primary_flow": [
+        {
+          "id": "flow-1",
+          "title": "Standard request path",
+          "narrative": "Standard users move through shared surfaces, the standard harness, and shared execution.",
+          "component_ids": [
+            "surface-chat",
+            "harness-standard",
+            "exec-standard"
+          ]
+        }
+      ],
+      "cross_cutting_controls": [
+        {
+          "id": "control-1",
+          "title": "Shared governance",
+          "narrative": "Policy, quota, and observability remain consistent across both lanes.",
+          "component_ids": [
+            "control-plane"
+          ]
+        }
+      ],
+      "supporting_lanes": [
+        {
+          "id": "support-1",
+          "title": "Regulated approval lane",
+          "narrative": "Regulated teams use a separate approval and audit workflow.",
+          "component_ids": [
+            "access-regulated-approval",
+            "exec-regulated"
+          ]
+        }
+      ]
+    },
+    "canvas": {
+      "nodes": [
+        {
+          "id": "surface-chat",
+          "type": "arch",
+          "label": "Advisory Chat",
+          "color": "#d97706",
+          "x": 60,
+          "y": 60,
+          "layer": "surface",
+          "path_role": "primary"
+        },
+        {
+          "id": "harness-standard",
+          "type": "arch",
+          "label": "Standard Harness",
+          "color": "#2563eb",
+          "x": 280,
+          "y": 40,
+          "layer": "harness",
+          "path_role": "primary"
+        },
+        {
+          "id": "harness-regulated",
+          "type": "arch",
+          "label": "Regulated Harness",
+          "color": "#b91c1c",
+          "x": 280,
+          "y": 160,
+          "layer": "harness",
+          "path_role": "supporting"
+        },
+        {
+          "id": "exec-standard",
+          "type": "arch",
+          "label": "Standard Execution",
+          "color": "#16a34a",
+          "x": 520,
+          "y": 40,
+          "layer": "execution",
+          "path_role": "primary"
+        },
+        {
+          "id": "exec-regulated",
+          "type": "arch",
+          "label": "In-Region Regulated Execution",
+          "color": "#dc2626",
+          "x": 520,
+          "y": 160,
+          "layer": "execution",
+          "path_role": "supporting"
+        },
+        {
+          "id": "control-plane",
+          "type": "arch",
+          "label": "Shared Policy / Telemetry / Quota",
+          "color": "#7c3aed",
+          "x": 400,
+          "y": 280,
+          "layer": "ops",
+          "path_role": "overlay"
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-1",
+          "source": "surface-chat",
+          "target": "harness-standard"
+        },
+        {
+          "id": "edge-2",
+          "source": "surface-chat",
+          "target": "harness-regulated",
+          "dashed": true
+        },
+        {
+          "id": "edge-3",
+          "source": "harness-standard",
+          "target": "exec-standard"
+        },
+        {
+          "id": "edge-4",
+          "source": "harness-regulated",
+          "target": "exec-regulated"
+        }
+      ],
+      "baselineNodeIds": [
+        "surface-chat",
+        "harness-standard",
+        "harness-regulated",
+        "exec-standard",
+        "exec-regulated",
+        "control-plane"
+      ]
+    }
+  }
+]

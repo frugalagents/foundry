@@ -19,6 +19,25 @@ cost comparison at equivalent adoption rates
 - **Identity:** Okta Workforce Identity + SCIM (live)
 - **Compliance:** SOC 2 Type II, PCI DSS Level 1, SOX, GDPR (EU ops)
 
+## Judge Expectations
+
+```json
+{
+  "required_stage": "blueprint",
+  "required_confidence": "high",
+  "require_architecture": true,
+  "require_blueprint": true,
+  "max_open_questions": 0,
+  "must_address": [
+    "Okta",
+    "SOX",
+    "PCI",
+    "data science",
+    "30/90/180 rollout"
+  ]
+}
+```
+
 ---
 
 ## Discovery Conversation

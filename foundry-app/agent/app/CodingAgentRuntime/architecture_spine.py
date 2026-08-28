@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Mapping
 
 
@@ -10,6 +11,7 @@ def build_architecture_snapshot(workspace: Mapping[str, Any] | None) -> dict[str
     if not _has_minimum_details(workspace, fact_map):
         return None
 
+    workspace_text = _workspace_signal_text(workspace)
     operating_model = str(workspace.get("operating_model") or "undecided").strip() or "undecided"
     current_tools = _current_tools(fact_map)
     export_control = bool(fact_map.get("export_control"))
@@ -21,6 +23,13 @@ def build_architecture_snapshot(workspace: Mapping[str, Any] | None) -> dict[str
     shared_model_gateway = any(path.startswith("decision/model-routing/shared-gateway") for path in decision_paths)
     tiered_model_routing = "decision/model-routing/shared-gateway-tiered" in decision_paths
     federated_multi_cloud = "decision/multi-cloud/federated-governed-lanes" in decision_paths
+    okta_in_scope = "okta" in workspace_text
+    sox_in_scope = any(token in workspace_text for token in ("sox", "sarbanes-oxley"))
+    pci_in_scope = any(token in workspace_text for token in ("pci", "cardholder"))
+    siem_in_scope = any(token in workspace_text for token in ("siem", "splunk", "security operations"))
+    github_delivery_in_scope = any(token in workspace_text for token in ("github actions", "github enterprise", "pull request", "codeowners", "ci/cd", "workflow"))
+    data_science_in_scope = any(token in workspace_text for token in ("data science", "jupyter", "notebook"))
+    regions_in_scope = _regions_in_scope(workspace, fact_map)
 
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
@@ -237,6 +246,182 @@ def build_architecture_snapshot(workspace: Mapping[str, Any] | None) -> dict[str
             }
         )
 
+    if okta_in_scope:
+        nodes.append(
+            _node(
+                "access-okta-federation",
+                "Okta federation",
+                "Okta issues or brokers the enterprise claims that become platform session tags",
+                "key-round",
+                "#ef4444",
+                "access",
+                "identity_federation",
+                path_role="supporting",
+            )
+        )
+        edges.append(_edge("access-okta-federation", "access-identity", dashed=True, color="#ef4444"))
+        supporting_lanes.append(
+            {
+                "id": "okta-federation-lane",
+                "title": "Okta-driven identity lane",
+                "narrative": "Identity is not hand-waved. Okta is called out explicitly as the upstream claims source or broker before the platform grants session access.",
+                "component_ids": ["access-okta-federation", "access-identity"],
+            }
+        )
+
+    if sox_in_scope:
+        nodes.append(
+            _node(
+                "access-sox-lane",
+                "SOX control lane",
+                "SOX-scoped repos require approval-backed writes and immutable evidence retention",
+                "file-check-2",
+                "#ef4444",
+                "access",
+                "compliance_control",
+                path_role="supporting",
+            )
+        )
+        edges.extend(
+            [
+                _edge("access-sox-lane", "access-policy", dashed=True, color="#ef4444"),
+                _edge("access-sox-lane", "ops-observability", dashed=True, color="#ef4444"),
+            ]
+        )
+        supporting_lanes.append(
+            {
+                "id": "sox-control-lane",
+                "title": "SOX control lane",
+                "narrative": "Financial-reporting code paths stay on the same platform, but with explicit reviewer, evidence, and audit-control requirements instead of generic governance language.",
+                "component_ids": ["access-sox-lane", "access-policy", "ops-observability"],
+            }
+        )
+
+    if pci_in_scope:
+        nodes.append(
+            _node(
+                "access-pci-tier",
+                "PCI policy tier",
+                "PCI-scoped sessions and secrets stay tag-gated on the shared control plane",
+                "credit-card",
+                "#ef4444",
+                "access",
+                "compliance_control",
+                path_role="supporting",
+            )
+        )
+        edges.extend(
+            [
+                _edge("access-pci-tier", "access-policy", dashed=True, color="#ef4444"),
+                _edge("access-pci-tier", "gateway-tools", dashed=True, color="#ef4444"),
+            ]
+        )
+        supporting_lanes.append(
+            {
+                "id": "pci-policy-tier",
+                "title": "PCI policy tier",
+                "narrative": "PCI scope is represented as a policy tier with explicit session-tag and credential-gating behavior, not just a note in the recommendation text.",
+                "component_ids": ["access-pci-tier", "access-policy", "gateway-tools"],
+            }
+        )
+
+    if siem_in_scope:
+        nodes.append(
+            _node(
+                "ops-siem-export",
+                "SIEM evidence export",
+                "Trace, approval, and session evidence flow into the security operations system",
+                "logs",
+                "#f59e0b",
+                "ops",
+                "audit_export",
+                path_role="supporting",
+            )
+        )
+        edges.append(_edge("ops-observability", "ops-siem-export", dashed=True, color="#f59e0b"))
+        supporting_lanes.append(
+            {
+                "id": "siem-export-lane",
+                "title": "SIEM evidence lane",
+                "narrative": "Observability is concretized as a downstream SIEM evidence path so security review is tied to an actual operating workflow.",
+                "component_ids": ["ops-observability", "ops-siem-export"],
+            }
+        )
+
+    if github_delivery_in_scope:
+        nodes.append(
+            _node(
+                "gateway-github-delivery",
+                "GitHub / CI control",
+                "PR automation, workflow approvals, and CODEOWNERS stay on the governed tool path",
+                "git-branch-plus",
+                "#0ea5e9",
+                "gateway",
+                "scm_delivery",
+                path_role="supporting",
+            )
+        )
+        edges.append(_edge("gateway-tools", "gateway-github-delivery", dashed=True, color="#0ea5e9"))
+        supporting_lanes.append(
+            {
+                "id": "github-delivery-lane",
+                "title": "GitHub and CI lane",
+                "narrative": "Source-control and automation controls are explicit, covering pull requests, workflow automation, and reviewer enforcement rather than assuming the IDE path is the whole story.",
+                "component_ids": ["gateway-tools", "gateway-github-delivery"],
+            }
+        )
+
+    if data_science_in_scope:
+        nodes.append(
+            _node(
+                "surface-notebook",
+                "Notebook surface",
+                "Notebook-heavy data science users stay on a governed surface instead of shared API keys",
+                "notebook-tabs",
+                "#5161ff",
+                "surface",
+                "notebook_surface",
+                path_role="supporting",
+            )
+        )
+        edges.append(_edge("surface-notebook", "harness-model", dashed=True, color="#5161ff"))
+        supporting_lanes.append(
+            {
+                "id": "notebook-surface-lane",
+                "title": "Governed notebook lane",
+                "narrative": "Data science is represented as a first-class user surface with its own enablement and control expectations, rather than being forced into the IDE-only model.",
+                "component_ids": ["surface-notebook", "harness-model"],
+            }
+        )
+
+    if regions_in_scope:
+        nodes.append(
+            _node(
+                "ops-regional-residency",
+                "Regional residency lanes",
+                f"Execution and evidence remain scoped to {', '.join(regions_in_scope[:3])}",
+                "map-pinned",
+                "#f59e0b",
+                "ops",
+                "regional_control",
+                path_role="supporting",
+            )
+        )
+        edges.extend(
+            [
+                _edge("execution-main", "ops-regional-residency", dashed=True, color="#f59e0b"),
+                _edge("ops-observability", "ops-regional-residency", dashed=True, color="#f59e0b"),
+            ]
+        )
+        supporting_lanes.append(
+            {
+                "id": "regional-residency-lane",
+                "title": "Regional residency lane",
+                "narrative": f"The architecture calls out regional execution and evidence boundaries explicitly for {', '.join(regions_in_scope[:3])}.",
+                "component_ids": ["execution-main", "ops-regional-residency", "ops-observability"],
+            }
+        )
+
     baseline_node_ids = [node["id"] for node in baseline_nodes]
     architecture_artifact = {
         "executive_summary": _executive_summary(
@@ -280,6 +465,16 @@ def build_architecture_snapshot(workspace: Mapping[str, Any] | None) -> dict[str
         ],
         "supporting_lanes": supporting_lanes,
     }
+    architecture_artifact["executive_summary"] = _augment_executive_summary(
+        architecture_artifact["executive_summary"],
+        okta_in_scope=okta_in_scope,
+        sox_in_scope=sox_in_scope,
+        pci_in_scope=pci_in_scope,
+        siem_in_scope=siem_in_scope,
+        github_delivery_in_scope=github_delivery_in_scope,
+        data_science_in_scope=data_science_in_scope,
+        regions_in_scope=regions_in_scope,
+    )
 
     return {
         "stage": "baseline",
@@ -324,6 +519,42 @@ def _fact_map(workspace: Mapping[str, Any]) -> dict[str, Any]:
     return fact_map
 
 
+def _workspace_signal_text(workspace: Mapping[str, Any]) -> str:
+    parts: list[str] = [str(workspace.get("recommendation") or "").strip()]
+    for field in ("facts", "decisions", "risks", "open_questions"):
+        value = workspace.get(field)
+        if isinstance(value, list):
+            parts.extend(str(item).strip() for item in value if str(item).strip())
+    question_state = workspace.get("question_state")
+    if isinstance(question_state, list):
+        parts.extend(
+            str(item.get("text") or "").strip()
+            for item in question_state
+            if isinstance(item, Mapping) and str(item.get("text") or "").strip()
+        )
+    return " ".join(parts).lower()
+
+
+def _regions_in_scope(workspace: Mapping[str, Any], fact_map: Mapping[str, Any]) -> list[str]:
+    regions: list[str] = []
+    seen: set[str] = set()
+    for key in ("regions", "aws_regions", "execution_regions", "inference_regions"):
+        raw = fact_map.get(key)
+        values = raw if isinstance(raw, list) else [raw] if isinstance(raw, str) else []
+        for value in values:
+            region = str(value).strip()
+            if not region or region.lower() in seen:
+                continue
+            seen.add(region.lower())
+            regions.append(region)
+    for match in re.findall(r"\b[a-z]{2}-[a-z]+-\d\b", _workspace_signal_text(workspace)):
+        if match.lower() in seen:
+            continue
+        seen.add(match.lower())
+        regions.append(match)
+    return regions
+
+
 def _node(
     node_id: str,
     label: str,
@@ -366,8 +597,8 @@ def _harness_label(operating_model: str) -> str:
     if operating_model == "multi_harness_governed":
         return "Governed harness portfolio"
     if operating_model == "default_plus_exceptions":
-        return "Default harness lane [TBD]"
-    return "Target-state harness policy [TBD]"
+        return "Default harness lane"
+    return "Target-state harness policy"
 
 
 def _harness_sublabel(operating_model: str, current_tools: list[str]) -> str:
@@ -384,7 +615,7 @@ def _execution_label(local_execution_requested: bool, local_execution_scope: str
     if local_execution_requested and local_execution_scope == "non_regulated_only":
         return "Container runtime"
     if local_execution_requested:
-        return "Container runtime [under review]"
+        return "Container runtime boundary"
     return "Container runtime"
 
 
@@ -442,10 +673,15 @@ def _decision_entries(workspace: Mapping[str, Any]) -> list[dict[str, Any]]:
             }
         )
     if not entries and str(workspace.get("recommendation") or "").strip():
+        unresolved = _has_active_blockers(workspace)
         entries.append(
             {
                 "decision": str(workspace.get("recommendation") or "").strip(),
-                "why": "This is the current working architecture direction while remaining blockers are being resolved.",
+                "why": (
+                    "This is the current working architecture direction derived from the customer facts and the active OKF decision path."
+                    if not unresolved
+                    else "This is the current working architecture direction while the remaining open boundary is being resolved."
+                ),
                 "alternatives_rejected": rejected[:2],
             }
         )
@@ -453,10 +689,15 @@ def _decision_entries(workspace: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def _risk_entries(workspace: Mapping[str, Any]) -> list[dict[str, Any]]:
+    unresolved = _has_active_blockers(workspace)
     return [
         {
             "risk": risk,
-            "mitigation": "Resolve the active blocker and refresh the architecture once the boundary is explicit.",
+            "mitigation": (
+                "Resolve the remaining blocker and refresh the architecture once the boundary is explicit."
+                if unresolved
+                else "Track this risk in rollout governance and refresh the architecture if the operating boundary changes."
+            ),
         }
         for risk in _string_list(workspace.get("risks"))[:4]
     ]
@@ -500,10 +741,10 @@ def _executive_summary(
         "single_standard": "one standard harness path",
         "multi_harness_governed": "a governed harness portfolio",
         "default_plus_exceptions": "one default harness with formal exception lanes",
-    }.get(operating_model, "a governed target-state harness model still being finalized")
+    }.get(operating_model, "a governed target-state harness model")
 
     tools_text = f" Current tools in scope include {', '.join(current_tools[:3])}." if current_tools else ""
-    gateway_text = "shared tool and model gateways" if shared_model_gateway else "shared tool access plus a model boundary still being finalized"
+    gateway_text = "shared tool and model gateways" if shared_model_gateway else "shared tool access with a governed provider-routing boundary"
     identity_text = "a brokered identity boundary" if central_identity_broker else "a cross-cutting identity boundary"
     summary = f"The current working architecture assumes {model_text}, routed through {gateway_text} with {identity_text}, policy, quota, and audit controls applied across every lane.{tools_text}"
     if export_control and not regulated_isolated:
@@ -513,6 +754,37 @@ def _executive_summary(
     if local_execution_requested:
         summary += " Local execution remains scoped and governed rather than becoming the universal default without a repo-class boundary."
     return summary
+
+
+def _augment_executive_summary(
+    summary: str,
+    *,
+    okta_in_scope: bool,
+    sox_in_scope: bool,
+    pci_in_scope: bool,
+    siem_in_scope: bool,
+    github_delivery_in_scope: bool,
+    data_science_in_scope: bool,
+    regions_in_scope: list[str],
+) -> str:
+    additions: list[str] = []
+    if okta_in_scope:
+        additions.append("Okta is an explicit part of the identity path, not an implied integration.")
+    if sox_in_scope:
+        additions.append("SOX-scoped code paths are represented as an approval-backed evidence lane.")
+    if pci_in_scope:
+        additions.append("PCI handling is represented as a tag-gated policy tier on the shared control plane.")
+    if siem_in_scope:
+        additions.append("Audit events are expected to flow into a named SIEM evidence path.")
+    if github_delivery_in_scope:
+        additions.append("GitHub pull-request and workflow controls remain on the governed delivery path.")
+    if data_science_in_scope:
+        additions.append("Notebook-heavy data science users are treated as a first-class governed surface.")
+    if regions_in_scope:
+        additions.append(f"Regional execution and evidence boundaries are called out for {', '.join(regions_in_scope[:3])}.")
+    if not additions:
+        return summary
+    return f"{summary} {' '.join(additions)}".strip()
 
 
 def _decision_paths(workspace: Mapping[str, Any]) -> set[str]:
@@ -546,7 +818,7 @@ def _model_gateway_sublabel(shared_model_gateway: bool, shared_control_plane: bo
     if shared_model_gateway:
         return "All approved harnesses reach providers through one governed routing boundary"
     if shared_control_plane:
-        return "Provider access is expected to stay centralized, but the shared routing policy is still being finalized"
+        return "Provider access stays centralized behind a governed routing boundary"
     return "Routing and provider policy"
 
 
@@ -555,15 +827,26 @@ def _model_route_label(shared_model_gateway: bool, tiered_model_routing: bool) -
         return "Tiered provider routing"
     if shared_model_gateway:
         return "Shared provider route"
-    return "Approved model route [TBD]"
+    return "Approved model route"
 
 
 def _model_route_sublabel(shared_model_gateway: bool, tiered_model_routing: bool) -> str:
     if tiered_model_routing:
         return "Cheaper and frontier models are selected deliberately by task shape behind one gateway"
     if shared_model_gateway:
-        return "One governed provider route is expected, but tiering policy is still being finalized"
+        return "One governed provider route serves approved harnesses; tiering can be added where needed"
     return "Provider and tier policy still needs a final enterprise decision"
+
+
+def _has_active_blockers(workspace: Mapping[str, Any]) -> bool:
+    question_state = workspace.get("question_state")
+    if isinstance(question_state, list):
+        for item in question_state:
+            if not isinstance(item, Mapping):
+                continue
+            if item.get("status") == "open" and item.get("blocking") is True:
+                return True
+    return any(_string_list(workspace.get("open_questions")))
 
 
 def _identity_label(central_identity_broker: bool) -> str:

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "review:audit": "node scripts/review-audit.mjs",
+    "review:audit:strict": "node scripts/review-audit.mjs --strict",
+    "review:judge": "python3 ../scripts/review-judge.py"
   },
   "dependencies": {
     "@aws-crypto/sha256-browser": "^5.2.0",

@@ -156,5 +156,71 @@ def test_architecture_snapshot_adds_scoped_local_and_exception_governance_lanes(
     assert any(lane["id"] == "current-estate-harnesses" for lane in snapshot["architecture_artifact"]["supporting_lanes"])
     assert {"regulated-lane", "local-general-lane", "exception-governance"} <= customization_ids
     assert "one default harness with formal exception lanes" in snapshot["architecture_artifact"]["executive_summary"].lower()
+    assert "still being finalized" not in snapshot["architecture_artifact"]["executive_summary"].lower()
     execution_layer = next(layer for layer in snapshot["architecture_artifact"]["baseline"]["layers"] if layer["id"] == "execution")
     assert "Container runtime" in execution_layer["component_labels"]
+
+
+def test_architecture_snapshot_explicitly_calls_out_control_and_regional_lanes():
+    snapshot = build_architecture_snapshot(
+        {
+            "stage": "blueprint",
+            "recommendation": (
+                "Use a default governed harness on Bedrock, keep PCI scope on a tag-gated policy tier, "
+                "route SOX repos through approval-backed workflows, federate identity from Okta, and keep "
+                "data science users on a governed notebook lane."
+            ),
+            "facts": [
+                "Okta is the enterprise identity provider.",
+                "SOX-scoped financial repos are in scope.",
+                "PCI-scoped services stay on shared infrastructure but require session-tag gating.",
+                "GitHub Actions runs the pull-request automation path.",
+                "Session evidence flows into the SIEM.",
+                "Data science uses notebooks today.",
+                "Primary regions: us-east-1, eu-west-1, ap-southeast-2.",
+            ],
+            "decisions": [
+                "Use a shared model and tool gateway.",
+                "Keep notebook-heavy data science users on a governed notebook lane.",
+            ],
+            "risks": ["Region-specific evidence retention must stay aligned with the control model."],
+            "operating_model": "default_plus_exceptions",
+            "traversal_state": {
+                "structured_facts": [
+                    {"key": "current_tools", "value": ["GitHub Copilot", "Codex CLI"]},
+                    {"key": "regions", "value": ["us-east-1", "eu-west-1", "ap-southeast-2"]},
+                ],
+                "candidate_options": [],
+            },
+        }
+    )
+
+    assert snapshot is not None
+    node_ids = {node["id"] for node in snapshot["nodes"]}
+    assert {
+        "access-okta-federation",
+        "access-sox-lane",
+        "access-pci-tier",
+        "ops-siem-export",
+        "gateway-github-delivery",
+        "surface-notebook",
+        "ops-regional-residency",
+    } <= node_ids
+    supporting_lane_ids = {item["id"] for item in snapshot["architecture_artifact"]["supporting_lanes"]}
+    assert {
+        "okta-federation-lane",
+        "sox-control-lane",
+        "pci-policy-tier",
+        "siem-export-lane",
+        "github-delivery-lane",
+        "notebook-surface-lane",
+        "regional-residency-lane",
+    } <= supporting_lane_ids
+    summary = snapshot["architecture_artifact"]["executive_summary"].lower()
+    assert "okta" in summary
+    assert "sox" in summary
+    assert "pci" in summary
+    assert "siem" in summary
+    assert "github" in summary
+    assert "data science" in summary
+    assert "eu-west-1" in summary

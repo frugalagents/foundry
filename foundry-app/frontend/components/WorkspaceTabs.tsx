@@ -5,8 +5,7 @@ import { Download, MessageSquare } from 'lucide-react'
 import { useStore } from '@/store'
 import { buildAssumptionCards } from '@/lib/assumptions'
 import { normalizeWorkspace } from '@/lib/message-analysis'
-import { hasAdvisoryCaseContent } from '@/lib/advisory-case'
-import { downloadSessionBrief, hasOutputPackContent, hasSessionExportContent } from '@/lib/session-export'
+import { downloadSessionBrief, hasSessionExportContent, resolveBlueprintContent } from '@/lib/session-export'
 import { normalizeAdvisoryStage, preferredWorkspaceTab, type AdvisoryWorkspaceTab } from '@/lib/workflow'
 import AdvisoryBrief from './AdvisoryBrief'
 import AssumptionsPanel from './AssumptionsPanel'
@@ -28,11 +27,12 @@ export default function WorkspaceTabs() {
   const canvasEdges = useStore((s) => s.canvasEdges)
   const baselineNodeIds = useStore((s) => s.baselineNodeIds)
   const view = useMemo(() => normalizeWorkspace(workspace), [workspace])
-  const advisoryCase = hasAdvisoryCaseContent(view.advisory_case) ? view.advisory_case : null
-  const blueprintReady =
-    !!view.blueprint_markdown?.trim() ||
-    !!view.architecture_case?.artifacts.blueprint_markdown?.trim() ||
-    Boolean(advisoryCase?.output_pack && hasOutputPackContent(advisoryCase.output_pack))
+  const blueprint = useMemo(
+    () => resolveBlueprintContent(view, architectureArtifact),
+    [architectureArtifact, view],
+  )
+  const blueprintReady = blueprint.mode !== 'empty'
+  const blueprintPublished = blueprint.mode === 'published'
   const assumptions = useMemo(
     () => buildAssumptionCards(view, architectureArtifact, canvasNodes),
     [architectureArtifact, canvasNodes, view],
@@ -73,7 +73,7 @@ export default function WorkspaceTabs() {
       workspace,
     ],
   )
-  const showExport = blueprintReady && canExport
+  const showExport = blueprintPublished && canExport
   const showFeedback = Boolean(activeCustomerId && activeSessionId && messages.length > 0)
   const [exporting, setExporting] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -245,7 +245,7 @@ export default function WorkspaceTabs() {
           <WorkspaceTabButton
             active={activeTab === 'blueprint'}
             onClick={() => setActiveTab('blueprint')}
-            badge={blueprintReady ? undefined : 'pending'}
+            badge={blueprintReady ? (blueprintPublished ? undefined : 'draft') : 'pending'}
           >
             Blueprint
           </WorkspaceTabButton>

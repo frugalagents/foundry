@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useStore } from '@/store'
 import { normalizeWorkspace } from '@/lib/message-analysis'
 import { renderMarkdown } from '@/lib/render-markdown'
-import { buildFallbackBlueprint, buildStructuredBlueprintHtml, buildStructuredBlueprintSections } from '@/lib/session-export'
+import { resolveBlueprintContent } from '@/lib/session-export'
 import { normalizeAdvisoryStage } from '@/lib/workflow'
 
 export default function BlueprintPanel() {
@@ -15,35 +15,16 @@ export default function BlueprintPanel() {
 
   const view = useMemo(() => normalizeWorkspace(workspace), [workspace])
   const stage = normalizeAdvisoryStage(view.stage) ?? 'discovery'
-  const rawBlueprint = useMemo(
-    () => (view.architecture_case?.artifacts.blueprint_markdown?.trim() || view.blueprint_markdown?.trim() || '').trim(),
-    [view.architecture_case?.artifacts.blueprint_markdown, view.blueprint_markdown],
-  )
-  const fallbackMarkdown = useMemo(
-    () => (rawBlueprint || buildFallbackBlueprint(view, architectureArtifact)).trim(),
-    [rawBlueprint, view, architectureArtifact],
-  )
-  const structuredBlueprintHtml = useMemo(
-    () => buildStructuredBlueprintHtml(view, architectureArtifact).trim(),
-    [view, architectureArtifact],
-  )
-  const structuredSections = useMemo(
-    () => buildStructuredBlueprintSections(view, architectureArtifact),
-    [view, architectureArtifact],
-  )
-  const useStructuredHtml = useMemo(
-    () => shouldUseStructuredBlueprintHtml(rawBlueprint, fallbackMarkdown, structuredBlueprintHtml),
-    [rawBlueprint, fallbackMarkdown, structuredBlueprintHtml],
+  const blueprint = useMemo(
+    () => resolveBlueprintContent(view, architectureArtifact),
+    [architectureArtifact, view],
   )
   const technicalSections = useMemo(
-    () => (useStructuredHtml ? [] : parseMarkdownSections(fallbackMarkdown)),
-    [fallbackMarkdown, useStructuredHtml],
+    () => parseMarkdownSections(blueprint.markdown),
+    [blueprint.markdown],
   )
-  const hasBlueprint =
-    rawBlueprint.length > 0 ||
-    structuredBlueprintHtml.length > 0 ||
-    (stage === 'blueprint' && fallbackMarkdown.length > 0)
-  const copySource = fallbackMarkdown || rawBlueprint
+  const hasBlueprint = blueprint.mode !== 'empty'
+  const copySource = blueprint.markdown
 
   async function handleCopy() {
     if (!hasBlueprint) return
@@ -62,7 +43,9 @@ export default function BlueprintPanel() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span style={eyebrowStyle}>Blueprint</span>
           <p style={subtitleStyle}>
-            This is the detailed technical blueprint for build teams, review threads, and architecture documentation.
+            {blueprint.mode === 'derived'
+              ? 'This draft is synthesized from the current recommendation and architecture so reviewers can see what is still missing.'
+              : 'This is the detailed technical blueprint for build teams, review threads, and architecture documentation.'}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -80,64 +63,17 @@ export default function BlueprintPanel() {
               : 'The engine will publish the detailed technical blueprint here once the recommendation is coherent enough to implement.'}
           </p>
         </div>
-      ) : useStructuredHtml ? (
-        <StructuredBlueprintView
-          html={structuredBlueprintHtml}
-          sections={structuredSections}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-        />
       ) : (
-        <MarkdownBlueprintView sections={technicalSections} activeTab={activeTab} onChange={setActiveTab} />
+        <>
+          {blueprint.mode === 'derived' ? (
+            <div style={draftBannerStyle}>
+              The advisor has not published a canonical blueprint yet. This panel is showing a derived draft so the UI stays reviewable without overstating artifact completeness.
+            </div>
+          ) : null}
+          <MarkdownBlueprintView sections={technicalSections} activeTab={activeTab} onChange={setActiveTab} />
+        </>
       )}
     </div>
-  )
-}
-
-function StructuredBlueprintView({
-  html,
-  sections,
-  activeTab,
-  onChange,
-}: {
-  html: string
-  sections: Array<{ id: string; title: string; html: string }>
-  activeTab: string
-  onChange: (tab: string) => void
-}) {
-  const tabs = sections.map((section) => ({ id: section.id, label: section.title }))
-  const selectedTab = tabs.find((tab) => tab.id === activeTab)?.id ?? tabs[0]?.id ?? 'overview'
-  const activeSection = sections.find((section) => section.id === selectedTab) ?? sections[0] ?? null
-
-  if (!activeSection) {
-    return (
-      <div style={contentShellStyle}>
-        <section style={sectionStyle}>
-          <span style={sectionTitleStyle}>Structured Blueprint</span>
-          <div
-            className="prose"
-            style={proseStyle}
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        </section>
-      </div>
-    )
-  }
-
-  return (
-    <>
-      {tabs.length > 1 ? <TabBar tabs={tabs} activeTab={selectedTab} onChange={onChange} /> : null}
-      <div style={contentShellStyle}>
-        <section style={sectionStyle}>
-          <span style={sectionTitleStyle}>{activeSection.title}</span>
-          <div
-            className="prose"
-            style={proseStyle}
-            dangerouslySetInnerHTML={{ __html: htmlForStructuredSection(activeSection.id, html, activeSection.html) }}
-          />
-        </section>
-      </div>
-    </>
   )
 }
 
@@ -333,21 +269,6 @@ function looksLikeHtml(body: string) {
   return /^\s*<(article|aside|div|dl|footer|h1|h2|h3|header|li|main|nav|ol|p|section|table|tbody|td|th|thead|tr|ul)\b/i.test(body)
 }
 
-function shouldUseStructuredBlueprintHtml(rawBlueprint: string, fallbackMarkdown: string, html: string) {
-  if (!html) return false
-  if (!rawBlueprint) return true
-  if (looksLikeHtml(rawBlueprint)) return false
-  const hasStructuredHeadings = /^##\s+.+$/m.test(fallbackMarkdown) || /^###\s+.+$/m.test(fallbackMarkdown)
-  if (!hasStructuredHeadings) return true
-  const paragraphCount = fallbackMarkdown.split(/\n\s*\n/).filter((item) => item.trim()).length
-  return paragraphCount <= 2 && fallbackMarkdown.length > 240
-}
-
-function htmlForStructuredSection(sectionId: string, html: string, sectionHtml: string) {
-  const marker = `data-blueprint-section="${sectionId}"`
-  return html.includes(marker) ? sectionHtml : html
-}
-
 function ArtifactButton({
   children,
   disabled,
@@ -411,6 +332,17 @@ const eyebrowStyle: React.CSSProperties = {
 const subtitleStyle: React.CSSProperties = {
   fontSize: 12,
   color: 'var(--text-faint)',
+  lineHeight: 1.55,
+}
+
+const draftBannerStyle: React.CSSProperties = {
+  margin: '12px 16px 0',
+  padding: '10px 12px',
+  borderRadius: 10,
+  border: '1px solid rgba(245,158,11,0.28)',
+  background: 'rgba(245,158,11,0.08)',
+  color: 'var(--text)',
+  fontSize: 12.5,
   lineHeight: 1.55,
 }
 

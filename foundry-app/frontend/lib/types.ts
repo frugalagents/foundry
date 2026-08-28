@@ -148,6 +148,85 @@ export interface AdminFeedbackRow {
   feedback: SessionFeedback
 }
 
+export interface JudgeRecommendationReview {
+  score: number
+  is_correct_for_customer?: boolean | null
+  assessment: string
+  evidence: string[]
+}
+
+export interface JudgeArchitectureReview {
+  score: number
+  is_complete_enough?: boolean | null
+  assessment: string
+  strengths: string[]
+  gaps: string[]
+}
+
+export interface JudgeBlueprintReview {
+  score: number
+  is_complete_enough?: boolean | null
+  assessment: string
+  missing_elements: string[]
+}
+
+export interface JudgeUiAccuracyReview {
+  component: string
+  status: string
+  score: number
+  assessment: string
+  suggested_improvements: string[]
+}
+
+export interface JudgeDeterministicFinding {
+  component: string
+  severity: string
+  title: string
+  detail: string
+}
+
+export interface JudgeOpenItem {
+  severity: string
+  title: string
+  reason: string
+  suggested_fix: string
+}
+
+export interface JudgeSuggestedFeature {
+  name: string
+  priority: string
+  why_it_matters: string
+  implementation_hint: string
+}
+
+export interface JudgeReport {
+  judge_report_id: string
+  customer_id: string
+  session_id: string
+  session_title: string
+  simulation_file: string
+  overall_verdict: string
+  judge_confidence: string
+  summary: string
+  recommendation_review: JudgeRecommendationReview
+  architecture_review: JudgeArchitectureReview
+  blueprint_review: JudgeBlueprintReview
+  ui_accuracy_review: JudgeUiAccuracyReview[]
+  deterministic_findings: JudgeDeterministicFinding[]
+  open_items: JudgeOpenItem[]
+  suggested_features: JudgeSuggestedFeature[]
+  response_text: string
+  report_dir: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminJudgeReportRow {
+  customer: Customer
+  session: Session
+  report: JudgeReport
+}
+
 export type AccessRequestStatus = 'pending' | 'approved' | 'rejected' | 'activated'
 
 export interface AccessRequestCreated {
